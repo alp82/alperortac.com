@@ -1,16 +1,45 @@
+# Dependencies
 node_modules
-.DS_Store
+
+# Build output
 dist
 dist-ssr
-*.local
-.env
-.nitro
-.tanstack
-.wrangler
 .output
+.nitro
 .vinxi
-__unconfig*
-todos.json
-*.code-workspace
-coverage/
+.wrangler
+.tanstack
 .cache/
+.vite/
+__unconfig*
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testing
+coverage/
+test-results/
+playwright-report/
+.playwright-cli/
+
+# Editor & OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+*.code-workspace
+
+# Misc
+todos.json

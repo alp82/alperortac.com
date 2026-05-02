@@ -51,6 +51,7 @@ export function useScrollDriver(
 		const initialProgress = honestLiar(initialFraction);
 		root.style.setProperty("--scroll", initialFraction.toFixed(4));
 		root.style.setProperty("--progress", initialProgress.toFixed(4));
+		root.style.setProperty("--scroll-px", `${window.scrollY}px`);
 
 		const initialBar = document.querySelector(progressbarSelector);
 		if (initialBar) {
@@ -71,6 +72,7 @@ export function useScrollDriver(
 			const progress = honestLiar(fraction);
 			root.style.setProperty("--scroll", fraction.toFixed(4));
 			root.style.setProperty("--progress", progress.toFixed(4));
+			root.style.setProperty("--scroll-px", `${window.scrollY}px`);
 			const bar = document.querySelector(progressbarSelector);
 			if (bar) {
 				bar.setAttribute("aria-valuenow", String(Math.round(progress * 100)));
