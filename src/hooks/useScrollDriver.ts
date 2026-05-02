@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { usePostHog } from "@posthog/react";
 
 /**
  * Compute the honest-liar progress curve.
@@ -24,6 +25,8 @@ function readScrollFraction(): number {
 	return Math.max(0, Math.min(1, window.scrollY / max));
 }
 
+const SCROLL_MILESTONES = [0.25, 0.5, 0.75, 0.9];
+
 /**
  * Single rAF-driven scroll driver.
  *
@@ -43,8 +46,11 @@ function readScrollFraction(): number {
 export function useScrollDriver(
 	progressbarSelector: string = "[data-progressbar]",
 ): void {
+	const posthog = usePostHog();
+
 	useEffect(() => {
 		const root = document.documentElement;
+		const firedMilestones = new Set<number>();
 
 		// Synchronous initial read - paints correct state before first rAF.
 		const initialFraction = readScrollFraction();
@@ -77,6 +83,14 @@ export function useScrollDriver(
 			if (bar) {
 				bar.setAttribute("aria-valuenow", String(Math.round(progress * 100)));
 			}
+			for (const milestone of SCROLL_MILESTONES) {
+				if (!firedMilestones.has(milestone) && fraction >= milestone) {
+					firedMilestones.add(milestone);
+					posthog.capture("scroll_milestone_reached", {
+						milestone_pct: Math.round(milestone * 100),
+					});
+				}
+			}
 		};
 
 		const onScroll = () => {
@@ -96,5 +110,5 @@ export function useScrollDriver(
 				window.cancelAnimationFrame(rafId);
 			}
 		};
-	}, [progressbarSelector]);
+	}, [progressbarSelector, posthog]);
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePostHog } from "@posthog/react";
 import { sampleClearedPct } from "../lib/digSampler";
 import { Placeholder } from "./Placeholder";
 
@@ -73,6 +74,7 @@ const PARTICLE_SPAWN_MIN_MS = 35;
  *   - a "drag to dig" hint that fades on first stroke
  */
 export function DigZone(): React.ReactElement {
+	const posthog = usePostHog();
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const drawingRef = useRef(false);
@@ -98,8 +100,12 @@ export function DigZone(): React.ReactElement {
 		if (pct >= REVEAL_THRESHOLD) {
 			revealedRef.current = true;
 			setRevealed(true);
+			posthog.capture("dig_revealed", {
+				method: "drag",
+				cleared_pct: Math.round(pct * 100),
+			});
 		}
-	}, []);
+	}, [posthog]);
 
 	const spawnParticles = useCallback((x: number, y: number) => {
 		const now = performance.now();
@@ -238,6 +244,9 @@ export function DigZone(): React.ReactElement {
 			if (!startedRef.current) {
 				startedRef.current = true;
 				setStarted(true);
+				posthog.capture("dig_started", {
+					pointer_type: e.pointerType,
+				});
 			}
 			const cp = containerPoint(e);
 			if (cp) spawnParticles(cp.x, cp.y);
@@ -249,6 +258,7 @@ export function DigZone(): React.ReactElement {
 			erase,
 			localPoint,
 			maybeVibrate,
+			posthog,
 			sampleAndMaybeReveal,
 			spawnParticles,
 		],
@@ -291,14 +301,20 @@ export function DigZone(): React.ReactElement {
 		[sampleAndMaybeReveal],
 	);
 
-	const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLCanvasElement>) => {
-		if (revealedRef.current) return;
-		if (e.key === " " || e.key === "Enter") {
-			e.preventDefault();
-			revealedRef.current = true;
-			setRevealed(true);
-		}
-	}, []);
+	const onKeyDown = useCallback(
+		(e: React.KeyboardEvent<HTMLCanvasElement>) => {
+			if (revealedRef.current) return;
+			if (e.key === " " || e.key === "Enter") {
+				e.preventDefault();
+				revealedRef.current = true;
+				setRevealed(true);
+				posthog.capture("dig_revealed_keyboard", {
+					key: e.key,
+				});
+			}
+		},
+		[posthog],
+	);
 
 	return (
 		<div

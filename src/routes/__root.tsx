@@ -1,6 +1,7 @@
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { PostHogProvider } from "@posthog/react";
 
 import appCss from "../styles.css?url";
 
@@ -35,7 +36,18 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<HeadContent />
 			</head>
 			<body>
-				{children}
+				<PostHogProvider
+					apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN!}
+					options={{
+						api_host: "/ingest",
+						ui_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+						defaults: "2025-05-24",
+						capture_exceptions: true,
+						debug: import.meta.env.DEV,
+					}}
+				>
+					{children}
+				</PostHogProvider>
 				<TanStackDevtools
 					config={{
 						position: "bottom-right",
