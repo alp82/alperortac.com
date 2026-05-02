@@ -1,0 +1,221 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens for the day -> night atmosphere.
+ *
+ * The palette is implementer-picked (per plan); subsequent layers
+ * can keep evolving without renaming variables.
+ */
+:root {
+	/* Sky stops, day -> dusk -> night. */
+	--sky-day-top: #cfe9ff;
+	--sky-day-mid: #ffd9a8;
+	--sky-day-bottom: #f9b87b;
+
+	--sky-dusk-top: #2c3e72;
+	--sky-dusk-mid: #b65a82;
+	--sky-dusk-bottom: #f08a5d;
+
+	--sky-night-top: #050816;
+	--sky-night-mid: #0c1437;
+	--sky-night-bottom: #1f1538;
+
+	/* Decoration. */
+	--cloud-fill: rgba(255, 255, 255, 0.92);
+	--cloud-shadow: rgba(255, 255, 255, 0.7);
+
+	/* Ground. */
+	--soil: #5a3a22;
+	--soil-rim: #2f1c0e;
+
+	/* UI accents. */
+	--accent: #f6c873;
+	--text-on-dark: #f3eedc;
+	--text-on-light: #1c1830;
+
+	/* Scroll-driven custom properties.
+	 *
+	 * Hydration invariant: render code NEVER reads these. Only CSS does.
+	 * `useScrollDriver` writes them on the documentElement. */
+	--scroll: 0;
+	--progress: 0;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+	min-height: 100%;
+}
+
+html {
+	/*
+	 * Smooth scrolling is opt-in: respect users who prefer reduced motion.
+	 */
+	scroll-behavior: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	html {
+		scroll-behavior: smooth;
+	}
+}
+
+body {
+	margin: 0;
+	color: var(--text-on-dark);
+	background: var(--sky-night-top);
+	font-family:
+		ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+		Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/*
+ * Sky gradient, scroll-driven.
+ *
+ * `--scroll` ranges 0 (top) -> 1 (bottom). The three color stops walk
+ * from `--sky-day-*` through `--sky-dusk-*` to `--sky-night-*` using
+ * `color-mix`. Two segments (0..0.5 and 0.5..1) keep the dusk band visible.
+ */
+.sky-gradient {
+	--seg-a: clamp(0, calc(var(--scroll) * 2), 1);
+	--seg-b: clamp(0, calc((var(--scroll) - 0.5) * 2), 1);
+	--top-color: color-mix(
+		in oklab,
+		color-mix(in oklab, var(--sky-day-top), var(--sky-dusk-top) calc(var(--seg-a) * 100%)),
+		var(--sky-night-top) calc(var(--seg-b) * 100%)
+	);
+	--mid-color: color-mix(
+		in oklab,
+		color-mix(in oklab, var(--sky-day-mid), var(--sky-dusk-mid) calc(var(--seg-a) * 100%)),
+		var(--sky-night-mid) calc(var(--seg-b) * 100%)
+	);
+	--bottom-color: color-mix(
+		in oklab,
+		color-mix(in oklab, var(--sky-day-bottom), var(--sky-dusk-bottom) calc(var(--seg-a) * 100%)),
+		var(--sky-night-bottom) calc(var(--seg-b) * 100%)
+	);
+	background: linear-gradient(
+		to bottom,
+		var(--top-color) 0%,
+		var(--mid-color) 55%,
+		var(--bottom-color) 100%
+	);
+}
+
+/*
+ * Cloud drift.
+ *
+ * Reduced-motion users get static clouds. We gate the keyframes
+ * inside the no-preference media query so there's no JS hook needed.
+ */
+.cloud-drift {
+	will-change: transform;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	@keyframes cloud-drift-slow {
+		from {
+			transform: translateX(-12vw);
+		}
+		to {
+			transform: translateX(112vw);
+		}
+	}
+	@keyframes cloud-drift-medium {
+		from {
+			transform: translateX(-18vw);
+		}
+		to {
+			transform: translateX(118vw);
+		}
+	}
+	@keyframes cloud-drift-fast {
+		from {
+			transform: translateX(-25vw);
+		}
+		to {
+			transform: translateX(125vw);
+		}
+	}
+
+	.cloud-drift-slow {
+		animation: cloud-drift-slow 70s linear infinite;
+	}
+	.cloud-drift-medium {
+		animation: cloud-drift-medium 50s linear infinite;
+	}
+	.cloud-drift-fast {
+		animation: cloud-drift-fast 38s linear infinite;
+	}
+}
+
+/*
+ * Cloud puff: a soft rounded blob with a few inner highlights via
+ * box-shadow. Cheap and renders consistently across browsers.
+ */
+.cloud-puff {
+	background: var(--cloud-fill);
+	border-radius: 9999px;
+	box-shadow:
+		38px 6px 0 -4px var(--cloud-fill),
+		74px -8px 0 -10px var(--cloud-fill),
+		18px -16px 0 -8px var(--cloud-shadow),
+		-26px -4px 0 -2px var(--cloud-fill),
+		-52px 8px 0 -10px var(--cloud-shadow);
+}
+
+/*
+ * Honest-liar progress bar fill.
+ * Width is driven entirely by `--progress` (0..1).
+ */
+.progress-fill {
+	width: calc(var(--progress, 0) * 100%);
+	background: linear-gradient(
+		to right,
+		var(--accent),
+		color-mix(in oklab, var(--accent), white 30%)
+	);
+	transition: background-color 200ms linear;
+}
+
+/*
+ * Dig zone canvas.
+ *
+ * `touch-action: none` blocks the browser from interpreting drags as page
+ * scrolls. Cursor is a crosshair on desktop to hint draggability.
+ */
+.dig-canvas {
+	touch-action: none;
+	cursor: crosshair;
+	display: block;
+	border-radius: 12px;
+}
+
+.dig-canvas:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+/*
+ * Placeholder reveal.
+ *
+ * Driven by a `data-revealed` attribute toggled in React state.
+ * Transition is enabled regardless of reduced-motion - it's a one-shot
+ * on a discoverable interaction, not ambient animation.
+ */
+.placeholder-card {
+	transition:
+		opacity 400ms ease-out,
+		transform 400ms ease-out;
+	opacity: 0;
+	transform: translateY(8px);
+}
+
+.placeholder-card[data-revealed="true"] {
+	opacity: 1;
+	transform: translateY(0);
+}
