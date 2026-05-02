@@ -20,15 +20,22 @@ async function proxyToPostHog(req, url) {
 		target,
 	);
 	const headers = new Headers(req.headers);
-	headers.set("host", targetUrl.host);
+	headers.delete("host");
 	headers.delete("accept-encoding");
+	headers.delete("content-length");
+	const body =
+		req.method === "GET" || req.method === "HEAD"
+			? undefined
+			: await req.arrayBuffer();
 	const upstream = await fetch(targetUrl, {
 		method: req.method,
 		headers,
-		body:
-			req.method === "GET" || req.method === "HEAD" ? undefined : req.body,
+		body,
 		redirect: "manual",
 	});
+	console.log(
+		`[upstream] ${req.method} ${url.pathname} -> ${targetUrl.host}${targetUrl.pathname} ${upstream.status} (body: ${body?.byteLength ?? 0}B)`,
+	);
 	const responseHeaders = new Headers(upstream.headers);
 	responseHeaders.delete("content-encoding");
 	responseHeaders.delete("content-length");
@@ -40,21 +47,41 @@ async function proxyToPostHog(req, url) {
 	});
 }
 
+async function handle(req) {
+	const url = new URL(req.url);
+	if (url.pathname.startsWith("/ingest/") || url.pathname === "/ingest") {
+		return { res: await proxyToPostHog(req, url), kind: "ingest" };
+	}
+	if (url.pathname !== "/" && !url.pathname.endsWith("/")) {
+		const filePath = resolve(CLIENT_DIR, `.${url.pathname}`);
+		if (filePath.startsWith(CLIENT_DIR + sep)) {
+			const file = Bun.file(filePath);
+			if (await file.exists()) return { res: new Response(file), kind: "static" };
+		}
+	}
+	return { res: await server.fetch(req), kind: "ssr" };
+}
+
 Bun.serve({
 	port: Number(process.env.PORT ?? 3000),
 	hostname: "0.0.0.0",
 	async fetch(req) {
+		const start = performance.now();
 		const url = new URL(req.url);
-		if (url.pathname.startsWith("/ingest/") || url.pathname === "/ingest") {
-			return proxyToPostHog(req, url);
+		try {
+			const { res, kind } = await handle(req);
+			const ms = (performance.now() - start).toFixed(0);
+			console.log(
+				`[${kind}] ${req.method} ${url.pathname}${url.search} ${res.status} ${ms}ms`,
+			);
+			return res;
+		} catch (err) {
+			const ms = (performance.now() - start).toFixed(0);
+			console.error(
+				`[error] ${req.method} ${url.pathname}${url.search} ${ms}ms`,
+				err,
+			);
+			throw err;
 		}
-		if (url.pathname !== "/" && !url.pathname.endsWith("/")) {
-			const filePath = resolve(CLIENT_DIR, `.${url.pathname}`);
-			if (filePath.startsWith(CLIENT_DIR + sep)) {
-				const file = Bun.file(filePath);
-				if (await file.exists()) return new Response(file);
-			}
-		}
-		return server.fetch(req);
 	},
 });

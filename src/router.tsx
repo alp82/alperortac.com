@@ -1,5 +1,20 @@
-import { createRouter as createTanStackRouter } from "@tanstack/react-router";
+import {
+	createRouter as createTanStackRouter,
+	Link,
+} from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+
+function NotFound() {
+	return (
+		<main
+			style={{ padding: "4rem", fontFamily: "system-ui", textAlign: "center" }}
+		>
+			<h1>404</h1>
+			<p>Nothing hidden here.</p>
+			<Link to="/">Back to the start page</Link>
+		</main>
+	);
+}
 
 export function getRouter() {
 	const router = createTanStackRouter({
@@ -7,6 +22,7 @@ export function getRouter() {
 		scrollRestoration: true,
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
+		defaultNotFoundComponent: NotFound,
 	});
 
 	return router;
