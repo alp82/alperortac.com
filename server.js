@@ -22,12 +22,21 @@ async function proxyToPostHog(req, url) {
 	const headers = new Headers(req.headers);
 	headers.set("host", targetUrl.host);
 	headers.delete("accept-encoding");
-	return fetch(targetUrl, {
+	const upstream = await fetch(targetUrl, {
 		method: req.method,
 		headers,
 		body:
 			req.method === "GET" || req.method === "HEAD" ? undefined : req.body,
 		redirect: "manual",
+	});
+	const responseHeaders = new Headers(upstream.headers);
+	responseHeaders.delete("content-encoding");
+	responseHeaders.delete("content-length");
+	responseHeaders.delete("transfer-encoding");
+	return new Response(upstream.body, {
+		status: upstream.status,
+		statusText: upstream.statusText,
+		headers: responseHeaders,
 	});
 }
 
