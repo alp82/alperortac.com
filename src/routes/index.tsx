@@ -1,66 +1,78 @@
+import {
+	SiBluesky,
+	SiGithub,
+	SiInstagram,
+	SiThreads,
+	SiTiktok,
+	SiX,
+	SiYoutube,
+} from "@icons-pack/react-simple-icons";
 import { createFileRoute } from "@tanstack/react-router";
 import {
+	ArrowLeft,
 	ArrowRight,
 	Briefcase,
-	Code2,
-	Cpu,
-	ExternalLink,
+	Mail,
 	MessageCircle,
 	Moon,
-	Palette,
-	PlaySquare,
 	Sun,
 	Video,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CAREER_PANEL_TITLE_ID, CareerPanel } from "../components/CareerPanel";
+import {
+	getProjectPanelTitleId,
+	ProjectPanel,
+} from "../components/ProjectPanel";
+import {
+	SKY_PANEL_TITLE_ID,
+	SkyTuningPanel,
+} from "../components/SkyTuningPanel";
+import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
+import { PROJECT_ICONS, PROJECTS } from "../data/projects";
+import {
+	MINIMAP_BOUNDARIES,
+	type PanelKey,
+	SECTION_IDS,
+} from "../data/sections";
 
 export const Route = createFileRoute("/")({ component: Home });
 
-type Project = {
-	title: string;
-	desc: string;
-	link: string;
-	tags: string[];
-	color: string;
-	icon: React.ReactElement;
-};
+type BrandIcon = React.ComponentType<{
+	size?: number;
+	color?: string;
+	className?: string;
+}>;
 
-const PROJECTS: Project[] = [
-	{
-		title: "GoodWatch",
-		desc: "Discover, track, and share movies and TV shows effortlessly.",
-		link: "https://goodwatch.app",
-		tags: ["Web App", "Entertainment"],
-		color: "bg-red-100 text-red-800",
-		icon: <PlaySquare size={20} />,
-	},
-	{
-		title: "AIStack",
-		desc: "A curated directory and stack of the best AI tools and resources.",
-		link: "https://aistack.to",
-		tags: ["AI", "Directory"],
-		color: "bg-blue-100 text-blue-800",
-		icon: <Cpu size={20} />,
-	},
-	{
-		title: "Alp-River",
-		desc: "An open-source project exploring unique data flows and architecture.",
-		link: "https://github.com/alp82/alp-river",
-		tags: ["Open Source", "GitHub"],
-		color: "bg-emerald-100 text-emerald-800",
-		icon: <Code2 size={20} />,
-	},
-	{
-		title: "Manaschmiede",
-		desc: "Open-source creative and development tools repository.",
-		link: "https://github.com/alp82/manaschmiede",
-		tags: ["Open Source", "Tooling"],
-		color: "bg-purple-100 text-purple-800",
-		icon: <Palette size={20} />,
-	},
-];
+// LinkedIn was removed from Simple Icons and Lucide over trademark requests;
+// nominative-use glyph for linking out to a profile.
+function SiLinkedin({
+	size = 24,
+	color = "default",
+	className,
+}: {
+	size?: number;
+	color?: string;
+	className?: string;
+}) {
+	const fill = color === "default" ? "#0A66C2" : color || "currentColor";
+	return (
+		<svg
+			viewBox="0 0 24 24"
+			width={size}
+			height={size}
+			fill={fill}
+			className={className}
+			xmlns="http://www.w3.org/2000/svg"
+			role="img"
+			aria-label="LinkedIn"
+		>
+			<path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.852 3.37-1.852 3.601 0 4.267 2.37 4.267 5.455v6.288zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.063 2.063 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+		</svg>
+	);
+}
 
-type SocialLinkData = { label: string; href?: string };
+type SocialLinkData = { label: string; href?: string; Icon: BrandIcon };
 
 type SocialGroup = {
 	title: string;
@@ -73,11 +85,20 @@ const SOCIAL_GROUPS: SocialGroup[] = [
 		title: "Video",
 		Icon: Video,
 		links: [
-			{ label: "YouTube", href: "https://www.youtube.com/@AlperTheOrtac" },
-			{ label: "TikTok", href: "https://www.tiktok.com/@alperortac" },
+			{
+				label: "YouTube",
+				href: "https://www.youtube.com/@AlperTheOrtac",
+				Icon: SiYoutube,
+			},
+			{
+				label: "TikTok",
+				href: "https://www.tiktok.com/@alperortac",
+				Icon: SiTiktok,
+			},
 			{
 				label: "Instagram",
 				href: "https://www.instagram.com/alper.the.ortac/",
+				Icon: SiInstagram,
 			},
 		],
 	},
@@ -85,22 +106,28 @@ const SOCIAL_GROUPS: SocialGroup[] = [
 		title: "Posts",
 		Icon: MessageCircle,
 		links: [
-			{ label: "X (Twitter)", href: "https://x.com/alperortac" },
-			{ label: "Threads", href: "https://www.threads.com/@alper.the.ortac" },
+			{ label: "X (Twitter)", href: "https://x.com/alperortac", Icon: SiX },
+			{
+				label: "Threads",
+				href: "https://www.threads.com/@alper.the.ortac",
+				Icon: SiThreads,
+			},
 			{
 				label: "Bluesky",
 				href: "https://bsky.app/profile/alperortac.bsky.social",
+				Icon: SiBluesky,
 			},
 		],
 	},
 	{
-		title: "Code & Pro",
+		title: "Code",
 		Icon: Briefcase,
 		links: [
-			{ label: "GitHub", href: "https://github.com/alp82" },
+			{ label: "GitHub", href: "https://github.com/alp82", Icon: SiGithub },
 			{
 				label: "LinkedIn",
 				href: "https://www.linkedin.com/in/alper-ortac-b8319549/",
+				Icon: SiLinkedin,
 			},
 		],
 	},
@@ -109,12 +136,20 @@ const SOCIAL_GROUPS: SocialGroup[] = [
 const SOCIAL_LINK_CLASS =
 	"flex items-center justify-between w-full text-left group p-3 border-2 border-slate-900 transition-all font-bold uppercase tracking-wider";
 
-function SocialLink({ label, href }: SocialLinkData) {
-	const arrow = (
-		<ArrowRight
-			size={16}
-			className="opacity-0 group-hover:opacity-100 transition-opacity"
-		/>
+function SocialLink({ label, href, Icon }: SocialLinkData) {
+	const body = (
+		<>
+			<span className="flex items-center gap-3 min-w-0">
+				<span className="w-9 h-9 flex items-center justify-center bg-white border-2 border-slate-900 shrink-0">
+					<Icon size={18} color="default" />
+				</span>
+				<span className="truncate">{label}</span>
+			</span>
+			<ArrowRight
+				size={16}
+				className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+			/>
+		</>
 	);
 
 	if (href) {
@@ -123,10 +158,9 @@ function SocialLink({ label, href }: SocialLinkData) {
 				href={href}
 				target="_blank"
 				rel="noopener noreferrer"
-				className={`${SOCIAL_LINK_CLASS} hover:bg-slate-900 hover:text-white`}
+				className={`${SOCIAL_LINK_CLASS} bg-white/80 hover:bg-slate-900 hover:text-white`}
 			>
-				<span>{label}</span>
-				{arrow}
+				{body}
 			</a>
 		);
 	}
@@ -138,42 +172,11 @@ function SocialLink({ label, href }: SocialLinkData) {
 			aria-disabled="true"
 			className={`${SOCIAL_LINK_CLASS} opacity-60 cursor-not-allowed`}
 		>
-			<span>{label}</span>
-			{arrow}
+			{body}
 		</button>
 	);
 }
 
-type CelestialParams = {
-	startX: number;
-	startY: number;
-	endX: number;
-	endY: number;
-	arcLift: number;
-};
-
-type CelestialState = { sun: CelestialParams; moon: CelestialParams };
-
-const DEFAULT_CELESTIAL: CelestialState = {
-	sun: { startX: 75, startY: 12, endX: 28, endY: 58, arcLift: 8 },
-	moon: { startX: 27, startY: 45, endX: 16, endY: 13, arcLift: 6 },
-};
-
-const CELESTIAL_PRESETS: Record<string, CelestialState> = {
-	Classic: DEFAULT_CELESTIAL,
-	Crossover: {
-		sun: { startX: 80, startY: 15, endX: 20, endY: 55, arcLift: 10 },
-		moon: { startX: 20, startY: 60, endX: 75, endY: 18, arcLift: 8 },
-	},
-	Parallel: {
-		sun: { startX: 72, startY: 10, endX: 72, endY: 60, arcLift: 14 },
-		moon: { startX: 25, startY: 60, endX: 25, endY: 12, arcLift: 14 },
-	},
-	Centered: {
-		sun: { startX: 50, startY: 15, endX: 50, endY: 70, arcLift: 0 },
-		moon: { startX: 50, startY: 70, endX: 50, endY: 15, arcLift: 0 },
-	},
-};
 const SUN_WINDOW = { start: 0, end: 0.65 };
 const MOON_WINDOW = { start: 0.45, end: 1.0 };
 const CELESTIAL_STORAGE_KEY = "alp-celestial-v1";
@@ -184,7 +187,10 @@ function windowedProgress(p: number, win: { start: number; end: number }) {
 	return Math.min(Math.max((p - win.start) / range, 0), 1);
 }
 
-function celestialPosition(localProgress: number, params: CelestialParams) {
+function celestialPosition(
+	localProgress: number,
+	params: CelestialState["sun"],
+) {
 	const x = params.startX + (params.endX - params.startX) * localProgress;
 	const yLinear = params.startY + (params.endY - params.startY) * localProgress;
 	const y = yLinear - Math.sin(localProgress * Math.PI) * params.arcLift;
@@ -445,160 +451,6 @@ function PixelBackground({
 	);
 }
 
-const CELESTIAL_FIELD_META: Record<
-	keyof CelestialParams,
-	{ min: number; max: number }
-> = {
-	startX: { min: 0, max: 100 },
-	startY: { min: 0, max: 100 },
-	endX: { min: 0, max: 100 },
-	endY: { min: 0, max: 100 },
-	arcLift: { min: -30, max: 30 },
-};
-
-function CelestialControls({
-	state,
-	onChange,
-}: {
-	state: CelestialState;
-	onChange: (s: CelestialState) => void;
-}) {
-	const [open, setOpen] = useState(false);
-	const [copied, setCopied] = useState(false);
-
-	const updateField = (
-		body: "sun" | "moon",
-		key: keyof CelestialParams,
-		value: number,
-	) => {
-		onChange({ ...state, [body]: { ...state[body], [key]: value } });
-	};
-
-	const copyValues = async () => {
-		try {
-			await navigator.clipboard.writeText(JSON.stringify(state, null, 2));
-			setCopied(true);
-			setTimeout(() => setCopied(false), 1500);
-		} catch {
-			// clipboard unavailable
-		}
-	};
-
-	if (!open) {
-		return (
-			<button
-				type="button"
-				onClick={() => setOpen(true)}
-				className="fixed bottom-4 left-4 z-50 bg-slate-900 text-white px-3 py-2 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.4)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform"
-			>
-				Tune ☀ ☾
-			</button>
-		);
-	}
-
-	return (
-		<div className="fixed bottom-4 left-4 z-50 w-80 max-h-[85vh] overflow-y-auto bg-white/95 backdrop-blur-md border-2 border-slate-900 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-4 font-mono text-slate-900">
-			<div className="flex justify-between items-center mb-3">
-				<h3 className="font-black uppercase text-sm tracking-wider">
-					Celestial Paths
-				</h3>
-				<button
-					type="button"
-					onClick={() => setOpen(false)}
-					className="w-6 h-6 flex items-center justify-center border border-slate-900 hover:bg-slate-900 hover:text-white"
-					aria-label="Close controls"
-				>
-					✕
-				</button>
-			</div>
-
-			<div className="mb-4">
-				<div className="text-[10px] uppercase font-bold opacity-60 mb-1">
-					Presets
-				</div>
-				<div className="flex flex-wrap gap-1">
-					{Object.entries(CELESTIAL_PRESETS).map(([name, preset]) => (
-						<button
-							key={name}
-							type="button"
-							onClick={() => onChange(preset)}
-							className="px-2 py-1 bg-slate-100 hover:bg-slate-900 hover:text-white border border-slate-900 font-bold uppercase text-[10px] tracking-wider transition-colors"
-						>
-							{name}
-						</button>
-					))}
-				</div>
-			</div>
-
-			{(["sun", "moon"] as const).map((body) => (
-				<div key={body} className="mb-4">
-					<div className="font-black uppercase text-xs mb-2 tracking-wider">
-						{body === "sun" ? "☀ Sun" : "☾ Moon"}
-					</div>
-					{(
-						Object.keys(CELESTIAL_FIELD_META) as Array<keyof CelestialParams>
-					).map((key) => {
-						const value = state[body][key];
-						const { min, max } = CELESTIAL_FIELD_META[key];
-						const rangeId = `celestial-${body}-${key}-range`;
-						const numberId = `celestial-${body}-${key}-number`;
-						return (
-							<div key={key} className="flex items-center gap-2 mb-1.5">
-								<label
-									htmlFor={rangeId}
-									className="w-16 text-[10px] uppercase opacity-70"
-								>
-									{key}
-								</label>
-								<input
-									id={rangeId}
-									type="range"
-									min={min}
-									max={max}
-									value={value}
-									onChange={(e) =>
-										updateField(body, key, Number(e.target.value))
-									}
-									className="flex-1 accent-slate-900"
-								/>
-								<input
-									id={numberId}
-									aria-label={`${body} ${key} value`}
-									type="number"
-									min={min}
-									max={max}
-									value={value}
-									onChange={(e) =>
-										updateField(body, key, Number(e.target.value))
-									}
-									className="w-12 px-1 border border-slate-300 text-right text-xs"
-								/>
-							</div>
-						);
-					})}
-				</div>
-			))}
-
-			<div className="flex gap-2 mt-3">
-				<button
-					type="button"
-					onClick={copyValues}
-					className="flex-1 bg-slate-900 text-white px-3 py-2 font-bold uppercase text-[10px] tracking-wider hover:bg-slate-700 transition-colors"
-				>
-					{copied ? "Copied!" : "Copy JSON"}
-				</button>
-				<button
-					type="button"
-					onClick={() => onChange(DEFAULT_CELESTIAL)}
-					className="px-3 py-2 border-2 border-slate-900 font-bold uppercase text-[10px] tracking-wider hover:bg-slate-100"
-				>
-					Reset
-				</button>
-			</div>
-		</div>
-	);
-}
-
 type Boundary = { id: string; ratio: number };
 
 function Minimap({ scrollProgress }: { scrollProgress: number }) {
@@ -613,7 +465,7 @@ function Minimap({ scrollProgress }: { scrollProgress: number }) {
 			const winHeight = window.innerHeight;
 			setViewportRatio(winHeight / docHeight);
 
-			const ids = ["connect", "about", "projects"];
+			const ids = MINIMAP_BOUNDARIES.map((b) => b.id);
 			setBoundaries(
 				ids.map((id) => {
 					const el = document.getElementById(id);
@@ -660,6 +512,7 @@ function Minimap({ scrollProgress }: { scrollProgress: number }) {
 		}
 	};
 
+	// Linear progress mapping. Honest, no slowdown.
 	const viewportTopPct = scrollProgress * (1 - viewportRatio) * 100;
 	const viewportHeightPct = Math.max(viewportRatio * 100, 4);
 
@@ -713,6 +566,30 @@ function Minimap({ scrollProgress }: { scrollProgress: number }) {
 function Home() {
 	const [scrollProgress, setScrollProgress] = useState(0);
 	const [celestial, setCelestial] = useCelestialState();
+	const [openPanel, setOpenPanel] = useState<PanelKey | null>(null);
+
+	const skyRef = useRef<HTMLDialogElement>(null);
+	const careerRef = useRef<HTMLDialogElement>(null);
+	const goodwatchRef = useRef<HTMLDialogElement>(null);
+	const aistackRef = useRef<HTMLDialogElement>(null);
+	const alpriverRef = useRef<HTMLDialogElement>(null);
+	const manaschmiedeRef = useRef<HTMLDialogElement>(null);
+	const lastTriggerRef = useRef<HTMLElement | null>(null);
+
+	const panelRefs: Record<
+		PanelKey,
+		React.RefObject<HTMLDialogElement | null>
+	> = useMemo(
+		() => ({
+			sky: skyRef,
+			career: careerRef,
+			goodwatch: goodwatchRef,
+			aistack: aistackRef,
+			alpriver: alpriverRef,
+			manaschmiede: manaschmiedeRef,
+		}),
+		[],
+	);
 
 	useEffect(() => {
 		const handleScroll = () => {
@@ -720,7 +597,10 @@ function Home() {
 			const docHeight = document.documentElement.scrollHeight;
 			const totalScroll = docHeight - winHeight;
 			const currentScroll = window.scrollY;
-			const progress = Math.min(Math.max(currentScroll / totalScroll, 0), 1);
+			const progress =
+				totalScroll > 0
+					? Math.min(Math.max(currentScroll / totalScroll, 0), 1)
+					: 0;
 			setScrollProgress(progress);
 		};
 
@@ -728,52 +608,114 @@ function Home() {
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, []);
 
+	useEffect(() => {
+		(Object.keys(panelRefs) as PanelKey[]).forEach((key) => {
+			const dialog = panelRefs[key].current;
+			if (!dialog) return;
+			if (openPanel === key && !dialog.open) {
+				lastTriggerRef.current = document.activeElement as HTMLElement | null;
+				dialog.showModal();
+			} else if (openPanel !== key && dialog.open) {
+				dialog.close();
+			}
+		});
+		document.body.classList.toggle("panel-open", openPanel !== null);
+	}, [openPanel, panelRefs]);
+
+	useEffect(() => {
+		const cleanups: Array<() => void> = [];
+		(Object.keys(panelRefs) as PanelKey[]).forEach((key) => {
+			const dialog = panelRefs[key].current;
+			if (!dialog) return;
+			const onClose = () => {
+				setOpenPanel(null);
+				const trigger = lastTriggerRef.current;
+				if (trigger && typeof trigger.focus === "function") {
+					trigger.focus();
+				}
+			};
+			const onClick = (e: MouseEvent) => {
+				if (e.target === dialog) dialog.close();
+			};
+			dialog.addEventListener("close", onClose);
+			dialog.addEventListener("click", onClick);
+			cleanups.push(() => {
+				dialog.removeEventListener("close", onClose);
+				dialog.removeEventListener("click", onClick);
+			});
+		});
+		return () => {
+			for (const fn of cleanups) fn();
+			document.body.classList.remove("panel-open");
+		};
+	}, [panelRefs]);
+
 	const isNight = scrollProgress > 0.6;
 	const navColor = isNight ? "white" : "#0f172a";
+	const currentYear = new Date().getFullYear();
 
 	return (
 		<div className="min-h-screen font-sans text-slate-900 selection:bg-yellow-200 md:pr-20">
 			<PixelBackground scrollProgress={scrollProgress} celestial={celestial} />
 			<Minimap scrollProgress={scrollProgress} />
-			<CelestialControls state={celestial} onChange={setCelestial} />
+
+			<button
+				type="button"
+				onClick={() => setOpenPanel("sky")}
+				aria-label="Tune sky animation"
+				className="fixed bottom-4 left-4 z-50 bg-slate-900 text-white min-h-[44px] px-3 py-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.4)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform"
+			>
+				Tune ☀ ☾
+			</button>
 
 			<nav className="fixed top-0 left-0 right-0 md:right-20 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-sm bg-white/10 border-b border-white/20">
 				<div
 					className="text-xl font-black tracking-tighter uppercase flex items-center gap-2 drop-shadow-md transition-colors duration-1000"
 					style={{ color: navColor }}
 				>
-					<div
-						className={`w-6 h-6 grid grid-cols-2 gap-0.5 p-0.5 transition-colors duration-1000 ${isNight ? "bg-white" : "bg-slate-900"}`}
-					>
-						<div className={isNight ? "bg-slate-900" : "bg-white"} />
-						<div
-							className={`opacity-50 ${isNight ? "bg-slate-900" : "bg-white"}`}
-						/>
-						<div
-							className={`opacity-50 ${isNight ? "bg-slate-900" : "bg-white"}`}
-						/>
-						<div className={isNight ? "bg-slate-900" : "bg-white"} />
-					</div>
-					Alp
+					<img
+						src="/alper-avatar-64.webp"
+						alt=""
+						aria-hidden="true"
+						width={32}
+						height={32}
+						className="w-8 h-8 rounded-full border-2 border-slate-900 object-cover shrink-0"
+					/>
+					Alper Ortac
 				</div>
 				<div
 					className="hidden md:flex gap-8 font-bold text-sm uppercase tracking-widest drop-shadow-sm transition-colors duration-1000"
 					style={{ color: navColor }}
 				>
-					<a href="#connect" className="hover:opacity-70 transition-colors">
+					<a
+						href={`#${SECTION_IDS.linktree}`}
+						className="hover:opacity-70 transition-colors"
+					>
 						Connect
 					</a>
-					<a href="#about" className="hover:opacity-70 transition-colors">
+					<a
+						href={`#${SECTION_IDS.story}`}
+						className="hover:opacity-70 transition-colors"
+					>
 						About
 					</a>
-					<a href="#projects" className="hover:opacity-70 transition-colors">
+					<a
+						href={`#${SECTION_IDS.projects}`}
+						className="hover:opacity-70 transition-colors"
+					>
 						Projects
+					</a>
+					<a
+						href={`#${SECTION_IDS.cta}`}
+						className="hover:opacity-70 transition-colors"
+					>
+						Collab
 					</a>
 				</div>
 				<div className="flex items-center gap-4">
 					<a
-						href="#connect"
-						className={`p-2 px-4 font-bold text-sm rounded-md transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] duration-1000 ${isNight ? "bg-white text-slate-900 hover:bg-slate-200" : "bg-slate-900 text-white hover:bg-slate-800"}`}
+						href={`#${SECTION_IDS.linktree}`}
+						className={`p-2 px-4 font-bold text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] duration-1000 ${isNight ? "bg-white text-slate-900 hover:bg-slate-200" : "bg-slate-900 text-white hover:bg-slate-800"}`}
 					>
 						Follow Me
 					</a>
@@ -781,69 +723,50 @@ function Home() {
 			</nav>
 
 			{/* Hero — top, sky/day */}
-			<section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20">
-				<div className="max-w-4xl w-full">
-					<div className="inline-block px-4 py-1 mb-6 bg-white/80 text-slate-900 font-black text-xs uppercase tracking-widest border-2 border-slate-900 rounded-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-						Hey, I'm Alp
-					</div>
-					<h1 className="text-6xl md:text-8xl font-black mb-8 leading-[0.9] tracking-tighter drop-shadow-sm text-slate-900">
-						CREATING, <br />
-						<span className="text-white drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">
-							CODING,
-						</span>{" "}
-						<br />& SHARING.
-					</h1>
-					<p className="text-xl md:text-2xl text-slate-800 max-w-xl font-medium leading-relaxed bg-white/40 backdrop-blur-md p-4 border-l-4 border-slate-900 shadow-sm">
-						I build open-source tools, launch web apps, and share my journey
-						across the internet. Welcome to my digital home.
-					</p>
-					<div className="mt-10 flex gap-4">
-						<a
-							href="#connect"
-							className="group flex items-center gap-2 bg-slate-900 text-white px-8 py-4 font-bold rounded-sm hover:translate-x-1 transition-all shadow-[6px_6px_0px_0px_rgba(255,255,255,0.4)]"
-						>
-							Find Me Online{" "}
-							<ArrowRight className="group-hover:translate-x-1 transition-transform" />
-						</a>
-						<a
-							href="#projects"
-							className="group flex items-center gap-2 bg-white/80 backdrop-blur-sm text-slate-900 px-8 py-4 font-bold rounded-sm border-2 border-slate-900 hover:translate-x-1 transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,0.4)]"
-						>
-							Dig Into My Work
-						</a>
-					</div>
-				</div>
+			<section
+				id={SECTION_IDS.hero}
+				className="min-h-[70vh] flex flex-col items-center justify-center px-6 pt-24 pb-12 text-center"
+			>
+				<img
+					src="/alper-avatar.webp"
+					alt="Alp portrait"
+					className="w-28 h-28 md:w-32 md:h-32 rounded-full border-4 border-slate-900 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] mb-8 object-cover"
+				/>
+				<h1 className="text-6xl md:text-8xl font-black mb-6 leading-[0.9] tracking-tighter drop-shadow-sm text-slate-900">
+					HEY, I'M ALPER.
+				</h1>
+				<p className="text-xl md:text-2xl text-slate-800 max-w-xl font-medium leading-relaxed bg-white/40 backdrop-blur-md p-4 border-l-4 border-slate-900 shadow-sm">
+					I build open-source tools, ship web apps, and share the journey out
+					loud.
+				</p>
 			</section>
 
-			{/* Connect — top/sky, the linktree surface */}
+			{/* Linktree — single column, sectioned by VIDEO / POSTS / CODE */}
 			<section
-				id="connect"
-				className="py-32 px-6 relative overflow-hidden text-slate-900"
+				id={SECTION_IDS.linktree}
+				className="py-24 px-6 relative overflow-hidden text-slate-900"
 			>
-				<div className="max-w-6xl mx-auto relative z-10">
-					<div className="text-center mb-16">
-						<h2 className="text-5xl md:text-7xl font-black mb-6 uppercase tracking-tighter drop-shadow-[4px_4px_0px_rgba(255,255,255,0.5)]">
-							FIND ME ONLINE
+				<div className="max-w-[640px] mx-auto relative z-10">
+					<div className="text-center mb-12">
+						<h2 className="text-4xl md:text-6xl font-black mb-4 uppercase tracking-tighter drop-shadow-[4px_4px_0px_rgba(255,255,255,0.5)]">
+							Find Me Online
 						</h2>
-						<p className="text-xl font-bold max-w-2xl mx-auto drop-shadow-sm opacity-90 bg-white/40 backdrop-blur-md p-4 border-l-4 border-slate-900 inline-block">
-							I document my journey, share code, and connect with other
-							builders. Pick a platform below.
+						<p className="text-base font-bold opacity-90 bg-white/40 backdrop-blur-md px-4 py-2 border-l-4 border-slate-900 inline-block">
+							Pick a platform. I'm here, posting, shipping, replying.
 						</p>
 					</div>
 
-					<div className="grid md:grid-cols-3 gap-8">
+					<div className="space-y-10">
 						{SOCIAL_GROUPS.map((group) => (
-							<div
-								key={group.title}
-								className="bg-white/70 backdrop-blur-md p-8 border-4 border-slate-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 transition-all text-slate-900"
-							>
-								<div className="flex items-center gap-3 mb-6">
-									<group.Icon size={32} />
-									<h3 className="text-2xl font-black uppercase">
+							<div key={group.title}>
+								<div className="flex items-center gap-3 mb-4">
+									<group.Icon size={20} />
+									<h3 className="text-xs font-black uppercase tracking-[0.3em] opacity-70">
 										{group.title}
 									</h3>
+									<div className="flex-1 h-px bg-slate-900/20" />
 								</div>
-								<div className="space-y-4">
+								<div className="space-y-3">
 									{group.links.map((link) => (
 										<SocialLink key={link.label} {...link} />
 									))}
@@ -854,13 +777,17 @@ function Home() {
 				</div>
 			</section>
 
-			{/* About — mid, dusk transition */}
-			<section id="about" className="py-32 px-6">
+			{/* Story — narrative middle; ends with Career trigger */}
+			<section id={SECTION_IDS.story} className="py-24 px-6">
 				<div className="max-w-4xl mx-auto">
 					<div className="grid md:grid-cols-2 gap-16 items-center">
 						<div className="relative">
 							<div className="aspect-square bg-slate-200 border-4 border-slate-900 overflow-hidden shadow-[12px_12px_0px_0px_rgba(255,255,255,0.5)]">
-								<div className="w-full h-full bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=800')] bg-cover grayscale hover:grayscale-0 transition-all duration-700 cursor-pixel" />
+								<img
+									src="/alper-avatar.webp"
+									alt="Alp portrait, alternate"
+									className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 cursor-pixel"
+								/>
 							</div>
 							<div className="absolute -bottom-4 -right-4 w-24 h-24 bg-yellow-300 border-4 border-slate-900 -z-10" />
 						</div>
@@ -869,15 +796,14 @@ function Home() {
 								The Story
 							</h2>
 							<p className="text-lg text-slate-800 font-medium leading-relaxed mb-6 drop-shadow-sm">
-								I grew up fascinated by the intersection of limitations and
-								creativity—the way pixel art uses a tiny grid to convey vast
-								worlds.
+								I ship. I share what I ship. Most of what I make is for the
+								community of builders, players, and curious folks who hang
+								around the same corners of the internet I do.
 							</p>
 							<p className="text-lg text-slate-800 font-medium leading-relaxed drop-shadow-sm">
-								Today, I bring that same philosophy to my code and my content.
-								Whether I'm building open-source tools, creating full-stack web
-								applications, or documenting the process via video, I strip away
-								the noise to focus on what matters.
+								Open-source tools, web apps, videos about the build. The work is
+								the conversation, and the conversation pulls the next thing out
+								of me. Stick around — there's always something new in motion.
 							</p>
 							<div className="mt-8 flex flex-wrap gap-2">
 								{[
@@ -889,7 +815,7 @@ function Home() {
 								].map((skill) => (
 									<span
 										key={skill}
-										className="px-3 py-1 bg-white border border-slate-300 text-sm font-bold rounded-sm shadow-sm"
+										className="px-3 py-1 bg-white border border-slate-900 text-sm font-bold"
 									>
 										{skill}
 									</span>
@@ -897,16 +823,25 @@ function Home() {
 							</div>
 						</div>
 					</div>
+
+					<button
+						type="button"
+						onClick={() => setOpenPanel("career")}
+						className="mt-16 w-full bg-slate-900 text-white p-6 md:p-8 border-4 border-slate-900 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.4)] hover:-translate-y-1 transition-transform flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl"
+					>
+						<span>See the work history</span>
+						<ArrowRight size={32} className="shrink-0" />
+					</button>
 				</div>
 			</section>
 
-			{/* Projects — bottom, ground/night. Career + side projects. */}
+			{/* Projects — 4 alt L/R brutalist trigger cards */}
 			<section
-				id="projects"
-				className="py-32 px-6 bg-white/5 backdrop-blur-md transition-colors duration-1000"
+				id={SECTION_IDS.projects}
+				className="py-24 px-6 bg-white/5 backdrop-blur-md transition-colors duration-1000"
 				style={{ color: scrollProgress > 0.5 ? "white" : "#0f172a" }}
 			>
-				<div className="max-w-6xl mx-auto">
+				<div className="max-w-5xl mx-auto">
 					<div className="flex justify-between items-end mb-16">
 						<div>
 							<h2 className="text-5xl font-black uppercase tracking-tighter drop-shadow-sm">
@@ -917,58 +852,94 @@ function Home() {
 							/>
 						</div>
 						<div className="hidden md:block font-bold uppercase tracking-widest text-sm drop-shadow-sm">
-							Current Year: 2026
+							Current Year: {currentYear}
 						</div>
 					</div>
 
-					<div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-						{PROJECTS.map((p) => (
-							<div
-								key={p.title}
-								className="group bg-white text-slate-900 p-8 border-4 border-slate-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:-translate-x-2 hover:shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] transition-all flex flex-col"
-							>
-								<div
-									className={`w-12 h-12 ${p.color} flex items-center justify-center mb-6 border-2 border-slate-900`}
+					<div className="space-y-8">
+						{PROJECTS.map((p) => {
+							const Icon = PROJECT_ICONS[p.iconKey];
+							const isRight = p.triggerSide === "right";
+							return (
+								<button
+									key={p.slug}
+									type="button"
+									onClick={() => setOpenPanel(p.slug)}
+									className={`group block w-full max-w-2xl bg-white text-slate-900 text-left p-6 md:p-8 border-4 border-slate-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all ${isRight ? "ml-auto" : "ml-0"}`}
 								>
-									{p.icon}
-								</div>
-								<h3 className="text-2xl font-black mb-4 uppercase leading-none">
-									{p.title}
-								</h3>
-								<p className="text-slate-600 mb-6 font-medium line-clamp-3 flex-grow">
-									{p.desc}
-								</p>
-								<div className="flex flex-wrap gap-2 mb-8">
-									{p.tags.map((tag) => (
-										<span
-											key={tag}
-											className="text-[10px] uppercase font-black tracking-widest border-b-2 border-slate-200"
-										>
-											#{tag}
-										</span>
-									))}
-								</div>
-								<a
-									href={p.link}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="inline-flex items-center gap-2 font-black text-sm uppercase group-hover:text-blue-600 transition-colors mt-auto"
-								>
-									View Project <ExternalLink size={14} />
-								</a>
-							</div>
-						))}
+									<div className="flex items-center justify-between gap-6">
+										<div className="flex items-center gap-5 min-w-0">
+											{!isRight && (
+												<div
+													className={`w-14 h-14 ${p.panelLight} flex items-center justify-center border-2 border-slate-900 shrink-0`}
+												>
+													<Icon size={24} />
+												</div>
+											)}
+											{isRight && (
+												<ArrowLeft
+													size={28}
+													className="shrink-0 group-hover:-translate-x-1 transition-transform"
+												/>
+											)}
+											<div className="min-w-0">
+												<h3 className="text-2xl md:text-3xl font-black uppercase leading-none mb-1 truncate">
+													{p.title}
+												</h3>
+												<p className="text-sm text-slate-600 font-medium line-clamp-1">
+													{p.desc}
+												</p>
+											</div>
+										</div>
+										{!isRight && (
+											<ArrowRight
+												size={28}
+												className="shrink-0 group-hover:translate-x-1 transition-transform"
+											/>
+										)}
+										{isRight && (
+											<div
+												className={`w-14 h-14 ${p.panelLight} flex items-center justify-center border-2 border-slate-900 shrink-0`}
+											>
+												<Icon size={24} />
+											</div>
+										)}
+									</div>
+								</button>
+							);
+						})}
 					</div>
 				</div>
 			</section>
 
+			{/* CTA — freelance / collab */}
+			<section id={SECTION_IDS.cta} className="py-24 px-6">
+				<div className="bg-slate-900 text-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_rgba(255,255,255,0.2)] p-10 max-w-3xl mx-auto">
+					<h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 leading-[0.95]">
+						Let's build something together
+					</h2>
+					<p className="text-lg opacity-80 mb-8 leading-relaxed">
+						Freelance gigs, collabs, side-quests with people who care about the
+						craft — drop a line and let's talk.
+					</p>
+					<a
+						href="mailto:alportac@gmail.com"
+						className="inline-flex items-center gap-3 bg-white text-slate-900 px-6 py-4 font-black uppercase text-sm tracking-widest shadow-[6px_6px_0px_0px_rgba(255,255,255,0.4)] hover:-translate-y-1 transition-transform"
+					>
+						<Mail size={18} />
+						alportac@gmail.com
+					</a>
+				</div>
+			</section>
+
 			<footer
+				id={SECTION_IDS.footer}
 				className="py-12 px-6 border-t border-white/20 bg-slate-900/40 backdrop-blur-md transition-colors duration-1000"
 				style={{ color: isNight ? "white" : "#0f172a" }}
 			>
 				<div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
 					<div className="font-black uppercase tracking-tighter drop-shadow-sm">
-						© 2026 ALP — CREATING EVERY DAY
+						© {currentYear} ALP — CREATING EVERY DAY
 					</div>
 					<div className="flex items-center gap-2 text-sm font-bold drop-shadow-sm">
 						{scrollProgress < 0.5 ? <Sun size={16} /> : <Moon size={16} />}
@@ -981,6 +952,59 @@ function Home() {
 					</div>
 				</div>
 			</footer>
+
+			<dialog
+				ref={skyRef}
+				aria-labelledby={SKY_PANEL_TITLE_ID}
+				className="panel-dialog slide-right"
+				style={
+					{
+						"--panel-bg": "#ffffff",
+						"--panel-fg": "#0f172a",
+					} as React.CSSProperties
+				}
+			>
+				<SkyTuningPanel
+					state={celestial}
+					onChange={setCelestial}
+					onClose={() => setOpenPanel(null)}
+				/>
+			</dialog>
+
+			<dialog
+				ref={careerRef}
+				aria-labelledby={CAREER_PANEL_TITLE_ID}
+				className="panel-dialog slide-left"
+				style={
+					{
+						"--panel-bg": "#1e293b",
+						"--panel-fg": "#f8fafc",
+					} as React.CSSProperties
+				}
+			>
+				<CareerPanel onClose={() => setOpenPanel(null)} />
+			</dialog>
+
+			{PROJECTS.map((p) => (
+				<dialog
+					key={p.slug}
+					ref={panelRefs[p.slug]}
+					aria-labelledby={getProjectPanelTitleId(p.slug)}
+					className={`panel-dialog slide-${p.triggerSide}`}
+					style={
+						{
+							"--panel-bg": p.panelColor,
+							"--panel-fg": "#fff",
+						} as React.CSSProperties
+					}
+				>
+					<ProjectPanel
+						project={p}
+						open={openPanel === p.slug}
+						onClose={() => setOpenPanel(null)}
+					/>
+				</dialog>
+			))}
 
 			<style
 				// biome-ignore lint/security/noDangerouslySetInnerHtml: scoped keyframes for pixel ambient animations
