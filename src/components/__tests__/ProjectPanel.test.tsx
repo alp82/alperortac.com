@@ -30,7 +30,6 @@ const mockVideoProject: Project = {
 	tags: ["Web App"],
 	color: "bg-red-100 text-red-800",
 	iconKey: "PlaySquare",
-	triggerSide: "left",
 	panelColor: "#7f1d1d",
 	panelLight: "bg-red-100 text-red-900",
 	media: {

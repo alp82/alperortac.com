@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { type Project, PROJECT_ICONS } from "../data/projects";
+import { PANEL_SIDES } from "../data/sections";
 
 export const getProjectPanelTitleId = (slug: string) => `project-${slug}-title`;
 
@@ -26,7 +27,7 @@ type ProjectPanelProps = {
 export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 	const Icon = PROJECT_ICONS[project.iconKey];
 	const returnSide: "left" | "right" =
-		project.triggerSide === "right" ? "left" : "right";
+		PANEL_SIDES[project.slug] === "right" ? "left" : "right";
 	const sentinelRef = useRef<HTMLDivElement>(null);
 	const [stuck, setStuck] = useState(false);
 	const reducedMotion = useReducedMotion();
@@ -107,7 +108,7 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 
 			<div className={`relative ${returnSide === "right" ? "pr-12" : "pl-12"}`}>
 				{project.media.type === "video" ? (
-					<div className="relative w-full min-h-[50vh] bg-black overflow-hidden">
+					<div className="relative w-full h-[35vh] bg-black overflow-hidden">
 						{open ? (
 							reducedMotion ? (
 								project.media.poster ? (
@@ -146,7 +147,7 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 						) : null}
 					</div>
 				) : (
-					<div className="relative w-full min-h-[50vh] bg-emerald-900 grid place-items-center">
+					<div className="relative w-full h-[35vh] bg-emerald-900 grid place-items-center">
 						{/* TODO(alp): swap for real Alp-River artwork */}
 						<div className="flex flex-col items-center gap-4 text-center">
 							<Icon size={120} />

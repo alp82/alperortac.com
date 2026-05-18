@@ -33,7 +33,6 @@ export type Project = {
 	tags: string[];
 	color: string;
 	iconKey: ProjectIconKey;
-	triggerSide: "left" | "right";
 	panelColor: string;
 	panelLight: string;
 	media: ProjectMedia;
@@ -52,7 +51,6 @@ export const PROJECTS: Project[] = [
 		tags: ["Web App", "Entertainment"],
 		color: "bg-red-100 text-red-800",
 		iconKey: "PlaySquare",
-		triggerSide: "left",
 		panelColor: "#7f1d1d",
 		panelLight: "bg-red-100 text-red-900",
 		// TODO(alp): generate proper poster frames
@@ -77,7 +75,6 @@ export const PROJECTS: Project[] = [
 		tags: ["AI", "Directory"],
 		color: "bg-blue-100 text-blue-800",
 		iconKey: "Cpu",
-		triggerSide: "right",
 		panelColor: "#1e3a8a",
 		panelLight: "bg-blue-100 text-blue-900",
 		// TODO(alp): generate proper poster frames
@@ -102,7 +99,6 @@ export const PROJECTS: Project[] = [
 		tags: ["Open Source", "GitHub"],
 		color: "bg-emerald-100 text-emerald-800",
 		iconKey: "Code2",
-		triggerSide: "left",
 		panelColor: "#065f46",
 		panelLight: "bg-emerald-100 text-emerald-900",
 		media: { type: "illustration" },
@@ -122,7 +118,6 @@ export const PROJECTS: Project[] = [
 		tags: ["Open Source", "Tooling"],
 		color: "bg-purple-100 text-purple-800",
 		iconKey: "Palette",
-		triggerSide: "right",
 		panelColor: "#4c1d95",
 		panelLight: "bg-purple-100 text-purple-900",
 		// TODO(alp): generate proper poster frames

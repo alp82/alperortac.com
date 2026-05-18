@@ -7,7 +7,12 @@ import {
 	SiX,
 	SiYoutube,
 } from "@icons-pack/react-simple-icons";
-import { createFileRoute } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Outlet,
+	useMatches,
+	useNavigate,
+} from "@tanstack/react-router";
 import {
 	ArrowLeft,
 	ArrowRight,
@@ -29,14 +34,15 @@ import {
 	SkyTuningPanel,
 } from "../components/SkyTuningPanel";
 import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
-import { PROJECT_ICONS, PROJECTS } from "../data/projects";
+import { type Project, PROJECT_ICONS, PROJECTS } from "../data/projects";
 import {
 	MINIMAP_BOUNDARIES,
+	PANEL_SIDES,
 	type PanelKey,
 	SECTION_IDS,
 } from "../data/sections";
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/_layout")({ component: LayoutHost });
 
 type BrandIcon = React.ComponentType<{
 	size?: number;
@@ -563,10 +569,32 @@ function Minimap({ scrollProgress }: { scrollProgress: number }) {
 	);
 }
 
-function Home() {
+function deriveUrlPanel(
+	matches: ReturnType<typeof useMatches>,
+): PanelKey | null {
+	for (const m of matches) {
+		if (m.routeId === "/_layout/career") return "career";
+		if (m.routeId === "/_layout/projects/$slug") {
+			const slug = (m.params as { slug?: string }).slug;
+			if (slug && PROJECTS.some((p) => p.slug === slug)) {
+				return slug as Project["slug"];
+			}
+			return null;
+		}
+	}
+	return null;
+}
+
+function LayoutHost() {
 	const [scrollProgress, setScrollProgress] = useState(0);
 	const [celestial, setCelestial] = useCelestialState();
-	const [openPanel, setOpenPanel] = useState<PanelKey | null>(null);
+	const [skyOpen, setSkyOpen] = useState(false);
+
+	const matches = useMatches();
+	const navigate = useNavigate();
+	const urlPanel = deriveUrlPanel(matches);
+	// sky popover takes precedence over URL panel; closing sky reveals the URL panel underneath
+	const openPanel: PanelKey | null = skyOpen ? "sky" : urlPanel;
 
 	const skyRef = useRef<HTMLDialogElement>(null);
 	const careerRef = useRef<HTMLDialogElement>(null);
@@ -575,6 +603,9 @@ function Home() {
 	const alpriverRef = useRef<HTMLDialogElement>(null);
 	const manaschmiedeRef = useRef<HTMLDialogElement>(null);
 	const lastTriggerRef = useRef<HTMLElement | null>(null);
+	// Tracks the URL-driven panel for the close-event handler to distinguish
+	// user-initiated closes (ESC/backdrop) from URL-driven panel transitions.
+	const urlPanelRef = useRef<PanelKey | null>(null);
 
 	const panelRefs: Record<
 		PanelKey,
@@ -590,6 +621,10 @@ function Home() {
 		}),
 		[],
 	);
+
+	useEffect(() => {
+		urlPanelRef.current = urlPanel;
+	}, [urlPanel]);
 
 	useEffect(() => {
 		const handleScroll = () => {
@@ -619,7 +654,10 @@ function Home() {
 				dialog.close();
 			}
 		});
+		const side = openPanel ? PANEL_SIDES[openPanel] : null;
 		document.body.classList.toggle("panel-open", openPanel !== null);
+		document.body.classList.toggle("panel-from-right", side === "right");
+		document.body.classList.toggle("panel-from-left", side === "left");
 	}, [openPanel, panelRefs]);
 
 	useEffect(() => {
@@ -628,7 +666,18 @@ function Home() {
 			const dialog = panelRefs[key].current;
 			if (!dialog) return;
 			const onClose = () => {
-				setOpenPanel(null);
+				if (key === "sky") {
+					setSkyOpen(false);
+				} else if (
+					urlPanelRef.current === key &&
+					window.location.pathname !== "/"
+				) {
+					// URL still says THIS panel should be open, so the close came from
+					// user action (ESC/backdrop) — navigate home. If urlPanelRef has
+					// moved to another panel (or null), the close was URL-driven and we
+					// must not clobber the incoming URL.
+					navigate({ to: "/", resetScroll: false });
+				}
 				const trigger = lastTriggerRef.current;
 				if (trigger && typeof trigger.focus === "function") {
 					trigger.focus();
@@ -646,22 +695,29 @@ function Home() {
 		});
 		return () => {
 			for (const fn of cleanups) fn();
-			document.body.classList.remove("panel-open");
+			document.body.classList.remove(
+				"panel-open",
+				"panel-from-left",
+				"panel-from-right",
+			);
 		};
-	}, [panelRefs]);
+	}, [navigate, panelRefs]);
 
 	const isNight = scrollProgress > 0.6;
 	const navColor = isNight ? "white" : "#0f172a";
 	const currentYear = new Date().getFullYear();
 
 	return (
-		<div className="min-h-screen font-sans text-slate-900 selection:bg-yellow-200 md:pr-20">
+		<div className="font-sans text-slate-900 selection:bg-yellow-200">
 			<PixelBackground scrollProgress={scrollProgress} celestial={celestial} />
 			<Minimap scrollProgress={scrollProgress} />
 
 			<button
 				type="button"
-				onClick={() => setOpenPanel("sky")}
+				onClick={(e) => {
+					lastTriggerRef.current = e.currentTarget;
+					setSkyOpen(true);
+				}}
 				aria-label="Tune sky animation"
 				className="fixed bottom-4 left-4 z-50 bg-slate-900 text-white min-h-[44px] px-3 py-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.4)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform"
 			>
@@ -722,153 +778,193 @@ function Home() {
 				</div>
 			</nav>
 
-			{/* Hero — top, sky/day */}
-			<section
-				id={SECTION_IDS.hero}
-				className="min-h-[70vh] flex flex-col items-center justify-center px-6 pt-24 pb-12 text-center"
-			>
-				<img
-					src="/alper-avatar.webp"
-					alt="Alp portrait"
-					className="w-28 h-28 md:w-32 md:h-32 rounded-full border-4 border-slate-900 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] mb-8 object-cover"
-				/>
-				<h1 className="text-6xl md:text-8xl font-black mb-6 leading-[0.9] tracking-tighter drop-shadow-sm text-slate-900">
-					HEY, I'M ALPER.
-				</h1>
-				<p className="text-xl md:text-2xl text-slate-800 max-w-xl font-medium leading-relaxed bg-white/40 backdrop-blur-md p-4 border-l-4 border-slate-900 shadow-sm">
-					I build open-source tools, ship web apps, and share the journey out
-					loud.
-				</p>
-			</section>
+			<div className="main-shell min-h-screen md:pr-20">
+				{/* Hero — top, sky/day */}
+				<section
+					id={SECTION_IDS.hero}
+					className="min-h-[70vh] flex flex-col items-center justify-center px-6 pt-24 pb-12 text-center"
+				>
+					<img
+						src="/alper-avatar.webp"
+						alt="Alp portrait"
+						className="w-28 h-28 md:w-32 md:h-32 rounded-full border-4 border-slate-900 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] mb-8 object-cover"
+					/>
+					<h1 className="text-6xl md:text-8xl font-black mb-6 leading-[0.9] tracking-tighter drop-shadow-sm text-slate-900">
+						HEY, I'M ALPER.
+					</h1>
+					<p className="text-xl md:text-2xl text-slate-800 max-w-xl font-medium leading-relaxed bg-white/40 backdrop-blur-md p-4 border-l-4 border-slate-900 shadow-sm">
+						I build open-source tools, ship web apps, and share the journey out
+						loud.
+					</p>
+				</section>
 
-			{/* Linktree — single column, sectioned by VIDEO / POSTS / CODE */}
-			<section
-				id={SECTION_IDS.linktree}
-				className="py-24 px-6 relative overflow-hidden text-slate-900"
-			>
-				<div className="max-w-[640px] mx-auto relative z-10">
-					<div className="text-center mb-12">
-						<h2 className="text-4xl md:text-6xl font-black mb-4 uppercase tracking-tighter drop-shadow-[4px_4px_0px_rgba(255,255,255,0.5)]">
-							Find Me Online
-						</h2>
-						<p className="text-base font-bold opacity-90 bg-white/40 backdrop-blur-md px-4 py-2 border-l-4 border-slate-900 inline-block">
-							Pick a platform. I'm here, posting, shipping, replying.
-						</p>
-					</div>
+				{/* Linktree — single column, sectioned by VIDEO / POSTS / CODE */}
+				<section
+					id={SECTION_IDS.linktree}
+					className="py-24 px-6 relative overflow-hidden text-slate-900"
+				>
+					<div className="max-w-[640px] mx-auto relative z-10">
+						<div className="text-center mb-12">
+							<h2 className="text-4xl md:text-6xl font-black mb-4 uppercase tracking-tighter drop-shadow-[4px_4px_0px_rgba(255,255,255,0.5)]">
+								Find Me Online
+							</h2>
+							<p className="text-base font-bold opacity-90 bg-white/40 backdrop-blur-md px-4 py-2 border-l-4 border-slate-900 inline-block">
+								Pick a platform. I'm here, posting, shipping, replying.
+							</p>
+						</div>
 
-					<div className="space-y-10">
-						{SOCIAL_GROUPS.map((group) => (
-							<div key={group.title}>
-								<div className="flex items-center gap-3 mb-4">
-									<group.Icon size={20} />
-									<h3 className="text-xs font-black uppercase tracking-[0.3em] opacity-70">
-										{group.title}
-									</h3>
-									<div className="flex-1 h-px bg-slate-900/20" />
+						<div className="space-y-10">
+							{SOCIAL_GROUPS.map((group) => (
+								<div key={group.title}>
+									<div className="flex items-center gap-3 mb-4">
+										<group.Icon size={20} />
+										<h3 className="text-xs font-black uppercase tracking-[0.3em] opacity-70">
+											{group.title}
+										</h3>
+										<div className="flex-1 h-px bg-slate-900/20" />
+									</div>
+									<div className="space-y-3">
+										{group.links.map((link) => (
+											<SocialLink key={link.label} {...link} />
+										))}
+									</div>
 								</div>
-								<div className="space-y-3">
-									{group.links.map((link) => (
-										<SocialLink key={link.label} {...link} />
+							))}
+						</div>
+					</div>
+				</section>
+
+				{/* Story — narrative middle; ends with Career trigger */}
+				<section id={SECTION_IDS.story} className="py-24 px-6">
+					<div className="max-w-4xl mx-auto">
+						<div className="grid md:grid-cols-2 gap-16 items-center">
+							<div className="relative">
+								<div className="aspect-square bg-slate-200 border-4 border-slate-900 overflow-hidden shadow-[12px_12px_0px_0px_rgba(255,255,255,0.5)]">
+									<img
+										src="/alper-avatar.webp"
+										alt="Alp portrait, alternate"
+										className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 cursor-pixel"
+									/>
+								</div>
+								<div className="absolute -bottom-4 -right-4 w-24 h-24 bg-yellow-300 border-4 border-slate-900 -z-10" />
+							</div>
+							<div>
+								<h2 className="text-4xl font-black mb-6 uppercase tracking-tight text-slate-900 drop-shadow-sm">
+									The Story
+								</h2>
+								<p className="text-lg text-slate-800 font-medium leading-relaxed mb-6 drop-shadow-sm">
+									I ship. I share what I ship. Most of what I make is for the
+									community of builders, players, and curious folks who hang
+									around the same corners of the internet I do.
+								</p>
+								<p className="text-lg text-slate-800 font-medium leading-relaxed drop-shadow-sm">
+									Open-source tools, web apps, videos about the build. The work
+									is the conversation, and the conversation pulls the next thing
+									out of me. Stick around — there's always something new in
+									motion.
+								</p>
+								<div className="mt-8 flex flex-wrap gap-2">
+									{[
+										"Open Source",
+										"Web Apps",
+										"Content Creation",
+										"Video Production",
+										"Community",
+									].map((skill) => (
+										<span
+											key={skill}
+											className="px-3 py-1 bg-white border border-slate-900 text-sm font-bold"
+										>
+											{skill}
+										</span>
 									))}
 								</div>
 							</div>
-						))}
-					</div>
-				</div>
-			</section>
+						</div>
 
-			{/* Story — narrative middle; ends with Career trigger */}
-			<section id={SECTION_IDS.story} className="py-24 px-6">
-				<div className="max-w-4xl mx-auto">
-					<div className="grid md:grid-cols-2 gap-16 items-center">
-						<div className="relative">
-							<div className="aspect-square bg-slate-200 border-4 border-slate-900 overflow-hidden shadow-[12px_12px_0px_0px_rgba(255,255,255,0.5)]">
-								<img
-									src="/alper-avatar.webp"
-									alt="Alp portrait, alternate"
-									className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 cursor-pixel"
+						<button
+							type="button"
+							onClick={(e) => {
+								lastTriggerRef.current = e.currentTarget;
+								navigate({ to: "/career", resetScroll: false });
+							}}
+							className="mt-16 w-full bg-slate-900 text-white p-6 md:p-8 border-4 border-slate-900 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.4)] hover:-translate-y-1 transition-transform flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl"
+						>
+							<ArrowLeft size={32} className="shrink-0" />
+							<span>See the work history</span>
+						</button>
+					</div>
+				</section>
+
+				{/* Projects — 4 alt L/R brutalist trigger cards */}
+				<section
+					id={SECTION_IDS.projects}
+					className="py-24 px-6 bg-white/5 backdrop-blur-md transition-colors duration-1000"
+					style={{ color: scrollProgress > 0.5 ? "white" : "#0f172a" }}
+				>
+					<div className="max-w-5xl mx-auto">
+						<div className="flex justify-between items-end mb-16">
+							<div>
+								<h2 className="text-5xl font-black uppercase tracking-tighter drop-shadow-sm">
+									Selected Works
+								</h2>
+								<div
+									className={`w-24 h-2 mt-4 shadow-sm transition-colors duration-1000 ${scrollProgress > 0.5 ? "bg-white" : "bg-slate-900"}`}
 								/>
 							</div>
-							<div className="absolute -bottom-4 -right-4 w-24 h-24 bg-yellow-300 border-4 border-slate-900 -z-10" />
-						</div>
-						<div>
-							<h2 className="text-4xl font-black mb-6 uppercase tracking-tight text-slate-900 drop-shadow-sm">
-								The Story
-							</h2>
-							<p className="text-lg text-slate-800 font-medium leading-relaxed mb-6 drop-shadow-sm">
-								I ship. I share what I ship. Most of what I make is for the
-								community of builders, players, and curious folks who hang
-								around the same corners of the internet I do.
-							</p>
-							<p className="text-lg text-slate-800 font-medium leading-relaxed drop-shadow-sm">
-								Open-source tools, web apps, videos about the build. The work is
-								the conversation, and the conversation pulls the next thing out
-								of me. Stick around — there's always something new in motion.
-							</p>
-							<div className="mt-8 flex flex-wrap gap-2">
-								{[
-									"Open Source",
-									"Web Apps",
-									"Content Creation",
-									"Video Production",
-									"Community",
-								].map((skill) => (
-									<span
-										key={skill}
-										className="px-3 py-1 bg-white border border-slate-900 text-sm font-bold"
-									>
-										{skill}
-									</span>
-								))}
+							<div className="hidden md:block font-bold uppercase tracking-widest text-sm drop-shadow-sm">
+								Current Year: {currentYear}
 							</div>
 						</div>
-					</div>
 
-					<button
-						type="button"
-						onClick={() => setOpenPanel("career")}
-						className="mt-16 w-full bg-slate-900 text-white p-6 md:p-8 border-4 border-slate-900 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.4)] hover:-translate-y-1 transition-transform flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl"
-					>
-						<span>See the work history</span>
-						<ArrowRight size={32} className="shrink-0" />
-					</button>
-				</div>
-			</section>
-
-			{/* Projects — 4 alt L/R brutalist trigger cards */}
-			<section
-				id={SECTION_IDS.projects}
-				className="py-24 px-6 bg-white/5 backdrop-blur-md transition-colors duration-1000"
-				style={{ color: scrollProgress > 0.5 ? "white" : "#0f172a" }}
-			>
-				<div className="max-w-5xl mx-auto">
-					<div className="flex justify-between items-end mb-16">
-						<div>
-							<h2 className="text-5xl font-black uppercase tracking-tighter drop-shadow-sm">
-								Selected Works
-							</h2>
-							<div
-								className={`w-24 h-2 mt-4 shadow-sm transition-colors duration-1000 ${scrollProgress > 0.5 ? "bg-white" : "bg-slate-900"}`}
-							/>
-						</div>
-						<div className="hidden md:block font-bold uppercase tracking-widest text-sm drop-shadow-sm">
-							Current Year: {currentYear}
-						</div>
-					</div>
-
-					<div className="space-y-8">
-						{PROJECTS.map((p) => {
-							const Icon = PROJECT_ICONS[p.iconKey];
-							const isRight = p.triggerSide === "right";
-							return (
-								<button
-									key={p.slug}
-									type="button"
-									onClick={() => setOpenPanel(p.slug)}
-									className={`group block w-full max-w-2xl bg-white text-slate-900 text-left p-6 md:p-8 border-4 border-slate-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all ${isRight ? "ml-auto" : "ml-0"}`}
-								>
-									<div className="flex items-center justify-between gap-6">
-										<div className="flex items-center gap-5 min-w-0">
+						<div className="space-y-8">
+							{PROJECTS.map((p) => {
+								const Icon = PROJECT_ICONS[p.iconKey];
+								const isRight = PANEL_SIDES[p.slug] === "right";
+								return (
+									<button
+										key={p.slug}
+										type="button"
+										onClick={(e) => {
+											lastTriggerRef.current = e.currentTarget;
+											navigate({
+												to: "/projects/$slug",
+												params: { slug: p.slug },
+												resetScroll: false,
+											});
+										}}
+										className={`group block w-full max-w-2xl bg-white text-slate-900 text-left p-6 md:p-8 border-4 border-slate-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all ${isRight ? "ml-auto" : "ml-0"}`}
+									>
+										<div className="flex items-center justify-between gap-6">
+											<div className="flex items-center gap-5 min-w-0">
+												{isRight && (
+													<div
+														className={`w-14 h-14 ${p.panelLight} flex items-center justify-center border-2 border-slate-900 shrink-0`}
+													>
+														<Icon size={24} />
+													</div>
+												)}
+												{!isRight && (
+													<ArrowLeft
+														size={28}
+														className="shrink-0 group-hover:-translate-x-1 transition-transform"
+													/>
+												)}
+												<div className="min-w-0">
+													<h3 className="text-2xl md:text-3xl font-black uppercase leading-none mb-1 truncate">
+														{p.title}
+													</h3>
+													<p className="text-sm text-slate-600 font-medium line-clamp-1">
+														{p.desc}
+													</p>
+												</div>
+											</div>
+											{isRight && (
+												<ArrowRight
+													size={28}
+													className="shrink-0 group-hover:translate-x-1 transition-transform"
+												/>
+											)}
 											{!isRight && (
 												<div
 													className={`w-14 h-14 ${p.panelLight} flex items-center justify-center border-2 border-slate-900 shrink-0`}
@@ -876,87 +972,60 @@ function Home() {
 													<Icon size={24} />
 												</div>
 											)}
-											{isRight && (
-												<ArrowLeft
-													size={28}
-													className="shrink-0 group-hover:-translate-x-1 transition-transform"
-												/>
-											)}
-											<div className="min-w-0">
-												<h3 className="text-2xl md:text-3xl font-black uppercase leading-none mb-1 truncate">
-													{p.title}
-												</h3>
-												<p className="text-sm text-slate-600 font-medium line-clamp-1">
-													{p.desc}
-												</p>
-											</div>
 										</div>
-										{!isRight && (
-											<ArrowRight
-												size={28}
-												className="shrink-0 group-hover:translate-x-1 transition-transform"
-											/>
-										)}
-										{isRight && (
-											<div
-												className={`w-14 h-14 ${p.panelLight} flex items-center justify-center border-2 border-slate-900 shrink-0`}
-											>
-												<Icon size={24} />
-											</div>
-										)}
-									</div>
-								</button>
-							);
-						})}
+									</button>
+								);
+							})}
+						</div>
 					</div>
-				</div>
-			</section>
+				</section>
 
-			{/* CTA — freelance / collab */}
-			<section id={SECTION_IDS.cta} className="py-24 px-6">
-				<div className="bg-slate-900 text-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_rgba(255,255,255,0.2)] p-10 max-w-3xl mx-auto">
-					<h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 leading-[0.95]">
-						Let's build something together
-					</h2>
-					<p className="text-lg opacity-80 mb-8 leading-relaxed">
-						Freelance gigs, collabs, side-quests with people who care about the
-						craft — drop a line and let's talk.
-					</p>
-					<a
-						href="mailto:alportac@gmail.com"
-						className="inline-flex items-center gap-3 bg-white text-slate-900 px-6 py-4 font-black uppercase text-sm tracking-widest shadow-[6px_6px_0px_0px_rgba(255,255,255,0.4)] hover:-translate-y-1 transition-transform"
-					>
-						<Mail size={18} />
-						alportac@gmail.com
-					</a>
-				</div>
-			</section>
+				{/* CTA — freelance / collab */}
+				<section id={SECTION_IDS.cta} className="py-24 px-6">
+					<div className="bg-slate-900 text-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_rgba(255,255,255,0.2)] p-10 max-w-3xl mx-auto">
+						<h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 leading-[0.95]">
+							Let's build something together
+						</h2>
+						<p className="text-lg opacity-80 mb-8 leading-relaxed">
+							Freelance gigs, collabs, side-quests with people who care about
+							the craft — drop a line and let's talk.
+						</p>
+						<a
+							href="mailto:alportac@gmail.com"
+							className="inline-flex items-center gap-3 bg-white text-slate-900 px-6 py-4 font-black uppercase text-sm tracking-widest shadow-[6px_6px_0px_0px_rgba(255,255,255,0.4)] hover:-translate-y-1 transition-transform"
+						>
+							<Mail size={18} />
+							alportac@gmail.com
+						</a>
+					</div>
+				</section>
 
-			<footer
-				id={SECTION_IDS.footer}
-				className="py-12 px-6 border-t border-white/20 bg-slate-900/40 backdrop-blur-md transition-colors duration-1000"
-				style={{ color: isNight ? "white" : "#0f172a" }}
-			>
-				<div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-					<div className="font-black uppercase tracking-tighter drop-shadow-sm">
-						© {currentYear} ALP — CREATING EVERY DAY
+				<footer
+					id={SECTION_IDS.footer}
+					className="py-12 px-6 border-t border-white/20 bg-slate-900/40 backdrop-blur-md transition-colors duration-1000"
+					style={{ color: isNight ? "white" : "#0f172a" }}
+				>
+					<div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+						<div className="font-black uppercase tracking-tighter drop-shadow-sm">
+							© {currentYear} ALP — CREATING EVERY DAY
+						</div>
+						<div className="flex items-center gap-2 text-sm font-bold drop-shadow-sm">
+							{scrollProgress < 0.5 ? <Sun size={16} /> : <Moon size={16} />}
+							PHASE:{" "}
+							{scrollProgress < 0.5
+								? "DAY"
+								: scrollProgress < 0.8
+									? "DUSK"
+									: "NIGHT"}
+						</div>
 					</div>
-					<div className="flex items-center gap-2 text-sm font-bold drop-shadow-sm">
-						{scrollProgress < 0.5 ? <Sun size={16} /> : <Moon size={16} />}
-						PHASE:{" "}
-						{scrollProgress < 0.5
-							? "DAY"
-							: scrollProgress < 0.8
-								? "DUSK"
-								: "NIGHT"}
-					</div>
-				</div>
-			</footer>
+				</footer>
+			</div>
 
 			<dialog
 				ref={skyRef}
 				aria-labelledby={SKY_PANEL_TITLE_ID}
-				className="panel-dialog slide-right"
+				className={`panel-dialog slide-${PANEL_SIDES.sky}`}
 				style={
 					{
 						"--panel-bg": "#ffffff",
@@ -967,14 +1036,14 @@ function Home() {
 				<SkyTuningPanel
 					state={celestial}
 					onChange={setCelestial}
-					onClose={() => setOpenPanel(null)}
+					onClose={() => setSkyOpen(false)}
 				/>
 			</dialog>
 
 			<dialog
 				ref={careerRef}
 				aria-labelledby={CAREER_PANEL_TITLE_ID}
-				className="panel-dialog slide-left"
+				className={`panel-dialog slide-${PANEL_SIDES.career}`}
 				style={
 					{
 						"--panel-bg": "#1e293b",
@@ -982,7 +1051,9 @@ function Home() {
 					} as React.CSSProperties
 				}
 			>
-				<CareerPanel onClose={() => setOpenPanel(null)} />
+				<CareerPanel
+					onClose={() => navigate({ to: "/", resetScroll: false })}
+				/>
 			</dialog>
 
 			{PROJECTS.map((p) => (
@@ -990,7 +1061,7 @@ function Home() {
 					key={p.slug}
 					ref={panelRefs[p.slug]}
 					aria-labelledby={getProjectPanelTitleId(p.slug)}
-					className={`panel-dialog slide-${p.triggerSide}`}
+					className={`panel-dialog slide-${PANEL_SIDES[p.slug]}`}
 					style={
 						{
 							"--panel-bg": p.panelColor,
@@ -1001,10 +1072,15 @@ function Home() {
 					<ProjectPanel
 						project={p}
 						open={openPanel === p.slug}
-						onClose={() => setOpenPanel(null)}
+						onClose={() => navigate({ to: "/", resetScroll: false })}
 					/>
 				</dialog>
 			))}
+
+			{/* Outlet must be rendered so child routes are matched by useMatches; children render null */}
+			<div style={{ display: "none" }} aria-hidden="true">
+				<Outlet />
+			</div>
 
 			<style
 				// biome-ignore lint/security/noDangerouslySetInnerHtml: scoped keyframes for pixel ambient animations
