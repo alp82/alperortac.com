@@ -1,4 +1,6 @@
+import { ArrowLeft } from "lucide-react";
 import { CAREER_TIMELINE } from "../data/career";
+import { PlaceholderBanner } from "./_layout/PersonalPanel";
 
 export const CAREER_PANEL_TITLE_ID = "career-panel-title";
 
@@ -22,9 +24,10 @@ export function CareerPanel({ onClose }: CareerPanelProps) {
 			<button
 				type="button"
 				onClick={onClose}
-				className="absolute top-4 left-4 z-20 bg-slate-100 text-slate-900 min-h-[44px] px-3 py-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform"
+				aria-label="Return to main path"
+				className="absolute top-4 left-4 z-20 bg-slate-100 text-slate-900 min-h-[44px] px-3 py-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform flex items-center gap-2"
 			>
-				← Main Path
+				<ArrowLeft size={14} aria-hidden="true" /> Main Path
 			</button>
 
 			<div className="pl-6 pr-20 pt-24 pb-16 max-w-4xl mx-auto">
@@ -38,9 +41,7 @@ export function CareerPanel({ onClose }: CareerPanelProps) {
 					A short trail of where I have been building.
 				</p>
 
-				<div className="mb-10 bg-yellow-300 text-slate-900 border-4 border-slate-900 p-4 font-black uppercase tracking-widest text-xs md:text-sm shadow-[6px_6px_0px_0px_rgba(255,255,255,0.25)]">
-					PLACEHOLDER — actual work history coming soon
-				</div>
+				<PlaceholderBanner text="PLACEHOLDER — actual work history coming soon" />
 
 				<div className="relative">
 					<div className="absolute left-4 md:left-1/2 md:-translate-x-1/2 top-0 bottom-0 w-0.5 bg-slate-100/40 pointer-events-none" />

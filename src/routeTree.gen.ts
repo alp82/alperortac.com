@@ -11,6 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout.index'
+import { Route as LayoutTeachingRouteImport } from './routes/_layout.teaching'
+import { Route as LayoutMusicRouteImport } from './routes/_layout.music'
+import { Route as LayoutLearningRouteImport } from './routes/_layout.learning'
+import { Route as LayoutFamilyRouteImport } from './routes/_layout.family'
 import { Route as LayoutCareerRouteImport } from './routes/_layout.career'
 import { Route as LayoutProjectsSlugRouteImport } from './routes/_layout.projects.$slug'
 
@@ -21,6 +25,26 @@ const LayoutRoute = LayoutRouteImport.update({
 const LayoutIndexRoute = LayoutIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutTeachingRoute = LayoutTeachingRouteImport.update({
+  id: '/teaching',
+  path: '/teaching',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutMusicRoute = LayoutMusicRouteImport.update({
+  id: '/music',
+  path: '/music',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutLearningRoute = LayoutLearningRouteImport.update({
+  id: '/learning',
+  path: '/learning',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutFamilyRoute = LayoutFamilyRouteImport.update({
+  id: '/family',
+  path: '/family',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutCareerRoute = LayoutCareerRouteImport.update({
@@ -37,10 +61,18 @@ const LayoutProjectsSlugRoute = LayoutProjectsSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
   '/career': typeof LayoutCareerRoute
+  '/family': typeof LayoutFamilyRoute
+  '/learning': typeof LayoutLearningRoute
+  '/music': typeof LayoutMusicRoute
+  '/teaching': typeof LayoutTeachingRoute
   '/projects/$slug': typeof LayoutProjectsSlugRoute
 }
 export interface FileRoutesByTo {
   '/career': typeof LayoutCareerRoute
+  '/family': typeof LayoutFamilyRoute
+  '/learning': typeof LayoutLearningRoute
+  '/music': typeof LayoutMusicRoute
+  '/teaching': typeof LayoutTeachingRoute
   '/': typeof LayoutIndexRoute
   '/projects/$slug': typeof LayoutProjectsSlugRoute
 }
@@ -48,18 +80,40 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_layout': typeof LayoutRouteWithChildren
   '/_layout/career': typeof LayoutCareerRoute
+  '/_layout/family': typeof LayoutFamilyRoute
+  '/_layout/learning': typeof LayoutLearningRoute
+  '/_layout/music': typeof LayoutMusicRoute
+  '/_layout/teaching': typeof LayoutTeachingRoute
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/projects/$slug': typeof LayoutProjectsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/career' | '/projects/$slug'
+  fullPaths:
+    | '/'
+    | '/career'
+    | '/family'
+    | '/learning'
+    | '/music'
+    | '/teaching'
+    | '/projects/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/career' | '/' | '/projects/$slug'
+  to:
+    | '/career'
+    | '/family'
+    | '/learning'
+    | '/music'
+    | '/teaching'
+    | '/'
+    | '/projects/$slug'
   id:
     | '__root__'
     | '/_layout'
     | '/_layout/career'
+    | '/_layout/family'
+    | '/_layout/learning'
+    | '/_layout/music'
+    | '/_layout/teaching'
     | '/_layout/'
     | '/_layout/projects/$slug'
   fileRoutesById: FileRoutesById
@@ -84,6 +138,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutIndexRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/teaching': {
+      id: '/_layout/teaching'
+      path: '/teaching'
+      fullPath: '/teaching'
+      preLoaderRoute: typeof LayoutTeachingRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/music': {
+      id: '/_layout/music'
+      path: '/music'
+      fullPath: '/music'
+      preLoaderRoute: typeof LayoutMusicRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/learning': {
+      id: '/_layout/learning'
+      path: '/learning'
+      fullPath: '/learning'
+      preLoaderRoute: typeof LayoutLearningRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/family': {
+      id: '/_layout/family'
+      path: '/family'
+      fullPath: '/family'
+      preLoaderRoute: typeof LayoutFamilyRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/career': {
       id: '/_layout/career'
       path: '/career'
@@ -103,12 +185,20 @@ declare module '@tanstack/react-router' {
 
 interface LayoutRouteChildren {
   LayoutCareerRoute: typeof LayoutCareerRoute
+  LayoutFamilyRoute: typeof LayoutFamilyRoute
+  LayoutLearningRoute: typeof LayoutLearningRoute
+  LayoutMusicRoute: typeof LayoutMusicRoute
+  LayoutTeachingRoute: typeof LayoutTeachingRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
   LayoutProjectsSlugRoute: typeof LayoutProjectsSlugRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutCareerRoute: LayoutCareerRoute,
+  LayoutFamilyRoute: LayoutFamilyRoute,
+  LayoutLearningRoute: LayoutLearningRoute,
+  LayoutMusicRoute: LayoutMusicRoute,
+  LayoutTeachingRoute: LayoutTeachingRoute,
   LayoutIndexRoute: LayoutIndexRoute,
   LayoutProjectsSlugRoute: LayoutProjectsSlugRoute,
 }

@@ -7,14 +7,8 @@ import {
 	SiX,
 	SiYoutube,
 } from "@icons-pack/react-simple-icons";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import {
-	createFileRoute,
-	Outlet,
-	useMatches,
-	useNavigate,
-} from "@tanstack/react-router";
-import {
-	ArrowLeft,
 	ArrowRight,
 	Briefcase,
 	Mail,
@@ -23,25 +17,15 @@ import {
 	Sun,
 	Video,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { CAREER_PANEL_TITLE_ID, CareerPanel } from "../components/CareerPanel";
-import {
-	getProjectPanelTitleId,
-	ProjectPanel,
-} from "../components/ProjectPanel";
-import {
-	SKY_PANEL_TITLE_ID,
-	SkyTuningPanel,
-} from "../components/SkyTuningPanel";
+import { useEffect, useRef, useState } from "react";
+import { Minimap } from "../components/Minimap";
+import { PixelBackground } from "../components/PixelBackground";
+import { PanelHost } from "../components/_layout/PanelHost";
+import { SectionTriggerCard } from "../components/_layout/SectionTriggerCard";
 import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
-import { PROJECT_ICONS, PROJECTS, type Project } from "../data/projects";
-import {
-	MINIMAP_BOUNDARIES,
-	PANEL_SIDES,
-	type PanelKey,
-	SECTION_IDS,
-} from "../data/sections";
-import { DEFAULT_SKY_CURVE, type SkyCurve, skyAt } from "../data/skyCurve";
+import { SECTION_IDS } from "../data/sections";
+import { DEFAULT_SKY_CURVE, type SkyCurve } from "../data/skyCurve";
+import { TOPICS } from "../data/topics";
 
 export const Route = createFileRoute("/_layout")({ component: LayoutHost });
 
@@ -206,8 +190,6 @@ function SocialLink({ label, href, Icon, brand }: SocialLinkData) {
 	);
 }
 
-const SUN_WINDOW = { start: 0, end: 0.65 };
-const MOON_WINDOW = { start: 0.45, end: 1.0 };
 const CELESTIAL_STORAGE_KEY = "alp-celestial-v1";
 
 function isValidCurve(v: unknown): v is SkyCurve {
@@ -221,30 +203,6 @@ function isValidCurve(v: unknown): v is SkyCurve {
 		(v as SkyCurve).phase2.length === 2 &&
 		typeof (v as SkyCurve).boost === "number"
 	);
-}
-
-function windowedProgress(p: number, win: { start: number; end: number }) {
-	const range = win.end - win.start;
-	if (range <= 0) return 0;
-	return Math.min(Math.max((p - win.start) / range, 0), 1);
-}
-
-function celestialPosition(
-	localProgress: number,
-	params: CelestialState["sun"],
-) {
-	const x = params.startX + (params.endX - params.startX) * localProgress;
-	const yLinear = params.startY + (params.endY - params.startY) * localProgress;
-	const y = yLinear - Math.sin(localProgress * Math.PI) * params.arcLift;
-	return { x, y };
-}
-
-function sunOpacityAt(p: number) {
-	return p < 0.45 ? 1 : Math.max(0, 1 - (p - 0.45) / 0.2);
-}
-
-function moonOpacityAt(p: number) {
-	return p < 0.5 ? 0 : Math.min(1, (p - 0.5) / 0.2);
 }
 
 function useCelestialState(): [CelestialState, (s: CelestialState) => void] {
@@ -290,416 +248,11 @@ function useCelestialState(): [CelestialState, (s: CelestialState) => void] {
 	return [state, update];
 }
 
-function Stars({
-	scrollProgress,
-	curve,
-}: {
-	scrollProgress: number;
-	curve: CelestialState["curve"];
-}) {
-	const stars = useMemo(() => {
-		return Array.from({ length: 150 }).map((_, i) => ({
-			id: i,
-			x: Math.random() * 100,
-			y: Math.random() * 100,
-			size: Math.random() * 2.5 + 0.5,
-			delay: Math.random() * 5,
-			duration: Math.random() * 3 + 2,
-		}));
-	}, []);
-
-	const shootingStars = useMemo(() => {
-		return Array.from({ length: 6 }).map((_, i) => ({
-			id: i,
-			top: Math.random() * 40,
-			delay: Math.random() * 12 + i * 4,
-		}));
-	}, []);
-
-	// Stars fade in across the phase2 (dusk -> night) window.
-	const [s2, e2] = curve.phase2;
-	const range = Math.max(e2 - s2, 0.001);
-	const opacity = Math.min(1, Math.max(0, (scrollProgress - s2) / range));
-
-	return (
-		<div
-			className="absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-100 ease-linear"
-			style={{ opacity }}
-		>
-			{stars.map((star) => (
-				<div
-					key={star.id}
-					className="absolute bg-white rounded-full animate-twinkle"
-					style={{
-						left: `${star.x}%`,
-						top: `${star.y}%`,
-						width: `${star.size}px`,
-						height: `${star.size}px`,
-						animationDelay: `${star.delay}s`,
-						animationDuration: `${star.duration}s`,
-						boxShadow: `0 0 ${star.size * 2}px rgba(255, 255, 255, 0.6)`,
-					}}
-				/>
-			))}
-			{shootingStars.map((star) => (
-				<div
-					key={`shoot-${star.id}`}
-					className="absolute h-[1px] bg-gradient-to-r from-transparent via-white to-white animate-shooting-star"
-					style={{
-						top: `${star.top}%`,
-						left: "100%",
-						width: "120px",
-						animationDelay: `${star.delay}s`,
-						transform: "rotate(-35deg)",
-					}}
-				/>
-			))}
-		</div>
-	);
-}
-
-type PixelCloudProps = {
-	x: number;
-	y: number;
-	scale: number;
-	speed: number;
-	scrollPos: number;
-};
-
-function PixelCloud({ x, y, scale, speed, scrollPos }: PixelCloudProps) {
-	const transform = `translate(${x + scrollPos * speed}px, ${y}px) scale(${scale})`;
-	return (
-		<svg
-			viewBox="0 0 100 60"
-			className="absolute opacity-40 select-none pointer-events-none"
-			style={{
-				width: "120px",
-				height: "auto",
-				left: 0,
-				top: 0,
-				transform,
-				transition: "transform 0.1s linear",
-			}}
-			aria-hidden="true"
-		>
-			<path
-				fill="white"
-				d="M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z"
-			/>
-		</svg>
-	);
-}
-
-function PixelBackground({
-	scrollProgress,
-	celestial,
-}: {
-	scrollProgress: number;
-	celestial: CelestialState;
-}) {
-	const skyColor = skyAt(scrollProgress, celestial.curve);
-
-	return (
-		<div
-			className="fixed inset-y-0 left-0 right-0 md:right-20 -z-10 transition-colors duration-100 ease-linear"
-			style={{ backgroundColor: skyColor }}
-		>
-			<Stars scrollProgress={scrollProgress} curve={celestial.curve} />
-
-			{(() => {
-				const sunPos = celestialPosition(
-					windowedProgress(scrollProgress, SUN_WINDOW),
-					celestial.sun,
-				);
-				const sunOpacity = sunOpacityAt(scrollProgress);
-				return (
-					<div
-						className="absolute"
-						style={{
-							left: `${sunPos.x}%`,
-							top: `${sunPos.y}%`,
-							transform: "translate(-50%, -50%)",
-							opacity: sunOpacity,
-							transition: "opacity 100ms linear",
-						}}
-					>
-						<div className="w-24 h-24 bg-yellow-200 rounded-full shadow-[0_0_40px_rgba(253,224,71,0.5)] border-4 border-yellow-300" />
-					</div>
-				);
-			})()}
-
-			{(() => {
-				const moonPos = celestialPosition(
-					windowedProgress(scrollProgress, MOON_WINDOW),
-					celestial.moon,
-				);
-				const moonOpacity = moonOpacityAt(scrollProgress);
-				return (
-					<div
-						className="absolute"
-						style={{
-							left: `${moonPos.x}%`,
-							top: `${moonPos.y}%`,
-							transform: "translate(-50%, -50%)",
-							opacity: moonOpacity,
-							transition: "opacity 100ms linear",
-						}}
-					>
-						<div className="w-20 h-20 bg-slate-100 rounded-full shadow-[0_0_60px_rgba(255,255,255,0.2)] border-4 border-slate-300 flex items-center justify-center overflow-hidden">
-							<div className="w-6 h-6 rounded-full bg-slate-200 absolute top-2 right-4 opacity-60" />
-							<div className="w-8 h-8 rounded-full bg-slate-200 absolute bottom-4 left-2 opacity-40" />
-							<div className="w-4 h-4 rounded-full bg-slate-200 absolute top-8 left-8 opacity-50" />
-						</div>
-					</div>
-				);
-			})()}
-
-			<PixelCloud
-				x={100}
-				y={150}
-				scale={1.2}
-				speed={0.05}
-				scrollPos={scrollProgress * 1000}
-			/>
-			<PixelCloud
-				x={600}
-				y={100}
-				scale={0.8}
-				speed={-0.08}
-				scrollPos={scrollProgress * 1000}
-			/>
-			<PixelCloud
-				x={1000}
-				y={250}
-				scale={1}
-				speed={0.03}
-				scrollPos={scrollProgress * 1000}
-			/>
-
-			<div
-				className="absolute bottom-0 w-full h-[40vh] pointer-events-none transition-opacity duration-100 ease-linear"
-				style={{ opacity: Math.max(0.1, 0.4 - scrollProgress * 0.2) }}
-			>
-				<svg
-					viewBox="0 0 1000 400"
-					preserveAspectRatio="none"
-					className="w-full h-full opacity-30"
-					aria-hidden="true"
-				>
-					<path
-						fill="#4a7a8c"
-						d="M0 400V300l100-50h50l100 100h50l150-150h50l100 80h100l200-180h100v300z"
-						style={{ shapeRendering: "crispEdges" }}
-					/>
-				</svg>
-			</div>
-
-			<div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
-		</div>
-	);
-}
-
-type Boundary = { id: string; ratio: number };
-
-function Minimap({
-	scrollProgress,
-	celestial,
-}: {
-	scrollProgress: number;
-	celestial: CelestialState;
-}) {
-	const containerRef = useRef<HTMLDivElement>(null);
-	const [boundaries, setBoundaries] = useState<Boundary[]>([]);
-	const [viewportRatio, setViewportRatio] = useState(0);
-	const isDraggingRef = useRef(false);
-
-	useEffect(() => {
-		const measure = () => {
-			const docHeight = document.documentElement.scrollHeight;
-			const winHeight = window.innerHeight;
-			setViewportRatio(winHeight / docHeight);
-
-			const ids = MINIMAP_BOUNDARIES.map((b) => b.id);
-			setBoundaries(
-				ids.map((id) => {
-					const el = document.getElementById(id);
-					const top = el ? el.getBoundingClientRect().top + window.scrollY : 0;
-					return { id, ratio: top / docHeight };
-				}),
-			);
-		};
-
-		measure();
-		const raf = requestAnimationFrame(measure);
-		window.addEventListener("resize", measure);
-		return () => {
-			cancelAnimationFrame(raf);
-			window.removeEventListener("resize", measure);
-		};
-	}, []);
-
-	const scrollToY = (clientY: number) => {
-		const el = containerRef.current;
-		if (!el) return;
-		const rect = el.getBoundingClientRect();
-		const ratio = Math.min(Math.max((clientY - rect.top) / rect.height, 0), 1);
-		const target =
-			ratio * (document.documentElement.scrollHeight - window.innerHeight);
-		window.scrollTo({ top: target, behavior: "instant" as ScrollBehavior });
-	};
-
-	const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-		isDraggingRef.current = true;
-		e.currentTarget.setPointerCapture(e.pointerId);
-		scrollToY(e.clientY);
-	};
-
-	const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-		if (!isDraggingRef.current) return;
-		scrollToY(e.clientY);
-	};
-
-	const stopDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-		isDraggingRef.current = false;
-		if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-			e.currentTarget.releasePointerCapture(e.pointerId);
-		}
-	};
-
-	// Linear progress mapping. Honest, no slowdown.
-	const viewportTopPct = scrollProgress * (1 - viewportRatio) * 100;
-	const viewportHeightPct = Math.max(viewportRatio * 100, 4);
-
-	// Sample the curve at 48 stops so the minimap mirrors the live sky gradient.
-	const minimapGradient = useMemo(() => {
-		const STOPS = 48;
-		const parts: string[] = [];
-		for (let i = 0; i < STOPS; i++) {
-			const p = i / (STOPS - 1);
-			parts.push(`${skyAt(p, celestial.curve)} ${(p * 100).toFixed(2)}%`);
-		}
-		return `linear-gradient(to bottom, ${parts.join(", ")})`;
-	}, [celestial.curve]);
-
-	// Dot Y mirrors where the body sits inside the user's viewport: anchor at
-	// viewport rect top, offset by the body's sky-Y fraction of viewport height.
-	const sunSkyY = celestialPosition(
-		windowedProgress(scrollProgress, SUN_WINDOW),
-		celestial.sun,
-	).y;
-	const moonSkyY = celestialPosition(
-		windowedProgress(scrollProgress, MOON_WINDOW),
-		celestial.moon,
-	).y;
-	const sunY = viewportTopPct + (sunSkyY / 100) * viewportHeightPct;
-	const moonY = viewportTopPct + (moonSkyY / 100) * viewportHeightPct;
-	const sunOpacity = sunOpacityAt(scrollProgress);
-	const moonOpacity = moonOpacityAt(scrollProgress);
-
-	return (
-		<div
-			ref={containerRef}
-			onPointerDown={handlePointerDown}
-			onPointerMove={handlePointerMove}
-			onPointerUp={stopDrag}
-			onPointerCancel={stopDrag}
-			role="navigation"
-			aria-label="Page minimap"
-			className="hidden md:block fixed right-0 top-0 w-20 h-screen border-l-2 border-slate-900 cursor-pointer select-none z-40 overflow-hidden touch-none"
-			style={{
-				background: minimapGradient,
-			}}
-		>
-			<div
-				className="absolute -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-yellow-200 border border-yellow-400 shadow-[0_0_6px_rgba(253,224,71,0.7)] pointer-events-none"
-				style={{
-					left: "50%",
-					top: `${sunY}%`,
-					opacity: sunOpacity,
-				}}
-			/>
-			<div
-				className="absolute -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-100 border border-slate-300 pointer-events-none"
-				style={{
-					left: "50%",
-					top: `${moonY}%`,
-					opacity: moonOpacity,
-				}}
-			/>
-			{boundaries.map((b) => (
-				<div
-					key={b.id}
-					className="absolute left-0 right-0 h-px bg-slate-900/50 pointer-events-none"
-					style={{ top: `${b.ratio * 100}%` }}
-				/>
-			))}
-			<div
-				className="absolute left-0 right-0 border-2 border-slate-900 bg-white/25 backdrop-blur-[1px] pointer-events-none"
-				style={{
-					top: `${viewportTopPct}%`,
-					height: `${viewportHeightPct}%`,
-				}}
-			/>
-		</div>
-	);
-}
-
-function deriveUrlPanel(
-	matches: ReturnType<typeof useMatches>,
-): PanelKey | null {
-	for (const m of matches) {
-		if (m.routeId === "/_layout/career") return "career";
-		if (m.routeId === "/_layout/projects/$slug") {
-			const slug = (m.params as { slug?: string }).slug;
-			if (slug && PROJECTS.some((p) => p.slug === slug)) {
-				return slug as Project["slug"];
-			}
-			return null;
-		}
-	}
-	return null;
-}
-
 function LayoutHost() {
 	const [scrollProgress, setScrollProgress] = useState(0);
 	const [celestial, setCelestial] = useCelestialState();
 	const [skyOpen, setSkyOpen] = useState(false);
-
-	const matches = useMatches();
-	const navigate = useNavigate();
-	const urlPanel = deriveUrlPanel(matches);
-	// sky popover takes precedence over URL panel; closing sky reveals the URL panel underneath
-	const openPanel: PanelKey | null = skyOpen ? "sky" : urlPanel;
-
-	const skyRef = useRef<HTMLDialogElement>(null);
-	const careerRef = useRef<HTMLDialogElement>(null);
-	const goodwatchRef = useRef<HTMLDialogElement>(null);
-	const aistackRef = useRef<HTMLDialogElement>(null);
-	const alpriverRef = useRef<HTMLDialogElement>(null);
-	const manaschmiedeRef = useRef<HTMLDialogElement>(null);
 	const lastTriggerRef = useRef<HTMLElement | null>(null);
-	// Tracks the URL-driven panel for the close-event handler to distinguish
-	// user-initiated closes (ESC/backdrop) from URL-driven panel transitions.
-	const urlPanelRef = useRef<PanelKey | null>(null);
-
-	const panelRefs: Record<
-		PanelKey,
-		React.RefObject<HTMLDialogElement | null>
-	> = useMemo(
-		() => ({
-			sky: skyRef,
-			career: careerRef,
-			goodwatch: goodwatchRef,
-			aistack: aistackRef,
-			alpriver: alpriverRef,
-			manaschmiede: manaschmiedeRef,
-		}),
-		[],
-	);
-
-	useEffect(() => {
-		urlPanelRef.current = urlPanel;
-	}, [urlPanel]);
 
 	useEffect(() => {
 		const handleScroll = () => {
@@ -717,67 +270,6 @@ function LayoutHost() {
 		window.addEventListener("scroll", handleScroll);
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, []);
-
-	useEffect(() => {
-		(Object.keys(panelRefs) as PanelKey[]).forEach((key) => {
-			const dialog = panelRefs[key].current;
-			if (!dialog) return;
-			if (openPanel === key && !dialog.open) {
-				lastTriggerRef.current = document.activeElement as HTMLElement | null;
-				dialog.showModal();
-			} else if (openPanel !== key && dialog.open) {
-				dialog.close();
-			}
-		});
-		const side =
-			openPanel && openPanel !== "sky" ? PANEL_SIDES[openPanel] : null;
-		document.body.classList.toggle("panel-open", openPanel !== null);
-		document.body.classList.toggle("panel-from-right", side === "right");
-		document.body.classList.toggle("panel-from-left", side === "left");
-	}, [openPanel, panelRefs]);
-
-	useEffect(() => {
-		const cleanups: Array<() => void> = [];
-		(Object.keys(panelRefs) as PanelKey[]).forEach((key) => {
-			const dialog = panelRefs[key].current;
-			if (!dialog) return;
-			const onClose = () => {
-				if (key === "sky") {
-					setSkyOpen(false);
-				} else if (
-					urlPanelRef.current === key &&
-					window.location.pathname !== "/"
-				) {
-					// URL still says THIS panel should be open, so the close came from
-					// user action (ESC/backdrop) — navigate home. If urlPanelRef has
-					// moved to another panel (or null), the close was URL-driven and we
-					// must not clobber the incoming URL.
-					navigate({ to: "/", resetScroll: false });
-				}
-				const trigger = lastTriggerRef.current;
-				if (trigger && typeof trigger.focus === "function") {
-					trigger.focus();
-				}
-			};
-			const onClick = (e: MouseEvent) => {
-				if (e.target === dialog) dialog.close();
-			};
-			dialog.addEventListener("close", onClose);
-			dialog.addEventListener("click", onClick);
-			cleanups.push(() => {
-				dialog.removeEventListener("close", onClose);
-				dialog.removeEventListener("click", onClick);
-			});
-		});
-		return () => {
-			for (const fn of cleanups) fn();
-			document.body.classList.remove(
-				"panel-open",
-				"panel-from-left",
-				"panel-from-right",
-			);
-		};
-	}, [navigate, panelRefs]);
 
 	const isNight = scrollProgress >= celestial.curve.phase2[0];
 	const navColor = isNight ? "white" : "#0f172a";
@@ -826,16 +318,10 @@ function LayoutHost() {
 						Connect
 					</a>
 					<a
-						href={`#${SECTION_IDS.story}`}
+						href={`#${SECTION_IDS.craft}`}
 						className="hover:opacity-70 transition-colors"
 					>
-						About
-					</a>
-					<a
-						href={`#${SECTION_IDS.projects}`}
-						className="hover:opacity-70 transition-colors"
-					>
-						Projects
+						Path
 					</a>
 					<a
 						href={`#${SECTION_IDS.cta}`}
@@ -869,8 +355,8 @@ function LayoutHost() {
 						HEY, I'M ALPER.
 					</h1>
 					<p className="text-xl md:text-2xl text-slate-800 max-w-xl font-medium leading-relaxed bg-white/40 backdrop-blur-md p-4 border-l-4 border-slate-900 shadow-sm">
-						I build open-source tools, ship web apps, and share the journey out
-						loud.
+						Hi. Software engineer, mostly freelance, with a side project habit
+						and a camera.
 					</p>
 				</section>
 
@@ -910,149 +396,31 @@ function LayoutHost() {
 					</div>
 				</section>
 
-				{/* Story — narrative middle; ends with Career trigger */}
-				<section id={SECTION_IDS.story} className="py-24 px-6">
-					<div className="max-w-4xl mx-auto">
-						<div className="grid md:grid-cols-2 gap-16 items-center">
-							<div className="relative">
-								<div className="aspect-square bg-slate-200 border-4 border-slate-900 overflow-hidden shadow-[12px_12px_0px_0px_rgba(255,255,255,0.5)]">
-									<img
-										src="/alper-avatar.webp"
-										alt="Alp portrait, alternate"
-										className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 cursor-pixel"
-									/>
-								</div>
-								<div className="absolute -bottom-4 -right-4 w-24 h-24 bg-yellow-300 border-4 border-slate-900 -z-10" />
-							</div>
-							<div>
-								<h2 className="text-4xl font-black mb-6 uppercase tracking-tight text-slate-900 drop-shadow-sm">
-									The Story
-								</h2>
-								<p className="text-lg text-slate-800 font-medium leading-relaxed mb-6 drop-shadow-sm">
-									I ship. I share what I ship. Most of what I make is for the
-									community of builders, players, and curious folks who hang
-									around the same corners of the internet I do.
-								</p>
-								<p className="text-lg text-slate-800 font-medium leading-relaxed drop-shadow-sm">
-									Open-source tools, web apps, videos about the build. The work
-									is the conversation, and the conversation pulls the next thing
-									out of me. Stick around — there's always something new in
-									motion.
-								</p>
-								<div className="mt-8 flex flex-wrap gap-2">
-									{[
-										"Open Source",
-										"Web Apps",
-										"Content Creation",
-										"Video Production",
-										"Community",
-									].map((skill) => (
-										<span
-											key={skill}
-											className="px-3 py-1 bg-white border border-slate-900 text-sm font-bold"
-										>
-											{skill}
-										</span>
+				{/* Craft band — 8 topical articles */}
+				<section id={SECTION_IDS.craft} className="py-24 px-6">
+					<div className="max-w-5xl mx-auto space-y-24">
+						{TOPICS.map((topic) => (
+							<article key={topic.id} className="space-y-6">
+								<header className="max-w-3xl">
+									<h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter">
+										{topic.heading}
+									</h2>
+									<p className="mt-3 text-lg md:text-xl font-medium leading-relaxed bg-white/40 backdrop-blur-md p-3 border-l-4 border-slate-900">
+										{topic.teaser}
+									</p>
+								</header>
+								<div className="space-y-6">
+									{topic.triggers.map((trigger) => (
+										<SectionTriggerCard
+											key={trigger.kind === "career" ? "career" : trigger.slug}
+											trigger={trigger}
+											subtitle={topic.teaser}
+											lastTriggerRef={lastTriggerRef}
+										/>
 									))}
 								</div>
-							</div>
-						</div>
-
-						<button
-							type="button"
-							onClick={(e) => {
-								lastTriggerRef.current = e.currentTarget;
-								navigate({ to: "/career", resetScroll: false });
-							}}
-							className="mt-16 w-full bg-slate-900 text-white p-6 md:p-8 border-4 border-slate-900 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.4)] hover:-translate-y-1 transition-transform flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl"
-						>
-							<ArrowLeft size={32} className="shrink-0" />
-							<span>See the work history</span>
-						</button>
-					</div>
-				</section>
-
-				{/* Projects — 4 alt L/R brutalist trigger cards */}
-				<section
-					id={SECTION_IDS.projects}
-					className="py-24 px-6 bg-white/5 backdrop-blur-md transition-colors duration-100"
-					style={{ color: scrollProgress > 0.5 ? "white" : "#0f172a" }}
-				>
-					<div className="max-w-5xl mx-auto">
-						<div className="flex justify-between items-end mb-16">
-							<div>
-								<h2 className="text-5xl font-black uppercase tracking-tighter drop-shadow-sm">
-									Selected Works
-								</h2>
-								<div
-									className={`w-24 h-2 mt-4 shadow-sm transition-colors duration-100 ${scrollProgress > 0.5 ? "bg-white" : "bg-slate-900"}`}
-								/>
-							</div>
-							<div className="hidden md:block font-bold uppercase tracking-widest text-sm drop-shadow-sm">
-								Current Year: {currentYear}
-							</div>
-						</div>
-
-						<div className="space-y-8">
-							{PROJECTS.map((p) => {
-								const Icon = PROJECT_ICONS[p.iconKey];
-								const isRight = PANEL_SIDES[p.slug] === "right";
-								return (
-									<button
-										key={p.slug}
-										type="button"
-										onClick={(e) => {
-											lastTriggerRef.current = e.currentTarget;
-											navigate({
-												to: "/projects/$slug",
-												params: { slug: p.slug },
-												resetScroll: false,
-											});
-										}}
-										className={`group block w-full max-w-2xl bg-white text-slate-900 text-left p-6 md:p-8 border-4 border-slate-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all ${isRight ? "ml-auto" : "ml-0"}`}
-									>
-										<div className="flex items-center justify-between gap-6">
-											<div className="flex items-center gap-5 min-w-0">
-												{isRight && (
-													<div
-														className={`w-14 h-14 ${p.panelLight} flex items-center justify-center border-2 border-slate-900 shrink-0`}
-													>
-														<Icon size={24} />
-													</div>
-												)}
-												{!isRight && (
-													<ArrowLeft
-														size={28}
-														className="shrink-0 group-hover:-translate-x-1 transition-transform"
-													/>
-												)}
-												<div className="min-w-0">
-													<h3 className="text-2xl md:text-3xl font-black uppercase leading-none mb-1 truncate">
-														{p.title}
-													</h3>
-													<p className="text-sm text-slate-600 font-medium line-clamp-1">
-														{p.desc}
-													</p>
-												</div>
-											</div>
-											{isRight && (
-												<ArrowRight
-													size={28}
-													className="shrink-0 group-hover:translate-x-1 transition-transform"
-												/>
-											)}
-											{!isRight && (
-												<div
-													className={`w-14 h-14 ${p.panelLight} flex items-center justify-center border-2 border-slate-900 shrink-0`}
-												>
-													<Icon size={24} />
-												</div>
-											)}
-										</div>
-									</button>
-								);
-							})}
-						</div>
+							</article>
+						))}
 					</div>
 				</section>
 
@@ -1060,11 +428,11 @@ function LayoutHost() {
 				<section id={SECTION_IDS.cta} className="py-24 px-6">
 					<div className="bg-slate-900 text-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_rgba(255,255,255,0.2)] p-10 max-w-3xl mx-auto">
 						<h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 leading-[0.95]">
-							Let's build something together
+							You made it to the night.
 						</h2>
 						<p className="text-lg opacity-80 mb-8 leading-relaxed">
-							Freelance gigs, collabs, side-quests with people who care about
-							the craft — drop a line and let's talk.
+							If any of this resonated — a project, a passion, a way of thinking
+							— drop a line.
 						</p>
 						<a
 							href="mailto:alportac@gmail.com"
@@ -1086,7 +454,11 @@ function LayoutHost() {
 							© {currentYear} ALP — CREATING EVERY DAY
 						</div>
 						<div className="flex items-center gap-2 text-sm font-bold drop-shadow-sm">
-							{scrollProgress < 0.5 ? <Sun size={16} /> : <Moon size={16} />}
+							{scrollProgress < 0.5 ? (
+								<Sun size={16} aria-hidden="true" />
+							) : (
+								<Moon size={16} aria-hidden="true" />
+							)}
 							PHASE:{" "}
 							{scrollProgress < 0.5
 								? "DAY"
@@ -1098,60 +470,13 @@ function LayoutHost() {
 				</footer>
 			</div>
 
-			<dialog
-				ref={skyRef}
-				aria-labelledby={SKY_PANEL_TITLE_ID}
-				className="panel-dialog-modal"
-				style={
-					{
-						"--panel-bg": "#ffffff",
-						"--panel-fg": "#0f172a",
-					} as React.CSSProperties
-				}
-			>
-				<SkyTuningPanel
-					state={celestial}
-					onChange={setCelestial}
-					onClose={() => setSkyOpen(false)}
-				/>
-			</dialog>
-
-			<dialog
-				ref={careerRef}
-				aria-labelledby={CAREER_PANEL_TITLE_ID}
-				className={`panel-dialog slide-${PANEL_SIDES.career}`}
-				style={
-					{
-						"--panel-bg": "#1e293b",
-						"--panel-fg": "#f8fafc",
-					} as React.CSSProperties
-				}
-			>
-				<CareerPanel
-					onClose={() => navigate({ to: "/", resetScroll: false })}
-				/>
-			</dialog>
-
-			{PROJECTS.map((p) => (
-				<dialog
-					key={p.slug}
-					ref={panelRefs[p.slug]}
-					aria-labelledby={getProjectPanelTitleId(p.slug)}
-					className={`panel-dialog slide-${PANEL_SIDES[p.slug]}`}
-					style={
-						{
-							"--panel-bg": p.panelColor,
-							"--panel-fg": "#fff",
-						} as React.CSSProperties
-					}
-				>
-					<ProjectPanel
-						project={p}
-						open={openPanel === p.slug}
-						onClose={() => navigate({ to: "/", resetScroll: false })}
-					/>
-				</dialog>
-			))}
+			<PanelHost
+				skyOpen={skyOpen}
+				setSkyOpen={setSkyOpen}
+				celestial={celestial}
+				setCelestial={setCelestial}
+				lastTriggerRef={lastTriggerRef}
+			/>
 
 			{/* Outlet must be rendered so child routes are matched by useMatches; children render null */}
 			<div style={{ display: "none" }} aria-hidden="true">

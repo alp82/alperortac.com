@@ -12,17 +12,16 @@ A vertical scroll journey on the main path:
 
 - **Hero (top, sky/day)** — avatar, headline, intro.
 - **Linktree** — one column, sectioned by VIDEO / POSTS / CODE.
-- **Story / About** — narrative middle. Ends with a trigger into the Career sidetrack.
-- **Projects** — four alternating left/right triggers. Each opens its own sidetrack.
+- **Craft band** — eight topical articles (The Craft / AI / Learning / Teaching / Movies & TV / Family / Music / Games). Each one has a heading, a one-line teaser, and 1-2 trigger cards opening a sidetrack panel.
 - **Freelance / Collab CTA** — one dedicated block.
 - **Footer (ground/night)** — minimal, ambient.
 
 **Sidetracks (left and right overlay panels)** are the primary depth surface:
 
-- Each project gets its own panel.
-- Career history lives in a panel triggered from Story.
+- Career history lives in a panel triggered from The Craft.
+- Each of the four flagship projects (GoodWatch, AIStack, Alp-River, Manaschmiede) gets its own panel.
+- Four personal-thread panels (Learning, Teaching, Family, Music) are placeholders today, reusing the Career-style yellow brutalist banner.
 - A "tune the sky" panel exposes the celestial controls as a game-y find.
-- Easter eggs are planned as additional sidetracks; not built yet.
 
 ## Feel
 
@@ -43,10 +42,10 @@ A vertical scroll journey on the main path:
 - Mobile must work. Every desktop interaction needs a touch equivalent.
 - Reduced-motion preference is respected.
 
-## Status (2026-05-18)
+## Status (2026-05-20)
 
-- v2 6-section restructure landed: Hero → Linktree → Story (+Career trigger) → Projects (4 alt-L/R triggers) → Freelance/Collab CTA → Footer.
-- 6 native `<dialog>`-driven sidetrack panels live (4 project + Career + Sky-Tuning), controlled by a single `openPanel` key with `@starting-style` slide-in.
-- Career timeline is placeholder pending replacement (see `src/data/career.ts` TODO).
-- Alp-River illustration is placeholder pending real artwork (see `src/components/ProjectPanel.tsx` TODO).
-- Easter-egg sidetracks are pure shape per CLARIFY — not built yet.
+- v3 8-topic Craft band landed: Hero → Linktree → Craft (8 topical articles: The Craft → AI → Learning → Teaching → Movies & TV → Family → Music → Games) → Freelance/Collab CTA → Footer.
+- 10 native `<dialog>`-driven sidetrack panels (4 project + Career + 4 personal placeholder + Sky-Tuning), controlled by a single `openPanel` key.
+- Personal panels (Learning, Teaching, Family, Music) reuse the Career yellow brutalist banner pending real content.
+- Project panels and Career timeline are unchanged from v2 (placeholders still pending: see `src/data/career.ts` TODO and `src/components/ProjectPanel.tsx` Alp-River TODO).
+- Panel management was extracted into `src/components/_layout/PanelHost.tsx`; trigger cards live in `src/components/_layout/SectionTriggerCard.tsx`.

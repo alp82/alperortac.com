@@ -4,7 +4,11 @@ export type PanelKey =
 	| "goodwatch"
 	| "aistack"
 	| "alpriver"
-	| "manaschmiede";
+	| "manaschmiede"
+	| "learning"
+	| "teaching"
+	| "family"
+	| "music";
 
 export const PANEL_SIDES: Record<Exclude<PanelKey, "sky">, "left" | "right"> = {
 	career: "left",
@@ -12,20 +16,22 @@ export const PANEL_SIDES: Record<Exclude<PanelKey, "sky">, "left" | "right"> = {
 	aistack: "right",
 	alpriver: "left",
 	manaschmiede: "right",
+	learning: "right",
+	teaching: "left",
+	family: "right",
+	music: "left",
 };
 
 export const MINIMAP_BOUNDARIES = [
 	{ id: "linktree", label: "Linktree" },
-	{ id: "story", label: "Story" },
-	{ id: "projects", label: "Projects" },
+	{ id: "craft", label: "Craft" },
 	{ id: "cta", label: "Collab" },
 ] as const;
 
 export const SECTION_IDS = {
 	hero: "hero",
 	linktree: "linktree",
-	story: "story",
-	projects: "projects",
+	craft: "craft",
 	cta: "cta",
 	footer: "footer",
 } as const;
