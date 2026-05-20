@@ -6,8 +6,7 @@ export type PanelKey =
 	| "alpriver"
 	| "manaschmiede";
 
-export const PANEL_SIDES: Record<PanelKey, "left" | "right"> = {
-	sky: "right",
+export const PANEL_SIDES: Record<Exclude<PanelKey, "sky">, "left" | "right"> = {
 	career: "left",
 	goodwatch: "left",
 	aistack: "right",

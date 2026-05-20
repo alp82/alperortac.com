@@ -34,13 +34,14 @@ import {
 	SkyTuningPanel,
 } from "../components/SkyTuningPanel";
 import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
-import { type Project, PROJECT_ICONS, PROJECTS } from "../data/projects";
+import { PROJECT_ICONS, PROJECTS, type Project } from "../data/projects";
 import {
 	MINIMAP_BOUNDARIES,
 	PANEL_SIDES,
 	type PanelKey,
 	SECTION_IDS,
 } from "../data/sections";
+import { DEFAULT_SKY_CURVE, type SkyCurve, skyAt } from "../data/skyCurve";
 
 export const Route = createFileRoute("/_layout")({ component: LayoutHost });
 
@@ -78,7 +79,12 @@ function SiLinkedin({
 	);
 }
 
-type SocialLinkData = { label: string; href?: string; Icon: BrandIcon };
+type SocialLinkData = {
+	label: string;
+	href?: string;
+	Icon: BrandIcon;
+	brand: string;
+};
 
 type SocialGroup = {
 	title: string;
@@ -95,16 +101,19 @@ const SOCIAL_GROUPS: SocialGroup[] = [
 				label: "YouTube",
 				href: "https://www.youtube.com/@AlperTheOrtac",
 				Icon: SiYoutube,
+				brand: "#FF0000",
 			},
 			{
 				label: "TikTok",
 				href: "https://www.tiktok.com/@alperortac",
 				Icon: SiTiktok,
+				brand: "#000000",
 			},
 			{
 				label: "Instagram",
 				href: "https://www.instagram.com/alper.the.ortac/",
 				Icon: SiInstagram,
+				brand: "#E4405F",
 			},
 		],
 	},
@@ -112,16 +121,23 @@ const SOCIAL_GROUPS: SocialGroup[] = [
 		title: "Posts",
 		Icon: MessageCircle,
 		links: [
-			{ label: "X (Twitter)", href: "https://x.com/alperortac", Icon: SiX },
+			{
+				label: "X (Twitter)",
+				href: "https://x.com/alperortac",
+				Icon: SiX,
+				brand: "#000000",
+			},
 			{
 				label: "Threads",
 				href: "https://www.threads.com/@alper.the.ortac",
 				Icon: SiThreads,
+				brand: "#000000",
 			},
 			{
 				label: "Bluesky",
 				href: "https://bsky.app/profile/alperortac.bsky.social",
 				Icon: SiBluesky,
+				brand: "#0285FF",
 			},
 		],
 	},
@@ -129,11 +145,17 @@ const SOCIAL_GROUPS: SocialGroup[] = [
 		title: "Code",
 		Icon: Briefcase,
 		links: [
-			{ label: "GitHub", href: "https://github.com/alp82", Icon: SiGithub },
+			{
+				label: "GitHub",
+				href: "https://github.com/alp82",
+				Icon: SiGithub,
+				brand: "#181717",
+			},
 			{
 				label: "LinkedIn",
 				href: "https://www.linkedin.com/in/alper-ortac-b8319549/",
 				Icon: SiLinkedin,
+				brand: "#0A66C2",
 			},
 		],
 	},
@@ -142,7 +164,7 @@ const SOCIAL_GROUPS: SocialGroup[] = [
 const SOCIAL_LINK_CLASS =
 	"flex items-center justify-between w-full text-left group p-3 border-2 border-slate-900 transition-all font-bold uppercase tracking-wider";
 
-function SocialLink({ label, href, Icon }: SocialLinkData) {
+function SocialLink({ label, href, Icon, brand }: SocialLinkData) {
 	const body = (
 		<>
 			<span className="flex items-center gap-3 min-w-0">
@@ -164,7 +186,8 @@ function SocialLink({ label, href, Icon }: SocialLinkData) {
 				href={href}
 				target="_blank"
 				rel="noopener noreferrer"
-				className={`${SOCIAL_LINK_CLASS} bg-white/80 hover:bg-slate-900 hover:text-white`}
+				style={{ "--brand": brand } as React.CSSProperties}
+				className={`${SOCIAL_LINK_CLASS} bg-white/80 hover:bg-[var(--brand)] hover:text-white`}
 			>
 				{body}
 			</a>
@@ -187,6 +210,19 @@ const SUN_WINDOW = { start: 0, end: 0.65 };
 const MOON_WINDOW = { start: 0.45, end: 1.0 };
 const CELESTIAL_STORAGE_KEY = "alp-celestial-v1";
 
+function isValidCurve(v: unknown): v is SkyCurve {
+	return (
+		typeof v === "object" &&
+		v !== null &&
+		typeof (v as SkyCurve).enabled === "boolean" &&
+		Array.isArray((v as SkyCurve).phase1) &&
+		(v as SkyCurve).phase1.length === 2 &&
+		Array.isArray((v as SkyCurve).phase2) &&
+		(v as SkyCurve).phase2.length === 2 &&
+		typeof (v as SkyCurve).boost === "number"
+	);
+}
+
 function windowedProgress(p: number, win: { start: number; end: number }) {
 	const range = win.end - win.start;
 	if (range <= 0) return 0;
@@ -203,33 +239,64 @@ function celestialPosition(
 	return { x, y };
 }
 
+function sunOpacityAt(p: number) {
+	return p < 0.45 ? 1 : Math.max(0, 1 - (p - 0.45) / 0.2);
+}
+
+function moonOpacityAt(p: number) {
+	return p < 0.5 ? 0 : Math.min(1, (p - 0.5) / 0.2);
+}
+
 function useCelestialState(): [CelestialState, (s: CelestialState) => void] {
 	const [state, setState] = useState<CelestialState>(DEFAULT_CELESTIAL);
+	const writeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
 		try {
 			const stored = localStorage.getItem(CELESTIAL_STORAGE_KEY);
 			if (!stored) return;
-			const parsed = JSON.parse(stored) as CelestialState;
-			if (parsed?.sun && parsed?.moon) setState(parsed);
+			const parsed = JSON.parse(stored) as Partial<CelestialState>;
+			if (parsed?.sun && parsed?.moon) {
+				// Migration shim: older states stored before sky-curve landed lack `curve`.
+				setState({
+					sun: parsed.sun,
+					moon: parsed.moon,
+					curve: isValidCurve(parsed.curve) ? parsed.curve : DEFAULT_SKY_CURVE,
+				});
+			}
 		} catch {
 			// localStorage may be unavailable (SSR / private mode)
 		}
 	}, []);
 
+	useEffect(() => {
+		return () => {
+			if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
+		};
+	}, []);
+
 	const update = (next: CelestialState) => {
 		setState(next);
-		try {
-			localStorage.setItem(CELESTIAL_STORAGE_KEY, JSON.stringify(next));
-		} catch {
-			// localStorage may be unavailable
-		}
+		if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
+		writeTimerRef.current = setTimeout(() => {
+			try {
+				localStorage.setItem(CELESTIAL_STORAGE_KEY, JSON.stringify(next));
+			} catch {
+				// localStorage may be unavailable
+			}
+		}, 200);
 	};
 
 	return [state, update];
 }
 
-function Stars({ scrollProgress }: { scrollProgress: number }) {
+function Stars({
+	scrollProgress,
+	curve,
+}: {
+	scrollProgress: number;
+	curve: CelestialState["curve"];
+}) {
 	const stars = useMemo(() => {
 		return Array.from({ length: 150 }).map((_, i) => ({
 			id: i,
@@ -249,11 +316,14 @@ function Stars({ scrollProgress }: { scrollProgress: number }) {
 		}));
 	}, []);
 
-	const opacity = Math.max(0, (scrollProgress - 0.5) * 2);
+	// Stars fade in across the phase2 (dusk -> night) window.
+	const [s2, e2] = curve.phase2;
+	const range = Math.max(e2 - s2, 0.001);
+	const opacity = Math.min(1, Math.max(0, (scrollProgress - s2) / range));
 
 	return (
 		<div
-			className="absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-700 ease-in-out"
+			className="absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-100 ease-linear"
 			style={{ opacity }}
 		>
 			{stars.map((star) => (
@@ -327,48 +397,21 @@ function PixelBackground({
 	scrollProgress: number;
 	celestial: CelestialState;
 }) {
-	const getInterpolatedColor = (p: number) => {
-		const noon = { r: 135, g: 206, b: 235 };
-		const dusk = { r: 244, g: 164, b: 96 };
-		const night = { r: 20, g: 10, b: 50 };
-
-		let r: number;
-		let g: number;
-		let b: number;
-
-		if (p < 0.5) {
-			const localP = p * 2;
-			r = Math.round(noon.r + (dusk.r - noon.r) * localP);
-			g = Math.round(noon.g + (dusk.g - noon.g) * localP);
-			b = Math.round(noon.b + (dusk.b - noon.b) * localP);
-		} else {
-			const localP = (p - 0.5) * 2;
-			r = Math.round(dusk.r + (night.r - dusk.r) * localP);
-			g = Math.round(dusk.g + (night.g - dusk.g) * localP);
-			b = Math.round(dusk.b + (night.b - dusk.b) * localP);
-		}
-
-		return `rgb(${r}, ${g}, ${b})`;
-	};
-
-	const skyColor = getInterpolatedColor(scrollProgress);
+	const skyColor = skyAt(scrollProgress, celestial.curve);
 
 	return (
 		<div
-			className="fixed inset-y-0 left-0 right-0 md:right-20 -z-10 transition-colors duration-500 ease-linear"
+			className="fixed inset-y-0 left-0 right-0 md:right-20 -z-10 transition-colors duration-100 ease-linear"
 			style={{ backgroundColor: skyColor }}
 		>
-			<Stars scrollProgress={scrollProgress} />
+			<Stars scrollProgress={scrollProgress} curve={celestial.curve} />
 
 			{(() => {
 				const sunPos = celestialPosition(
 					windowedProgress(scrollProgress, SUN_WINDOW),
 					celestial.sun,
 				);
-				const sunOpacity =
-					scrollProgress < 0.45
-						? 1
-						: Math.max(0, 1 - (scrollProgress - 0.45) / 0.2);
+				const sunOpacity = sunOpacityAt(scrollProgress);
 				return (
 					<div
 						className="absolute"
@@ -377,7 +420,7 @@ function PixelBackground({
 							top: `${sunPos.y}%`,
 							transform: "translate(-50%, -50%)",
 							opacity: sunOpacity,
-							transition: "opacity 500ms ease-out",
+							transition: "opacity 100ms linear",
 						}}
 					>
 						<div className="w-24 h-24 bg-yellow-200 rounded-full shadow-[0_0_40px_rgba(253,224,71,0.5)] border-4 border-yellow-300" />
@@ -390,8 +433,7 @@ function PixelBackground({
 					windowedProgress(scrollProgress, MOON_WINDOW),
 					celestial.moon,
 				);
-				const moonOpacity =
-					scrollProgress < 0.5 ? 0 : Math.min(1, (scrollProgress - 0.5) / 0.2);
+				const moonOpacity = moonOpacityAt(scrollProgress);
 				return (
 					<div
 						className="absolute"
@@ -400,7 +442,7 @@ function PixelBackground({
 							top: `${moonPos.y}%`,
 							transform: "translate(-50%, -50%)",
 							opacity: moonOpacity,
-							transition: "opacity 500ms ease-out",
+							transition: "opacity 100ms linear",
 						}}
 					>
 						<div className="w-20 h-20 bg-slate-100 rounded-full shadow-[0_0_60px_rgba(255,255,255,0.2)] border-4 border-slate-300 flex items-center justify-center overflow-hidden">
@@ -435,7 +477,7 @@ function PixelBackground({
 			/>
 
 			<div
-				className="absolute bottom-0 w-full h-[40vh] pointer-events-none transition-opacity duration-700"
+				className="absolute bottom-0 w-full h-[40vh] pointer-events-none transition-opacity duration-100 ease-linear"
 				style={{ opacity: Math.max(0.1, 0.4 - scrollProgress * 0.2) }}
 			>
 				<svg
@@ -459,7 +501,13 @@ function PixelBackground({
 
 type Boundary = { id: string; ratio: number };
 
-function Minimap({ scrollProgress }: { scrollProgress: number }) {
+function Minimap({
+	scrollProgress,
+	celestial,
+}: {
+	scrollProgress: number;
+	celestial: CelestialState;
+}) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [boundaries, setBoundaries] = useState<Boundary[]>([]);
 	const [viewportRatio, setViewportRatio] = useState(0);
@@ -522,6 +570,32 @@ function Minimap({ scrollProgress }: { scrollProgress: number }) {
 	const viewportTopPct = scrollProgress * (1 - viewportRatio) * 100;
 	const viewportHeightPct = Math.max(viewportRatio * 100, 4);
 
+	// Sample the curve at 48 stops so the minimap mirrors the live sky gradient.
+	const minimapGradient = useMemo(() => {
+		const STOPS = 48;
+		const parts: string[] = [];
+		for (let i = 0; i < STOPS; i++) {
+			const p = i / (STOPS - 1);
+			parts.push(`${skyAt(p, celestial.curve)} ${(p * 100).toFixed(2)}%`);
+		}
+		return `linear-gradient(to bottom, ${parts.join(", ")})`;
+	}, [celestial.curve]);
+
+	// Dot Y mirrors where the body sits inside the user's viewport: anchor at
+	// viewport rect top, offset by the body's sky-Y fraction of viewport height.
+	const sunSkyY = celestialPosition(
+		windowedProgress(scrollProgress, SUN_WINDOW),
+		celestial.sun,
+	).y;
+	const moonSkyY = celestialPosition(
+		windowedProgress(scrollProgress, MOON_WINDOW),
+		celestial.moon,
+	).y;
+	const sunY = viewportTopPct + (sunSkyY / 100) * viewportHeightPct;
+	const moonY = viewportTopPct + (moonSkyY / 100) * viewportHeightPct;
+	const sunOpacity = sunOpacityAt(scrollProgress);
+	const moonOpacity = moonOpacityAt(scrollProgress);
+
 	return (
 		<div
 			ref={containerRef}
@@ -533,22 +607,23 @@ function Minimap({ scrollProgress }: { scrollProgress: number }) {
 			aria-label="Page minimap"
 			className="hidden md:block fixed right-0 top-0 w-20 h-screen border-l-2 border-slate-900 cursor-pointer select-none z-40 overflow-hidden touch-none"
 			style={{
-				background:
-					"linear-gradient(to bottom, rgb(135, 206, 235) 0%, rgb(244, 164, 96) 50%, rgb(20, 10, 50) 100%)",
+				background: minimapGradient,
 			}}
 		>
 			<div
-				className="absolute left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-yellow-200 border border-yellow-400 shadow-[0_0_6px_rgba(253,224,71,0.7)] pointer-events-none"
+				className="absolute -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-yellow-200 border border-yellow-400 shadow-[0_0_6px_rgba(253,224,71,0.7)] pointer-events-none"
 				style={{
-					top: `${8 + scrollProgress * 40}%`,
-					opacity: Math.max(0, 1 - scrollProgress * 1.6),
+					left: "50%",
+					top: `${sunY}%`,
+					opacity: sunOpacity,
 				}}
 			/>
 			<div
-				className="absolute left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-slate-100 border border-slate-300 pointer-events-none"
+				className="absolute -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-100 border border-slate-300 pointer-events-none"
 				style={{
-					top: `${50 + (scrollProgress - 0.5) * 80}%`,
-					opacity: Math.max(0, (scrollProgress - 0.55) * 2.5),
+					left: "50%",
+					top: `${moonY}%`,
+					opacity: moonOpacity,
 				}}
 			/>
 			{boundaries.map((b) => (
@@ -654,7 +729,8 @@ function LayoutHost() {
 				dialog.close();
 			}
 		});
-		const side = openPanel ? PANEL_SIDES[openPanel] : null;
+		const side =
+			openPanel && openPanel !== "sky" ? PANEL_SIDES[openPanel] : null;
 		document.body.classList.toggle("panel-open", openPanel !== null);
 		document.body.classList.toggle("panel-from-right", side === "right");
 		document.body.classList.toggle("panel-from-left", side === "left");
@@ -703,14 +779,14 @@ function LayoutHost() {
 		};
 	}, [navigate, panelRefs]);
 
-	const isNight = scrollProgress > 0.6;
+	const isNight = scrollProgress >= celestial.curve.phase2[0];
 	const navColor = isNight ? "white" : "#0f172a";
 	const currentYear = new Date().getFullYear();
 
 	return (
 		<div className="font-sans text-slate-900 selection:bg-yellow-200">
 			<PixelBackground scrollProgress={scrollProgress} celestial={celestial} />
-			<Minimap scrollProgress={scrollProgress} />
+			<Minimap scrollProgress={scrollProgress} celestial={celestial} />
 
 			<button
 				type="button"
@@ -726,7 +802,7 @@ function LayoutHost() {
 
 			<nav className="fixed top-0 left-0 right-0 md:right-20 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-sm bg-white/10 border-b border-white/20">
 				<div
-					className="text-xl font-black tracking-tighter uppercase flex items-center gap-2 drop-shadow-md transition-colors duration-1000"
+					className="text-xl font-black tracking-tighter uppercase flex items-center gap-2 drop-shadow-md transition-colors duration-100"
 					style={{ color: navColor }}
 				>
 					<img
@@ -740,7 +816,7 @@ function LayoutHost() {
 					Alper Ortac
 				</div>
 				<div
-					className="hidden md:flex gap-8 font-bold text-sm uppercase tracking-widest drop-shadow-sm transition-colors duration-1000"
+					className="hidden md:flex gap-8 font-bold text-sm uppercase tracking-widest drop-shadow-sm transition-colors duration-100"
 					style={{ color: navColor }}
 				>
 					<a
@@ -771,7 +847,7 @@ function LayoutHost() {
 				<div className="flex items-center gap-4">
 					<a
 						href={`#${SECTION_IDS.linktree}`}
-						className={`p-2 px-4 font-bold text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] duration-1000 ${isNight ? "bg-white text-slate-900 hover:bg-slate-200" : "bg-slate-900 text-white hover:bg-slate-800"}`}
+						className={`p-2 px-4 font-bold text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] duration-100 ${isNight ? "bg-white text-slate-900 hover:bg-slate-200" : "bg-slate-900 text-white hover:bg-slate-800"}`}
 					>
 						Follow Me
 					</a>
@@ -899,7 +975,7 @@ function LayoutHost() {
 				{/* Projects — 4 alt L/R brutalist trigger cards */}
 				<section
 					id={SECTION_IDS.projects}
-					className="py-24 px-6 bg-white/5 backdrop-blur-md transition-colors duration-1000"
+					className="py-24 px-6 bg-white/5 backdrop-blur-md transition-colors duration-100"
 					style={{ color: scrollProgress > 0.5 ? "white" : "#0f172a" }}
 				>
 					<div className="max-w-5xl mx-auto">
@@ -909,7 +985,7 @@ function LayoutHost() {
 									Selected Works
 								</h2>
 								<div
-									className={`w-24 h-2 mt-4 shadow-sm transition-colors duration-1000 ${scrollProgress > 0.5 ? "bg-white" : "bg-slate-900"}`}
+									className={`w-24 h-2 mt-4 shadow-sm transition-colors duration-100 ${scrollProgress > 0.5 ? "bg-white" : "bg-slate-900"}`}
 								/>
 							</div>
 							<div className="hidden md:block font-bold uppercase tracking-widest text-sm drop-shadow-sm">
@@ -1002,7 +1078,7 @@ function LayoutHost() {
 
 				<footer
 					id={SECTION_IDS.footer}
-					className="py-12 px-6 border-t border-white/20 bg-slate-900/40 backdrop-blur-md transition-colors duration-1000"
+					className="py-12 px-6 border-t border-white/20 bg-slate-900/40 backdrop-blur-md transition-colors duration-100"
 					style={{ color: isNight ? "white" : "#0f172a" }}
 				>
 					<div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
@@ -1025,7 +1101,7 @@ function LayoutHost() {
 			<dialog
 				ref={skyRef}
 				aria-labelledby={SKY_PANEL_TITLE_ID}
-				className={`panel-dialog slide-${PANEL_SIDES.sky}`}
+				className="panel-dialog-modal"
 				style={
 					{
 						"--panel-bg": "#ffffff",

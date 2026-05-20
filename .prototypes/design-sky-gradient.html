@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sky gradient curve — design picker</title>
+<style>
+  :root {
+    --ink: #0f172a;
+    --paper: #fafaf7;
+    --line: #0f172a;
+    --accent: #fde047;
+    --shadow: 4px 4px 0 0 #0f172a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--paper); color: var(--ink); font-family: ui-monospace, "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 30%) 1fr;
+    min-height: 100vh;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* Left column: control panel */
+  .panel {
+    border-right: 2px solid var(--line);
+    background: #fff;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+    max-height: 100vh;
+  }
+  @media (max-width: 900px) {
+    .panel { max-height: none; border-right: none; border-bottom: 2px solid var(--line); }
+  }
+
+  .panel h1 {
+    font-size: 13px; margin: 0;
+    text-transform: uppercase; letter-spacing: 0.1em; font-weight: 900;
+  }
+  .panel .subtitle { font-size: 11px; margin: 0; opacity: 0.65; line-height: 1.4; }
+
+  .section {
+    border: 2px solid var(--line);
+    background: #fff;
+    padding: 10px 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .section-title {
+    font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em;
+    opacity: 0.8;
+  }
+
+  .control-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .control-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+    opacity: 0.7; min-width: 56px;
+  }
+  .control-value {
+    min-width: 52px; text-align: right; font-size: 11px; font-weight: 700;
+    padding: 3px 6px; background: #f1f5f9; border: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] {
+    flex: 1; min-width: 160px; accent-color: var(--ink);
+  }
+
+  /* Dual-handle range: two stacked sliders */
+  .dual-range {
+    position: relative;
+    height: 36px;
+    flex: 1;
+    min-width: 200px;
+  }
+  .dual-range .track {
+    position: absolute; left: 0; right: 0; top: 16px; height: 4px;
+    background: #e2e8f0; border: 1px solid var(--line);
+  }
+  .dual-range .fill {
+    position: absolute; top: 16px; height: 4px;
+    background: var(--accent);
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    pointer-events: none;
+  }
+  .dual-range input[type="range"] {
+    position: absolute; left: 0; right: 0; top: 6px; width: 100%;
+    margin: 0; padding: 0; background: transparent;
+    -webkit-appearance: none; appearance: none;
+    pointer-events: none;
+    min-width: 0;
+  }
+  .dual-range input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; border: 2px solid var(--line);
+    cursor: pointer; pointer-events: auto;
+  }
+  .dual-range input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; border: 2px solid var(--line);
+    cursor: pointer; pointer-events: auto;
+  }
+  .dual-range input[type="range"]::-webkit-slider-runnable-track {
+    background: transparent; border: none;
+  }
+  .dual-range input[type="range"]::-moz-range-track {
+    background: transparent; border: none;
+  }
+  .dual-values {
+    display: flex; gap: 8px; align-items: center; font-size: 11px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .dual-values .val {
+    padding: 3px 6px; background: #f1f5f9; border: 1px solid var(--line);
+    min-width: 52px; text-align: center;
+  }
+
+  /* Segmented control */
+  .segmented {
+    display: inline-flex; border: 2px solid var(--line); background: #fff;
+  }
+  .segmented button {
+    font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 12px; background: #fff; border: none; cursor: pointer;
+    color: var(--ink);
+  }
+  .segmented button + button { border-left: 2px solid var(--line); }
+  .segmented button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+  /* Preset buttons */
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .preset-btn {
+    font: inherit; font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 10px;
+    background: #fff; border: 2px solid var(--line); cursor: pointer;
+    box-shadow: 2px 2px 0 0 var(--line);
+    color: var(--ink);
+  }
+  .preset-btn:hover { background: var(--accent); }
+  .preset-btn:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 0 var(--line); }
+
+  /* Copy button */
+  .copy-row { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+  .copy-btn {
+    font: inherit; font-size: 12px; font-weight: 900; letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 12px 14px;
+    background: var(--accent); border: 2px solid var(--line); cursor: pointer;
+    box-shadow: var(--shadow);
+    color: var(--ink);
+  }
+  .copy-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 0 var(--line); }
+  .copy-hint { font-size: 10px; opacity: 0.7; line-height: 1.4; }
+  .copy-status {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #166534; height: 14px;
+  }
+
+  /* Right column: preview */
+  .preview-col {
+    display: flex; flex-direction: column;
+    min-height: 100vh;
+    background: var(--paper);
+  }
+
+  .preview-pane {
+    position: relative;
+    flex: 1;
+    min-height: 360px;
+    overflow: hidden;
+    border-bottom: 2px solid var(--line);
+  }
+  .preview-pane .sky {
+    position: absolute; inset: 0;
+    transition: background-color 60ms linear;
+  }
+  .preview-pane .sun {
+    position: absolute;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: #fef3c7;
+    border: 2px solid var(--line);
+    box-shadow: 0 0 60px 20px rgba(254, 243, 199, 0.5);
+    left: 50%;
+    transform: translateX(-50%);
+    transition: top 80ms linear, opacity 80ms linear, background-color 80ms linear;
+  }
+  .preview-pane .horizon {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 80px;
+    background: rgba(15, 23, 42, 0.15);
+    border-top: 2px solid var(--line);
+  }
+  .preview-pane .readout {
+    position: absolute; top: 12px; left: 12px;
+    background: rgba(255,255,255,0.92);
+    border: 2px solid var(--line);
+    padding: 6px 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .preview-pane .readout .label { font-size: 9px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.1em; }
+  .preview-pane .readout .row { display: flex; gap: 6px; align-items: center; }
+  .preview-pane .readout .chip {
+    width: 14px; height: 14px; border: 1px solid var(--line);
+  }
+
+  /* Journey strip */
+  .journey {
+    padding: 14px 18px 6px 18px;
+    border-bottom: 2px solid var(--line);
+    background: #fff;
+  }
+  .journey-title {
+    font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em;
+    opacity: 0.8; margin: 0 0 8px 0;
+  }
+  .strip-wrap {
+    position: relative;
+    height: 56px;
+    border: 2px solid var(--line);
+    cursor: pointer;
+    user-select: none;
+  }
+  .strip-canvas {
+    display: block; width: 100%; height: 100%;
+  }
+  .strip-ticks {
+    position: absolute; inset: 0;
+    pointer-events: none;
+  }
+  .tick {
+    position: absolute; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--line);
+    opacity: 0.6;
+  }
+  .tick::after {
+    content: attr(data-label);
+    position: absolute;
+    top: 100%; left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px; font-weight: 700;
+    padding: 2px 4px;
+    background: var(--ink); color: var(--paper);
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .strip-thumb {
+    position: absolute; top: -4px; bottom: -4px;
+    width: 4px;
+    background: #fff;
+    border: 2px solid var(--line);
+    transform: translateX(-50%);
+    pointer-events: none;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.4);
+  }
+  .strip-axis {
+    display: flex; justify-content: space-between;
+    font-size: 9px; opacity: 0.6; margin-top: 22px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Swatch row */
+  .swatches {
+    padding: 14px 18px 18px 18px;
+    background: #fff;
+  }
+  .swatches-title {
+    font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em;
+    opacity: 0.8; margin: 0 0 8px 0;
+  }
+  .swatch-row {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 4px;
+  }
+  .swatch {
+    display: flex; flex-direction: column; align-items: stretch;
+    border: 2px solid var(--line);
+    overflow: hidden;
+  }
+  .swatch .chip {
+    height: 44px;
+  }
+  .swatch .meta {
+    font-size: 9px; font-weight: 700;
+    text-align: center;
+    padding: 3px 2px;
+    background: #fff;
+    border-top: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .swatch .meta .p { opacity: 0.6; font-size: 8px; }
+  @media (max-width: 700px) {
+    .swatch-row { grid-template-columns: repeat(6, 1fr); }
+  }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <!-- LEFT: control panel -->
+    <aside class="panel">
+      <div>
+        <h1>Sky gradient curve</h1>
+        <p class="subtitle">Hold each anchor. Compress transitions. Boost saturation inside the windows so in-betweens stay vibrant.</p>
+      </div>
+
+      <!-- Presets -->
+      <div class="section">
+        <div class="section-title">Presets</div>
+        <div class="presets">
+          <button class="preset-btn" data-preset="linear">Linear (current)</button>
+          <button class="preset-btn" data-preset="held">Held anchors</button>
+          <button class="preset-btn" data-preset="held-sat">Held + saturated</button>
+        </div>
+      </div>
+
+      <!-- Scroll progress -->
+      <div class="section">
+        <div class="section-title">Scroll progress</div>
+        <div class="control-row">
+          <input id="scroll" type="range" min="0" max="1" step="0.001" value="0.5" />
+          <div class="control-value" id="scrollVal">0.500</div>
+        </div>
+      </div>
+
+      <!-- Phase 1: blue -> orange -->
+      <div class="section">
+        <div class="section-title">Phase 1 · blue &rarr; orange</div>
+        <div class="control-row">
+          <span class="control-label">Window</span>
+          <div class="dual-range" data-phase="1">
+            <div class="track"></div>
+            <div class="fill"></div>
+            <input class="rangeStart" type="range" min="0" max="1" step="0.001" value="0.25" />
+            <input class="rangeEnd" type="range" min="0" max="1" step="0.001" value="0.40" />
+          </div>
+        </div>
+        <div class="dual-values">
+          <span>start</span><span class="val" id="p1StartVal">0.250</span>
+          <span>end</span><span class="val" id="p1EndVal">0.400</span>
+        </div>
+        <div class="control-row">
+          <span class="control-label">Sat boost</span>
+          <input id="p1Boost" type="range" min="0" max="1.5" step="0.01" value="0.75" />
+          <div class="control-value" id="p1BoostVal">75%</div>
+        </div>
+      </div>
+
+      <!-- Phase 2: orange -> night -->
+      <div class="section">
+        <div class="section-title">Phase 2 · orange &rarr; night</div>
+        <div class="control-row">
+          <span class="control-label">Window</span>
+          <div class="dual-range" data-phase="2">
+            <div class="track"></div>
+            <div class="fill"></div>
+            <input class="rangeStart" type="range" min="0" max="1" step="0.001" value="0.60" />
+            <input class="rangeEnd" type="range" min="0" max="1" step="0.001" value="0.80" />
+          </div>
+        </div>
+        <div class="dual-values">
+          <span>start</span><span class="val" id="p2StartVal">0.600</span>
+          <span>end</span><span class="val" id="p2EndVal">0.800</span>
+        </div>
+        <div class="control-row">
+          <span class="control-label">Sat boost</span>
+          <input id="p2Boost" type="range" min="0" max="1.5" step="0.01" value="0.75" />
+          <div class="control-value" id="p2BoostVal">75%</div>
+        </div>
+      </div>
+
+      <!-- Interp space -->
+      <div class="section">
+        <div class="section-title">Interp space</div>
+        <div class="segmented" id="interpSpace" role="radiogroup" aria-label="Interpolation space">
+          <button type="button" data-value="sRGB" aria-pressed="true">sRGB</button>
+          <button type="button" data-value="OKLCH" aria-pressed="false">OKLCH</button>
+        </div>
+      </div>
+
+      <!-- Copy spec -->
+      <div class="copy-row">
+        <button class="copy-btn" id="copyBtn">Copy spec</button>
+        <div class="copy-status" id="copyStatus" aria-live="polite"></div>
+        <p class="copy-hint">Click Copy spec, then paste the JSON back into chat.</p>
+      </div>
+    </aside>
+
+    <!-- RIGHT: preview -->
+    <section class="preview-col">
+      <div class="preview-pane" id="previewPane">
+        <div class="sky" id="sky"></div>
+        <div class="sun" id="sun"></div>
+        <div class="horizon"></div>
+        <div class="readout">
+          <div class="label">at p = <span id="readP">0.500</span></div>
+          <div class="row"><span class="chip" id="readChip" style="background: #87CEEB;"></span><span id="readHex">#87CEEB</span></div>
+          <div class="row" style="font-size: 9px; opacity: 0.7;"><span id="readPhase">phase 1 hold</span></div>
+        </div>
+      </div>
+
+      <div class="journey">
+        <h3 class="journey-title">Full journey (drag to scrub)</h3>
+        <div class="strip-wrap" id="stripWrap">
+          <canvas class="strip-canvas" id="stripCanvas"></canvas>
+          <div class="strip-ticks" id="stripTicks"></div>
+          <div class="strip-thumb" id="stripThumb" style="left: 50%;"></div>
+        </div>
+        <div class="strip-axis"><span>p = 0.000</span><span>0.500</span><span>1.000</span></div>
+      </div>
+
+      <div class="swatches">
+        <h3 class="swatches-title">Swatch row · p = 0.0 &rarr; 1.0</h3>
+        <div class="swatch-row" id="swatchRow"></div>
+      </div>
+    </section>
+  </div>
+
+<script>
+  "use strict";
+
+  // ---------- Anchors ----------
+  const NOON  = { r: 135, g: 206, b: 235 };
+  const DUSK  = { r: 244, g: 164, b:  96 };
+  const NIGHT = { r:  20, g:  10, b:  50 };
+
+  // ---------- State ----------
+  const state = {
+    p: 0.5,
+    phase1: { start: 0.25, end: 0.40, boost: 0.75 },
+    phase2: { start: 0.60, end: 0.80, boost: 0.75 },
+    interpSpace: "sRGB",
+  };
+
+  // ---------- Color math ----------
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+
+  function rgbToHsl(rgb) {
+    const r = rgb.r / 255, g = rgb.g / 255, b = rgb.b / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    return { h, s, l };
+  }
+
+  function hslToRgb(hsl) {
+    const { h, s, l } = hsl;
+    if (s === 0) {
+      const v = Math.round(l * 255);
+      return { r: v, g: v, b: v };
+    }
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    return {
+      r: Math.round(hue2rgb(p, q, h + 1/3) * 255),
+      g: Math.round(hue2rgb(p, q, h) * 255),
+      b: Math.round(hue2rgb(p, q, h - 1/3) * 255),
+    };
+  }
+
+  // sRGB <-> linear
+  const srgbToLinear = (c) => {
+    const x = c / 255;
+    return x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+  };
+  const linearToSrgb = (x) => {
+    const c = x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055;
+    return Math.round(clamp01(c) * 255);
+  };
+
+  // Linear sRGB <-> OKLab <-> OKLCH (Björn Ottosson)
+  function linearSrgbToOklab(r, g, b) {
+    const l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+    const m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+    const s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+    const l_ = Math.cbrt(l), m_ = Math.cbrt(m), s_ = Math.cbrt(s);
+    return {
+      L: 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+      a: 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+      b: 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
+    };
+  }
+  function oklabToLinearSrgb(L, a, b) {
+    const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+    const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+    const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+    const l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+    return {
+      r: 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+      g: -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+      b: -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
+    };
+  }
+  function oklabToOklch(lab) {
+    const C = Math.sqrt(lab.a * lab.a + lab.b * lab.b);
+    let h = Math.atan2(lab.b, lab.a);
+    if (h < 0) h += Math.PI * 2;
+    return { L: lab.L, C, h };
+  }
+  function oklchToOklab(lch) {
+    return { L: lch.L, a: lch.C * Math.cos(lch.h), b: lch.C * Math.sin(lch.h) };
+  }
+  function rgbToOklch(rgb) {
+    const lab = linearSrgbToOklab(
+      srgbToLinear(rgb.r),
+      srgbToLinear(rgb.g),
+      srgbToLinear(rgb.b),
+    );
+    return oklabToOklch(lab);
+  }
+  function oklchToRgb(lch) {
+    const lab = oklchToOklab(lch);
+    const lin = oklabToLinearSrgb(lab.L, lab.a, lab.b);
+    return {
+      r: linearToSrgb(lin.r),
+      g: linearToSrgb(lin.g),
+      b: linearToSrgb(lin.b),
+    };
+  }
+
+  // Hue lerp on the short arc (radians)
+  function lerpHue(h1, h2, t) {
+    const TAU = Math.PI * 2;
+    let d = h2 - h1;
+    if (d > Math.PI) d -= TAU;
+    if (d < -Math.PI) d += TAU;
+    let h = h1 + d * t;
+    h = ((h % TAU) + TAU) % TAU;
+    return h;
+  }
+
+  function lerp(a, b, t, space) {
+    if (space === "OKLCH") {
+      const ca = rgbToOklch(a);
+      const cb = rgbToOklch(b);
+      // If one endpoint is essentially gray, copy the other's hue to avoid a hue swing through nothing.
+      const epsC = 1e-4;
+      const hA = ca.C < epsC ? cb.h : ca.h;
+      const hB = cb.C < epsC ? ca.h : cb.h;
+      const out = {
+        L: ca.L + (cb.L - ca.L) * t,
+        C: ca.C + (cb.C - ca.C) * t,
+        h: lerpHue(hA, hB, t),
+      };
+      return oklchToRgb(out);
+    }
+    // sRGB straight lerp on 0..255 channels
+    return {
+      r: Math.round(a.r + (b.r - a.r) * t),
+      g: Math.round(a.g + (b.g - a.g) * t),
+      b: Math.round(a.b + (b.b - a.b) * t),
+    };
+  }
+
+  function bell(t) { return Math.sin(t * Math.PI); }
+
+  function boostSat(rgb, boost, weight) {
+    const hsl = rgbToHsl(rgb);
+    hsl.s = clamp01(hsl.s * (1 + boost * weight));
+    return hslToRgb(hsl);
+  }
+
+  function skyAt(p, s) {
+    if (p <= s.phase1.start) return { rgb: NOON, phase: "phase 1 hold (noon)" };
+    if (p < s.phase1.end) {
+      const t = (p - s.phase1.start) / (s.phase1.end - s.phase1.start);
+      const base = lerp(NOON, DUSK, t, s.interpSpace);
+      const boosted = boostSat(base, s.phase1.boost, bell(t));
+      return { rgb: boosted, phase: "phase 1 transition" };
+    }
+    if (p <= s.phase2.start) return { rgb: DUSK, phase: "phase 2 hold (dusk)" };
+    if (p < s.phase2.end) {
+      const t = (p - s.phase2.start) / (s.phase2.end - s.phase2.start);
+      const base = lerp(DUSK, NIGHT, t, s.interpSpace);
+      const boosted = boostSat(base, s.phase2.boost, bell(t));
+      return { rgb: boosted, phase: "phase 2 transition" };
+    }
+    return { rgb: NIGHT, phase: "phase 2 hold (night)" };
+  }
+
+  function rgbCss(rgb) { return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`; }
+  function rgbHex(rgb) {
+    const h = (n) => n.toString(16).padStart(2, "0").toUpperCase();
+    return `#${h(rgb.r)}${h(rgb.g)}${h(rgb.b)}`;
+  }
+
+  // ---------- DOM refs ----------
+  const $ = (id) => document.getElementById(id);
+  const sky        = $("sky");
+  const sun        = $("sun");
+  const readP      = $("readP");
+  const readChip   = $("readChip");
+  const readHex    = $("readHex");
+  const readPhase  = $("readPhase");
+  const scrollEl   = $("scroll");
+  const scrollVal  = $("scrollVal");
+  const p1Boost    = $("p1Boost");
+  const p1BoostVal = $("p1BoostVal");
+  const p2Boost    = $("p2Boost");
+  const p2BoostVal = $("p2BoostVal");
+  const p1StartVal = $("p1StartVal");
+  const p1EndVal   = $("p1EndVal");
+  const p2StartVal = $("p2StartVal");
+  const p2EndVal   = $("p2EndVal");
+  const stripCanvas= $("stripCanvas");
+  const stripTicks = $("stripTicks");
+  const stripThumb = $("stripThumb");
+  const stripWrap  = $("stripWrap");
+  const swatchRow  = $("swatchRow");
+  const copyBtn    = $("copyBtn");
+  const copyStatus = $("copyStatus");
+  const interpSpaceEl = $("interpSpace");
+
+  // ---------- Dual-range wiring ----------
+  function wireDualRange(rootEl, onChange) {
+    const start = rootEl.querySelector(".rangeStart");
+    const end   = rootEl.querySelector(".rangeEnd");
+    const fill  = rootEl.querySelector(".fill");
+    const MIN_GAP = 0.001;
+
+    function refreshFill() {
+      const sV = parseFloat(start.value);
+      const eV = parseFloat(end.value);
+      fill.style.left  = `${sV * 100}%`;
+      fill.style.width = `${(eV - sV) * 100}%`;
+    }
+
+    start.addEventListener("input", () => {
+      let sV = parseFloat(start.value);
+      const eV = parseFloat(end.value);
+      if (sV > eV - MIN_GAP) sV = eV - MIN_GAP;
+      if (sV < 0) sV = 0;
+      start.value = sV.toString();
+      refreshFill();
+      onChange(sV, parseFloat(end.value));
+    });
+    end.addEventListener("input", () => {
+      let eV = parseFloat(end.value);
+      const sV = parseFloat(start.value);
+      if (eV < sV + MIN_GAP) eV = sV + MIN_GAP;
+      if (eV > 1) eV = 1;
+      end.value = eV.toString();
+      refreshFill();
+      onChange(parseFloat(start.value), eV);
+    });
+
+    refreshFill();
+    return {
+      set(sV, eV) {
+        start.value = sV.toString();
+        end.value = eV.toString();
+        refreshFill();
+      },
+    };
+  }
+
+  const phase1Dual = wireDualRange(
+    document.querySelector('.dual-range[data-phase="1"]'),
+    (sV, eV) => { state.phase1.start = sV; state.phase1.end = eV; onStateChange(); }
+  );
+  const phase2Dual = wireDualRange(
+    document.querySelector('.dual-range[data-phase="2"]'),
+    (sV, eV) => { state.phase2.start = sV; state.phase2.end = eV; onStateChange(); }
+  );
+
+  // ---------- Single sliders ----------
+  scrollEl.addEventListener("input", () => {
+    state.p = parseFloat(scrollEl.value);
+    onStateChange();
+  });
+  p1Boost.addEventListener("input", () => {
+    state.phase1.boost = parseFloat(p1Boost.value);
+    onStateChange();
+  });
+  p2Boost.addEventListener("input", () => {
+    state.phase2.boost = parseFloat(p2Boost.value);
+    onStateChange();
+  });
+
+  // ---------- Segmented interp space ----------
+  interpSpaceEl.querySelectorAll("button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const v = btn.dataset.value;
+      state.interpSpace = v;
+      interpSpaceEl.querySelectorAll("button").forEach((b) => {
+        b.setAttribute("aria-pressed", b.dataset.value === v ? "true" : "false");
+      });
+      onStateChange();
+    });
+  });
+
+  // ---------- Presets ----------
+  function applyPreset(name) {
+    if (name === "linear") {
+      state.phase1 = { start: 0, end: 1, boost: 0 };
+      state.phase2 = { start: 0, end: 1, boost: 0 };
+    } else if (name === "held") {
+      state.phase1 = { start: 0.25, end: 0.40, boost: 0 };
+      state.phase2 = { start: 0.60, end: 0.80, boost: 0 };
+    } else if (name === "held-sat") {
+      state.phase1 = { start: 0.25, end: 0.40, boost: 0.75 };
+      state.phase2 = { start: 0.60, end: 0.80, boost: 0.75 };
+    }
+    syncControlsToState();
+    onStateChange();
+  }
+  document.querySelectorAll(".preset-btn").forEach((b) => {
+    b.addEventListener("click", () => applyPreset(b.dataset.preset));
+  });
+
+  function syncControlsToState() {
+    phase1Dual.set(state.phase1.start, state.phase1.end);
+    phase2Dual.set(state.phase2.start, state.phase2.end);
+    p1Boost.value = state.phase1.boost.toString();
+    p2Boost.value = state.phase2.boost.toString();
+    scrollEl.value = state.p.toString();
+  }
+
+  // ---------- Strip rendering ----------
+  function renderStrip() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = stripCanvas.getBoundingClientRect();
+    const w = Math.max(1, Math.floor(rect.width * dpr));
+    const h = Math.max(1, Math.floor(rect.height * dpr));
+    if (stripCanvas.width !== w || stripCanvas.height !== h) {
+      stripCanvas.width = w;
+      stripCanvas.height = h;
+    }
+    const ctx = stripCanvas.getContext("2d");
+    const W = stripCanvas.width;
+    const H = stripCanvas.height;
+    // Render column by column
+    const img = ctx.createImageData(W, H);
+    for (let x = 0; x < W; x++) {
+      const p = x / (W - 1);
+      const { rgb } = skyAt(p, state);
+      for (let y = 0; y < H; y++) {
+        const idx = (y * W + x) * 4;
+        img.data[idx + 0] = rgb.r;
+        img.data[idx + 1] = rgb.g;
+        img.data[idx + 2] = rgb.b;
+        img.data[idx + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function renderTicks() {
+    const points = [
+      { p: state.phase1.start, label: "p1.s" },
+      { p: state.phase1.end,   label: "p1.e" },
+      { p: state.phase2.start, label: "p2.s" },
+      { p: state.phase2.end,   label: "p2.e" },
+    ];
+    stripTicks.innerHTML = "";
+    for (const pt of points) {
+      const el = document.createElement("div");
+      el.className = "tick";
+      el.style.left = `${pt.p * 100}%`;
+      el.dataset.label = pt.label;
+      stripTicks.appendChild(el);
+    }
+  }
+
+  // ---------- Strip scrubbing ----------
+  function stripPointerToP(ev) {
+    const rect = stripWrap.getBoundingClientRect();
+    const x = (ev.clientX ?? (ev.touches && ev.touches[0].clientX)) - rect.left;
+    return clamp01(x / rect.width);
+  }
+  let scrubbing = false;
+  stripWrap.addEventListener("pointerdown", (ev) => {
+    scrubbing = true;
+    stripWrap.setPointerCapture(ev.pointerId);
+    state.p = stripPointerToP(ev);
+    scrollEl.value = state.p.toString();
+    onStateChange({ skipStripRender: true });
+  });
+  stripWrap.addEventListener("pointermove", (ev) => {
+    if (!scrubbing) return;
+    state.p = stripPointerToP(ev);
+    scrollEl.value = state.p.toString();
+    onStateChange({ skipStripRender: true });
+  });
+  stripWrap.addEventListener("pointerup", (ev) => {
+    scrubbing = false;
+    try { stripWrap.releasePointerCapture(ev.pointerId); } catch (_) {}
+  });
+  stripWrap.addEventListener("pointercancel", () => { scrubbing = false; });
+
+  // ---------- Swatches ----------
+  function renderSwatches() {
+    const points = [];
+    for (let i = 0; i <= 10; i++) points.push(i / 10);
+    swatchRow.innerHTML = "";
+    for (const p of points) {
+      const { rgb } = skyAt(p, state);
+      const cell = document.createElement("div");
+      cell.className = "swatch";
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.style.background = rgbCss(rgb);
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.innerHTML = `<div>${rgbHex(rgb)}</div><div class="p">p ${p.toFixed(1)}</div>`;
+      cell.appendChild(chip);
+      cell.appendChild(meta);
+      swatchRow.appendChild(cell);
+    }
+  }
+
+  // ---------- Preview ----------
+  function renderPreview() {
+    const { rgb, phase } = skyAt(state.p, state);
+    const css = rgbCss(rgb);
+    sky.style.background = css;
+    readP.textContent = state.p.toFixed(3);
+    readChip.style.background = css;
+    readHex.textContent = rgbHex(rgb);
+    readPhase.textContent = phase;
+
+    // Sun position: noon-high at p=0, sinks past horizon as we approach 1.
+    // Simple mapping for visual feedback.
+    const pane = $("previewPane").getBoundingClientRect();
+    const topMin = 24;
+    const topMax = pane.height - 80; // just above horizon strip
+    const sunTop = topMin + (topMax - topMin) * state.p;
+    sun.style.top = `${sunTop}px`;
+    // Fade sun as we cross into night
+    const nightT = state.p > state.phase2.start
+      ? clamp01((state.p - state.phase2.start) / Math.max(0.001, state.phase2.end - state.phase2.start))
+      : 0;
+    sun.style.opacity = (1 - nightT * 0.9).toFixed(2);
+  }
+
+  function renderControlReadouts() {
+    scrollVal.textContent = state.p.toFixed(3);
+    p1Boost.value = state.phase1.boost.toString();
+    p2Boost.value = state.phase2.boost.toString();
+    p1BoostVal.textContent = `${Math.round(state.phase1.boost * 100)}%`;
+    p2BoostVal.textContent = `${Math.round(state.phase2.boost * 100)}%`;
+    p1StartVal.textContent = state.phase1.start.toFixed(3);
+    p1EndVal.textContent   = state.phase1.end.toFixed(3);
+    p2StartVal.textContent = state.phase2.start.toFixed(3);
+    p2EndVal.textContent   = state.phase2.end.toFixed(3);
+    stripThumb.style.left  = `${state.p * 100}%`;
+    interpSpaceEl.querySelectorAll("button").forEach((b) => {
+      b.setAttribute("aria-pressed", b.dataset.value === state.interpSpace ? "true" : "false");
+    });
+  }
+
+  function onStateChange(opts) {
+    opts = opts || {};
+    renderControlReadouts();
+    renderPreview();
+    if (!opts.skipStripRender) {
+      renderStrip();
+      renderTicks();
+      renderSwatches();
+    } else {
+      // still need ticks aligned with current windows; cheap
+      renderTicks();
+    }
+  }
+
+  // ---------- Copy spec ----------
+  copyBtn.addEventListener("click", async () => {
+    const spec = {
+      feature: "sky-gradient-curve",
+      anchors: {
+        noon:  `rgb(${NOON.r}, ${NOON.g}, ${NOON.b})`,
+        dusk:  `rgb(${DUSK.r}, ${DUSK.g}, ${DUSK.b})`,
+        night: `rgb(${NIGHT.r}, ${NIGHT.g}, ${NIGHT.b})`,
+      },
+      phase1: {
+        start: +state.phase1.start.toFixed(3),
+        end:   +state.phase1.end.toFixed(3),
+        saturationBoost: +state.phase1.boost.toFixed(3),
+      },
+      phase2: {
+        start: +state.phase2.start.toFixed(3),
+        end:   +state.phase2.end.toFixed(3),
+        saturationBoost: +state.phase2.boost.toFixed(3),
+      },
+      interpSpace: state.interpSpace,
+    };
+    const text = JSON.stringify(spec, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      copyStatus.textContent = "Copied. Paste into chat.";
+    } catch (_) {
+      // Fallback
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); copyStatus.textContent = "Copied. Paste into chat."; }
+      catch (_) { copyStatus.textContent = "Copy failed. Open console for spec."; console.log(text); }
+      document.body.removeChild(ta);
+    }
+    setTimeout(() => { copyStatus.textContent = ""; }, 2500);
+  });
+
+  // ---------- Init ----------
+  window.addEventListener("resize", () => {
+    renderStrip();
+  });
+
+  // First paint
+  renderControlReadouts();
+  renderStrip();
+  renderTicks();
+  renderSwatches();
+  renderPreview();
+</script>
+</body>
+</html>

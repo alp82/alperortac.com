@@ -5,6 +5,12 @@ import {
 	type CelestialState,
 	DEFAULT_CELESTIAL,
 } from "../data/celestial";
+import {
+	applyMonotonicClamp,
+	type ClampField,
+	type SkyCurve,
+} from "../data/skyCurve";
+import { DualRangeSlider } from "./DualRangeSlider";
 
 export const SKY_PANEL_TITLE_ID = "sky-panel-title";
 
@@ -40,6 +46,14 @@ export function SkyTuningPanel({
 		onChange({ ...state, [body]: { ...state[body], [key]: value } });
 	};
 
+	const updateCurve = (next: SkyCurve) => {
+		onChange({ ...state, curve: next });
+	};
+
+	const updateCurveWindow = (field: ClampField, value: number) => {
+		updateCurve(applyMonotonicClamp(field, value, state.curve));
+	};
+
 	const copyValues = async () => {
 		try {
 			await navigator.clipboard.writeText(JSON.stringify(state, null, 2));
@@ -55,23 +69,13 @@ export function SkyTuningPanel({
 			<button
 				type="button"
 				onClick={onClose}
-				aria-label="Return to main path"
-				className="absolute left-0 top-0 h-full w-12 bg-slate-900 text-white font-black uppercase tracking-widest text-xs flex items-center justify-center border-r-2 border-slate-900 hover:bg-slate-700 transition-colors z-10"
-				style={{ writingMode: "vertical-rl" }}
+				aria-label="Close"
+				className="absolute top-2 right-2 z-10 w-9 h-9 flex items-center justify-center bg-white text-slate-900 border-2 border-slate-900 font-black text-lg leading-none hover:bg-slate-900 hover:text-white transition-colors"
 			>
-				Return
+				×
 			</button>
 
-			<button
-				type="button"
-				onClick={onClose}
-				aria-label="Return to main path"
-				className="absolute top-4 left-16 z-10 bg-white text-slate-900 min-h-[44px] px-3 py-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform"
-			>
-				← Main Path
-			</button>
-
-			<div className="pl-20 pr-6 pt-20 pb-12 max-w-2xl font-mono">
+			<div className="px-6 pt-6 pb-6 font-mono">
 				<h2
 					id={SKY_PANEL_TITLE_ID}
 					className="text-3xl font-black uppercase tracking-tighter mb-2"
@@ -91,7 +95,7 @@ export function SkyTuningPanel({
 							<button
 								key={name}
 								type="button"
-								onClick={() => onChange(preset)}
+								onClick={() => onChange({ ...preset, curve: state.curve })}
 								className="px-3 py-1.5 bg-slate-100 hover:bg-slate-900 hover:text-white border border-slate-900 font-bold uppercase text-[10px] tracking-wider transition-colors"
 							>
 								{name}
@@ -148,6 +152,114 @@ export function SkyTuningPanel({
 						})}
 					</div>
 				))}
+
+				<div className="mb-6">
+					<div className="flex items-center justify-between mb-3">
+						<div className="font-black uppercase text-sm tracking-wider">
+							Sky Curve
+						</div>
+						<button
+							type="button"
+							role="switch"
+							aria-checked={state.curve.enabled}
+							onClick={() =>
+								updateCurve({ ...state.curve, enabled: !state.curve.enabled })
+							}
+							className="border-2 border-slate-900 px-3 py-1 font-black uppercase text-[10px] tracking-wider bg-slate-900 text-white aria-checked:bg-white aria-checked:text-slate-900 hover:opacity-90 transition-colors"
+						>
+							{state.curve.enabled ? "ON" : "OFF"}
+						</button>
+					</div>
+
+					<div
+						className={
+							state.curve.enabled ? undefined : "opacity-50 pointer-events-none"
+						}
+					>
+						<div className="mb-3">
+							<div className="flex items-center justify-between mb-1">
+								<div className="text-[10px] uppercase opacity-70">
+									Phase 1 · noon → dusk
+								</div>
+								<div className="text-[10px] font-bold tabular-nums opacity-80">
+									{state.curve.phase1[0].toFixed(3)} —{" "}
+									{state.curve.phase1[1].toFixed(3)}
+								</div>
+							</div>
+							<DualRangeSlider
+								startValue={state.curve.phase1[0]}
+								endValue={state.curve.phase1[1]}
+								onChange={(s, e) => {
+									if (s !== state.curve.phase1[0]) updateCurveWindow("p1s", s);
+									else if (e !== state.curve.phase1[1])
+										updateCurveWindow("p1e", e);
+								}}
+								startAriaLabel="Phase 1 start"
+								endAriaLabel="Phase 1 end"
+								disabled={!state.curve.enabled}
+							/>
+						</div>
+
+						<div className="mb-3">
+							<div className="flex items-center justify-between mb-1">
+								<div className="text-[10px] uppercase opacity-70">
+									Phase 2 · dusk → night
+								</div>
+								<div className="text-[10px] font-bold tabular-nums opacity-80">
+									{state.curve.phase2[0].toFixed(3)} —{" "}
+									{state.curve.phase2[1].toFixed(3)}
+								</div>
+							</div>
+							<DualRangeSlider
+								startValue={state.curve.phase2[0]}
+								endValue={state.curve.phase2[1]}
+								onChange={(s, e) => {
+									if (s !== state.curve.phase2[0]) updateCurveWindow("p2s", s);
+									else if (e !== state.curve.phase2[1])
+										updateCurveWindow("p2e", e);
+								}}
+								startAriaLabel="Phase 2 start"
+								endAriaLabel="Phase 2 end"
+								disabled={!state.curve.enabled}
+							/>
+						</div>
+
+						<div className="flex items-center gap-2 mb-2">
+							<label
+								htmlFor="sky-curve-boost-range"
+								className="w-20 text-[10px] uppercase opacity-70"
+							>
+								boost
+							</label>
+							<input
+								id="sky-curve-boost-range"
+								type="range"
+								min={0}
+								max={1.5}
+								step={0.01}
+								value={state.curve.boost}
+								onChange={(e) =>
+									updateCurve({ ...state.curve, boost: Number(e.target.value) })
+								}
+								className="flex-1 accent-slate-900"
+								disabled={!state.curve.enabled}
+							/>
+							<input
+								aria-label="sky curve boost value"
+								type="number"
+								min={0}
+								max={1.5}
+								step={0.01}
+								value={state.curve.boost}
+								onChange={(e) =>
+									updateCurve({ ...state.curve, boost: Number(e.target.value) })
+								}
+								className="w-14 px-1 border border-slate-300 text-right text-xs"
+								disabled={!state.curve.enabled}
+							/>
+						</div>
+					</div>
+				</div>
 
 				<div className="flex gap-2 mt-6">
 					<button
