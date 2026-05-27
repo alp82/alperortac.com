@@ -1,24 +1,20 @@
 export type PanelKey =
 	| "sky"
 	| "career"
+	| "early-days"
 	| "goodwatch"
 	| "aistack"
 	| "alpriver"
 	| "manaschmiede"
-	| "learning"
-	| "teaching"
-	| "family"
 	| "music";
 
 export const PANEL_SIDES: Record<Exclude<PanelKey, "sky">, "left" | "right"> = {
 	career: "left",
+	"early-days": "right",
 	goodwatch: "left",
 	aistack: "right",
 	alpriver: "left",
 	manaschmiede: "right",
-	learning: "right",
-	teaching: "left",
-	family: "right",
 	music: "left",
 };
 

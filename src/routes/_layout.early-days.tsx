@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_layout/learning")({
+export const Route = createFileRoute("/_layout/early-days")({
 	component: () => null,
 });

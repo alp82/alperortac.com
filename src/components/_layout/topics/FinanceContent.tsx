@@ -1,0 +1,30 @@
+import { SiGithub } from "@icons-pack/react-simple-icons";
+import {
+	ExternalButton,
+	Paragraph,
+	type TopicContentProps,
+} from "./primitives";
+
+export function FinanceContent(_: TopicContentProps) {
+	return (
+		<div className="space-y-5">
+			<Paragraph>
+				I started 2016 with investing in stocks, ETF's and crypto. A very bumpy
+				road, and I learned a lot in the process about trading psychology and
+				strategies to cope with FOMO and FUD. I'm much more Zen than I was
+				before.
+			</Paragraph>
+
+			<Paragraph>
+				Even held a presentation about this topic, but beware - it's in German.
+			</Paragraph>
+
+			<ExternalButton
+				href="https://github.com/alp82/trading-strategien-und-psychologie"
+				label="Trading-Strategien und Psychologie"
+				Icon={SiGithub}
+				brand="#181717"
+			/>
+		</div>
+	);
+}

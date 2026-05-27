@@ -1,84 +1,106 @@
 import type { PanelKey } from "./sections";
+import type { StorySlug } from "./stories";
 
 export type ProjectSlug = Extract<
 	PanelKey,
 	"goodwatch" | "aistack" | "alpriver" | "manaschmiede"
 >;
-export type PersonalSlug = Extract<
-	PanelKey,
-	"learning" | "teaching" | "family" | "music"
->;
+export type PersonalSlug = Extract<PanelKey, "music">;
 
 export type Trigger =
 	| { kind: "career" }
 	| { kind: "project"; slug: ProjectSlug }
-	| { kind: "personal"; slug: PersonalSlug };
+	| { kind: "personal"; slug: PersonalSlug }
+	| { kind: "story"; slug: StorySlug };
 
-export type TopicId = "craft" | "ai" | "movies-tv" | "games" | PersonalSlug;
+export type TopicId =
+	| "coding"
+	| "career"
+	| "ai"
+	| "tech-stack"
+	| "finance"
+	| "family"
+	| "movies-tv"
+	| "games"
+	| PersonalSlug;
 
 export type Topic = {
 	id: TopicId;
 	heading: string;
-	teaser: string;
+	/**
+	 * Generic-renderer teaser. Omit for topics promoted to their own component
+	 * in `src/components/_layout/topics/` — the component owns the prose.
+	 * Multi-paragraph supported via `\n\n`.
+	 */
+	teaser?: string;
 	triggers: Trigger[];
 };
 
+/**
+ * Topic narrowed to "has teaser." The DEV composer only ever renders
+ * un-promoted topics (TopicArticle bypasses it for anything in
+ * `TOPIC_CONTENTS`), so its inner renderers can assume `teaser` is defined.
+ */
+export type ComposerTopic = Topic & { teaser: string };
+
 export const TOPICS: Topic[] = [
 	{
-		id: "craft",
-		heading: "The Craft",
+		id: "coding",
+		heading: "Coding",
 		teaser:
-			"Day job's freelance dev work. The rest is open source and side projects I can't stop poking at.",
+			"Nowadays I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up Tanstack and self-hosting it on one of my Hetzner VPS.",
+		triggers: [{ kind: "story", slug: "early-days" }],
+	},
+	{
+		id: "career",
+		heading: "Career",
+		teaser:
+			"Professionally, I worked both in small startups and tech giants like Cisco. Started as Frontend engineer with strong opinions and a knack for sharing knowledge. Started to lead small to big teams and being responsible for product goals and coordinated execution.\n\nI'm a freelance consultant and engineer. Working with fund tax compliance, intelligent traffic start-ups and robotics companies.",
 		triggers: [{ kind: "career" }],
 	},
 	{
 		id: "ai",
 		heading: "AI",
-		teaser:
-			"Two projects came out of trying to use this stuff seriously: AIStack and Alp-River.",
+		// Prose lives in src/components/_layout/topics/AIContent.tsx.
 		triggers: [
 			{ kind: "project", slug: "aistack" },
 			{ kind: "project", slug: "alpriver" },
 		],
 	},
 	{
-		id: "learning",
-		heading: "Learning",
-		teaser:
-			"There's always one thing I'm bad at and trying to fix. The current one's in here.",
-		triggers: [{ kind: "personal", slug: "learning" }],
+		id: "tech-stack",
+		heading: "Tech Stack",
+		// Prose lives in src/components/_layout/topics/TechStackContent.tsx.
+		triggers: [],
 	},
 	{
-		id: "teaching",
-		heading: "Teaching",
-		teaser:
-			"I record videos and write about the build. Mostly to think it through.",
-		triggers: [{ kind: "personal", slug: "teaching" }],
-	},
-	{
-		id: "movies-tv",
-		heading: "Movies & TV",
-		teaser:
-			"I watch too much. GoodWatch happened because picking what to watch shouldn't be the hardest part.",
-		triggers: [{ kind: "project", slug: "goodwatch" }],
+		id: "finance",
+		heading: "Finance",
+		// Prose lives in src/components/_layout/topics/FinanceContent.tsx.
+		triggers: [],
 	},
 	{
 		id: "family",
 		heading: "Family",
-		teaser: "Mostly off-camera. The reason I bother.",
-		triggers: [{ kind: "personal", slug: "family" }],
+		// Prose lives in src/components/_layout/topics/FamilyContent.tsx.
+		triggers: [],
 	},
 	{
-		id: "music",
-		heading: "Music",
-		teaser: "I keep way too many playlists. A few are on repeat.",
-		triggers: [{ kind: "personal", slug: "music" }],
+		id: "movies-tv",
+		heading: "Movies & TV",
+		// Prose lives in src/components/_layout/topics/MoviesTvContent.tsx.
+		triggers: [{ kind: "project", slug: "goodwatch" }],
 	},
 	{
 		id: "games",
 		heading: "Games",
-		teaser:
-			"Board games, video games, and the design behind both. They show up in my projects more than I planned.",
+		// Prose lives in src/components/_layout/topics/GamesContent.tsx.
 		triggers: [{ kind: "project", slug: "manaschmiede" }],
+	},
+	{
+		id: "music",
+		heading: "Music",
+		// Prose lives in src/components/_layout/topics/MusicContent.tsx.
+		triggers: [{ kind: "personal", slug: "music" }],
 	},
 ];

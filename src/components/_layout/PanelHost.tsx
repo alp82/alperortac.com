@@ -4,8 +4,10 @@ import type { CelestialState } from "../../data/celestial";
 import { PERSONAL, PERSONAL_BY_SLUG } from "../../data/personal";
 import { PROJECTS, type Project } from "../../data/projects";
 import { PANEL_SIDES, type PanelKey } from "../../data/sections";
+import { STORIES, type StorySlug } from "../../data/stories";
 import { TOPICS, type PersonalSlug } from "../../data/topics";
 import { CAREER_PANEL_TITLE_ID, CareerPanel } from "../CareerPanel";
+import { EARLY_DAYS_PANEL_TITLE_ID, EarlyDaysPanel } from "../EarlyDaysPanel";
 import { getProjectPanelTitleId, ProjectPanel } from "../ProjectPanel";
 import { SKY_PANEL_TITLE_ID, SkyTuningPanel } from "../SkyTuningPanel";
 import { getPersonalPanelTitleId, PersonalPanel } from "./PersonalPanel";
@@ -15,12 +17,20 @@ const PERSONAL_ROUTE_TO_SLUG: Record<string, PersonalSlug> = Object.fromEntries(
 	PERSONAL.map((p) => [`/_layout/${p.slug}`, p.slug]),
 ) as Record<string, PersonalSlug>;
 
+// Same shape for stories.
+const STORY_ROUTE_TO_SLUG: Record<string, StorySlug> = Object.fromEntries(
+	STORIES.map((s) => [`/_layout/${s.slug}`, s.slug]),
+) as Record<string, StorySlug>;
+
 // Build a lookup from PersonalSlug → teaser using TOPICS.
+// Personal-triggering topics always carry a teaser; the `?? ""` is a TS
+// formality since Topic.teaser is optional for promoted topics (which never
+// trigger personals).
 const PERSONAL_TEASER: Record<string, string> = Object.fromEntries(
 	TOPICS.flatMap((t) =>
 		t.triggers
 			.filter((tr) => tr.kind === "personal")
-			.map((tr) => [tr.slug, t.teaser]),
+			.map((tr) => [tr.slug, t.teaser ?? ""]),
 	),
 );
 
@@ -38,6 +48,8 @@ function deriveUrlPanel(
 		}
 		const personalSlug = PERSONAL_ROUTE_TO_SLUG[m.routeId];
 		if (personalSlug) return personalSlug;
+		const storySlug = STORY_ROUTE_TO_SLUG[m.routeId];
+		if (storySlug) return storySlug;
 	}
 	return null;
 }
@@ -65,13 +77,11 @@ export function PanelHost({
 
 	const skyRef = useRef<HTMLDialogElement>(null);
 	const careerRef = useRef<HTMLDialogElement>(null);
+	const earlyDaysRef = useRef<HTMLDialogElement>(null);
 	const goodwatchRef = useRef<HTMLDialogElement>(null);
 	const aistackRef = useRef<HTMLDialogElement>(null);
 	const alpriverRef = useRef<HTMLDialogElement>(null);
 	const manaschmiedeRef = useRef<HTMLDialogElement>(null);
-	const learningRef = useRef<HTMLDialogElement>(null);
-	const teachingRef = useRef<HTMLDialogElement>(null);
-	const familyRef = useRef<HTMLDialogElement>(null);
 	const musicRef = useRef<HTMLDialogElement>(null);
 	// Tracks the URL-driven panel for the close-event handler to distinguish
 	// user-initiated closes (ESC/backdrop) from URL-driven panel transitions.
@@ -84,13 +94,11 @@ export function PanelHost({
 		() => ({
 			sky: skyRef,
 			career: careerRef,
+			"early-days": earlyDaysRef,
 			goodwatch: goodwatchRef,
 			aistack: aistackRef,
 			alpriver: alpriverRef,
 			manaschmiede: manaschmiedeRef,
-			learning: learningRef,
-			teaching: teachingRef,
-			family: familyRef,
 			music: musicRef,
 		}),
 		[],
@@ -199,6 +207,26 @@ export function PanelHost({
 					onClose={() => navigate({ to: "/", resetScroll: false })}
 				/>
 			</dialog>
+
+			{STORIES.map((story) => (
+				<dialog
+					key={story.slug}
+					ref={panelRefs[story.slug]}
+					aria-labelledby={EARLY_DAYS_PANEL_TITLE_ID}
+					className={`panel-dialog slide-${PANEL_SIDES[story.slug]}`}
+					style={
+						{
+							"--panel-bg": story.panelBg,
+							"--panel-fg": story.panelFg,
+						} as React.CSSProperties
+					}
+				>
+					<EarlyDaysPanel
+						story={story}
+						onClose={() => navigate({ to: "/", resetScroll: false })}
+					/>
+				</dialog>
+			))}
 
 			{PROJECTS.map((p) => (
 				<dialog

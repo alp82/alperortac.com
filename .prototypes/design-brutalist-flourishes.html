@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Brutalist primitive + Topic flourishes — design picker</title>
+<style>
+  :root {
+    --ink: #0f172a;
+    --paper: #faf7f1;         /* cream/beige like homepage linktree band */
+    --paper-soft: #f5f1e8;
+    --line: #0f172a;
+    --muted: #64748b;
+
+    /* Locked params */
+    --press-offset: 6px;
+
+    /* Brand colors (raw) */
+    --c-youtube:   #FF0000;
+    --c-tiktok:    #000000;
+    --c-instagram: #E4405F;
+    --c-x:         #000000;
+    --c-threads:   #000000;
+    --c-bluesky:   #0285FF;
+    --c-github:    #181717;
+    --c-linkedin:  #0A66C2;
+
+    /* Pastel 30% tints (color-mix 30% brand + 70% white) for colorful 5 */
+    --t-youtube:   color-mix(in srgb, var(--c-youtube)   30%, white);
+    --t-instagram: color-mix(in srgb, var(--c-instagram) 30%, white);
+    --t-bluesky:   color-mix(in srgb, var(--c-bluesky)   30%, white);
+    --t-linkedin:  color-mix(in srgb, var(--c-linkedin)  30%, white);
+
+    /* Hand-picked cool-grey overrides for black trio (TikTok / X / Threads) */
+    --t-tiktok:  #e6e7ec;     /* cool grey, slightly warmer */
+    --t-x:       #dde0e6;     /* cool grey, neutral */
+    --t-threads: #e8e9ee;     /* cool grey, faintly lavender */
+    --t-github:  #dee1e6;     /* cool grey for GitHub black */
+
+    /* 8 Topic accents (pastel 100s) */
+    --a-craft:    #a7f3d0;    /* emerald-100 — Alp-River / Code */
+    --a-ai:       #bfdbfe;    /* blue-100 — AIStack */
+    --a-learning: #99f6e4;    /* teal-100 */
+    --a-teaching: #fde68a;    /* amber-100 */
+    --a-movies:   #fecaca;    /* red-100 — GoodWatch */
+    --a-family:   #fecdd3;    /* rose-100 */
+    --a-music:    #c7d2fe;    /* indigo-100 */
+    --a-games:    #e9d5ff;    /* purple-100 — Manaschmiede */
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, "Inter", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(0,0,0,0.04) 1px, transparent 1px),
+      radial-gradient(circle at 80% 60%, rgba(0,0,0,0.03) 1px, transparent 1px);
+    background-size: 24px 24px, 32px 32px;
+  }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px 120px; }
+
+  header.top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  header.top h1 {
+    font-family: ui-monospace, "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 900;
+    margin: 0;
+  }
+  header.top .crumb {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  /* Section heading shared */
+  h2.section {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 900;
+    margin: 56px 0 16px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--ink);
+  }
+  h2.section:first-of-type { margin-top: 0; }
+
+  p.lede { font-size: 13px; line-height: 1.55; color: var(--muted); margin: 0 0 20px; max-width: 720px; }
+
+  /* ───────────────── BRUTALIST PRIMITIVE ───────────────── */
+  .brutal-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* Generic brutalist row (linktree) */
+  .brow {
+    --tint: #fff;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: var(--tint);
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    box-shadow: var(--press-offset) var(--press-offset) 0 0 var(--ink);
+    cursor: pointer;
+    user-select: none;
+    transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .brow:active,
+  .brow.pressed {
+    transform: translate(var(--press-offset), var(--press-offset));
+    box-shadow: 0 0 0 0 var(--ink);
+  }
+  .brow .ico {
+    width: 28px; height: 28px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .brow .label { flex: 1; font-size: 15px; }
+  .brow .chev { font-family: ui-monospace, monospace; font-size: 16px; opacity: 0.6; }
+
+  /* Trigger cards */
+  .trigger {
+    --tint: #fff;
+    --txt: var(--ink);
+    position: relative;
+    padding: 22px 24px;
+    background: var(--tint);
+    color: var(--txt);
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    box-shadow: var(--press-offset) var(--press-offset) 0 0 var(--ink);
+    cursor: pointer;
+    user-select: none;
+    transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .trigger:active,
+  .trigger.pressed {
+    transform: translate(var(--press-offset), var(--press-offset));
+    box-shadow: 0 0 0 0 var(--ink);
+  }
+  .trigger .kicker {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+  .trigger .ttl { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+  .trigger .sub { font-size: 13px; opacity: 0.8; line-height: 1.45; }
+  .trigger.dark {
+    --tint: #0f172a;
+    --txt: #f8fafc;
+    border-color: #0f172a;
+    box-shadow: var(--press-offset) var(--press-offset) 0 0 #475569;
+  }
+  .trigger.dark:active,
+  .trigger.dark.pressed {
+    box-shadow: 0 0 0 0 #475569;
+  }
+
+  /* ───────────────── TOPIC FLOURISH GALLERY ───────────────── */
+  .topic {
+    position: relative;
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    padding: 28px 28px 24px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .topic.skipped { opacity: 0.4; }
+  .topic .row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .topic .name {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .topic .name .swatch {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--ink);
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    margin-bottom: 16px;
+  }
+  .controls label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .seg {
+    display: inline-flex;
+    border: 1.5px solid var(--ink);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .seg button {
+    background: #fff;
+    border: 0;
+    border-right: 1.5px solid var(--ink);
+    padding: 5px 10px;
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on {
+    background: var(--ink);
+    color: #fff;
+  }
+  .skip-toggle {
+    margin-left: auto;
+    border: 1.5px solid var(--ink);
+    background: #fff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .skip-toggle.on { background: var(--ink); color: #fff; }
+
+  .preview {
+    position: relative;
+    background: var(--paper-soft);
+    border: 1.5px dashed #cbd5e1;
+    border-radius: 4px;
+    padding: 24px;
+    min-height: 160px;
+  }
+
+  /* Layout-break archetypes */
+  .preview.offset-heading .head { transform: translateX(28px); }
+  .preview.asymmetric .grid {
+    display: grid; grid-template-columns: 1fr 2fr; gap: 18px; align-items: center;
+  }
+  .preview.accent-bar::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 10px;
+    background: var(--accent, #ddd);
+  }
+  .preview.accent-bar { padding-left: 32px; }
+  .preview.stamped .stamp {
+    position: absolute;
+    right: 12px; top: 12px;
+    transform: rotate(-6deg);
+  }
+  .preview.full-bleed {
+    background:
+      linear-gradient(180deg, transparent 0 60%, var(--accent, #ddd) 60% 100%);
+  }
+
+  .preview h3 {
+    font-size: 20px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    font-weight: 800;
+  }
+  .preview .desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+    max-width: 380px;
+  }
+  .preview .svg-slot {
+    width: 64px; height: 64px;
+    background: #fff;
+    border: 1.5px solid var(--ink);
+    border-radius: 4px;
+    display: grid; place-items: center;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  .preview .svg-slot svg { display: block; }
+  .preview .grid .svg-slot { width: 80px; height: 80px; }
+
+  /* ───────────────── COPY SPEC BAR ───────────────── */
+  .copy-bar {
+    position: sticky;
+    bottom: 16px;
+    margin-top: 48px;
+    background: var(--ink);
+    color: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    box-shadow: 6px 6px 0 0 #475569;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .copy-bar p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.4;
+    flex: 1;
+    min-width: 240px;
+  }
+  .copy-bar button {
+    background: #fff;
+    color: var(--ink);
+    border: 2px solid #fff;
+    border-radius: 4px;
+    padding: 10px 16px;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .copy-bar button:active { transform: translate(2px, 2px); }
+  .copy-bar .preview-out {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    width: 100%;
+    word-break: break-all;
+    background: #1e293b;
+    border: 1px solid #334155;
+    padding: 10px 12px;
+    border-radius: 4px;
+    color: #e2e8f0;
+    line-height: 1.6;
+  }
+  .copy-bar .toast {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    color: #86efac;
+    opacity: 0;
+    transition: opacity 200ms;
+  }
+  .copy-bar .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="top">
+      <h1>Brutalist primitive + 8-Topic flourish picker</h1>
+      <span class="crumb">design-loop / press-feel locked / tint locked</span>
+    </header>
+
+    <!-- ========== BRUTALIST PRIMITIVE REFERENCE ========== -->
+    <h2 class="section">Brutalist primitive — reference (locked)</h2>
+    <p class="lede">
+      6px hard offset shadow at rest, collapses to 0 on press while the button translates 6px down-right.
+      Colorful brands use color-mix 30% pastel; black-trio (TikTok / X / Threads) and GitHub use hand-picked cool greys.
+      Click any element below to feel the depress.
+    </p>
+
+    <div class="brutal-stack">
+      <!-- Linktree rows: colorful + black-trio + cool blue -->
+      <div class="brow" style="--tint: var(--t-youtube);">
+        <span class="ico">
+          <svg width="22" height="22" viewBox="0 0 22 22" shape-rendering="crispEdges">
+            <rect x="2" y="5" width="18" height="12" fill="#FF0000"/>
+            <polygon points="9,8 9,14 14,11" fill="#fff"/>
+          </svg>
+        </span>
+        <span class="label">YouTube</span>
+        <span class="chev">→</span>
+      </div>
+
+      <div class="brow" style="--tint: var(--t-x);">
+        <span class="ico">
+          <svg width="22" height="22" viewBox="0 0 22 22" shape-rendering="crispEdges">
+            <rect x="3" y="3" width="3" height="3" fill="#000"/>
+            <rect x="16" y="3" width="3" height="3" fill="#000"/>
+            <rect x="6" y="6" width="3" height="3" fill="#000"/>
+            <rect x="13" y="6" width="3" height="3" fill="#000"/>
+            <rect x="9" y="9" width="4" height="4" fill="#000"/>
+            <rect x="6" y="13" width="3" height="3" fill="#000"/>
+            <rect x="13" y="13" width="3" height="3" fill="#000"/>
+            <rect x="3" y="16" width="3" height="3" fill="#000"/>
+            <rect x="16" y="16" width="3" height="3" fill="#000"/>
+          </svg>
+        </span>
+        <span class="label">X / Twitter</span>
+        <span class="chev">→</span>
+      </div>
+
+      <div class="brow" style="--tint: var(--t-bluesky);">
+        <span class="ico">
+          <svg width="22" height="22" viewBox="0 0 22 22" shape-rendering="crispEdges">
+            <polygon points="11,4 4,9 8,14 11,11 14,14 18,9" fill="#0285FF"/>
+          </svg>
+        </span>
+        <span class="label">Bluesky</span>
+        <span class="chev">→</span>
+      </div>
+
+      <!-- Light trigger card (SidedCard variant) -->
+      <div class="trigger" style="--tint: var(--a-learning);">
+        <span class="kicker">Topic 03</span>
+        <span class="ttl">Learning</span>
+        <span class="sub">A running ledger of what I'm chewing on — books, talks, half-built ideas.</span>
+      </div>
+
+      <!-- Dark Career trigger -->
+      <div class="trigger dark">
+        <span class="kicker">Career</span>
+        <span class="ttl">Where I've worked</span>
+        <span class="sub">Roles, projects, the through-line. Click to expand the panel.</span>
+      </div>
+    </div>
+
+    <!-- ========== TOPIC FLOURISH GALLERY ========== -->
+    <h2 class="section">8-Topic flourish gallery — cycle SVGs &amp; layout breaks</h2>
+    <p class="lede">
+      Each Topic gets a pixel-art SVG mini-component plus a layout-break archetype.
+      Cycle to find the right one per Topic. Use SKIP to leave a Topic flourish-less (flat layout, no SVG).
+    </p>
+
+    <div id="topics"></div>
+
+    <!-- ========== COPY SPEC BAR ========== -->
+    <div class="copy-bar">
+      <p>
+        <strong>Copy spec</strong> — copies the full design spec (locked params + your 8 per-Topic picks)
+        as a single labeled line. Paste it back into chat.
+      </p>
+      <span class="toast" id="toast">copied!</span>
+      <button id="copy-btn">Copy spec</button>
+      <div class="preview-out" id="preview-out"></div>
+    </div>
+
+  </div>
+
+<script>
+/* ──────────────────────────────────────────────
+   Pixel-art SVG library — 2-3 candidates per Topic
+   Each Topic uses its accent color (CSS var) as the
+   primary fill so flourishes feel earned.
+   ────────────────────────────────────────────── */
+
+const SVG = {
+  /* CRAFT (emerald) — Alp-River / Code */
+  'craft.hammer':  `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="2" y="2" width="8" height="3" fill="#0f172a"/>
+    <rect x="3" y="3" width="6" height="1" fill="#a7f3d0"/>
+    <rect x="6" y="5" width="2" height="9" fill="#854d0e"/>
+  </svg>`,
+  'craft.river':   `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="0" y="3" width="16" height="2" fill="#a7f3d0"/>
+    <rect x="0" y="7" width="16" height="2" fill="#6ee7b7"/>
+    <rect x="0" y="11" width="16" height="2" fill="#34d399"/>
+    <rect x="3" y="3" width="2" height="2" fill="#0f172a"/>
+    <rect x="10" y="7" width="2" height="2" fill="#0f172a"/>
+    <rect x="6" y="11" width="2" height="2" fill="#0f172a"/>
+  </svg>`,
+  'craft.bracket': `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="2" y="2" width="2" height="12" fill="#0f172a"/>
+    <rect x="2" y="2" width="4" height="2" fill="#0f172a"/>
+    <rect x="2" y="12" width="4" height="2" fill="#0f172a"/>
+    <rect x="12" y="2" width="2" height="12" fill="#0f172a"/>
+    <rect x="10" y="2" width="4" height="2" fill="#0f172a"/>
+    <rect x="10" y="12" width="4" height="2" fill="#0f172a"/>
+    <rect x="7" y="7" width="2" height="2" fill="#a7f3d0"/>
+  </svg>`,
+
+  /* AI (blue) — AIStack */
+  'ai.brain':    `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="4" y="2" width="8" height="10" fill="#bfdbfe"/>
+    <rect x="3" y="3" width="1" height="8" fill="#bfdbfe"/>
+    <rect x="12" y="3" width="1" height="8" fill="#bfdbfe"/>
+    <rect x="5" y="4" width="2" height="2" fill="#0f172a"/>
+    <rect x="9" y="4" width="2" height="2" fill="#0f172a"/>
+    <rect x="7" y="8" width="2" height="1" fill="#0f172a"/>
+    <rect x="5" y="12" width="2" height="2" fill="#0f172a"/>
+    <rect x="9" y="12" width="2" height="2" fill="#0f172a"/>
+  </svg>`,
+  'ai.network':  `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="2" y="2" width="2" height="2" fill="#0f172a"/>
+    <rect x="12" y="2" width="2" height="2" fill="#0f172a"/>
+    <rect x="7" y="7" width="2" height="2" fill="#bfdbfe"/>
+    <rect x="2" y="12" width="2" height="2" fill="#0f172a"/>
+    <rect x="12" y="12" width="2" height="2" fill="#0f172a"/>
+    <rect x="4" y="4" width="2" height="2" fill="#bfdbfe"/>
+    <rect x="10" y="4" width="2" height="2" fill="#bfdbfe"/>
+    <rect x="4" y="10" width="2" height="2" fill="#bfdbfe"/>
+    <rect x="10" y="10" width="2" height="2" fill="#bfdbfe"/>
+  </svg>`,
+  'ai.chip':     `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="3" y="3" width="10" height="10" fill="#bfdbfe"/>
+    <rect x="5" y="5" width="6" height="6" fill="#0f172a"/>
+    <rect x="6" y="6" width="4" height="4" fill="#bfdbfe"/>
+    <rect x="0" y="5" width="3" height="1" fill="#0f172a"/>
+    <rect x="0" y="10" width="3" height="1" fill="#0f172a"/>
+    <rect x="13" y="5" width="3" height="1" fill="#0f172a"/>
+    <rect x="13" y="10" width="3" height="1" fill="#0f172a"/>
+    <rect x="5" y="0" width="1" height="3" fill="#0f172a"/>
+    <rect x="10" y="0" width="1" height="3" fill="#0f172a"/>
+    <rect x="5" y="13" width="1" height="3" fill="#0f172a"/>
+    <rect x="10" y="13" width="1" height="3" fill="#0f172a"/>
+  </svg>`,
+
+  /* LEARNING (teal) */
+  'learning.book':    `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="2" y="3" width="12" height="10" fill="#99f6e4"/>
+    <rect x="2" y="3" width="12" height="1" fill="#0f172a"/>
+    <rect x="2" y="12" width="12" height="1" fill="#0f172a"/>
+    <rect x="7" y="3" width="2" height="10" fill="#0f172a"/>
+    <rect x="4" y="6" width="2" height="1" fill="#0f172a"/>
+    <rect x="10" y="6" width="2" height="1" fill="#0f172a"/>
+    <rect x="4" y="9" width="2" height="1" fill="#0f172a"/>
+    <rect x="10" y="9" width="2" height="1" fill="#0f172a"/>
+  </svg>`,
+  'learning.lightbulb': `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="6" y="2" width="4" height="1" fill="#0f172a"/>
+    <rect x="4" y="3" width="8" height="6" fill="#99f6e4"/>
+    <rect x="4" y="3" width="1" height="6" fill="#0f172a"/>
+    <rect x="11" y="3" width="1" height="6" fill="#0f172a"/>
+    <rect x="5" y="9" width="6" height="1" fill="#0f172a"/>
+    <rect x="6" y="10" width="4" height="1" fill="#0f172a"/>
+    <rect x="6" y="11" width="4" height="1" fill="#fde047"/>
+    <rect x="6" y="12" width="4" height="1" fill="#0f172a"/>
+    <rect x="7" y="13" width="2" height="1" fill="#0f172a"/>
+  </svg>`,
+  'learning.scroll':  `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="2" y="3" width="12" height="10" fill="#99f6e4"/>
+    <rect x="2" y="3" width="12" height="1" fill="#0f172a"/>
+    <rect x="2" y="12" width="12" height="1" fill="#0f172a"/>
+    <rect x="4" y="6" width="8" height="1" fill="#0f172a"/>
+    <rect x="4" y="8" width="6" height="1" fill="#0f172a"/>
+    <rect x="4" y="10" width="7" height="1" fill="#0f172a"/>
+  </svg>`,
+
+  /* TEACHING (amber) */
+  'teaching.chalkboard':`<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="1" y="3" width="14" height="9" fill="#0f172a"/>
+    <rect x="2" y="4" width="12" height="7" fill="#1e293b"/>
+    <rect x="4" y="6" width="6" height="1" fill="#fde68a"/>
+    <rect x="4" y="8" width="8" height="1" fill="#fde68a"/>
+    <rect x="0" y="12" width="16" height="1" fill="#854d0e"/>
+  </svg>`,
+  'teaching.pointer':   `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="3" y="13" width="2" height="2" fill="#0f172a"/>
+    <rect x="4" y="11" width="2" height="2" fill="#0f172a"/>
+    <rect x="5" y="9" width="2" height="2" fill="#0f172a"/>
+    <rect x="6" y="7" width="2" height="2" fill="#0f172a"/>
+    <rect x="7" y="5" width="2" height="2" fill="#0f172a"/>
+    <rect x="8" y="3" width="3" height="3" fill="#fde68a"/>
+    <rect x="9" y="2" width="3" height="3" fill="#fde68a"/>
+  </svg>`,
+  'teaching.apple':     `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="7" y="2" width="2" height="2" fill="#16a34a"/>
+    <rect x="8" y="3" width="2" height="2" fill="#16a34a"/>
+    <rect x="4" y="4" width="8" height="9" fill="#fde68a"/>
+    <rect x="3" y="5" width="1" height="7" fill="#fde68a"/>
+    <rect x="12" y="5" width="1" height="7" fill="#fde68a"/>
+    <rect x="5" y="13" width="6" height="1" fill="#fde68a"/>
+    <rect x="6" y="6" width="2" height="2" fill="#fff"/>
+  </svg>`,
+
+  /* MOVIES (red) — GoodWatch */
+  'movies.reel':      `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="3" y="3" width="10" height="10" fill="#fecaca"/>
+    <rect x="3" y="3" width="10" height="1" fill="#0f172a"/>
+    <rect x="3" y="12" width="10" height="1" fill="#0f172a"/>
+    <rect x="3" y="3" width="1" height="10" fill="#0f172a"/>
+    <rect x="12" y="3" width="1" height="10" fill="#0f172a"/>
+    <rect x="7" y="7" width="2" height="2" fill="#0f172a"/>
+    <rect x="5" y="5" width="2" height="2" fill="#0f172a"/>
+    <rect x="9" y="5" width="2" height="2" fill="#0f172a"/>
+    <rect x="5" y="9" width="2" height="2" fill="#0f172a"/>
+    <rect x="9" y="9" width="2" height="2" fill="#0f172a"/>
+  </svg>`,
+  'movies.popcorn':   `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="4" y="3" width="2" height="2" fill="#fff"/>
+    <rect x="6" y="2" width="2" height="2" fill="#fff"/>
+    <rect x="8" y="3" width="2" height="2" fill="#fff"/>
+    <rect x="10" y="2" width="2" height="2" fill="#fff"/>
+    <rect x="3" y="5" width="10" height="8" fill="#fecaca"/>
+    <rect x="3" y="5" width="1" height="8" fill="#0f172a"/>
+    <rect x="12" y="5" width="1" height="8" fill="#0f172a"/>
+    <rect x="3" y="5" width="10" height="1" fill="#0f172a"/>
+    <rect x="5" y="7" width="1" height="5" fill="#0f172a"/>
+    <rect x="8" y="7" width="1" height="5" fill="#0f172a"/>
+    <rect x="11" y="7" width="1" height="5" fill="#0f172a"/>
+  </svg>`,
+  'movies.clapper':   `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="2" y="5" width="12" height="8" fill="#fecaca"/>
+    <rect x="2" y="3" width="12" height="2" fill="#0f172a"/>
+    <rect x="4" y="3" width="1" height="2" fill="#fff"/>
+    <rect x="7" y="3" width="1" height="2" fill="#fff"/>
+    <rect x="10" y="3" width="1" height="2" fill="#fff"/>
+    <rect x="13" y="3" width="1" height="2" fill="#fff"/>
+  </svg>`,
+
+  /* FAMILY (rose) */
+  'family.heart':   `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="3" y="3" width="3" height="3" fill="#fecdd3"/>
+    <rect x="10" y="3" width="3" height="3" fill="#fecdd3"/>
+    <rect x="2" y="5" width="12" height="3" fill="#fecdd3"/>
+    <rect x="3" y="8" width="10" height="2" fill="#fecdd3"/>
+    <rect x="4" y="10" width="8" height="1" fill="#fecdd3"/>
+    <rect x="5" y="11" width="6" height="1" fill="#fecdd3"/>
+    <rect x="6" y="12" width="4" height="1" fill="#fecdd3"/>
+    <rect x="7" y="13" width="2" height="1" fill="#fecdd3"/>
+  </svg>`,
+  'family.house':   `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="7" y="2" width="2" height="1" fill="#0f172a"/>
+    <rect x="6" y="3" width="4" height="1" fill="#0f172a"/>
+    <rect x="5" y="4" width="6" height="1" fill="#0f172a"/>
+    <rect x="4" y="5" width="8" height="1" fill="#0f172a"/>
+    <rect x="3" y="6" width="10" height="7" fill="#fecdd3"/>
+    <rect x="3" y="6" width="1" height="7" fill="#0f172a"/>
+    <rect x="12" y="6" width="1" height="7" fill="#0f172a"/>
+    <rect x="3" y="13" width="10" height="1" fill="#0f172a"/>
+    <rect x="7" y="9" width="2" height="4" fill="#0f172a"/>
+  </svg>`,
+  'family.tree':    `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="6" y="2" width="4" height="2" fill="#fecdd3"/>
+    <rect x="4" y="4" width="8" height="2" fill="#fecdd3"/>
+    <rect x="3" y="6" width="10" height="2" fill="#fecdd3"/>
+    <rect x="5" y="8" width="6" height="1" fill="#fecdd3"/>
+    <rect x="7" y="9" width="2" height="5" fill="#854d0e"/>
+  </svg>`,
+
+  /* MUSIC (indigo) */
+  'music.vinyl':    `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="4" y="2" width="8" height="1" fill="#0f172a"/>
+    <rect x="2" y="3" width="12" height="1" fill="#0f172a"/>
+    <rect x="2" y="4" width="12" height="8" fill="#0f172a"/>
+    <rect x="2" y="12" width="12" height="1" fill="#0f172a"/>
+    <rect x="4" y="13" width="8" height="1" fill="#0f172a"/>
+    <rect x="6" y="6" width="4" height="4" fill="#c7d2fe"/>
+    <rect x="7" y="7" width="2" height="2" fill="#0f172a"/>
+  </svg>`,
+  'music.boombox':  `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="1" y="4" width="14" height="9" fill="#c7d2fe"/>
+    <rect x="1" y="4" width="14" height="1" fill="#0f172a"/>
+    <rect x="1" y="12" width="14" height="1" fill="#0f172a"/>
+    <rect x="1" y="4" width="1" height="9" fill="#0f172a"/>
+    <rect x="14" y="4" width="1" height="9" fill="#0f172a"/>
+    <rect x="3" y="7" width="3" height="3" fill="#0f172a"/>
+    <rect x="10" y="7" width="3" height="3" fill="#0f172a"/>
+    <rect x="4" y="8" width="1" height="1" fill="#c7d2fe"/>
+    <rect x="11" y="8" width="1" height="1" fill="#c7d2fe"/>
+    <rect x="7" y="6" width="2" height="1" fill="#0f172a"/>
+    <rect x="7" y="10" width="2" height="1" fill="#0f172a"/>
+  </svg>`,
+  'music.knobs':    `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="2" y="3" width="5" height="5" fill="#c7d2fe"/>
+    <rect x="2" y="3" width="5" height="1" fill="#0f172a"/>
+    <rect x="2" y="7" width="5" height="1" fill="#0f172a"/>
+    <rect x="2" y="3" width="1" height="5" fill="#0f172a"/>
+    <rect x="6" y="3" width="1" height="5" fill="#0f172a"/>
+    <rect x="4" y="4" width="1" height="2" fill="#0f172a"/>
+    <rect x="9" y="3" width="5" height="5" fill="#c7d2fe"/>
+    <rect x="9" y="3" width="5" height="1" fill="#0f172a"/>
+    <rect x="9" y="7" width="5" height="1" fill="#0f172a"/>
+    <rect x="9" y="3" width="1" height="5" fill="#0f172a"/>
+    <rect x="13" y="3" width="1" height="5" fill="#0f172a"/>
+    <rect x="11" y="5" width="1" height="2" fill="#0f172a"/>
+    <rect x="2" y="10" width="12" height="3" fill="#c7d2fe"/>
+    <rect x="2" y="10" width="12" height="1" fill="#0f172a"/>
+    <rect x="2" y="12" width="12" height="1" fill="#0f172a"/>
+    <rect x="5" y="11" width="1" height="1" fill="#0f172a"/>
+    <rect x="9" y="11" width="1" height="1" fill="#0f172a"/>
+  </svg>`,
+
+  /* GAMES (purple) — Manaschmiede */
+  'games.dpad':     `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="6" y="2" width="4" height="4" fill="#e9d5ff"/>
+    <rect x="2" y="6" width="12" height="4" fill="#e9d5ff"/>
+    <rect x="6" y="10" width="4" height="4" fill="#e9d5ff"/>
+    <rect x="6" y="2" width="4" height="1" fill="#0f172a"/>
+    <rect x="6" y="13" width="4" height="1" fill="#0f172a"/>
+    <rect x="2" y="6" width="1" height="4" fill="#0f172a"/>
+    <rect x="13" y="6" width="1" height="4" fill="#0f172a"/>
+    <rect x="6" y="3" width="1" height="3" fill="#0f172a"/>
+    <rect x="9" y="3" width="1" height="3" fill="#0f172a"/>
+    <rect x="6" y="10" width="1" height="3" fill="#0f172a"/>
+    <rect x="9" y="10" width="1" height="3" fill="#0f172a"/>
+    <rect x="3" y="6" width="3" height="1" fill="#0f172a"/>
+    <rect x="3" y="9" width="3" height="1" fill="#0f172a"/>
+    <rect x="10" y="6" width="3" height="1" fill="#0f172a"/>
+    <rect x="10" y="9" width="3" height="1" fill="#0f172a"/>
+  </svg>`,
+  'games.sword':    `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="7" y="2" width="2" height="1" fill="#e9d5ff"/>
+    <rect x="7" y="3" width="2" height="7" fill="#e9d5ff"/>
+    <rect x="6" y="9" width="4" height="1" fill="#e9d5ff"/>
+    <rect x="5" y="10" width="6" height="1" fill="#854d0e"/>
+    <rect x="7" y="11" width="2" height="3" fill="#854d0e"/>
+  </svg>`,
+  'games.coin':     `<svg width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <rect x="5" y="2" width="6" height="1" fill="#0f172a"/>
+    <rect x="4" y="3" width="1" height="1" fill="#0f172a"/>
+    <rect x="11" y="3" width="1" height="1" fill="#0f172a"/>
+    <rect x="3" y="4" width="1" height="8" fill="#0f172a"/>
+    <rect x="12" y="4" width="1" height="8" fill="#0f172a"/>
+    <rect x="4" y="12" width="1" height="1" fill="#0f172a"/>
+    <rect x="11" y="12" width="1" height="1" fill="#0f172a"/>
+    <rect x="5" y="13" width="6" height="1" fill="#0f172a"/>
+    <rect x="4" y="4" width="8" height="8" fill="#e9d5ff"/>
+    <rect x="6" y="5" width="1" height="6" fill="#0f172a"/>
+    <rect x="9" y="5" width="1" height="6" fill="#0f172a"/>
+    <rect x="7" y="5" width="2" height="1" fill="#0f172a"/>
+    <rect x="7" y="10" width="2" height="1" fill="#0f172a"/>
+  </svg>`,
+};
+
+/* ──────────────────────────────────────────────
+   Topic catalog — 8 Topics in band order
+   ────────────────────────────────────────────── */
+
+const TOPICS = [
+  { key: 'craft',    label: 'Craft',    accent: 'var(--a-craft)',    accentName: 'emerald-100',
+    svgs: ['craft.bracket', 'craft.river', 'craft.hammer'],
+    desc: 'Code as making — what I build, why, and how.',
+    layoutLabels: ['accent-bar', 'offset-heading', 'asymmetric'] },
+  { key: 'ai',       label: 'AI',       accent: 'var(--a-ai)',       accentName: 'blue-100',
+    svgs: ['ai.chip', 'ai.network', 'ai.brain'],
+    desc: 'Tools, agents, and what they make possible.',
+    layoutLabels: ['asymmetric', 'accent-bar', 'stamped'] },
+  { key: 'learning', label: 'Learning', accent: 'var(--a-learning)', accentName: 'teal-100',
+    svgs: ['learning.book', 'learning.lightbulb', 'learning.scroll'],
+    desc: 'A running ledger of what I am chewing on.',
+    layoutLabels: ['offset-heading', 'accent-bar', 'asymmetric'] },
+  { key: 'teaching', label: 'Teaching', accent: 'var(--a-teaching)', accentName: 'amber-100',
+    svgs: ['teaching.chalkboard', 'teaching.pointer', 'teaching.apple'],
+    desc: 'Notes from passing it on — workshops, write-ups, walkthroughs.',
+    layoutLabels: ['stamped', 'accent-bar', 'offset-heading'] },
+  { key: 'movies',   label: 'Movies',   accent: 'var(--a-movies)',   accentName: 'red-100',
+    svgs: ['movies.reel', 'movies.popcorn', 'movies.clapper'],
+    desc: 'GoodWatch and the long list — what I am watching, what stayed.',
+    layoutLabels: ['full-bleed', 'asymmetric', 'stamped'] },
+  { key: 'family',   label: 'Family',   accent: 'var(--a-family)',   accentName: 'rose-100',
+    svgs: ['family.house', 'family.heart', 'family.tree'],
+    desc: 'The people behind the work — quietly load-bearing.',
+    layoutLabels: ['offset-heading', 'stamped', 'accent-bar'] },
+  { key: 'music',    label: 'Music',    accent: 'var(--a-music)',    accentName: 'indigo-100',
+    svgs: ['music.vinyl', 'music.boombox', 'music.knobs'],
+    desc: 'What is in the headphones while I work — and why.',
+    layoutLabels: ['stamped', 'full-bleed', 'asymmetric'] },
+  { key: 'games',    label: 'Games',    accent: 'var(--a-games)',    accentName: 'purple-100',
+    svgs: ['games.dpad', 'games.sword', 'games.coin'],
+    desc: 'Manaschmiede and the design-thinking that bleeds into the rest.',
+    layoutLabels: ['asymmetric', 'full-bleed', 'stamped'] },
+];
+
+/* ──────────────────────────────────────────────
+   State + render
+   ────────────────────────────────────────────── */
+
+const state = {};
+TOPICS.forEach(t => {
+  state[t.key] = { svgIdx: 0, layoutIdx: 0, skipped: false };
+});
+
+const root = document.getElementById('topics');
+
+function render() {
+  root.innerHTML = '';
+  TOPICS.forEach(t => {
+    const s = state[t.key];
+    const svgKey = t.svgs[s.svgIdx];
+    const layoutKey = t.layoutLabels[s.layoutIdx];
+    const svgHtml = SVG[svgKey] || '';
+
+    const block = document.createElement('div');
+    block.className = 'topic' + (s.skipped ? ' skipped' : '');
+    block.innerHTML = `
+      <div class="row-top">
+        <div class="name"><span class="swatch" style="background:${t.accent}"></span>${t.label} <span style="font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);font-weight:500;">— ${t.accentName}</span></div>
+        <button class="skip-toggle ${s.skipped ? 'on' : ''}" data-act="skip" data-topic="${t.key}">
+          ${s.skipped ? 'skipped' : 'skip flourish'}
+        </button>
+      </div>
+
+      <div class="controls">
+        <label>SVG</label>
+        <div class="seg" data-topic="${t.key}" data-kind="svg">
+          ${t.svgs.map((k, i) => `<button data-i="${i}" class="${i===s.svgIdx?'on':''}">${k.split('.')[1]}</button>`).join('')}
+        </div>
+        <label style="margin-left:14px;">LAYOUT-BREAK</label>
+        <div class="seg" data-topic="${t.key}" data-kind="layout">
+          ${t.layoutLabels.map((k, i) => `<button data-i="${i}" class="${i===s.layoutIdx?'on':''}">${k}</button>`).join('')}
+        </div>
+      </div>
+
+      <div class="preview ${s.skipped ? '' : layoutKey}" style="--accent: ${t.accent};">
+        ${layoutKey === 'asymmetric' && !s.skipped ? `
+          <div class="grid">
+            <div class="svg-slot">${svgHtml}</div>
+            <div>
+              <h3 class="head">${t.label}</h3>
+              <p class="desc">${t.desc}</p>
+            </div>
+          </div>
+        ` : `
+          <div style="display:flex; gap:18px; align-items:flex-start;">
+            ${s.skipped ? '' : `<div class="svg-slot">${svgHtml}</div>`}
+            <div style="flex:1;">
+              <h3 class="head">${t.label}</h3>
+              <p class="desc">${t.desc}</p>
+            </div>
+            ${layoutKey === 'stamped' && !s.skipped ? `
+              <div class="stamp">
+                <div style="background:${t.accent}; padding:6px 10px; border:1.5px solid var(--ink); font-family:ui-monospace,monospace; font-size:10px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase;">topic</div>
+              </div>
+            ` : ''}
+          </div>
+        `}
+      </div>
+    `;
+    root.appendChild(block);
+  });
+  updatePreviewOut();
+}
+
+root.addEventListener('click', (e) => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  const act = t.dataset.act;
+  if (act === 'skip') {
+    const topic = t.dataset.topic;
+    state[topic].skipped = !state[topic].skipped;
+    render();
+    return;
+  }
+  const seg = t.closest('.seg');
+  if (seg) {
+    const topic = seg.dataset.topic;
+    const kind = seg.dataset.kind;
+    const i = parseInt(t.dataset.i, 10);
+    if (kind === 'svg')    state[topic].svgIdx = i;
+    if (kind === 'layout') state[topic].layoutIdx = i;
+    render();
+  }
+});
+
+/* Brutalist primitive pressed-state demo */
+document.querySelectorAll('.brow, .trigger').forEach(el => {
+  el.addEventListener('click', () => {
+    el.classList.add('pressed');
+    setTimeout(() => el.classList.remove('pressed'), 180);
+  });
+});
+
+/* ──────────────────────────────────────────────
+   Copy-spec
+   ────────────────────────────────────────────── */
+function buildSpec() {
+  const locked = [
+    'press-feel: classic-6px-full-depress',
+    'brand-tint: pastel-30-with-cool-grey-overrides',
+    'svg-style: pixel-art',
+    'flourish-density: medium-narrative-pulse',
+  ];
+  const perTopic = TOPICS.map(t => {
+    const s = state[t.key];
+    if (s.skipped) {
+      return `${t.key}: skip`;
+    }
+    const svgName = t.svgs[s.svgIdx];
+    const layout = t.layoutLabels[s.layoutIdx];
+    return `${t.key}: svg=${svgName} / layout=${layout}`;
+  });
+  return [...locked, ...perTopic].join(' | ');
+}
+
+function updatePreviewOut() {
+  document.getElementById('preview-out').textContent = buildSpec();
+}
+
+document.getElementById('copy-btn').addEventListener('click', () => {
+  const spec = buildSpec();
+  navigator.clipboard.writeText(spec).then(() => {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1400);
+  });
+});
+
+render();
+</script>
+</body>
+</html>

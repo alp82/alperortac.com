@@ -56,6 +56,20 @@ html, body { overflow-x: clip; }
 		overlay 180ms allow-discrete;
 }
 
+/* DEV-only design panel anchors bottom-right so it clears the Tune-sky popover
+   (bottom-left). Remove with the rest of the design-exploration host. */
+.panel-dialog-modal--right {
+	left: auto;
+	right: 1rem;
+	transform-origin: bottom right;
+	width: min(520px, calc(100vw - 2rem));
+}
+@media (min-width: 768px) {
+	.panel-dialog-modal--right {
+		right: 6rem;
+	}
+}
+
 .panel-dialog-modal:not([open]) {
 	opacity: 0;
 	scale: 0.92;
@@ -185,4 +199,98 @@ body.panel-open {
 .dual-range input[type="range"]:focus-visible::-moz-range-thumb {
 	outline: 2px solid #0f172a;
 	outline-offset: 2px;
+}
+
+.btn-brutalist {
+	--btn-tint: #ffffff;
+	position: relative;
+	padding: 18px 18px;
+	background: var(--btn-tint);
+	color: #0f172a;
+	border: 2px solid #0f172a;
+	border-radius: 4px;
+	box-shadow: 6px 6px 0 0 #0f172a;
+	cursor: pointer;
+	user-select: none;
+	transition: transform 80ms ease-out, box-shadow 80ms ease-out, background-color 80ms ease-out, color 80ms ease-out;
+}
+.btn-brutalist:hover {
+	background: var(--btn-tint-hover, var(--btn-tint));
+	color: var(--btn-text-hover, inherit);
+	transform: translate(2px, 2px);
+	box-shadow: 4px 4px 0 0 #0f172a;
+}
+.btn-brutalist:active {
+	transform: translate(6px, 6px);
+	box-shadow: 0 0 0 0 #0f172a;
+}
+.btn-brutalist:focus-visible {
+	outline: 3px solid #0f172a;
+	outline-offset: 3px;
+}
+.btn-brutalist--dark {
+	--btn-tint: #0f172a;
+	color: #f8fafc;
+	border-color: #0f172a;
+	box-shadow: 6px 6px 0 0 #475569;
+}
+.btn-brutalist--dark:hover {
+	box-shadow: 4px 4px 0 0 #475569;
+}
+.btn-brutalist--dark:active {
+	box-shadow: 0 0 0 0 #475569;
+}
+.btn-brutalist--dark:focus-visible {
+	outline: 3px solid #f8fafc;
+	outline-offset: 3px;
+}
+.btn-brutalist:disabled,
+.btn-brutalist[aria-disabled="true"] {
+	box-shadow: 0 0 0 0 #0f172a;
+	transform: translate(6px, 6px);
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+.btn-brutalist:disabled:hover,
+.btn-brutalist[aria-disabled="true"]:hover {
+	box-shadow: 0 0 0 0 #0f172a;
+}
+@media (prefers-reduced-motion: reduce) {
+	.btn-brutalist {
+		transition: box-shadow 80ms ease-out, background-color 80ms ease-out, color 80ms ease-out;
+	}
+	.btn-brutalist:hover {
+		transform: none;
+	}
+	.btn-brutalist:active {
+		transform: none;
+		box-shadow: 0 0 0 0 #0f172a;
+	}
+	.btn-brutalist--dark:active {
+		transform: none;
+		box-shadow: 0 0 0 0 #475569;
+	}
+	.btn-brutalist:disabled,
+	.btn-brutalist[aria-disabled="true"] {
+		transform: none;
+	}
+}
+
+/* ---- THE PLATE (frosted copy panel: hero / topic teaser / linktree) ----
+   Baseline hook: the visible look is inline Tailwind on each element; this
+   class only smooths colour/blur changes during the day→night flip. Kept as
+   shipped. */
+.plate {
+	transition:
+		background-color 200ms ease-out,
+		border-color 200ms ease-out,
+		color 200ms ease-out,
+		box-shadow 200ms ease-out,
+		backdrop-filter 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.plate {
+		transition: none;
+	}
 }

@@ -1,6 +1,5 @@
 import { ArrowLeft } from "lucide-react";
 import { CAREER_TIMELINE } from "../data/career";
-import { PlaceholderBanner } from "./_layout/PersonalPanel";
 
 export const CAREER_PANEL_TITLE_ID = "career-panel-title";
 
@@ -37,11 +36,9 @@ export function CareerPanel({ onClose }: CareerPanelProps) {
 				>
 					Work History
 				</h2>
-				<p className="text-sm opacity-70 mb-6">
+				<p className="text-sm opacity-70 mb-10">
 					A short trail of where I have been building.
 				</p>
-
-				<PlaceholderBanner text="PLACEHOLDER — actual work history coming soon" />
 
 				<div className="relative">
 					<div className="absolute left-4 md:left-1/2 md:-translate-x-1/2 top-0 bottom-0 w-0.5 bg-slate-100/40 pointer-events-none" />
@@ -68,7 +65,19 @@ export function CareerPanel({ onClose }: CareerPanelProps) {
 										<div className="text-sm font-bold opacity-80 mb-2">
 											{entry.company}
 										</div>
-										<p className="text-sm leading-relaxed">{entry.desc}</p>
+										<p className="text-sm leading-relaxed mb-3">{entry.desc}</p>
+										<ul
+											className={`flex flex-wrap gap-1.5 ${i % 2 === 0 ? "md:justify-end" : "md:justify-start"}`}
+										>
+											{entry.stack.map((tech) => (
+												<li
+													key={tech}
+													className="text-[10px] font-black uppercase tracking-wider px-2 py-1 bg-slate-900 text-slate-100 border-2 border-slate-900"
+												>
+													{tech}
+												</li>
+											))}
+										</ul>
 									</div>
 								</li>
 							);
