@@ -1,4 +1,6 @@
+import { SiGithub } from "@icons-pack/react-simple-icons";
 import {
+	ExternalCard,
 	InlineLink,
 	Paragraph,
 	type TopicContentProps,
@@ -23,10 +25,18 @@ export function GamesContent({ lastTriggerRef }: TopicContentProps) {
 				.
 			</Paragraph>
 
-			<TriggerCard
-				trigger={{ kind: "project", slug: "manaschmiede" }}
-				lastTriggerRef={lastTriggerRef}
-			/>
+			<div className="space-y-3">
+				<ExternalCard
+					href="https://github.com/alp82/manaschmiede"
+					label="manaschmiede"
+					Icon={SiGithub}
+					brand="#181717"
+				/>
+				<TriggerCard
+					trigger={{ kind: "project", slug: "manaschmiede" }}
+					lastTriggerRef={lastTriggerRef}
+				/>
+			</div>
 		</div>
 	);
 }

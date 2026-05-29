@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
+import { TRIGGERS_ENABLED } from "../../../data/flags";
 import { PERSONAL_BY_SLUG } from "../../../data/personal";
 import { PROJECT_ICONS, PROJECTS } from "../../../data/projects";
 import { PANEL_SIDES } from "../../../data/sections";
@@ -127,16 +128,6 @@ export function BulletList({
 	);
 }
 
-export function ButtonRow({ children }: { children: ReactNode }) {
-	return <div className="flex flex-col md:flex-row gap-3">{children}</div>;
-}
-
-const CARD_CLASS =
-	"btn-brutalist group flex items-center justify-between gap-4 flex-1 p-4 md:p-5 font-black uppercase tracking-wider";
-
-const ARROW_CLASS =
-	"shrink-0 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all";
-
 /**
  * Default state uses a muted 30% mix of `brand` against white; on hover the
  * button flips to the full-saturation `brand` color with white text + icon.
@@ -150,29 +141,21 @@ function brandTintStyle(brand: string): React.CSSProperties {
 	} as React.CSSProperties;
 }
 
-function BrandIcon({
-	Icon,
-	size = 22,
-}: {
-	Icon: ComponentType<{ size?: number; color?: string; className?: string }>;
-	size?: number;
-}) {
-	return (
-		<span className="shrink-0 text-[var(--icon-c)] group-hover:text-white transition-colors">
-			<Icon size={size} color="currentColor" />
-		</span>
-	);
-}
+const EXTERNAL_CARD_CLASS =
+	"btn-brutalist group block w-full text-left p-6 md:p-7 font-black uppercase tracking-wider";
 
-export function ExternalButton({
+const TRIGGER_CARD_CLASS =
+	"btn-brutalist group block w-full md:w-1/2 text-left p-6 md:p-7 font-black uppercase tracking-wider";
+
+export function ExternalCard({
 	href,
 	label,
-	Icon = ExternalLink,
+	Icon,
 	brand,
 }: {
 	href: string;
 	label: string;
-	Icon?: ComponentType<{ size?: number; color?: string; className?: string }>;
+	Icon: ComponentType<{ size?: number; color?: string; className?: string }>;
 	brand: string;
 }) {
 	return (
@@ -181,19 +164,31 @@ export function ExternalButton({
 			target="_blank"
 			rel="noopener noreferrer"
 			style={brandTintStyle(brand)}
-			className={CARD_CLASS}
+			className={EXTERNAL_CARD_CLASS}
 		>
-			<span className="flex items-center gap-3 min-w-0">
-				<BrandIcon Icon={Icon} />
-				<span className="truncate">{label}</span>
-			</span>
-			<ArrowRight size={20} className={ARROW_CLASS} />
+			<div className="flex items-center justify-between gap-5">
+				<span className="flex items-center gap-4 min-w-0">
+					<span
+						className="w-14 h-14 flex items-center justify-center border-2 border-slate-900 shrink-0"
+						style={{
+							backgroundColor: `color-mix(in srgb, ${brand} 25%, white)`,
+							color: brand,
+						}}
+					>
+						<Icon size={26} color="currentColor" />
+					</span>
+					<span className="block text-2xl md:text-3xl font-black uppercase leading-none truncate">
+						{label}
+					</span>
+				</span>
+				<ArrowRight
+					size={28}
+					className="shrink-0 transition-transform group-hover:translate-x-1"
+				/>
+			</div>
 		</a>
 	);
 }
-
-const TRIGGER_CARD_CLASS =
-	"btn-brutalist group block w-full text-left p-6 md:p-7 font-black uppercase tracking-wider";
 
 function TriggerCardBody({
 	Icon,
@@ -248,6 +243,7 @@ export function TriggerCard({
 	lastTriggerRef: React.RefObject<HTMLElement | null>;
 }) {
 	const navigate = useNavigate();
+	if (!TRIGGERS_ENABLED) return null;
 
 	if (trigger.kind === "career") {
 		const go = (el: HTMLElement | null) => {

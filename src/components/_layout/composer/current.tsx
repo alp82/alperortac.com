@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { TRIGGERS_ENABLED } from "../../../data/flags";
 import type { Topic, TopicId } from "../../../data/topics";
 import { TopicPlate } from "../topics/primitives";
 import { TOPIC_CONTENTS } from "../topics/registry";
@@ -85,7 +86,7 @@ function SidedCard({
 			type="button"
 			onClick={(e) => navigate(e.currentTarget)}
 			style={{ "--btn-tint": tint } as React.CSSProperties}
-			className={`btn-brutalist group block w-full max-w-2xl text-left p-6 md:p-8 ${isRight ? "ml-auto" : "ml-0"}`}
+			className={`btn-brutalist group block w-full md:w-1/2 text-left p-6 md:p-8 ${isRight ? "ml-auto" : "ml-0"}`}
 		>
 			<div className="flex items-center justify-between gap-6">
 				{isRight ? (
@@ -187,32 +188,34 @@ export function CurrentBlock({
 							))}
 						</TopicPlate>
 					)}
-					<div className="space-y-6 mt-6">
-						{topic.triggers.map((trigger) => {
-							const resolved = resolveTrigger(trigger, topic.teaser ?? "");
-							if (!resolved) return null;
-							if (resolved.isCareer) {
+					{TRIGGERS_ENABLED && (
+						<div className="space-y-6 mt-6">
+							{topic.triggers.map((trigger) => {
+								const resolved = resolveTrigger(trigger, topic.teaser ?? "");
+								if (!resolved) return null;
+								if (resolved.isCareer) {
+									return (
+										<button
+											key={resolved.key}
+											type="button"
+											onClick={(e) => resolved.navigate(e.currentTarget)}
+											className="btn-brutalist btn-brutalist--dark w-full md:w-1/2 flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl"
+										>
+											<ArrowLeft size={32} className="shrink-0" />
+											<span>{resolved.title}</span>
+										</button>
+									);
+								}
 								return (
-									<button
+									<SidedCard
 										key={resolved.key}
-										type="button"
-										onClick={(e) => resolved.navigate(e.currentTarget)}
-										className="btn-brutalist btn-brutalist--dark w-full flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl"
-									>
-										<ArrowLeft size={32} className="shrink-0" />
-										<span>{resolved.title}</span>
-									</button>
+										resolved={resolved}
+										tint={accent}
+									/>
 								);
-							}
-							return (
-								<SidedCard
-									key={resolved.key}
-									resolved={resolved}
-									tint={accent}
-								/>
-							);
-						})}
-					</div>
+							})}
+						</div>
+					)}
 				</>
 			)}
 		</article>

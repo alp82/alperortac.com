@@ -1,11 +1,12 @@
 import { useMatches, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import type { CelestialState } from "../../data/celestial";
+import { TRIGGERS_ENABLED } from "../../data/flags";
 import { PERSONAL, PERSONAL_BY_SLUG } from "../../data/personal";
 import { PROJECTS, type Project } from "../../data/projects";
 import { PANEL_SIDES, type PanelKey } from "../../data/sections";
 import { STORIES, type StorySlug } from "../../data/stories";
-import { TOPICS, type PersonalSlug } from "../../data/topics";
+import { type PersonalSlug, TOPICS } from "../../data/topics";
 import { CAREER_PANEL_TITLE_ID, CareerPanel } from "../CareerPanel";
 import { EARLY_DAYS_PANEL_TITLE_ID, EarlyDaysPanel } from "../EarlyDaysPanel";
 import { getProjectPanelTitleId, ProjectPanel } from "../ProjectPanel";
@@ -71,7 +72,7 @@ export function PanelHost({
 }: PanelHostProps) {
 	const matches = useMatches();
 	const navigate = useNavigate();
-	const urlPanel = deriveUrlPanel(matches);
+	const urlPanel = TRIGGERS_ENABLED ? deriveUrlPanel(matches) : null;
 	// sky popover takes precedence over URL panel; closing sky reveals the URL panel underneath
 	const openPanel: PanelKey | null = skyOpen ? "sky" : urlPanel;
 
@@ -192,87 +193,91 @@ export function PanelHost({
 				/>
 			</dialog>
 
-			<dialog
-				ref={careerRef}
-				aria-labelledby={CAREER_PANEL_TITLE_ID}
-				className={`panel-dialog slide-${PANEL_SIDES.career}`}
-				style={
-					{
-						"--panel-bg": "#1e293b",
-						"--panel-fg": "#f8fafc",
-					} as React.CSSProperties
-				}
-			>
-				<CareerPanel
-					onClose={() => navigate({ to: "/", resetScroll: false })}
-				/>
-			</dialog>
+			{TRIGGERS_ENABLED && (
+				<>
+					<dialog
+						ref={careerRef}
+						aria-labelledby={CAREER_PANEL_TITLE_ID}
+						className={`panel-dialog slide-${PANEL_SIDES.career}`}
+						style={
+							{
+								"--panel-bg": "#1e293b",
+								"--panel-fg": "#f8fafc",
+							} as React.CSSProperties
+						}
+					>
+						<CareerPanel
+							onClose={() => navigate({ to: "/", resetScroll: false })}
+						/>
+					</dialog>
 
-			{STORIES.map((story) => (
-				<dialog
-					key={story.slug}
-					ref={panelRefs[story.slug]}
-					aria-labelledby={EARLY_DAYS_PANEL_TITLE_ID}
-					className={`panel-dialog slide-${PANEL_SIDES[story.slug]}`}
-					style={
-						{
-							"--panel-bg": story.panelBg,
-							"--panel-fg": story.panelFg,
-						} as React.CSSProperties
-					}
-				>
-					<EarlyDaysPanel
-						story={story}
-						onClose={() => navigate({ to: "/", resetScroll: false })}
-					/>
-				</dialog>
-			))}
+					{STORIES.map((story) => (
+						<dialog
+							key={story.slug}
+							ref={panelRefs[story.slug]}
+							aria-labelledby={EARLY_DAYS_PANEL_TITLE_ID}
+							className={`panel-dialog slide-${PANEL_SIDES[story.slug]}`}
+							style={
+								{
+									"--panel-bg": story.panelBg,
+									"--panel-fg": story.panelFg,
+								} as React.CSSProperties
+							}
+						>
+							<EarlyDaysPanel
+								story={story}
+								onClose={() => navigate({ to: "/", resetScroll: false })}
+							/>
+						</dialog>
+					))}
 
-			{PROJECTS.map((p) => (
-				<dialog
-					key={p.slug}
-					ref={panelRefs[p.slug]}
-					aria-labelledby={getProjectPanelTitleId(p.slug)}
-					className={`panel-dialog slide-${PANEL_SIDES[p.slug]}`}
-					style={
-						{
-							"--panel-bg": p.panelColor,
-							"--panel-fg": "#fff",
-						} as React.CSSProperties
-					}
-				>
-					<ProjectPanel
-						project={p}
-						open={openPanel === p.slug}
-						onClose={() => navigate({ to: "/", resetScroll: false })}
-					/>
-				</dialog>
-			))}
+					{PROJECTS.map((p) => (
+						<dialog
+							key={p.slug}
+							ref={panelRefs[p.slug]}
+							aria-labelledby={getProjectPanelTitleId(p.slug)}
+							className={`panel-dialog slide-${PANEL_SIDES[p.slug]}`}
+							style={
+								{
+									"--panel-bg": p.panelColor,
+									"--panel-fg": "#fff",
+								} as React.CSSProperties
+							}
+						>
+							<ProjectPanel
+								project={p}
+								open={openPanel === p.slug}
+								onClose={() => navigate({ to: "/", resetScroll: false })}
+							/>
+						</dialog>
+					))}
 
-			{(
-				Object.values(PERSONAL_BY_SLUG) as Array<
-					(typeof PERSONAL_BY_SLUG)[PersonalSlug]
-				>
-			).map((item) => (
-				<dialog
-					key={item.slug}
-					ref={panelRefs[item.slug]}
-					aria-labelledby={getPersonalPanelTitleId(item.slug)}
-					className={`panel-dialog slide-${PANEL_SIDES[item.slug]}`}
-					style={
-						{
-							"--panel-bg": item.panelBg,
-							"--panel-fg": item.panelFg,
-						} as React.CSSProperties
-					}
-				>
-					<PersonalPanel
-						item={item}
-						teaser={PERSONAL_TEASER[item.slug] ?? ""}
-						onClose={() => navigate({ to: "/", resetScroll: false })}
-					/>
-				</dialog>
-			))}
+					{(
+						Object.values(PERSONAL_BY_SLUG) as Array<
+							(typeof PERSONAL_BY_SLUG)[PersonalSlug]
+						>
+					).map((item) => (
+						<dialog
+							key={item.slug}
+							ref={panelRefs[item.slug]}
+							aria-labelledby={getPersonalPanelTitleId(item.slug)}
+							className={`panel-dialog slide-${PANEL_SIDES[item.slug]}`}
+							style={
+								{
+									"--panel-bg": item.panelBg,
+									"--panel-fg": item.panelFg,
+								} as React.CSSProperties
+							}
+						>
+							<PersonalPanel
+								item={item}
+								teaser={PERSONAL_TEASER[item.slug] ?? ""}
+								onClose={() => navigate({ to: "/", resetScroll: false })}
+							/>
+						</dialog>
+					))}
+				</>
+			)}
 		</>
 	);
 }

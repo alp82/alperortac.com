@@ -1,7 +1,6 @@
 import { Film } from "lucide-react";
 import {
-	ButtonRow,
-	ExternalButton,
+	ExternalCard,
 	InlineLink,
 	Paragraph,
 	type TopicContentProps,
@@ -36,8 +35,8 @@ export function MoviesTvContent({ lastTriggerRef }: TopicContentProps) {
 				personalized recommendation engine for each user's personal taste.
 			</Paragraph>
 
-			<ButtonRow>
-				<ExternalButton
+			<div className="space-y-3">
+				<ExternalCard
 					href="https://goodwatch.app"
 					label="goodwatch.app"
 					Icon={Film}
@@ -47,7 +46,7 @@ export function MoviesTvContent({ lastTriggerRef }: TopicContentProps) {
 					trigger={{ kind: "project", slug: "goodwatch" }}
 					lastTriggerRef={lastTriggerRef}
 				/>
-			</ButtonRow>
+			</div>
 		</div>
 	);
 }

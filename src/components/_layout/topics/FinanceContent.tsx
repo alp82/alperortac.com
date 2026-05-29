@@ -1,9 +1,5 @@
 import { SiGithub } from "@icons-pack/react-simple-icons";
-import {
-	ExternalButton,
-	Paragraph,
-	type TopicContentProps,
-} from "./primitives";
+import { ExternalCard, Paragraph, type TopicContentProps } from "./primitives";
 
 export function FinanceContent(_: TopicContentProps) {
 	return (
@@ -19,7 +15,7 @@ export function FinanceContent(_: TopicContentProps) {
 				Even held a presentation about this topic, but beware - it's in German.
 			</Paragraph>
 
-			<ExternalButton
+			<ExternalCard
 				href="https://github.com/alp82/trading-strategien-und-psychologie"
 				label="Trading-Strategien und Psychologie"
 				Icon={SiGithub}

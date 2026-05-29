@@ -1,7 +1,6 @@
 import { SiLastdotfm, SiSpotify } from "@icons-pack/react-simple-icons";
 import {
-	ButtonRow,
-	ExternalButton,
+	ExternalCard,
 	Paragraph,
 	type TopicContentProps,
 	TriggerCard,
@@ -19,14 +18,14 @@ export function MusicContent({ lastTriggerRef }: TopicContentProps) {
 				If it's well produced and expertly played, there are good chances that
 				I'll like it regardless of the genre.
 			</Paragraph>
-			<ButtonRow>
-				<ExternalButton
+			<div className="space-y-3">
+				<ExternalCard
 					href="https://www.last.fm/user/Alper_"
 					label="Last.fm"
 					Icon={SiLastdotfm}
 					brand="#D51007"
 				/>
-				<ExternalButton
+				<ExternalCard
 					href="https://open.spotify.com/user/1140243663?si=f613e1c43ce74d54"
 					label="Spotify"
 					Icon={SiSpotify}
@@ -36,7 +35,7 @@ export function MusicContent({ lastTriggerRef }: TopicContentProps) {
 					trigger={{ kind: "personal", slug: "music" }}
 					lastTriggerRef={lastTriggerRef}
 				/>
-			</ButtonRow>
+			</div>
 		</div>
 	);
 }

@@ -1,7 +1,7 @@
-import { SiDiscord } from "@icons-pack/react-simple-icons";
+import { SiDiscord, SiGithub } from "@icons-pack/react-simple-icons";
+import { Cpu } from "lucide-react";
 import {
-	ButtonRow,
-	ExternalButton,
+	ExternalCard,
 	InlineLink,
 	Paragraph,
 	type TopicContentProps,
@@ -26,8 +26,14 @@ export function AIContent({ lastTriggerRef }: TopicContentProps) {
 				reviewing.
 			</Paragraph>
 
-			<div className="space-y-2">
+			<div className="space-y-3">
 				<p className="text-base md:text-lg font-medium">Check it out:</p>
+				<ExternalCard
+					href="https://github.com/alp82/alp-river"
+					label="alp-river"
+					Icon={SiGithub}
+					brand="#181717"
+				/>
 				<TriggerCard
 					trigger={{ kind: "project", slug: "alpriver" }}
 					lastTriggerRef={lastTriggerRef}
@@ -49,18 +55,24 @@ export function AIContent({ lastTriggerRef }: TopicContentProps) {
 				into a nice community of like-minded builders.
 			</Paragraph>
 
-			<ButtonRow>
-				<ExternalButton
+			<div className="space-y-3">
+				<ExternalCard
 					href="https://discord.gg/5y4fpyahaF"
 					label="Discord"
 					Icon={SiDiscord}
 					brand="#5865F2"
 				/>
+				<ExternalCard
+					href="https://aistack.to"
+					label="aistack.to"
+					Icon={Cpu}
+					brand="#1e3a8a"
+				/>
 				<TriggerCard
 					trigger={{ kind: "project", slug: "aistack" }}
 					lastTriggerRef={lastTriggerRef}
 				/>
-			</ButtonRow>
+			</div>
 		</div>
 	);
 }
