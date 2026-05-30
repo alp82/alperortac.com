@@ -60,33 +60,6 @@ type SocialGroup = {
 
 const SOCIAL_GROUPS: SocialGroup[] = [
 	{
-		title: "Video",
-		Icon: Video,
-		links: [
-			{
-				label: "YouTube",
-				href: "https://www.youtube.com/@AlperTheOrtac",
-				Icon: SiYoutube,
-				tint: "color-mix(in srgb, #FF0000 30%, white)",
-				brand: "#FF0000",
-			},
-			{
-				label: "TikTok",
-				href: "https://www.tiktok.com/@alperortac",
-				Icon: SiTiktok,
-				tint: "#e6e7ec",
-				brand: "#000000",
-			},
-			{
-				label: "Instagram",
-				href: "https://www.instagram.com/alper.the.ortac/",
-				Icon: SiInstagram,
-				tint: "color-mix(in srgb, #E4405F 30%, white)",
-				brand: "#E4405F",
-			},
-		],
-	},
-	{
 		title: "Posts",
 		Icon: MessageCircle,
 		links: [
@@ -110,6 +83,33 @@ const SOCIAL_GROUPS: SocialGroup[] = [
 				Icon: SiBluesky,
 				tint: "color-mix(in srgb, #0285FF 30%, white)",
 				brand: "#0285FF",
+			},
+		],
+	},
+	{
+		title: "Video",
+		Icon: Video,
+		links: [
+			{
+				label: "YouTube",
+				href: "https://www.youtube.com/@AlperTheOrtac",
+				Icon: SiYoutube,
+				tint: "color-mix(in srgb, #FF0000 30%, white)",
+				brand: "#FF0000",
+			},
+			{
+				label: "TikTok",
+				href: "https://www.tiktok.com/@alperortac",
+				Icon: SiTiktok,
+				tint: "#e6e7ec",
+				brand: "#000000",
+			},
+			{
+				label: "Instagram",
+				href: "https://www.instagram.com/alper.the.ortac/",
+				Icon: SiInstagram,
+				tint: "color-mix(in srgb, #E4405F 30%, white)",
+				brand: "#E4405F",
 			},
 		],
 	},
@@ -192,10 +192,10 @@ function SocialLink({ label, href, Icon, tint, brand }: SocialLinkData) {
 	);
 }
 
-export function LinktreeSection() {
+export function FindMeSection() {
 	return (
 		<section
-			id={SECTION_IDS.linktree}
+			id={SECTION_IDS.findMe}
 			className="py-24 px-6 relative overflow-hidden text-slate-900"
 		>
 			<div className="max-w-xl mx-auto relative z-10">

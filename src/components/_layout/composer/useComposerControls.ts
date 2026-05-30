@@ -1,111 +1,88 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { TOPICS, type TopicId } from "../../../data/topics";
 import { INNERS, LINKS, SECTIONS } from "./index";
 import type {
+	AnySectionParams,
 	InnerId,
 	InnerParams,
 	LinkId,
 	LinkParams,
 	SectionId,
-	SectionParams,
 } from "./types";
 
 /*
  * DEV-ONLY composer state.
  *
- * Holds the full composition — a baseline bypass flag plus one pick + that
- * pick's params for each of the three layers — and persists it to localStorage
- * with the SSR-safe hydrate pattern (start at defaults on the server + first
- * paint, then read storage on mount so we never clobber a stored composition).
+ * Holds the full composition — a baseline bypass flag, one GLOBAL stage +
+ * connector pick (with params), and a LOCAL cluster pick (with params) per
+ * topic. State ALWAYS initializes to the
+ * deterministic defaults (no localStorage), so the composition renders
+ * identically on the server and the first client paint — no defaults-then-swap
+ * height growth after scroll restoration. Selections live for the session only;
+ * they no longer persist across reloads.
  *
- * Hydration sanitizes every field: unknown ids fall back to the layer default,
- * params are clamped/whitelisted, and the section height is clamped to the
- * SELECTED style's range. Nothing is written onto <html> — the composition is
- * threaded down to the dispatcher as props, keeping LayoutHost free of any
- * composer import so the whole tree stays strippable in prod.
+ * Nothing is written onto <html> — the composition is threaded down to the
+ * dispatcher as props, keeping LayoutHost free of any composer import so the
+ * whole tree stays strippable in prod.
  *
  * Planner: gated behind import.meta.env.DEV at the call site; removed once a
  * composition is locked (see CLEANUP_NEEDED).
  */
 
+/** One topic's local cluster pick + that pick's params. */
+export type TopicCluster = { id: InnerId; params: InnerParams };
+
 export type ComposerState = {
 	baseline: boolean;
+	// Stage + connector are GLOBAL — one pick for the whole band.
 	section: SectionId;
-	sectionParams: SectionParams;
-	inner: InnerId;
-	innerParams: InnerParams;
+	sectionParams: AnySectionParams;
 	link: LinkId;
 	linkParams: LinkParams;
+	// Cluster is LOCAL — every topic picks its own inner + params.
+	clusters: Record<TopicId, TopicCluster>;
 };
 
 export const DEFAULT_SECTION: SectionId = "centered-monolith";
-export const DEFAULT_INNER: InnerId = "minimal";
+export const DEFAULT_INNER: InnerId = "rich-card";
 export const DEFAULT_LINK: LinkId = "none";
 
-const STORAGE_KEY = "alp-design-composer-v1";
+/** Every topic starts on the baseline cluster (rich-card) with its defaults. */
+function defaultClusters(): Record<TopicId, TopicCluster> {
+	const out = {} as Record<TopicId, TopicCluster>;
+	for (const t of TOPICS) {
+		out[t.id] = {
+			id: DEFAULT_INNER,
+			params: { ...INNERS[DEFAULT_INNER].defaults },
+		};
+	}
+	return out;
+}
 
-function defaultState(): ComposerState {
+/**
+ * The deterministic default composition. Identical on server and client (no
+ * localStorage), so `_layout`'s composer init and the hook's initial state agree
+ * → no hydration mismatch, no post-mount height swap. Exported for `_layout`'s
+ * DEV-only composer seed.
+ */
+export function defaultState(): ComposerState {
 	return {
 		baseline: false,
 		section: DEFAULT_SECTION,
 		sectionParams: { ...SECTIONS[DEFAULT_SECTION].defaults },
-		inner: DEFAULT_INNER,
-		innerParams: { ...INNERS[DEFAULT_INNER].defaults },
 		link: DEFAULT_LINK,
 		linkParams: { ...LINKS[DEFAULT_LINK].defaults },
+		clusters: defaultClusters(),
 	};
 }
 
 const clamp = (n: number, lo: number, hi: number) =>
 	Math.min(Math.max(n, lo), hi);
 
-function isSectionId(v: unknown): v is SectionId {
-	return typeof v === "string" && v in SECTIONS;
-}
-function isInnerId(v: unknown): v is InnerId {
-	return typeof v === "string" && v in INNERS;
-}
-function isLinkId(v: unknown): v is LinkId {
-	return typeof v === "string" && v in LINKS;
-}
-
 function oneOf<T extends string>(v: unknown, allowed: readonly T[], fb: T): T {
 	return typeof v === "string" && (allowed as readonly string[]).includes(v)
 		? (v as T)
 		: fb;
-}
-
-function sanitizeSectionParams(
-	section: SectionId,
-	raw: unknown,
-): SectionParams {
-	const def = SECTIONS[section];
-	const d = def.defaults;
-	const o = (raw ?? {}) as Record<string, unknown>;
-	const [lo, hi] = def.heightRange;
-	return {
-		accent: oneOf(o.accent, ["topic", "fixed", "none"] as const, d.accent),
-		align: oneOf(
-			o.align,
-			["center", "left", "right", "bottom"] as const,
-			d.align,
-		),
-		scrim: clamp(typeof o.scrim === "number" ? o.scrim : d.scrim, 0, 80),
-		height: clamp(typeof o.height === "number" ? o.height : d.height, lo, hi),
-	};
-}
-
-function sanitizeInnerParams(inner: InnerId, raw: unknown): InnerParams {
-	const d = INNERS[inner].defaults;
-	const o = (raw ?? {}) as Record<string, unknown>;
-	return {
-		color: oneOf(o.color, ["accent", "neutral", "inverted"] as const, d.color),
-		density: oneOf(
-			o.density,
-			["cozy", "comfortable", "roomy"] as const,
-			d.density,
-		),
-		motif: typeof o.motif === "boolean" ? o.motif : d.motif,
-	};
 }
 
 function sanitizeLinkParams(link: LinkId, raw: unknown): LinkParams {
@@ -121,47 +98,13 @@ function sanitizeLinkParams(link: LinkId, raw: unknown): LinkParams {
 	};
 }
 
-function sanitize(raw: unknown): ComposerState {
-	const o = (raw ?? {}) as Record<string, unknown>;
-	const section = isSectionId(o.section) ? o.section : DEFAULT_SECTION;
-	const inner = isInnerId(o.inner) ? o.inner : DEFAULT_INNER;
-	const link = isLinkId(o.link) ? o.link : DEFAULT_LINK;
-	return {
-		baseline: typeof o.baseline === "boolean" ? o.baseline : false,
-		section,
-		sectionParams: sanitizeSectionParams(section, o.sectionParams),
-		inner,
-		innerParams: sanitizeInnerParams(inner, o.innerParams),
-		link,
-		linkParams: sanitizeLinkParams(link, o.linkParams),
-	};
-}
-
 export function useComposerControls() {
+	// Always initialize to the deterministic defaults (no localStorage). The
+	// composition is the same on server and first client paint, so the band
+	// renders at its settled height immediately — no defaults-then-swap growth
+	// after the browser restores scroll. Live in-session editing still works via
+	// the setters below; selections just don't persist across reloads.
 	const [state, setState] = useState<ComposerState>(defaultState);
-	const [hydrated, setHydrated] = useState(false);
-
-	// Hydrate from localStorage on mount (client-only; SSR-safe).
-	useEffect(() => {
-		try {
-			const stored = localStorage.getItem(STORAGE_KEY);
-			if (stored) setState(sanitize(JSON.parse(stored)));
-		} catch {
-			// localStorage unavailable / malformed — keep defaults
-		}
-		setHydrated(true);
-	}, []);
-
-	// Persist post-hydration only (never overwrite a stored composition with the
-	// default on first paint).
-	useEffect(() => {
-		if (!hydrated) return;
-		try {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-		} catch {
-			// localStorage unavailable — live preview still works this session
-		}
-	}, [state, hydrated]);
 
 	const setBaseline = useCallback(
 		(baseline: boolean) => setState((s) => ({ ...s, baseline })),
@@ -177,11 +120,14 @@ export function useComposerControls() {
 			sectionParams: { ...SECTIONS[section].defaults },
 		}));
 	}, []);
-	const setInner = useCallback((inner: InnerId) => {
+	// Cluster picks are per-topic: setting/patching takes the topic id.
+	const setInner = useCallback((topicId: TopicId, inner: InnerId) => {
 		setState((s) => ({
 			...s,
-			inner,
-			innerParams: { ...INNERS[inner].defaults },
+			clusters: {
+				...s.clusters,
+				[topicId]: { id: inner, params: { ...INNERS[inner].defaults } },
+			},
 		}));
 	}, []);
 	const setLink = useCallback((link: LinkId) => {
@@ -192,22 +138,28 @@ export function useComposerControls() {
 		}));
 	}, []);
 
+	// The panel only ever patches the CURRENT stage's own fields, and every
+	// control is range-bounded (sliders) or enumerated (segmented/swatch), so a
+	// plain merge always yields a valid shape — no sanitize pass needed.
 	const patchSectionParams = useCallback(
-		(patch: Partial<SectionParams>) =>
+		(patch: Partial<AnySectionParams>) =>
 			setState((s) => ({
 				...s,
-				sectionParams: sanitizeSectionParams(s.section, {
-					...s.sectionParams,
-					...patch,
-				}),
+				sectionParams: { ...s.sectionParams, ...patch } as AnySectionParams,
 			})),
 		[],
 	);
 	const patchInnerParams = useCallback(
-		(patch: Partial<InnerParams>) =>
+		(topicId: TopicId, patch: Partial<InnerParams>) =>
 			setState((s) => ({
 				...s,
-				innerParams: { ...s.innerParams, ...patch },
+				clusters: {
+					...s.clusters,
+					[topicId]: {
+						...s.clusters[topicId],
+						params: { ...s.clusters[topicId].params, ...patch },
+					},
+				},
 			})),
 		[],
 	);
@@ -236,32 +188,41 @@ export function useComposerControls() {
 }
 
 /**
- * Single-line copy-spec string, namespaced per layer. Stable key order. Omits
- * the curve key for straight connectors and drops link.* entirely when
+ * Single-line copy-spec string, namespaced per layer. The section.* keys are
+ * whatever the SELECTED stage exposes (per-stage params, emitted in defaults
+ * order), so the line self-describes which stage's knobs are live. Omits the
+ * curve key for straight connectors and drops link.* entirely when
  * link === none. When baseline is on, emits just `baseline: on`.
  *
- * e.g. `section: split-stage | section.accent: topic | section.align: left |
- * section.scrim: 40 | section.height: 90 | inner: comic | inner.color: accent |
- * inner.density: cozy | link: river-ribbon | link.color: sky | link.weight: 3 |
- * link.curve: 50 | link.height: 45 | link.blend: 24 | link.animate: on`
+ * e.g. `section: split-stage | section.accent: topic | section.height: 90 |
+ * section.ratio: 58 | section.side: left | inner.coding: comic |
+ * inner.coding.color: accent | inner.coding.density: cozy | inner.coding.motif:
+ * on | link: river-ribbon | link.color: sky | link.weight: 3 | link.curve: 50`
  */
 export function buildComposerSpec(state: ComposerState): string {
 	if (state.baseline) return "baseline: on";
 
-	const sp = state.sectionParams;
-	const ip = state.innerParams;
-	const parts: string[] = [
-		`section: ${state.section}`,
-		`section.accent: ${sp.accent}`,
-		`section.align: ${sp.align}`,
-		`section.scrim: ${sp.scrim}`,
-		`section.height: ${sp.height}`,
-		`inner: ${state.inner}`,
-		`inner.color: ${ip.color}`,
-		`inner.density: ${ip.density}`,
-		`inner.motif: ${ip.motif ? "on" : "off"}`,
-		`link: ${state.link}`,
-	];
+	const parts: string[] = [`section: ${state.section}`];
+	// Per-stage params, in their defaults order; booleans as on/off.
+	for (const [k, v] of Object.entries(state.sectionParams)) {
+		const val = typeof v === "boolean" ? (v ? "on" : "off") : v;
+		parts.push(`section.${k}: ${val}`);
+	}
+
+	// Clusters are per-topic; emit only topics that differ from the baseline
+	// rich-card (an omitted topic = rich-card). rich-card's chrome is fixed, so
+	// even chosen explicitly its inner.* params carry no meaning — hence the
+	// continue covers both cases.
+	for (const t of TOPICS) {
+		const c = state.clusters[t.id];
+		if (c.id === "rich-card") continue;
+		parts.push(`inner.${t.id}: ${c.id}`);
+		parts.push(`inner.${t.id}.color: ${c.params.color}`);
+		parts.push(`inner.${t.id}.density: ${c.params.density}`);
+		parts.push(`inner.${t.id}.motif: ${c.params.motif ? "on" : "off"}`);
+	}
+
+	parts.push(`link: ${state.link}`);
 
 	if (state.link !== "none") {
 		const lp = state.linkParams;

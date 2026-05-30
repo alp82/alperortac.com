@@ -1,4 +1,4 @@
-import type { ComposerTopic, Topic, TopicId } from "../../../data/topics";
+import type { Topic, TopicId } from "../../../data/topics";
 
 /*
  * DEV-ONLY 3-layer composer contract.
@@ -26,41 +26,115 @@ import type { ComposerTopic, Topic, TopicId } from "../../../data/topics";
 
 export type SectionId =
 	| "centered-monolith"
-	| "edge-anchored"
 	| "split-stage"
-	| "letterbox"
-	| "spotlight-vignette"
 	| "parallax-depth"
-	| "diagonal-cut"
-	| "framed-window"
 	| "marquee-scroll"
-	| "stacked-cards"
-	| "full-type"
-	| "horizon-band"
-	| "peek-reveal"
-	| "triptych"
-	| "oversized-number"
 	| "floating-island"
-	| "zoom-focus"
-	| "curtain-reveal";
+	| "zoom-focus";
 
 /** Where the accent color a stage/cluster uses comes from. */
 export type AccentSource = "topic" | "fixed" | "none";
 
-export type SectionParams = {
-	/** Accent color source for the stage's grade / rules / CTA tint. */
+/*
+ * Per-stage params. The two axes EVERY stage shares (accent theming + stage
+ * height) live in `StageBase`; everything else is specific to one stage and
+ * moves THAT stage's signature — no generic align/scrim grab-bag. Order each
+ * shape `accent, height, …specifics` so the copy-spec reads naturally.
+ */
+
+/** Universal across every stage. */
+type StageBase = {
+	/** Accent color source for the stage's grade / rules / tint. */
 	accent: AccentSource;
-	/** Where the content cluster sits within the stage. */
-	align: "center" | "left" | "right" | "bottom";
-	/** Scrim/backdrop darkness behind the cluster, 0..80 (percent-ish). */
-	scrim: number;
-	/** Stage height fine-tune as a vh value; clamped per-style around its base. */
+	/** Stage height as a vh value; clamped per-stage around its base. */
 	height: number;
 };
+
+/** centered-monolith — title-card type over a vignette. */
+export type MonolithParams = StageBase & {
+	/** Radial scrim depth that makes the type pop, 0..80. */
+	vignette: number;
+	/** Landscape light bleed at the rim, 0..100 (0 = edges off). */
+	edgeGlow: number;
+	/** Presence of the cluster — scales the whole content block. */
+	titleScale: "modest" | "bold" | "towering";
+	/** Show the "NN / total" index counter. */
+	indexTag: boolean;
+};
+
+/** split-stage — asymmetric type panel | negative-space panel. */
+export type SplitParams = StageBase & {
+	/** Share of width given to the content panel, 50..78 (%). */
+	ratio: number;
+	/** Which side the content panel sits on. */
+	side: "left" | "right";
+	/** Ghost flourish strength on the empty panel, 0..40. */
+	flourish: number;
+	/** Accent spine bar along the content panel's edge. */
+	spine: boolean;
+};
+
+/** parallax-depth — layered backdrop drifting under the cluster. */
+export type ParallaxParams = StageBase & {
+	/** Which backdrop shape drifts behind the cluster. */
+	shape: "flourish" | "blob" | "rings" | "grid" | "strata";
+	/** Drift separation between planes, 0..100. */
+	depth: number;
+	/** How many drifting planes behind the cluster. */
+	layers: 2 | 3;
+};
+
+/** marquee-scroll — giant heading strips drifting on scroll. */
+export type MarqueeParams = StageBase & {
+	/** How many marquee rows. */
+	strips: 1 | 2 | 3;
+	/** Scroll-drift strength, 0..100. */
+	speed: number;
+	/** Treatment of the strip type. */
+	textStyle: "filled" | "outline" | "accent";
+	/** Rows drift in opposite directions vs the same way. */
+	mirrored: boolean;
+};
+
+/** floating-island — cluster on a floating slab. */
+export type IslandParams = StageBase & {
+	/** Shadow throw + lift, 0..100. */
+	floatHeight: number;
+	/** Idle bob amount on scroll, 0..100 (0 = still). */
+	bob: number;
+	/** Slab corner radius. */
+	corners: "sharp" | "soft" | "pill";
+	/** Slab surface opacity, 0..100 (glassy → solid). */
+	tint: number;
+};
+
+/** zoom-focus — Ken Burns enter + drifting backdrop. */
+export type ZoomParams = StageBase & {
+	/** How far the cluster scales up on enter, 0..100. */
+	enterZoom: number;
+	/** Ken Burns drift speed, 0..100. */
+	speed: number;
+	/** Backdrop pan direction. */
+	drift: "in" | "up-left" | "up-right" | "down";
+};
+
+/** id → that stage's param shape. */
+export type SectionParamsMap = {
+	"centered-monolith": MonolithParams;
+	"split-stage": SplitParams;
+	"parallax-depth": ParallaxParams;
+	"marquee-scroll": MarqueeParams;
+	"floating-island": IslandParams;
+	"zoom-focus": ZoomParams;
+};
+
+/** The union of every stage's params (what composer state actually holds). */
+export type AnySectionParams = SectionParamsMap[SectionId];
 
 /* ── Layer 2: INNER STYLE ───────────────────────────────────────────────── */
 
 export type InnerId =
+	| "rich-card"
 	| "minimal"
 	| "trail-signpost"
 	| "field-journal"
@@ -136,18 +210,23 @@ export type LinkParams = {
 /* ── Render contracts ───────────────────────────────────────────────────── */
 
 /**
- * Layer-2 contract: render the heading + teaser + triggers as a CENTERED
- * CONTENT CLUSTER. No section framing, no own vertical padding — the Layer-1
- * stage owns height/backdrop/landscape and renders this inside it.
+ * Layer-2 contract: a frame is a CONTAINER — it renders its themed heading +
+ * decoration and the topic's REAL body (`children`, the shared `TopicBody`)
+ * inside it. No section framing, no own vertical padding — the Layer-1 stage
+ * owns height/backdrop/landscape and renders this inside it. (`rich-card` is the
+ * exception: it renders the full shipped card via `SectionBody` and ignores
+ * `children`.)
  */
 export type InnerRenderProps = {
-	topic: ComposerTopic;
+	topic: Topic;
 	index: number;
 	isNight: boolean;
 	lastTriggerRef: React.RefObject<HTMLElement | null>;
 	params: InnerParams;
 	/** Resolved accent for this topic (the cluster decides whether to use it). */
 	accent: string;
+	/** The topic's REAL body (shared `TopicBody`), rendered inside the frame. */
+	children: React.ReactNode;
 };
 
 /**
@@ -156,11 +235,11 @@ export type InnerRenderProps = {
  * `topic.id` + `topic.heading` (never teaser/triggers), so promoted topics
  * with their own custom content can also ride a stage.
  */
-export type SectionRenderProps = {
+export type SectionRenderProps<Id extends SectionId = SectionId> = {
 	topic: Topic;
 	index: number;
 	isNight: boolean;
-	params: SectionParams;
+	params: SectionParamsMap[Id];
 	/** Resolved accent for this topic (or null when accent source is "none"). */
 	accent: string | null;
 	/** The Layer-2 cluster, already constructed by the dispatcher. */
@@ -179,16 +258,16 @@ export type LinkRenderProps = {
 
 /* ── Registry entry shapes ──────────────────────────────────────────────── */
 
-export type SectionDef = {
-	id: SectionId;
+export type SectionDef<Id extends SectionId = SectionId> = {
+	id: Id;
 	label: string;
 	feel: string;
 	/** Base stage height in vh; the height param fine-tunes around this. */
 	baseHeight: number;
 	/** Inclusive clamp range for the height param, in vh. */
 	heightRange: [number, number];
-	defaults: SectionParams;
-	Component: React.ComponentType<SectionRenderProps>;
+	defaults: SectionParamsMap[Id];
+	Component: React.ComponentType<SectionRenderProps<Id>>;
 };
 
 export type InnerDef = {
@@ -222,6 +301,7 @@ export const TOPIC_ACCENT: Record<TopicId, string> = {
 	finance: "#d9f99d",
 	"movies-tv": "#fecaca",
 	family: "#fecdd3",
+	travel: "#fde68a",
 	music: "#c7d2fe",
 	games: "#e9d5ff",
 };

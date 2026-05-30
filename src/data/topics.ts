@@ -20,6 +20,7 @@ export type TopicId =
 	| "tech-stack"
 	| "finance"
 	| "family"
+	| "travel"
 	| "movies-tv"
 	| "games"
 	| PersonalSlug;
@@ -37,26 +38,37 @@ export type Topic = {
 };
 
 /**
- * Topic narrowed to "has teaser." The DEV composer only ever renders
- * un-promoted topics (TopicArticle bypasses it for anything in
- * `TOPIC_CONTENTS`), so its inner renderers can assume `teaser` is defined.
+ * Career teaser prose, shared by the `career` TOPICS entry and the dedicated
+ * `CareerContent` component (so both render the same words).
  */
-export type ComposerTopic = Topic & { teaser: string };
+export const CAREER_TEASER =
+	"Professionally, I worked both in small startups and tech giants like Cisco. Started as Frontend engineer with strong opinions and a knack for sharing knowledge. Started to lead small to big teams and being responsible for product goals and coordinated execution.\n\nI'm a freelance consultant and engineer. Working with fund tax compliance, intelligent traffic start-ups and robotics companies.";
+
+/**
+ * Coding teaser prose, shared by the `coding` TOPICS entry and the dedicated
+ * `CodingContent` component (so both render the same words).
+ */
+export const CODING_TEASER =
+	"Nowadays I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up Tanstack and self-hosting it on one of my Hetzner VPS.";
 
 export const TOPICS: Topic[] = [
 	{
+		id: "career",
+		heading: "Career",
+		teaser: CAREER_TEASER,
+		triggers: [{ kind: "career" }],
+	},
+	{
 		id: "coding",
 		heading: "Coding",
-		teaser:
-			"Nowadays I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up Tanstack and self-hosting it on one of my Hetzner VPS.",
+		teaser: CODING_TEASER,
 		triggers: [{ kind: "story", slug: "early-days" }],
 	},
 	{
-		id: "career",
-		heading: "Career",
-		teaser:
-			"Professionally, I worked both in small startups and tech giants like Cisco. Started as Frontend engineer with strong opinions and a knack for sharing knowledge. Started to lead small to big teams and being responsible for product goals and coordinated execution.\n\nI'm a freelance consultant and engineer. Working with fund tax compliance, intelligent traffic start-ups and robotics companies.",
-		triggers: [{ kind: "career" }],
+		id: "tech-stack",
+		heading: "Tech Stack",
+		// Prose lives in src/components/_layout/topics/TechStackContent.tsx.
+		triggers: [],
 	},
 	{
 		id: "ai",
@@ -68,12 +80,6 @@ export const TOPICS: Topic[] = [
 		],
 	},
 	{
-		id: "tech-stack",
-		heading: "Tech Stack",
-		// Prose lives in src/components/_layout/topics/TechStackContent.tsx.
-		triggers: [],
-	},
-	{
 		id: "finance",
 		heading: "Finance",
 		// Prose lives in src/components/_layout/topics/FinanceContent.tsx.
@@ -83,6 +89,12 @@ export const TOPICS: Topic[] = [
 		id: "family",
 		heading: "Family",
 		// Prose lives in src/components/_layout/topics/FamilyContent.tsx.
+		triggers: [],
+	},
+	{
+		id: "travel",
+		heading: "Travel",
+		// Prose lives in src/components/_layout/topics/TravelContent.tsx.
 		triggers: [],
 	},
 	{

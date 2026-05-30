@@ -1,56 +1,36 @@
 import type { InnerRenderProps } from "../types";
-import { useTriggerNav } from "../useTriggerNav";
 import { DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: neon-sign
+ * Inner: neon-sign — "neon board."
  *
- * A glowing neon-tube sign on a dark backing board: the heading rendered as lit
- * accent-colored tubing (layered text-shadow), the teaser as a dim sub-tube,
- * and triggers as outlined neon buttons that brighten on hover. Signature motif
- * = the glow flicker on the heading — reduced-motion safe (flicker disabled
- * under prefers-reduced-motion via CSS).
+ * A dark backing board is the frame: the heading rendered as lit accent-colored
+ * neon tubing (layered text-shadow) is the chrome, then the topic's REAL body
+ * (the shared light plate) seated below in a legible panel — dark board + neon
+ * glow around the light content card, NOT glowing-tube content. Signature motif
+ * (params.motif) = the glow flicker on the heading (reduced-motion safe via CSS).
  */
 
 export function NeonSignCluster({
 	topic,
-	lastTriggerRef,
 	params,
 	accent,
+	children,
 }: InnerRenderProps) {
-	const { resolveTrigger } = useTriggerNav(lastTriggerRef);
-
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
 			<div
-				className="neon-board relative px-8 md:px-12 py-12 text-center"
+				className="neon-board relative px-8 md:px-12 py-10"
 				style={{ "--neon": accent } as React.CSSProperties}
 			>
 				<h2
-					className={`neon-text ${params.motif ? "neon-flicker" : ""} ${DENSITY_HEADING[params.density]} font-black uppercase tracking-tight leading-none`}
+					className={`neon-text text-center ${params.motif ? "neon-flicker" : ""} ${DENSITY_HEADING[params.density]} font-black uppercase tracking-tight leading-none`}
 				>
 					{topic.heading}
 				</h2>
-				<p className="neon-sub text-base md:text-lg font-medium mt-5 mx-auto max-w-md leading-relaxed">
-					{topic.teaser}
-				</p>
 
-				<div className="flex flex-wrap items-center justify-center gap-4 mt-8">
-					{topic.triggers.map((trigger) => {
-						const resolved = resolveTrigger(trigger, topic.teaser);
-						if (!resolved) return null;
-						return (
-							<button
-								key={resolved.key}
-								type="button"
-								onClick={(e) => resolved.navigate(e.currentTarget)}
-								className="neon-btn group px-6 py-3 font-black uppercase tracking-widest text-sm"
-							>
-								{resolved.title}
-							</button>
-						);
-					})}
-				</div>
+				{/* light content card seated below the sign */}
+				<div className="mt-8">{children}</div>
 			</div>
 		</div>
 	);

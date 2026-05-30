@@ -31,13 +31,6 @@ export const DENSITY_HEADING: Record<InnerParams["density"], string> = {
 	roomy: "text-6xl md:text-8xl",
 };
 
-/** Density → teaser scale. */
-export const DENSITY_TEASER: Record<InnerParams["density"], string> = {
-	cozy: "text-base md:text-lg",
-	comfortable: "text-lg md:text-xl",
-	roomy: "text-xl md:text-2xl",
-};
-
 /**
  * Resolve the cluster's primary text color from the color param + night state.
  * `accent` keeps text light/dark per phase (it's the stage that carries the

@@ -1,29 +1,48 @@
 import { useEffect, useRef, useState } from "react";
-import type { SectionRenderProps } from "../types";
+import type { MarqueeParams, SectionRenderProps } from "../types";
 
 /*
  * Section: marquee-scroll
  *
- * A giant repeating heading marquee strip drifts horizontally behind the
- * cluster, its offset driven by page scroll so it reads as a moving banner.
- * Reduced-motion safe: the scroll listener never attaches under
- * prefers-reduced-motion, so the strip freezes. `scrim` darkens behind the
- * cluster for legibility; `align` positions the cluster. ~90vh.
+ * Giant repeating heading strips drift horizontally behind the cluster, their
+ * offset driven by page scroll so they read as moving banners. ~90vh.
+ *
+ * Knobs — `strips` is the row count; `speed` scales the scroll drift; `textStyle`
+ * treats the type (filled / outlined / accent); `mirrored` drifts alternate rows
+ * in opposite directions. Reduced-motion safe: the scroll listener never
+ * attaches, so the strips freeze.
  */
 
-const ALIGN_CLASS: Record<SectionRenderProps["params"]["align"], string> = {
-	center: "items-center justify-center text-center",
-	left: "items-start justify-center text-left",
-	right: "items-end justify-center text-right",
-	bottom: "items-center justify-end text-center pb-[12vh]",
+const POSITIONS: Record<MarqueeParams["strips"], string[]> = {
+	1: ["42%"],
+	2: ["15%", "70%"],
+	3: ["10%", "44%", "74%"],
 };
+
+function stripStyle(
+	textStyle: MarqueeParams["textStyle"],
+	color: string,
+): React.CSSProperties {
+	switch (textStyle) {
+		case "outline":
+			return {
+				color: "transparent",
+				WebkitTextStroke: `1.5px ${color}`,
+				opacity: 0.5,
+			};
+		case "accent":
+			return { color, opacity: 0.24 };
+		default:
+			return { color, opacity: 0.15 };
+	}
+}
 
 export function MarqueeScrollStage({
 	topic,
 	params,
 	accent,
 	children,
-}: SectionRenderProps) {
+}: SectionRenderProps<"marquee-scroll">) {
 	const ref = useRef<HTMLElement>(null);
 	const [shift, setShift] = useState(0);
 
@@ -51,15 +70,17 @@ export function MarqueeScrollStage({
 		};
 	}, []);
 
-	const scrim = params.scrim / 100;
+	const drift = (shift * params.speed) / 50;
 	const word = `${topic.heading} · `;
 	const strip = word.repeat(6);
+	const rows = POSITIONS[params.strips];
+	const color = accent ?? "rgba(255,255,255,0.6)";
 
 	return (
 		<article
 			ref={ref}
 			id={`topic-${topic.id}`}
-			className={`cmp-stage relative flex flex-col px-6 ${ALIGN_CLASS[params.align]}`}
+			className="cmp-stage relative flex flex-col items-center justify-center px-6"
 			style={
 				{
 					minHeight: `${params.height}vh`,
@@ -67,45 +88,33 @@ export function MarqueeScrollStage({
 				} as React.CSSProperties
 			}
 		>
-			{/* upper marquee strip — drifts one way */}
-			<div
-				className="cmp-marquee-row"
-				style={{ top: "16%" }}
-				aria-hidden="true"
-			>
-				<div
-					className="cmp-marquee-text"
-					style={{
-						transform: `translate3d(${-shift}px,0,0)`,
-						color: accent ?? "rgba(255,255,255,0.14)",
-						opacity: accent ? 0.16 : 1,
-					}}
-				>
-					{strip}
-				</div>
-			</div>
-			{/* lower marquee strip — drifts the other way */}
-			<div
-				className="cmp-marquee-row"
-				style={{ bottom: "16%" }}
-				aria-hidden="true"
-			>
-				<div
-					className="cmp-marquee-text"
-					style={{
-						transform: `translate3d(${shift}px,0,0)`,
-						color: accent ?? "rgba(255,255,255,0.1)",
-						opacity: accent ? 0.12 : 1,
-					}}
-				>
-					{strip}
-				</div>
-			</div>
-			{/* scrim behind the cluster */}
+			{rows.map((top, i) => {
+				const dir = params.mirrored ? (i % 2 === 0 ? -1 : 1) : -1;
+				return (
+					<div
+						key={top}
+						className="cmp-marquee-row"
+						style={{ top }}
+						aria-hidden="true"
+					>
+						<div
+							className="cmp-marquee-text"
+							style={{
+								transform: `translate3d(${dir * drift}px,0,0)`,
+								...stripStyle(params.textStyle, color),
+							}}
+						>
+							{strip}
+						</div>
+					</div>
+				);
+			})}
+			{/* scrim behind the cluster for legibility (fixed) */}
 			<div
 				className="pointer-events-none absolute inset-0"
 				style={{
-					background: `radial-gradient(ellipse 60% 45% at center, rgba(6,9,15,${scrim + 0.1}) 0%, transparent 75%)`,
+					background:
+						"radial-gradient(ellipse 60% 45% at center, rgba(6,9,15,0.5) 0%, transparent 75%)",
 				}}
 				aria-hidden="true"
 			/>

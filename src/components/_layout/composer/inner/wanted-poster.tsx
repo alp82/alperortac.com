@@ -1,35 +1,34 @@
-import { flourishSrc } from "../types";
 import type { InnerRenderProps } from "../types";
-import { useTriggerNav } from "../useTriggerNav";
+import { flourishSrc } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: wanted-poster
+ * Inner: wanted-poster — "aged bill board."
  *
- * An old-west WANTED bill on aged paper: woodtype "WANTED" banner, the flourish
- * as the mugshot in a frame, the heading as the outlaw's name, the teaser as the
- * crime, and triggers as REWARD buttons. Signature motif = the torn/aged paper
+ * An old-west WANTED bill on aged paper, widened to hold the content: a woodtype
+ * "WANTED" banner + a "dead or alive" line + the flourish as a framed mugshot +
+ * the heading as the outlaw's name form the chrome, with a heavy rule dividing it
+ * from the topic's REAL body (the shared light plate) as the bill copy below, and
+ * a reward number footer. Signature motif (params.motif) = the torn/aged paper
  * edges.
  */
 
 export function WantedPosterCluster({
 	topic,
 	index,
-	lastTriggerRef,
 	params,
+	children,
 }: InnerRenderProps) {
-	const { resolveTrigger } = useTriggerNav(lastTriggerRef);
-
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
 			<div
-				className={`wanted relative px-8 md:px-10 py-8 text-center ${params.motif ? "wanted-torn" : ""}`}
+				className={`wanted relative px-8 md:px-12 py-9 text-center ${params.motif ? "wanted-torn" : ""}`}
 			>
 				<div className="wanted-banner font-black uppercase text-4xl md:text-6xl leading-none tracking-tight">
 					Wanted
 				</div>
 				<div className="wanted-rule" aria-hidden="true" />
-				<div className="font-serif text-[11px] uppercase tracking-[0.35em] text-[#4a3013] mt-2 mb-4">
+				<div className="font-serif text-[11px] uppercase tracking-[0.35em] text-[#4a3013] mt-2 mb-5">
 					dead or alive
 				</div>
 
@@ -47,33 +46,12 @@ export function WantedPosterCluster({
 				<h2 className="wanted-name font-black uppercase text-3xl md:text-4xl text-[#3a2410] leading-none">
 					{topic.heading}
 				</h2>
-				<p className="font-serif italic text-sm md:text-base text-[#4a3013] leading-snug mt-3 mx-auto max-w-sm">
-					{topic.teaser}
-				</p>
 
-				<div className="flex flex-col items-center gap-3 mt-6">
-					{topic.triggers.map((trigger) => {
-						const resolved = resolveTrigger(trigger, topic.teaser);
-						if (!resolved) return null;
-						return (
-							<button
-								key={resolved.key}
-								type="button"
-								onClick={(e) => resolved.navigate(e.currentTarget)}
-								className="wanted-reward group inline-flex flex-col items-center px-6 py-2.5"
-							>
-								<span className="font-serif text-[10px] uppercase tracking-[0.3em] text-[#4a3013]">
-									reward
-								</span>
-								<span className="font-black uppercase text-lg text-[#3a2410] leading-none group-hover:underline">
-									{resolved.title}
-								</span>
-							</button>
-						);
-					})}
-				</div>
+				<div className="wanted-rule mt-5 mb-6" aria-hidden="true" />
 
-				<div className="font-serif text-[10px] uppercase tracking-[0.3em] text-[#4a3013]/70 mt-5">
+				<div className="text-left text-[#4a3013]">{children}</div>
+
+				<div className="font-serif text-[10px] uppercase tracking-[0.3em] text-[#4a3013]/70 mt-6">
 					reward no. {String(index + 1).padStart(3, "0")}
 				</div>
 			</div>

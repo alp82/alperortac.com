@@ -23,22 +23,6 @@ export type TopicContentProps = {
 	accent: string;
 };
 
-export function TopicHeading({
-	heading,
-	isNight,
-}: {
-	heading: string;
-	isNight: boolean;
-}) {
-	return (
-		<h2
-			className={`topic-heading text-4xl md:text-6xl font-black uppercase tracking-tighter transition-colors duration-300 ${isNight ? "text-white" : "text-slate-900"}`}
-		>
-			{heading}
-		</h2>
-	);
-}
-
 /**
  * The frosted "voice surface" that wraps a topic's body. Inverts at night so
  * prose stays readable against the dusk/night sky. Used by both the baseline

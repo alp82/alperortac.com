@@ -1,24 +1,23 @@
 import type { InnerRenderProps } from "../types";
-import { useTriggerNav } from "../useTriggerNav";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: blueprint
+ * Inner: blueprint — "drafting sheet."
  *
- * A technical drawing: cyan grid paper, the heading as a drafted title with a
- * dimension line beneath it (tick-capped, labelled), mono annotations, and
- * triggers as callout bubbles with leader lines. Signature motif = the grid +
- * dimension ticks overlay.
+ * A DARK technical drawing is the frame: cyan grid on dark blue, a title-block row
+ * (fig. / scale), the heading drafted in technical mono/cyan with a tick-capped
+ * dimension line beneath it. The topic's REAL body (the shared light plate) is
+ * FRAMED in the drawing area as the drawn artifact — dark drafting chrome around
+ * the light content card (not cyan-line content). Signature motif (params.motif)
+ * = the grid + dimension ticks overlay.
  */
 
 export function BlueprintCluster({
 	topic,
 	index,
-	lastTriggerRef,
 	params,
+	children,
 }: InnerRenderProps) {
-	const { resolveTrigger } = useTriggerNav(lastTriggerRef);
-
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
 			<div
@@ -37,36 +36,17 @@ export function BlueprintCluster({
 					{topic.heading}
 				</h2>
 				{/* dimension line */}
-				<div className="blueprint-dim mt-3 mb-5" aria-hidden="true">
+				<div className="blueprint-dim mt-3 mb-6" aria-hidden="true">
 					<span className="blueprint-dim-label">
 						{topic.heading.length} units
 					</span>
 				</div>
 
-				<p className="font-mono text-xs md:text-sm text-cyan-100/85 leading-relaxed max-w-md">
-					{topic.teaser}
-				</p>
+				{/* drawing area: the light content card framed on the sheet */}
+				<div className="border border-cyan-200/30 p-3 md:p-4">{children}</div>
 
-				<div className="mt-6 flex flex-col gap-3">
-					{topic.triggers.map((trigger) => {
-						const resolved = resolveTrigger(trigger, topic.teaser);
-						if (!resolved) return null;
-						return (
-							<button
-								key={resolved.key}
-								type="button"
-								onClick={(e) => resolved.navigate(e.currentTarget)}
-								className="blueprint-callout group inline-flex items-center gap-3 text-left"
-							>
-								<span className="blueprint-bullet" aria-hidden="true" />
-								<span className="blueprint-bubble px-4 py-2">
-									<span className="font-mono text-sm uppercase tracking-wide text-cyan-50 group-hover:text-white">
-										{resolved.title}
-									</span>
-								</span>
-							</button>
-						);
-					})}
+				<div className="mt-5 font-mono text-[10px] uppercase tracking-[0.3em] text-cyan-100/60 text-right">
+					sheet {String(index + 1).padStart(2, "0")} of —
 				</div>
 			</div>
 		</div>

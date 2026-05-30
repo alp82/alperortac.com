@@ -1,84 +1,46 @@
-import { Zap } from "lucide-react";
-import { flourishSrc } from "../types";
 import type { InnerRenderProps } from "../types";
-import { useTriggerNav } from "../useTriggerNav";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: comic
+ * Inner: comic — "comic page."
  *
- * Centered recast: a compact comic page centered on the stage — black gutters,
- * a jagged caption box over the accent establishing panel, a speech-bubble
- * teaser, and one action panel per trigger with motion lines. High-energy ink.
- * Signature motif = the halftone dot wash on the panels.
+ * A WIDE comic page: black gutters frame a title banner (the heading in a jagged
+ * accent caption box) above one large panel with the thick comic border + a
+ * halftone bg accent (motif), where the topic's REAL body (the shared light
+ * plate) sits as the panel's content. A speech-bubble tail in the corner keeps
+ * the comic identity. Widened from the old two-panel page to hold the plate.
+ * Signature motif (params.motif) = the halftone dot wash on the panel.
  */
 
 export function ComicCluster({
 	topic,
-	lastTriggerRef,
 	params,
 	accent,
+	children,
 }: InnerRenderProps) {
-	const { resolveTrigger } = useTriggerNav(lastTriggerRef);
-
 	return (
 		<div
 			className={`comic-page relative w-full p-3 ${DENSITY_MAXW[params.density]}`}
 		>
-			<div className="grid grid-cols-2 gap-3">
+			{/* title banner */}
+			<div
+				className="comic-caption px-4 py-2 mb-3"
+				style={{ background: accent }}
+			>
+				<h2 className="font-black uppercase tracking-tight text-2xl md:text-4xl text-slate-900 leading-none">
+					{topic.heading}
+				</h2>
+			</div>
+
+			{/* main panel: light content plate over the halftone wash */}
+			<div className="comic-panel relative bg-white overflow-hidden px-5 py-4 md:px-6">
+				{params.motif && <span className="comic-halftone" aria-hidden="true" />}
+				<div className="relative z-10 text-left">{children}</div>
+				{/* speech-bubble tail keeps the comic identity */}
 				<div
-					className="comic-panel relative col-span-2 min-h-[140px] flex items-center justify-center overflow-hidden"
-					style={{ background: accent }}
-				>
-					{params.motif && (
-						<span className="comic-halftone" aria-hidden="true" />
-					)}
-					<img
-						src={flourishSrc(topic.id)}
-						alt=""
-						aria-hidden="true"
-						className="w-20 h-20 relative z-10"
-						style={{ imageRendering: "pixelated" }}
-					/>
-					<div className="comic-caption absolute top-2 left-2 px-3 py-1.5">
-						<span className="font-black uppercase tracking-tight text-lg md:text-2xl text-slate-900 leading-none">
-							{topic.heading}
-						</span>
-					</div>
-				</div>
-
-				<div className="comic-panel col-span-2 bg-white flex items-center p-4">
-					<div className="comic-bubble relative px-4 py-3">
-						<p className="font-bold text-slate-900 leading-snug text-sm md:text-base">
-							{topic.teaser}
-						</p>
-					</div>
-				</div>
-
-				{topic.triggers.map((trigger) => {
-					const resolved = resolveTrigger(trigger, topic.teaser);
-					if (!resolved) return null;
-					return (
-						<button
-							key={resolved.key}
-							type="button"
-							onClick={(e) => resolved.navigate(e.currentTarget)}
-							className="comic-action comic-panel group relative col-span-2 min-h-[80px] flex items-center justify-center overflow-hidden bg-white px-4 py-4"
-						>
-							<span className="comic-motion" aria-hidden="true" />
-							<span className="relative z-10 inline-flex items-center gap-2">
-								<Zap
-									size={20}
-									className="text-slate-900 group-hover:scale-125 transition-transform"
-									fill="currentColor"
-								/>
-								<span className="comic-pow font-black uppercase tracking-tight text-xl md:text-2xl text-slate-900">
-									{resolved.title}!
-								</span>
-							</span>
-						</button>
-					);
-				})}
+					className="comic-bubble absolute -bottom-3 right-6 w-9 h-9"
+					aria-hidden="true"
+				/>
 			</div>
 		</div>
 	);

@@ -1,34 +1,36 @@
-import { ArrowRight } from "lucide-react";
 import type { InnerRenderProps } from "../types";
-import { useTriggerNav } from "../useTriggerNav";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: luggage-tag
+ * Inner: luggage-tag — "luggage tag panel."
  *
- * A travel luggage tag tied on with string: a reinforced grommet hole (motif =
- * string + grommet) up top, the heading stamped as the destination, the teaser
- * on the airline-tag body, and triggers as routing rows with a flight-style
- * arrow. Signature motif = the string loop through the grommet.
+ * A WIDE travel-tag panel: the clipped top corners + a reinforced grommet hole
+ * with a string loop (motif) keep the tag shape, a BAGGAGE stamp + the airport
+ * code chrome sit beside the heading as the tag label, a dotted perforation
+ * divides off the topic's REAL body (the shared light plate) on the tag body.
+ * Widened past the old narrow tag (overriding the class's 22rem cap) to hold the
+ * plate. Signature motif (params.motif) = the string loop through the grommet.
  */
 
 export function LuggageTagCluster({
 	topic,
 	index,
-	lastTriggerRef,
 	params,
 	accent,
+	children,
 }: InnerRenderProps) {
-	const { resolveTrigger } = useTriggerNav(lastTriggerRef);
 	const code = topic.id.slice(0, 3).toUpperCase();
 
 	return (
-		<div
-			className={`w-full ${DENSITY_MAXW[params.density]} flex justify-center`}
-		>
+		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
 			<div
-				className="luggage relative px-7 py-7"
-				style={{ "--luggage-accent": accent } as React.CSSProperties}
+				className="luggage relative px-8 md:px-10 pt-9 pb-8 mx-auto"
+				style={
+					{
+						"--luggage-accent": accent,
+						maxWidth: "100%",
+					} as React.CSSProperties
+				}
 			>
 				{/* grommet + string */}
 				<div className="luggage-grommet-wrap" aria-hidden="true">
@@ -41,7 +43,7 @@ export function LuggageTagCluster({
 				</div>
 				<div className="flex items-end gap-3">
 					<span
-						className="luggage-code font-black text-4xl leading-none"
+						className="luggage-code font-black text-4xl md:text-5xl leading-none"
 						style={{ color: accent }}
 					>
 						{code}
@@ -50,34 +52,10 @@ export function LuggageTagCluster({
 						{topic.heading}
 					</h2>
 				</div>
-				<p className="text-sm text-slate-600 leading-snug mt-3 max-w-xs">
-					{topic.teaser}
-				</p>
 
 				<div className="luggage-perf my-4" aria-hidden="true" />
 
-				<div className="flex flex-col gap-2.5">
-					{topic.triggers.map((trigger) => {
-						const resolved = resolveTrigger(trigger, topic.teaser);
-						if (!resolved) return null;
-						return (
-							<button
-								key={resolved.key}
-								type="button"
-								onClick={(e) => resolved.navigate(e.currentTarget)}
-								className="luggage-row group flex items-center justify-between gap-3 text-left"
-							>
-								<span className="font-mono text-sm uppercase tracking-wide text-slate-800 group-hover:text-slate-900">
-									{resolved.title}
-								</span>
-								<ArrowRight
-									size={15}
-									className="text-slate-500 group-hover:translate-x-1 transition-transform"
-								/>
-							</button>
-						);
-					})}
-				</div>
+				<div className="text-left">{children}</div>
 			</div>
 		</div>
 	);

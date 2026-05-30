@@ -1,31 +1,30 @@
-import { flourishSrc } from "../types";
 import type { InnerRenderProps } from "../types";
-import { useTriggerNav } from "../useTriggerNav";
+import { flourishSrc } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: stamp-postcard
+ * Inner: stamp-postcard — "postcard."
  *
- * A vintage postcard: the flourish art on the left, a perforated postage stamp
- * (accent) with a circular postmark ring stamped over the corner, the heading
- * as the greeting, and triggers as ruled address lines on the right. Signature
- * motif = the postmark ring over the stamp.
+ * A divided vintage postcard: the picture side (flourish art) carries a
+ * perforated postage stamp with a circular postmark ring stamped over its
+ * corner as the accent half; the message side holds the GREETINGS-FROM chrome +
+ * the heading above the topic's REAL body (the shared light plate) on the
+ * address area. Widened so the message side holds the plate. Signature motif
+ * (params.motif) = the postmark ring over the stamp.
  */
 
 export function StampPostcardCluster({
 	topic,
-	lastTriggerRef,
 	params,
 	accent,
+	children,
 }: InnerRenderProps) {
-	const { resolveTrigger } = useTriggerNav(lastTriggerRef);
-
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
-			<div className="postcard relative grid grid-cols-1 md:grid-cols-2">
-				{/* picture side */}
+			<div className="postcard relative grid grid-cols-1 md:grid-cols-[0.8fr_1.2fr]">
+				{/* picture side + postage */}
 				<div
-					className="postcard-pic relative flex items-center justify-center min-h-[160px]"
+					className="postcard-pic relative flex items-center justify-center min-h-[180px]"
 					style={{
 						background: `radial-gradient(circle at 50% 40%, ${accent} 0%, color-mix(in srgb, ${accent} 35%, #fdf6e9) 100%)`,
 					}}
@@ -37,10 +36,6 @@ export function StampPostcardCluster({
 						className="w-24 h-24"
 						style={{ imageRendering: "pixelated" }}
 					/>
-				</div>
-				{/* address side */}
-				<div className="relative px-6 py-6 text-left">
-					{/* postage stamp + postmark */}
 					<div className="absolute top-4 right-4">
 						<span
 							className="postcard-stamp flex items-center justify-center"
@@ -58,35 +53,18 @@ export function StampPostcardCluster({
 							</span>
 						)}
 					</div>
+				</div>
 
+				{/* message side */}
+				<div className="relative px-6 py-6 text-left">
 					<div className="font-serif text-[11px] uppercase tracking-[0.3em] text-slate-500 mb-3">
 						greetings from
 					</div>
-					<h2 className="font-serif font-bold text-3xl md:text-4xl text-slate-900 leading-tight pr-16">
+					<h2 className="font-serif font-bold text-3xl md:text-4xl text-slate-900 leading-tight">
 						{topic.heading}
 					</h2>
-					<p className="font-serif italic text-sm text-slate-600 leading-snug mt-2 pr-10">
-						{topic.teaser}
-					</p>
 
-					<div className="mt-5 flex flex-col gap-2.5">
-						{topic.triggers.map((trigger) => {
-							const resolved = resolveTrigger(trigger, topic.teaser);
-							if (!resolved) return null;
-							return (
-								<button
-									key={resolved.key}
-									type="button"
-									onClick={(e) => resolved.navigate(e.currentTarget)}
-									className="postcard-line group flex items-center gap-2 text-left"
-								>
-									<span className="font-serif text-sm text-slate-800 group-hover:text-slate-900">
-										{resolved.title}
-									</span>
-								</button>
-							);
-						})}
-					</div>
+					<div className="mt-4">{children}</div>
 				</div>
 			</div>
 		</div>

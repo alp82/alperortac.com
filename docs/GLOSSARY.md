@@ -54,6 +54,18 @@ For each domain term, give the definition and the aliases to avoid. Aliases shou
 
 **Avoid:** "social links" (acceptable in body text, but Linktree is the code/prose term for the cluster), "contact bar," "footer links" (overlaps but is not the same).
 
+### inner frame (container/children model)
+
+**Definition:** A composer inner style (Layer 2) is a CONTAINER: it renders its themed heading + decoration and the Topic's REAL body inside it. The body is the shared `TopicBody` (the plate/bespoke-component-else-teaser dispatch, extracted verbatim from `SectionBody`), threaded in as `children` by the dispatcher (`TopicComposition`). So all 26 themed inners frame the same real body rather than recasting the teaser/triggers into a bespoke narrow layout. `rich card` is the one exception (see below).
+
+**Avoid:** "cluster" as the unit of CONTENT (an inner frames the body; the body is `TopicBody`), "recast teaser" (the removed mechanic — frames no longer rewrite the teaser).
+
+### rich card (inner)
+
+**Definition:** The first/default composer inner style and the one exception to the container/children model: instead of wrapping `TopicBody` via `children`, it renders the FULL live shipped section card itself (heading flourish + per-section accent-bar/stamped/full-bleed layout + frosted plate + bespoke-component-else-teaser body) via the shared `SectionBody`, and ignores the `children` it is passed. It is the `DEFAULT_INNER`.
+
+**Avoid:** "innerOverride" / "inner bypass" (the removed mechanic this replaces, not the inner itself), "baseline" (the composer's shipped-look toggle is a separate control), "default inner" (too generic - say "rich card" for this specific style).
+
 ## Relationships
 
 - Branches contains the eight Topics. Topics are not Branches; they live inside it.

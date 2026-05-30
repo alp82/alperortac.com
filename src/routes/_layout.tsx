@@ -1,15 +1,18 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { ChevronDown, Moon, Sun } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Minimap } from "../components/Minimap";
-import { PixelBackground } from "../components/PixelBackground";
-import type { ComposerState } from "../components/_layout/composer/useComposerControls";
 import { CraftSection } from "../components/_layout/CraftSection";
 import { CTASection } from "../components/_layout/CTASection";
+import {
+	type ComposerState,
+	defaultState,
+} from "../components/_layout/composer/useComposerControls";
 import { DesignModeHost } from "../components/_layout/DesignModeHost";
+import { FindMeSection } from "../components/_layout/FindMeSection";
 import { HeroSection } from "../components/_layout/HeroSection";
-import { LinktreeSection } from "../components/_layout/LinktreeSection";
 import { PanelHost } from "../components/_layout/PanelHost";
+import { Minimap } from "../components/Minimap";
+import { PixelBackground } from "../components/PixelBackground";
 import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
 import { SECTION_IDS } from "../data/sections";
 import { DEFAULT_SKY_CURVE, type SkyCurve } from "../data/skyCurve";
@@ -96,13 +99,16 @@ function LayoutHost() {
 	const aboutMenuRef = useRef<HTMLDivElement | null>(null);
 	const lastTriggerRef = useRef<HTMLElement | null>(null);
 
-	// DEV-only design composition, pushed up from <DesignModeHost>. undefined in
-	// production (the host never mounts), so the interests band renders the
-	// baseline. LayoutHost imports neither the panel nor the hook, keeping them
-	// fully strippable.
+	// DEV-only design composition, pushed up from <DesignModeHost>. Seeded to the
+	// deterministic defaults in DEV so the server and the first client paint
+	// render the SAME composition — no hydration mismatch, and the band is at its
+	// settled height from first paint (no baseline-then-swap growth after scroll
+	// restoration). `import.meta.env.DEV` folds to false in production, so this is
+	// `undefined`, the host never mounts, and the band renders the baseline.
+	// LayoutHost imports neither the panel nor the hook, keeping them strippable.
 	const [designComposer, setDesignComposer] = useState<
 		ComposerState | undefined
-	>(undefined);
+	>(() => (import.meta.env.DEV ? defaultState() : undefined));
 
 	useEffect(() => {
 		const handleScroll = () => {
@@ -117,8 +123,16 @@ function LayoutHost() {
 			setScrollProgress(progress);
 		};
 
+		// Seed the sky from the browser's restored scroll position once on mount,
+		// then track scrolling. The composition now SSRs at its settled height, so
+		// the document height is stable from first paint — the seed reads the right
+		// fraction in one shot and no height-change recompute (ResizeObserver /
+		// resize) is needed to correct it.
+		handleScroll();
 		window.addEventListener("scroll", handleScroll);
-		return () => window.removeEventListener("scroll", handleScroll);
+		return () => {
+			window.removeEventListener("scroll", handleScroll);
+		};
 	}, []);
 
 	useEffect(() => {
@@ -216,7 +230,7 @@ function LayoutHost() {
 								className={`absolute top-full right-0 mt-2 min-w-[220px] border-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.25)] py-2 ${isNight ? "bg-slate-900 border-white text-white" : "bg-white border-slate-900 text-slate-900"}`}
 							>
 								<a
-									href={`#${SECTION_IDS.linktree}`}
+									href={`#${SECTION_IDS.findMe}`}
 									onClick={() => setAboutOpen(false)}
 									className={aboutItemClass}
 								>
@@ -244,7 +258,7 @@ function LayoutHost() {
 				</div>
 				<div className="flex items-center gap-4">
 					<a
-						href={`#${SECTION_IDS.linktree}`}
+						href={`#${SECTION_IDS.findMe}`}
 						className={`p-2 px-4 font-bold text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] duration-100 ${isNight ? "bg-white text-slate-900 hover:bg-slate-200" : "bg-slate-900 text-white hover:bg-slate-800"}`}
 					>
 						Follow Me
@@ -254,7 +268,7 @@ function LayoutHost() {
 
 			<div className="main-shell min-h-screen md:pr-20">
 				<HeroSection />
-				<LinktreeSection />
+				<FindMeSection />
 				<CraftSection
 					lastTriggerRef={lastTriggerRef}
 					isNight={isNight}
@@ -306,7 +320,7 @@ function LayoutHost() {
 				dangerouslySetInnerHTML={{
 					__html: `
 						html { scroll-behavior: smooth; }
-						[id^="topic-"], #hero, #linktree, #cta { scroll-margin-top: 80px; }
+						[id^="topic-"], #hero, #find-me, #cta { scroll-margin-top: 80px; }
 						.cursor-pixel { cursor: crosshair; }
 						::selection {
 							background: #fef08a;

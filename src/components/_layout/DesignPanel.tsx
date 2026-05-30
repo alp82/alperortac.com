@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TOPICS, type TopicId } from "../../data/topics";
 import { Segmented, Slider, Swatches, Toggle } from "./composer/DesignControls";
 import {
 	INNER_ORDER,
@@ -9,12 +10,19 @@ import {
 	SECTIONS,
 } from "./composer/index";
 import type {
+	AccentSource,
+	AnySectionParams,
 	InnerId,
 	InnerParams,
+	IslandParams,
 	LinkId,
 	LinkParams,
+	MarqueeParams,
+	MonolithParams,
+	ParallaxParams,
 	SectionId,
-	SectionParams,
+	SplitParams,
+	ZoomParams,
 } from "./composer/types";
 import {
 	buildComposerSpec,
@@ -26,10 +34,10 @@ import {
  *
  * Renders inside the existing `panel-dialog-modal` <dialog> so the live
  * landscape stays visible. A top "Shipped baseline" toggle bypasses the
- * composer to A/B against production. Below it, three labeled single-select
- * layers — SECTION STYLE / INSIDE THE TOPIC / BETWEEN TOPICS — and under the
- * SELECTED item in each layer, that item's focused param controls. Spec readout
- * + Copy spec + Reset at the bottom.
+ * composer to A/B against production. Below it, three tabbed layers — a GLOBAL
+ * Stage and Connector (one pick each) plus a per-topic Cluster (chosen per topic
+ * via the topic selector) — each exposing the selected item's focused params.
+ * Spec readout + Copy spec + Reset at the bottom.
  *
  * Planner: removed with the rest of the composer host once a composition is
  * locked (see CLEANUP_NEEDED).
@@ -40,10 +48,10 @@ export const DESIGN_PANEL_TITLE_ID = "design-panel-title";
 type Handlers = {
 	setBaseline: (v: boolean) => void;
 	setSection: (id: SectionId) => void;
-	setInner: (id: InnerId) => void;
+	setInner: (topicId: TopicId, id: InnerId) => void;
 	setLink: (id: LinkId) => void;
-	patchSectionParams: (p: Partial<SectionParams>) => void;
-	patchInnerParams: (p: Partial<InnerParams>) => void;
+	patchSectionParams: (p: Partial<AnySectionParams>) => void;
+	patchInnerParams: (topicId: TopicId, p: Partial<InnerParams>) => void;
 	patchLinkParams: (p: Partial<LinkParams>) => void;
 };
 
@@ -54,7 +62,7 @@ type DesignPanelProps = Handlers & {
 };
 
 const ACCENT_SWATCHES: {
-	value: SectionParams["accent"];
+	value: AccentSource;
 	label: string;
 	swatch: string;
 }[] = [
@@ -139,14 +147,248 @@ function LayerRow({
 	);
 }
 
+type SectionPatch = (p: Partial<AnySectionParams>) => void;
+
+/* Each stage's signature knobs. `params` is the union; the selected row's id
+ * always matches the live params (the setters keep them in lockstep), so the
+ * per-case cast is sound. */
+function StageSpecificControls({
+	id,
+	params,
+	patch,
+}: {
+	id: SectionId;
+	params: AnySectionParams;
+	patch: SectionPatch;
+}) {
+	switch (id) {
+		case "centered-monolith": {
+			const p = params as MonolithParams;
+			return (
+				<>
+					<Slider
+						label="Vignette"
+						value={p.vignette}
+						min={0}
+						max={80}
+						onChange={(vignette) => patch({ vignette })}
+					/>
+					<Slider
+						label="Edge glow"
+						value={p.edgeGlow}
+						min={0}
+						max={100}
+						onChange={(edgeGlow) => patch({ edgeGlow })}
+					/>
+					<Segmented
+						label="Title scale"
+						value={p.titleScale}
+						options={[
+							{ value: "modest", label: "Modest" },
+							{ value: "bold", label: "Bold" },
+							{ value: "towering", label: "Towering" },
+						]}
+						onChange={(titleScale) => patch({ titleScale })}
+					/>
+					<Toggle
+						label="Index tag"
+						checked={p.indexTag}
+						onChange={(indexTag) => patch({ indexTag })}
+					/>
+				</>
+			);
+		}
+		case "split-stage": {
+			const p = params as SplitParams;
+			return (
+				<>
+					<Slider
+						label="Split ratio"
+						value={p.ratio}
+						min={50}
+						max={78}
+						unit="%"
+						onChange={(ratio) => patch({ ratio })}
+					/>
+					<Segmented
+						label="Content side"
+						value={p.side}
+						options={[
+							{ value: "left", label: "Left" },
+							{ value: "right", label: "Right" },
+						]}
+						onChange={(side) => patch({ side })}
+					/>
+					<Slider
+						label="Flourish"
+						value={p.flourish}
+						min={0}
+						max={40}
+						onChange={(flourish) => patch({ flourish })}
+					/>
+					<Toggle
+						label="Accent spine"
+						checked={p.spine}
+						onChange={(spine) => patch({ spine })}
+					/>
+				</>
+			);
+		}
+		case "parallax-depth": {
+			const p = params as ParallaxParams;
+			return (
+				<>
+					<Segmented
+						label="Backdrop shape"
+						value={p.shape}
+						options={[
+							{ value: "flourish", label: "Flourish" },
+							{ value: "blob", label: "Blob" },
+							{ value: "rings", label: "Rings" },
+							{ value: "grid", label: "Grid" },
+							{ value: "strata", label: "Strata" },
+						]}
+						onChange={(shape) => patch({ shape })}
+					/>
+					<Slider
+						label="Drift depth"
+						value={p.depth}
+						min={0}
+						max={100}
+						onChange={(depth) => patch({ depth })}
+					/>
+					<Segmented
+						label="Layers"
+						value={String(p.layers)}
+						options={[
+							{ value: "2", label: "2" },
+							{ value: "3", label: "3" },
+						]}
+						onChange={(v) => patch({ layers: Number(v) as 2 | 3 })}
+					/>
+				</>
+			);
+		}
+		case "marquee-scroll": {
+			const p = params as MarqueeParams;
+			return (
+				<>
+					<Segmented
+						label="Strips"
+						value={String(p.strips)}
+						options={[
+							{ value: "1", label: "1" },
+							{ value: "2", label: "2" },
+							{ value: "3", label: "3" },
+						]}
+						onChange={(v) => patch({ strips: Number(v) as 1 | 2 | 3 })}
+					/>
+					<Slider
+						label="Drift speed"
+						value={p.speed}
+						min={0}
+						max={100}
+						onChange={(speed) => patch({ speed })}
+					/>
+					<Segmented
+						label="Text style"
+						value={p.textStyle}
+						options={[
+							{ value: "filled", label: "Filled" },
+							{ value: "outline", label: "Outline" },
+							{ value: "accent", label: "Accent" },
+						]}
+						onChange={(textStyle) => patch({ textStyle })}
+					/>
+					<Toggle
+						label="Mirror directions"
+						checked={p.mirrored}
+						onChange={(mirrored) => patch({ mirrored })}
+					/>
+				</>
+			);
+		}
+		case "floating-island": {
+			const p = params as IslandParams;
+			return (
+				<>
+					<Slider
+						label="Float height"
+						value={p.floatHeight}
+						min={0}
+						max={100}
+						onChange={(floatHeight) => patch({ floatHeight })}
+					/>
+					<Slider
+						label="Bob"
+						value={p.bob}
+						min={0}
+						max={100}
+						onChange={(bob) => patch({ bob })}
+					/>
+					<Segmented
+						label="Corners"
+						value={p.corners}
+						options={[
+							{ value: "sharp", label: "Sharp" },
+							{ value: "soft", label: "Soft" },
+							{ value: "pill", label: "Pill" },
+						]}
+						onChange={(corners) => patch({ corners })}
+					/>
+					<Slider
+						label="Slab tint"
+						value={p.tint}
+						min={0}
+						max={100}
+						onChange={(tint) => patch({ tint })}
+					/>
+				</>
+			);
+		}
+		default: {
+			const p = params as ZoomParams;
+			return (
+				<>
+					<Slider
+						label="Enter zoom"
+						value={p.enterZoom}
+						min={0}
+						max={100}
+						onChange={(enterZoom) => patch({ enterZoom })}
+					/>
+					<Slider
+						label="Ken Burns speed"
+						value={p.speed}
+						min={0}
+						max={100}
+						onChange={(speed) => patch({ speed })}
+					/>
+					<Segmented
+						label="Drift"
+						value={p.drift}
+						options={[
+							{ value: "in", label: "In" },
+							{ value: "up-left", label: "Up-L" },
+							{ value: "up-right", label: "Up-R" },
+							{ value: "down", label: "Down" },
+						]}
+						onChange={(drift) => patch({ drift })}
+					/>
+				</>
+			);
+		}
+	}
+}
+
 function SectionParamsBlock({
 	id,
 	params,
 	patch,
 }: {
 	id: SectionId;
-	params: SectionParams;
-	patch: (p: Partial<SectionParams>) => void;
+	params: AnySectionParams;
+	patch: SectionPatch;
 }) {
 	const [lo, hi] = SECTIONS[id].heightRange;
 	return (
@@ -157,24 +399,6 @@ function SectionParamsBlock({
 				options={ACCENT_SWATCHES}
 				onChange={(accent) => patch({ accent })}
 			/>
-			<Segmented
-				label="Content position"
-				value={params.align}
-				options={[
-					{ value: "center", label: "Center" },
-					{ value: "left", label: "Left" },
-					{ value: "right", label: "Right" },
-					{ value: "bottom", label: "Bottom" },
-				]}
-				onChange={(align) => patch({ align })}
-			/>
-			<Slider
-				label="Scrim / backdrop"
-				value={params.scrim}
-				min={0}
-				max={80}
-				onChange={(scrim) => patch({ scrim })}
-			/>
 			<Slider
 				label="Stage height"
 				value={params.height}
@@ -183,6 +407,7 @@ function SectionParamsBlock({
 				unit="vh"
 				onChange={(height) => patch({ height })}
 			/>
+			<StageSpecificControls id={id} params={params} patch={patch} />
 		</>
 	);
 }
@@ -334,6 +559,53 @@ function TabBar({
 	);
 }
 
+/* Cluster is per-topic, so the Cluster tab edits ONE topic at a time — this
+ * chooses which. */
+function TopicSelector({
+	active,
+	clusters,
+	onSelect,
+}: {
+	active: TopicId;
+	clusters: ComposerState["clusters"];
+	onSelect: (id: TopicId) => void;
+}) {
+	return (
+		<div>
+			<div className="text-[9px] uppercase font-bold tracking-[0.18em] opacity-55 mb-1.5">
+				Editing cluster for
+			</div>
+			<div className="flex flex-wrap gap-1">
+				{TOPICS.map((t) => {
+					const selected = t.id === active;
+					const custom = clusters[t.id].id !== "rich-card";
+					return (
+						<button
+							key={t.id}
+							type="button"
+							onClick={() => onSelect(t.id)}
+							aria-pressed={selected}
+							title={`${t.heading} — ${INNERS[clusters[t.id].id].label}`}
+							className={`px-2 py-1 text-[10px] font-black uppercase tracking-wider border-2 transition-colors ${
+								selected
+									? "bg-slate-900 text-white border-slate-900"
+									: "bg-white text-slate-700 border-slate-300 hover:border-slate-900"
+							}`}
+						>
+							{t.heading}
+							{custom && (
+								<span className="ml-1 text-emerald-400" aria-hidden="true">
+									●
+								</span>
+							)}
+						</button>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
 export function DesignPanel({
 	state,
 	setBaseline,
@@ -348,6 +620,10 @@ export function DesignPanel({
 }: DesignPanelProps) {
 	const [copied, setCopied] = useState(false);
 	const [tab, setTab] = useState<LayerTab>("section");
+	// Start editing the first topic's cluster (TOPICS is a non-empty literal).
+	const [activeTopic, setActiveTopic] = useState<TopicId>(
+		TOPICS[0]?.id ?? "career",
+	);
 	const spec = buildComposerSpec(state);
 	const disabled = state.baseline;
 
@@ -380,9 +656,9 @@ export function DesignPanel({
 					Composer
 				</h2>
 				<p className="text-xs opacity-70 mb-4 font-sans leading-snug">
-					DEV-only. Stack a section style × an inner content style × a
-					between-topic connector. Tune each layer's params, then scroll the
-					page to judge it against the live landscape, day → night.
+					DEV-only. A global stage × a per-topic cluster × a global connector.
+					Tune each layer's params, then scroll the page to judge it against the
+					live landscape, day → night.
 				</p>
 
 				{/* Shipped baseline bypass */}
@@ -423,22 +699,31 @@ export function DesignPanel({
 					)}
 
 					{tab === "inner" && (
-						<div className="flex flex-col gap-2">
-							{INNER_ORDER.map((id) => (
-								<LayerRow
-									key={id}
-									label={INNERS[id].label}
-									feel={INNERS[id].feel}
-									selected={id === state.inner}
-									onSelect={() => setInner(id)}
-								>
-									<InnerParamsBlock
-										id={id}
-										params={state.innerParams}
-										patch={patchInnerParams}
-									/>
-								</LayerRow>
-							))}
+						<div className="flex flex-col gap-3">
+							<TopicSelector
+								active={activeTopic}
+								clusters={state.clusters}
+								onSelect={setActiveTopic}
+							/>
+							<div className="flex flex-col gap-2">
+								{INNER_ORDER.map((id) => (
+									<LayerRow
+										key={id}
+										label={INNERS[id].label}
+										feel={INNERS[id].feel}
+										selected={id === state.clusters[activeTopic].id}
+										onSelect={() => setInner(activeTopic, id)}
+									>
+										{id !== "rich-card" && (
+											<InnerParamsBlock
+												id={id}
+												params={state.clusters[activeTopic].params}
+												patch={(p) => patchInnerParams(activeTopic, p)}
+											/>
+										)}
+									</LayerRow>
+								))}
+							</div>
 						</div>
 					)}
 

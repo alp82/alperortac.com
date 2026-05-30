@@ -1,21 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import type { SectionRenderProps } from "../types";
+import type { IslandParams, SectionRenderProps } from "../types";
 
 /*
  * Section: floating-island
  *
  * The cluster rests on a floating slab with a soft drop shadow, the landscape
- * visible all around it. The slab bobs gently as the stage scrolls through view
- * (reduced-motion safe: the scroll listener never attaches under
- * prefers-reduced-motion, so the slab sits still). `scrim` tints the slab;
- * `align` positions content on the slab. ~90vh.
+ * visible all around it. The slab bobs gently as the stage scrolls through view.
+ * ~90vh.
+ *
+ * Knobs — `floatHeight` grows the shadow throw + lift; `bob` is the idle drift
+ * amount (0 = still); `corners` sets the slab radius; `tint` is the slab surface
+ * opacity (glassy → solid). Reduced-motion safe: the listener never attaches.
  */
 
-const ALIGN_CLASS: Record<SectionRenderProps["params"]["align"], string> = {
-	center: "items-center text-center",
-	left: "items-start text-left",
-	right: "items-end text-right",
-	bottom: "items-center text-center justify-end",
+const RADIUS: Record<IslandParams["corners"], string> = {
+	sharp: "6px",
+	soft: "18px",
+	pill: "32px",
 };
 
 export function FloatingIslandStage({
@@ -23,9 +24,9 @@ export function FloatingIslandStage({
 	params,
 	accent,
 	children,
-}: SectionRenderProps) {
+}: SectionRenderProps<"floating-island">) {
 	const ref = useRef<HTMLElement>(null);
-	const [bob, setBob] = useState(0);
+	const [rel, setRel] = useState(0);
 
 	useEffect(() => {
 		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -37,10 +38,10 @@ export function FloatingIslandStage({
 			raf = requestAnimationFrame(() => {
 				raf = 0;
 				const rect = el.getBoundingClientRect();
-				const rel =
+				setRel(
 					(rect.top + rect.height / 2 - window.innerHeight / 2) /
-					window.innerHeight;
-				setBob(rel * 24);
+						window.innerHeight,
+				);
 			});
 		};
 		onScroll();
@@ -53,7 +54,10 @@ export function FloatingIslandStage({
 		};
 	}, []);
 
-	const surface = params.scrim / 100;
+	const surface = params.tint / 100;
+	const lift = -(params.floatHeight * 0.12);
+	const bobPx = (rel * 24 * params.bob) / 50;
+	const shadow = `0 ${24 + params.floatHeight * 0.7}px ${48 + params.floatHeight}px -30px rgba(0,0,0,0.85)`;
 
 	return (
 		<article
@@ -68,11 +72,13 @@ export function FloatingIslandStage({
 			}
 		>
 			<div
-				className={`cmp-island relative w-full max-w-2xl flex flex-col ${ALIGN_CLASS[params.align]}`}
+				className="cmp-island relative w-full max-w-2xl flex flex-col items-center text-center"
 				style={
 					{
-						transform: `translate3d(0, ${bob}px, 0)`,
+						transform: `translate3d(0, ${lift + bobPx}px, 0)`,
 						"--cmp-island-surface": String(surface),
+						"--cmp-island-radius": RADIUS[params.corners],
+						"--cmp-island-shadow": shadow,
 					} as React.CSSProperties
 				}
 			>

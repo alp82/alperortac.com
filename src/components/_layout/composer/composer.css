@@ -22,7 +22,7 @@
 	overflow: hidden;
 }
 
-/* radial scrim used by centered-monolith + spotlight */
+/* radial scrim used by centered-monolith */
 .cmp-scrim-radial::before {
 	content: "";
 	position: absolute;
@@ -56,56 +56,21 @@
 }
 
 /* ── section: split-stage ───────────────────────────────────────────── */
+/* Single column on mobile (the open panel is hidden); the `ratio`/`side` params
+   drive the two-column split at md+ via --cmp-split-cols. */
 .cmp-split {
 	display: grid;
 	align-items: center;
+	grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+	.cmp-split {
+		grid-template-columns: var(--cmp-split-cols, 1.35fr 1fr);
+	}
 }
 .cmp-split-panel {
 	position: relative;
 	z-index: 1;
-}
-
-/* ── section: letterbox (cinematic bars) ────────────────────────────── */
-.cmp-letterbox::before,
-.cmp-letterbox::after {
-	content: "";
-	position: absolute;
-	left: 0;
-	right: 0;
-	height: var(--cmp-bar, 12%);
-	background: #06080d;
-	z-index: 5;
-	pointer-events: none;
-}
-.cmp-letterbox::before {
-	top: 0;
-	box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-.cmp-letterbox::after {
-	bottom: 0;
-	box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.06);
-}
-.cmp-letterbox-grade {
-	position: absolute;
-	inset: 0;
-	mix-blend-mode: soft-light;
-	pointer-events: none;
-	opacity: 0.5;
-}
-
-/* ── section: spotlight-vignette ────────────────────────────────────── */
-.cmp-vignette::before {
-	content: "";
-	position: absolute;
-	inset: 0;
-	background: radial-gradient(
-		circle at center,
-		transparent 0%,
-		transparent 24%,
-		rgba(4, 6, 11, calc(var(--cmp-scrim, 0.5) + 0.25)) 78%,
-		rgba(4, 6, 11, calc(var(--cmp-scrim, 0.5) + 0.45)) 100%
-	);
-	pointer-events: none;
 }
 
 /* ── section: parallax-depth ────────────────────────────────────────── */
@@ -579,51 +544,6 @@
    ADDED SECTION STAGES (Layer 1) — distinct full-bleed stagings.
    ════════════════════════════════════════════════════════════════════ */
 
-/* ── framed-window ── thick matte window onto the landscape ── */
-.cmp-window {
-	border: 18px solid;
-	border-radius: 4px;
-	box-shadow:
-		inset 0 0 0 2px rgba(0, 0, 0, 0.4),
-		inset 0 0 60px -10px rgba(0, 0, 0, 0.85),
-		0 30px 60px -30px rgba(0, 0, 0, 0.7);
-	background: rgba(8, 11, 18, calc(var(--cmp-glass, 0.4) * 0.5));
-}
-.cmp-window-glass {
-	position: absolute;
-	inset: 0;
-	background: linear-gradient(
-		135deg,
-		rgba(255, 255, 255, 0.06) 0%,
-		transparent 40%,
-		rgba(8, 11, 18, calc(var(--cmp-glass, 0.4))) 100%
-	);
-	pointer-events: none;
-	z-index: 10;
-}
-.cmp-window-mullion-v,
-.cmp-window-mullion-h {
-	position: absolute;
-	background: rgba(58, 48, 36, 0.9);
-	box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-	pointer-events: none;
-	z-index: 15;
-}
-.cmp-window-mullion-v {
-	top: 0;
-	bottom: 0;
-	left: 50%;
-	width: 8px;
-	transform: translateX(-50%);
-}
-.cmp-window-mullion-h {
-	left: 0;
-	right: 0;
-	top: 50%;
-	height: 8px;
-	transform: translateY(-50%);
-}
-
 /* ── marquee-scroll ── giant drifting heading strips ── */
 .cmp-marquee-row {
 	position: absolute;
@@ -644,128 +564,6 @@
 	will-change: transform;
 }
 
-/* ── stacked-cards ── card atop a faux offset deck ── */
-.cmp-deck-card {
-	position: relative;
-	z-index: 3;
-	background: rgba(
-		15,
-		18,
-		26,
-		calc(0.55 + var(--cmp-card-surface, 0.35) * 0.45)
-	);
-	border: 1px solid rgba(255, 255, 255, 0.12);
-	border-radius: 10px;
-	box-shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.8);
-	backdrop-filter: blur(3px);
-	-webkit-backdrop-filter: blur(3px);
-	overflow: hidden;
-	transition:
-		transform 700ms cubic-bezier(0.16, 1, 0.3, 1),
-		opacity 600ms ease-out;
-}
-.cmp-deck-ghost {
-	position: absolute;
-	inset: 0;
-	border-radius: 10px;
-	background: rgba(15, 18, 26, 0.4);
-	border: 1px solid rgba(255, 255, 255, 0.08);
-}
-.cmp-deck-ghost-1 {
-	z-index: 2;
-	transform: translate(10px, 12px);
-	box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.6);
-}
-.cmp-deck-ghost-2 {
-	z-index: 1;
-	transform: translate(20px, 24px);
-	box-shadow: 0 16px 32px -18px rgba(0, 0, 0, 0.5);
-}
-
-/* ── full-type ── viewport-filling cut-out heading ── */
-.cmp-fulltype-wrap {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	overflow: hidden;
-	pointer-events: none;
-	z-index: 1;
-}
-.cmp-fulltype-word {
-	font-weight: 900;
-	text-transform: uppercase;
-	font-size: clamp(5rem, 30vw, 26rem);
-	line-height: 0.78;
-	letter-spacing: -0.05em;
-	text-align: center;
-	color: transparent;
-	-webkit-text-stroke-width: 2px;
-	/* landscape shows through the glyphs */
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent);
-	-webkit-background-clip: text;
-	background-clip: text;
-	mix-blend-mode: overlay;
-}
-.cmp-fulltype-card {
-	background: rgba(8, 11, 18, 0.55);
-	border: 1px solid rgba(255, 255, 255, 0.14);
-	border-radius: 8px;
-	padding: 1.5rem;
-	backdrop-filter: blur(4px);
-	-webkit-backdrop-filter: blur(4px);
-}
-
-/* ── peek-reveal ── next-topic peek at the bottom edge ── */
-.cmp-peek {
-	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	display: flex;
-	justify-content: center;
-	z-index: 6;
-	pointer-events: none;
-}
-.cmp-peek-lip {
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-	padding: 0.6rem 1.6rem 0;
-	background: rgba(6, 9, 15, 0.85);
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	border-bottom: none;
-	border-top-width: 3px;
-	border-top-style: solid;
-	border-radius: 14px 14px 0 0;
-	box-shadow: 0 -10px 30px -12px rgba(0, 0, 0, 0.7);
-}
-
-/* ── triptych ── three vertical sub-panels ── */
-.cmp-triptych {
-	display: grid;
-	grid-template-columns: 1fr;
-}
-@media (min-width: 768px) {
-	.cmp-triptych {
-		grid-template-columns: 0.55fr 1.9fr 0.55fr;
-	}
-}
-.cmp-triptych-leaf {
-	min-height: 100%;
-}
-
-/* ── oversized-number ── giant ghost index numeral ── */
-.cmp-bignum {
-	font-weight: 900;
-	font-size: clamp(14rem, 52vh, 40rem);
-	line-height: 0.7;
-	letter-spacing: -0.06em;
-	-webkit-text-stroke-width: 2px;
-	white-space: nowrap;
-}
-
 /* ── floating-island ── slab over the landscape ── */
 .cmp-island {
 	background: rgba(
@@ -775,9 +573,10 @@
 		calc(0.5 + var(--cmp-island-surface, 0.35) * 0.5)
 	);
 	border: 1px solid rgba(255, 255, 255, 0.12);
-	border-radius: 18px;
+	/* radius (corners param) + shadow (floatHeight param) come from the stage */
+	border-radius: var(--cmp-island-radius, 18px);
 	box-shadow:
-		0 40px 80px -30px rgba(0, 0, 0, 0.85),
+		var(--cmp-island-shadow, 0 40px 80px -30px rgba(0, 0, 0, 0.85)),
 		inset 0 1px 0 rgba(255, 255, 255, 0.08);
 	backdrop-filter: blur(3px);
 	-webkit-backdrop-filter: blur(3px);
@@ -793,7 +592,9 @@
 	justify-content: center;
 	pointer-events: none;
 	z-index: 1;
-	animation: cmp-kenburns 18s ease-in-out infinite alternate;
+	/* duration (speed param) + pan target (drift param) come from the stage */
+	animation: cmp-kenburns var(--cmp-kenburns-dur, 18s) ease-in-out infinite
+		alternate;
 	will-change: transform;
 }
 @keyframes cmp-kenburns {
@@ -801,26 +602,8 @@
 		transform: scale(1) translate(0, 0);
 	}
 	to {
-		transform: scale(1.18) translate(2%, -2%);
+		transform: scale(1.18) translate(var(--cmp-kenburns-to, 2% -2%));
 	}
-}
-
-/* ── curtain-reveal ── parting scrim curtains ── */
-.cmp-curtain {
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	width: 51%;
-	z-index: 6;
-	pointer-events: none;
-	transition: transform 1000ms cubic-bezier(0.7, 0, 0.3, 1);
-	will-change: transform;
-}
-.cmp-curtain-l {
-	left: 0;
-}
-.cmp-curtain-r {
-	right: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -840,8 +623,6 @@
 		animation: none;
 	}
 	/* added stages: neutralize entrance/idle motion */
-	.cmp-deck-card,
-	.cmp-curtain,
 	.cmp-island {
 		transition: none;
 	}

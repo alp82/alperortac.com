@@ -17,6 +17,7 @@ import { NeonSignCluster } from "./inner/neon-sign";
 import { PolaroidCluster } from "./inner/polaroid";
 import { PressedSpecimenCluster } from "./inner/pressed-specimen";
 import { ReceiptCluster } from "./inner/receipt";
+import { RichCardCluster } from "./inner/rich-card";
 import { StampPostcardCluster } from "./inner/stamp-postcard";
 import { StrataCoreCluster } from "./inner/strata-core";
 import { TerminalCluster } from "./inner/terminal";
@@ -33,22 +34,10 @@ import { RuledSeamLink } from "./links/ruled-seam";
 import { StrataSeamLink } from "./links/strata-seam";
 import { TrailDashesLink } from "./links/trail-dashes";
 import { CenteredMonolithStage } from "./sections/centered-monolith";
-import { CurtainRevealStage } from "./sections/curtain-reveal";
-import { DiagonalCutStage } from "./sections/diagonal-cut";
-import { EdgeAnchoredStage } from "./sections/edge-anchored";
 import { FloatingIslandStage } from "./sections/floating-island";
-import { FramedWindowStage } from "./sections/framed-window";
-import { FullTypeStage } from "./sections/full-type";
-import { HorizonBandStage } from "./sections/horizon-band";
-import { LetterboxStage } from "./sections/letterbox";
 import { MarqueeScrollStage } from "./sections/marquee-scroll";
-import { OversizedNumberStage } from "./sections/oversized-number";
 import { ParallaxDepthStage } from "./sections/parallax-depth";
-import { PeekRevealStage } from "./sections/peek-reveal";
-import { SpotlightVignetteStage } from "./sections/spotlight-vignette";
 import { SplitStageStage } from "./sections/split-stage";
-import { StackedCardsStage } from "./sections/stacked-cards";
-import { TriptychStage } from "./sections/triptych";
 import { ZoomFocusStage } from "./sections/zoom-focus";
 import type {
 	InnerDef,
@@ -81,24 +70,22 @@ export type {
 
 /* ── Layer 1: SECTION STYLES (the cinematic stage) ──────────────────────── */
 
-export const SECTIONS: Record<SectionId, SectionDef> = {
+export const SECTIONS: { [Id in SectionId]: SectionDef<Id> } = {
 	"centered-monolith": {
 		id: "centered-monolith",
 		label: "Centered Monolith",
 		feel: "Huge centered type over a radial scrim; the landscape glows at the edges. Title-card energy.",
 		baseHeight: 100,
 		heightRange: [70, 130],
-		defaults: { accent: "topic", align: "center", scrim: 45, height: 100 },
+		defaults: {
+			accent: "topic",
+			height: 100,
+			vignette: 45,
+			edgeGlow: 60,
+			titleScale: "bold",
+			indexTag: true,
+		},
 		Component: CenteredMonolithStage,
-	},
-	"edge-anchored": {
-		id: "edge-anchored",
-		label: "Edge Anchored",
-		feel: "Content pinned to a corner; the landscape dominates the open frame. A directional gradient anchors the type.",
-		baseHeight: 85,
-		heightRange: [65, 110],
-		defaults: { accent: "topic", align: "bottom", scrim: 55, height: 85 },
-		Component: EdgeAnchoredStage,
 	},
 	"split-stage": {
 		id: "split-stage",
@@ -106,26 +93,15 @@ export const SECTIONS: Record<SectionId, SectionDef> = {
 		feel: "Asymmetric viewport split: type one side, negative space + ghost flourish the other.",
 		baseHeight: 90,
 		heightRange: [70, 115],
-		defaults: { accent: "topic", align: "left", scrim: 50, height: 90 },
+		defaults: {
+			accent: "topic",
+			height: 90,
+			ratio: 58,
+			side: "left",
+			flourish: 16,
+			spine: true,
+		},
 		Component: SplitStageStage,
-	},
-	letterbox: {
-		id: "letterbox",
-		label: "Letterbox",
-		feel: "Cinematic bars top + bottom, a faint accent color-grade. Shorter, wider title-card band.",
-		baseHeight: 70,
-		heightRange: [55, 95],
-		defaults: { accent: "topic", align: "center", scrim: 35, height: 70 },
-		Component: LetterboxStage,
-	},
-	"spotlight-vignette": {
-		id: "spotlight-vignette",
-		label: "Spotlight Vignette",
-		feel: "A radial spotlight pools light on the cluster; edges darken hard into the landscape.",
-		baseHeight: 90,
-		heightRange: [70, 115],
-		defaults: { accent: "topic", align: "center", scrim: 55, height: 90 },
-		Component: SpotlightVignetteStage,
 	},
 	"parallax-depth": {
 		id: "parallax-depth",
@@ -133,26 +109,14 @@ export const SECTIONS: Record<SectionId, SectionDef> = {
 		feel: "Layered fore/background drift on scroll; the cluster floats over a slow ghost flourish. Tallest stage.",
 		baseHeight: 110,
 		heightRange: [90, 140],
-		defaults: { accent: "topic", align: "center", scrim: 45, height: 110 },
+		defaults: {
+			accent: "topic",
+			height: 110,
+			shape: "flourish",
+			depth: 50,
+			layers: 3,
+		},
 		Component: ParallaxDepthStage,
-	},
-	"diagonal-cut": {
-		id: "diagonal-cut",
-		label: "Diagonal Cut",
-		feel: "Viewport split by a bold diagonal: cluster in one wedge over a dark grade, landscape in the other, angled accent edge between.",
-		baseHeight: 95,
-		heightRange: [75, 120],
-		defaults: { accent: "topic", align: "left", scrim: 50, height: 95 },
-		Component: DiagonalCutStage,
-	},
-	"framed-window": {
-		id: "framed-window",
-		label: "Framed Window",
-		feel: "Cluster seen through a thick matte cabin window — beveled frame, inner shadow, cross mullions, tinted glass onto the landscape.",
-		baseHeight: 88,
-		heightRange: [70, 115],
-		defaults: { accent: "topic", align: "center", scrim: 40, height: 88 },
-		Component: FramedWindowStage,
 	},
 	"marquee-scroll": {
 		id: "marquee-scroll",
@@ -160,62 +124,15 @@ export const SECTIONS: Record<SectionId, SectionDef> = {
 		feel: "Giant repeating heading strips drift horizontally on scroll behind the cluster. Freezes under reduced motion.",
 		baseHeight: 90,
 		heightRange: [70, 115],
-		defaults: { accent: "topic", align: "center", scrim: 45, height: 90 },
+		defaults: {
+			accent: "topic",
+			height: 90,
+			strips: 2,
+			speed: 50,
+			textStyle: "filled",
+			mirrored: true,
+		},
 		Component: MarqueeScrollStage,
-	},
-	"stacked-cards": {
-		id: "stacked-cards",
-		label: "Stacked Cards",
-		feel: "Topic on a card atop a faux offset deck with layered shadows; the top card scales in on enter (reduced-motion safe).",
-		baseHeight: 92,
-		heightRange: [72, 118],
-		defaults: { accent: "topic", align: "left", scrim: 35, height: 92 },
-		Component: StackedCardsStage,
-	},
-	"full-type": {
-		id: "full-type",
-		label: "Full Type",
-		feel: "The heading IS the stage — enormous viewport-filling cut-out type with the landscape through the glyphs; cluster overlaid in a corner.",
-		baseHeight: 96,
-		heightRange: [80, 125],
-		defaults: { accent: "topic", align: "left", scrim: 30, height: 96 },
-		Component: FullTypeStage,
-	},
-	"horizon-band": {
-		id: "horizon-band",
-		label: "Horizon Band",
-		feel: "A horizon line crosses the viewport — luminous sky above, dark ground below — with the cluster sitting on the line. Echoes day→night.",
-		baseHeight: 90,
-		heightRange: [70, 115],
-		defaults: { accent: "topic", align: "center", scrim: 45, height: 90 },
-		Component: HorizonBandStage,
-	},
-	"peek-reveal": {
-		id: "peek-reveal",
-		label: "Peek Reveal",
-		feel: "The next topic peeks in from the bottom edge with a rounded lip, so consecutive stages feel like they overlap as you scroll.",
-		baseHeight: 94,
-		heightRange: [78, 120],
-		defaults: { accent: "topic", align: "center", scrim: 50, height: 94 },
-		Component: PeekRevealStage,
-	},
-	triptych: {
-		id: "triptych",
-		label: "Triptych",
-		feel: "Three vertical sub-panels with thin dividers — ghost flourish leaves frame the cluster in the wide center. Altarpiece feel.",
-		baseHeight: 92,
-		heightRange: [72, 118],
-		defaults: { accent: "topic", align: "center", scrim: 50, height: 92 },
-		Component: TriptychStage,
-	},
-	"oversized-number": {
-		id: "oversized-number",
-		label: "Oversized Number",
-		feel: "A giant ghost index numeral (01–08) bleeds off an edge as an accent-tinted backdrop; the cluster layers over it.",
-		baseHeight: 92,
-		heightRange: [72, 118],
-		defaults: { accent: "topic", align: "left", scrim: 45, height: 92 },
-		Component: OversizedNumberStage,
 	},
 	"floating-island": {
 		id: "floating-island",
@@ -223,7 +140,14 @@ export const SECTIONS: Record<SectionId, SectionDef> = {
 		feel: "Cluster on a floating slab with a soft drop shadow, landscape all around; the slab bobs gently on scroll (reduced-motion safe).",
 		baseHeight: 90,
 		heightRange: [72, 115],
-		defaults: { accent: "topic", align: "center", scrim: 35, height: 90 },
+		defaults: {
+			accent: "topic",
+			height: 90,
+			floatHeight: 50,
+			bob: 50,
+			corners: "soft",
+			tint: 35,
+		},
 		Component: FloatingIslandStage,
 	},
 	"zoom-focus": {
@@ -232,39 +156,24 @@ export const SECTIONS: Record<SectionId, SectionDef> = {
 		feel: "Ken Burns: a ghost flourish slowly scales while the cluster grows understated→dominant on enter (reduced-motion safe).",
 		baseHeight: 95,
 		heightRange: [78, 122],
-		defaults: { accent: "topic", align: "center", scrim: 45, height: 95 },
+		defaults: {
+			accent: "topic",
+			height: 95,
+			enterZoom: 45,
+			speed: 50,
+			drift: "up-right",
+		},
 		Component: ZoomFocusStage,
-	},
-	"curtain-reveal": {
-		id: "curtain-reveal",
-		label: "Curtain Reveal",
-		feel: "Two scrim curtains part from center as the stage scrolls in, revealing the cluster. Theatrical (reduced-motion safe).",
-		baseHeight: 92,
-		heightRange: [72, 118],
-		defaults: { accent: "topic", align: "center", scrim: 50, height: 92 },
-		Component: CurtainRevealStage,
 	},
 };
 
 export const SECTION_ORDER: SectionId[] = [
 	"centered-monolith",
-	"edge-anchored",
 	"split-stage",
-	"letterbox",
-	"spotlight-vignette",
 	"parallax-depth",
-	"diagonal-cut",
-	"framed-window",
 	"marquee-scroll",
-	"stacked-cards",
-	"full-type",
-	"horizon-band",
-	"peek-reveal",
-	"triptych",
-	"oversized-number",
 	"floating-island",
 	"zoom-focus",
-	"curtain-reveal",
 ];
 
 /* ── Layer 2: INNER STYLES (the centered cluster) ───────────────────────── */
@@ -276,10 +185,18 @@ const INNER_DEFAULTS = {
 } as const;
 
 export const INNERS: Record<InnerId, InnerDef> = {
+	"rich-card": {
+		id: "rich-card",
+		label: "Rich Card",
+		feel: "The live shipped section card — flourish, per-section layout, and content exactly as the site renders it. The default.",
+		motifLabel: "Flourish",
+		defaults: { ...INNER_DEFAULTS },
+		Component: RichCardCluster,
+	},
 	minimal: {
 		id: "minimal",
 		label: "Minimal",
-		feel: "Clean cluster: styled heading + teaser + plain CTA. Lets the stage do the talking.",
+		feel: "Clean centered cluster: heading + accent underline, content below, no heavy chrome. Lets the stage do the talking.",
 		motifLabel: "Accent underline",
 		defaults: { ...INNER_DEFAULTS },
 		Component: MinimalCluster,
@@ -287,7 +204,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"trail-signpost": {
 		id: "trail-signpost",
 		label: "Trail Signpost",
-		feel: "Waypoint diamond + kraft note; triggers are wooden signpost boards.",
+		feel: "Trail waypoint: a wooden signpost-board heading label, content as the note body below.",
 		motifLabel: "Waypoint marker",
 		defaults: { ...INNER_DEFAULTS },
 		Component: TrailSignpostCluster,
@@ -295,7 +212,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"field-journal": {
 		id: "field-journal",
 		label: "Field Journal",
-		feel: "Kraft journal page: handwritten heading, italic field note, taped specimen triggers.",
+		feel: "Kraft journal spread: a handwritten field-note title with a fig. number, content as the entry on the page.",
 		motifLabel: "Specimen tape",
 		defaults: { ...INNER_DEFAULTS },
 		Component: FieldJournalCluster,
@@ -303,7 +220,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	museum: {
 		id: "museum",
 		label: "Museum",
-		feel: "Restrained serif inside a thin frame; quiet 'view' plate triggers. Calm against the noise.",
+		feel: "Framed gallery placard: a serif Exhibit number, content inside a mat border. Calm against the noise.",
 		motifLabel: "Double frame",
 		defaults: { ...INNER_DEFAULTS },
 		Component: MuseumCluster,
@@ -311,7 +228,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"strata-core": {
 		id: "strata-core",
 		label: "Strata Core",
-		feel: "A vertical earthy core sample with a depth gauge, embossed heading, fossil triggers. Ties to the dig.",
+		feel: "Core-sample panel: an earthy core rail + vertical depth gauge, content in the side panel. Ties to the dig.",
 		motifLabel: "Sediment striations",
 		defaults: { ...INNER_DEFAULTS },
 		Component: StrataCoreCluster,
@@ -319,7 +236,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	constellation: {
 		id: "constellation",
 		label: "Constellation",
-		feel: "Heading over a star field; triggers are bright clickable stars. Ties to the sky easter egg.",
+		feel: "Content panel among the stars: a centered content card over a full-bleed star field + dark scrim. Ties to the sky easter egg.",
 		motifLabel: "Connecting lines",
 		defaults: { ...INNER_DEFAULTS, color: "neutral" },
 		Component: ConstellationCluster,
@@ -327,7 +244,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	terminal: {
 		id: "terminal",
 		label: "Terminal",
-		feel: "Dark monospace pane: heading as `cat`, teaser as stdout, triggers as run prompts. Techy clash.",
+		feel: "Terminal window: title bar + traffic dots + `❯ cat` prompt, content card in the window body. Techy clash.",
 		motifLabel: "Blinking cursor",
 		defaults: { ...INNER_DEFAULTS, color: "neutral" },
 		Component: TerminalCluster,
@@ -335,7 +252,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	polaroid: {
 		id: "polaroid",
 		label: "Polaroid",
-		feel: "A hero polaroid + washi-taped sticky-note triggers. Playful scrapbook collage.",
+		feel: "Scrapbook page: a kraft board with a corner-pinned polaroid + handwritten caption. Playful collage.",
 		motifLabel: "Washi tape",
 		defaults: { ...INNER_DEFAULTS },
 		Component: PolaroidCluster,
@@ -343,15 +260,15 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	collectible: {
 		id: "collectible",
 		label: "Collectible",
-		feel: "One ornate trading card: name banner, accent art zone, flavor text, ability-button triggers.",
-		motifLabel: "Foil sparkle",
+		feel: "Trading card: a gilt rarity border, name banner, type/rarity line, content seated in the card body.",
+		motifLabel: "Foil rarity gem",
 		defaults: { ...INNER_DEFAULTS },
 		Component: CollectibleCluster,
 	},
 	comic: {
 		id: "comic",
 		label: "Comic",
-		feel: "Compact comic page: gutters, jagged caption, speech bubble, action-panel triggers.",
+		feel: "Comic page: a jagged caption banner over content in a wide panel on a halftone wash, speech-bubble tail in the corner.",
 		motifLabel: "Halftone wash",
 		defaults: { ...INNER_DEFAULTS },
 		Component: ComicCluster,
@@ -359,7 +276,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"ticket-stub": {
 		id: "ticket-stub",
 		label: "Ticket Stub",
-		feel: "Perforated event ticket: accent stub with the index, tear line, ADMIT-ONE tear-off triggers on the body.",
+		feel: "Wide ticket: a perforated side-rail stub with ADMIT ONE + barcode, content on the ticket body.",
 		motifLabel: "Perforation",
 		defaults: { ...INNER_DEFAULTS },
 		Component: TicketStubCluster,
@@ -367,7 +284,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	receipt: {
 		id: "receipt",
 		label: "Receipt",
-		feel: "Narrow thermal-receipt slip: monospace, dashed rules, triggers as line items, footed by a TOTAL.",
+		feel: "Monospace statement sheet: thermal paper, dashed rules, a store-name header, thank-you footer.",
 		motifLabel: "Torn edge",
 		defaults: { ...INNER_DEFAULTS, color: "neutral" },
 		Component: ReceiptCluster,
@@ -375,7 +292,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"stamp-postcard": {
 		id: "stamp-postcard",
 		label: "Stamp Postcard",
-		feel: "Vintage postcard: flourish picture side, perforated postage stamp + postmark, triggers as ruled address lines.",
+		feel: "Postcard: a picture/stamp + postmark side, content as the message-area body.",
 		motifLabel: "Postmark ring",
 		defaults: { ...INNER_DEFAULTS },
 		Component: StampPostcardCluster,
@@ -383,7 +300,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	manuscript: {
 		id: "manuscript",
 		label: "Manuscript",
-		feel: "Illuminated manuscript: ruled vellum, ornate accent drop-cap, gold corners, rubricated ❧ trigger lines.",
+		feel: "Illuminated vellum page: gold-flourish corners, an Incipit rubric, content as the manuscript body.",
 		motifLabel: "Drop-cap",
 		defaults: { ...INNER_DEFAULTS },
 		Component: ManuscriptCluster,
@@ -391,15 +308,15 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	blueprint: {
 		id: "blueprint",
 		label: "Blueprint",
-		feel: "Technical drawing: cyan grid, drafted heading with a dimension line, mono annotations, callout-bubble triggers.",
-		motifLabel: "Grid + dimensions",
+		feel: "Drafting sheet: content card framed in a cyan-hairline drawing area over a grid, drafted heading with a dimension line.",
+		motifLabel: "Grid",
 		defaults: { ...INNER_DEFAULTS, color: "neutral" },
 		Component: BlueprintCluster,
 	},
 	"circuit-board": {
 		id: "circuit-board",
 		label: "Circuit Board",
-		feel: "PCB: dark-green board, copper traces routing from a heading chip to component-pad triggers. Fits AI.",
+		feel: "PCB panel: copper traces + corner solder pads, a silkscreen heading, content in a routed area. Fits AI.",
 		motifLabel: "Copper traces",
 		defaults: { ...INNER_DEFAULTS, color: "neutral" },
 		Component: CircuitBoardCluster,
@@ -407,7 +324,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"arcade-hud": {
 		id: "arcade-hud",
 		label: "Arcade HUD",
-		feel: "Retro game HUD: SCORE + HP bar, pixel heading, PRESS-START menu triggers with a ► selector.",
+		feel: "HUD-framed panel: SCORE/HP/LEVEL bars, a STAGE heading, content in the play-area screen.",
 		motifLabel: "CRT scanlines",
 		defaults: { ...INNER_DEFAULTS, color: "neutral" },
 		Component: ArcadeHudCluster,
@@ -415,7 +332,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"neon-sign": {
 		id: "neon-sign",
 		label: "Neon Sign",
-		feel: "Glowing neon-tube heading on a dark board, dim sub-tube teaser, outlined neon-button triggers.",
+		feel: "Neon board: a glowing neon-tube heading on a dark board, content card below.",
 		motifLabel: "Glow flicker",
 		defaults: { ...INNER_DEFAULTS, color: "neutral" },
 		Component: NeonSignCluster,
@@ -423,7 +340,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"vinyl-liner": {
 		id: "vinyl-liner",
 		label: "Vinyl Liner",
-		feel: "Record sleeve with the disc peeking out; album art + heading, liner-note teaser, tracklist triggers.",
+		feel: "Record sleeve: a disc + album-art label accent column, content as the liner-notes body.",
 		motifLabel: "Vinyl disc",
 		defaults: { ...INNER_DEFAULTS, color: "neutral" },
 		Component: VinylLinerCluster,
@@ -431,7 +348,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	cassette: {
 		id: "cassette",
 		label: "Cassette",
-		feel: "Cassette label: two reels, hand-lettered label strip, triggers split across A/B sides.",
+		feel: "Cassette label: reels + a tape window, a hand-lettered heading, content on the label below.",
 		motifLabel: "Tape reels",
 		defaults: { ...INNER_DEFAULTS },
 		Component: CassetteCluster,
@@ -439,7 +356,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	chalkboard: {
 		id: "chalkboard",
 		label: "Chalkboard",
-		feel: "Slate board in a wooden tray: chalk-hand heading, dusty teaser, chalk-outlined ✓ triggers.",
+		feel: "Wood-framed slate: a chalk-hand heading, content card resting on the slate.",
 		motifLabel: "Chalk dust",
 		defaults: { ...INNER_DEFAULTS, color: "neutral" },
 		Component: ChalkboardCluster,
@@ -447,7 +364,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"wanted-poster": {
 		id: "wanted-poster",
 		label: "Wanted Poster",
-		feel: "Old-west WANTED bill: woodtype banner, flourish mugshot, name heading, REWARD triggers on aged paper.",
+		feel: "Aged bill board: a WANTED banner + mugshot accent, name heading, content as the bill copy, reward number.",
 		motifLabel: "Aged/torn edges",
 		defaults: { ...INNER_DEFAULTS },
 		Component: WantedPosterCluster,
@@ -455,7 +372,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"marquee-bulbs": {
 		id: "marquee-bulbs",
 		label: "Marquee Bulbs",
-		feel: "Theater marquee signboard: heading framed by glowing bulbs, NOW SHOWING line, marquee-button triggers.",
+		feel: "Marquee signboard: a chasing-bulb border + now-showing line, content on the board below.",
 		motifLabel: "Chasing bulbs",
 		defaults: { ...INNER_DEFAULTS, color: "neutral" },
 		Component: MarqueeBulbsCluster,
@@ -463,7 +380,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"luggage-tag": {
 		id: "luggage-tag",
 		label: "Luggage Tag",
-		feel: "Travel tag tied with string through a grommet; stamped destination heading, routing-row triggers.",
+		feel: "Luggage tag: clipped corners + a grommet + string, an airport-code label, content on the tag body.",
 		motifLabel: "String + grommet",
 		defaults: { ...INNER_DEFAULTS },
 		Component: LuggageTagCluster,
@@ -471,7 +388,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"embossed-seal": {
 		id: "embossed-seal",
 		label: "Embossed Seal",
-		feel: "Formal certificate: foil wax-seal medallion + ribbon by the heading, serif type, bordered seal-button triggers.",
+		feel: "Certificate sheet: a serif title, content as the certificate body, a wax-seal + ribbon footer and serial number.",
 		motifLabel: "Wax seal",
 		defaults: { ...INNER_DEFAULTS },
 		Component: EmbossedSealCluster,
@@ -479,7 +396,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 	"pressed-specimen": {
 		id: "pressed-specimen",
 		label: "Pressed Specimen",
-		feel: "Herbarium sheet: the flourish as a pressed plant in mounting corners, typed specimen label, classification triggers.",
+		feel: "Herbarium sheet: photo-corner mounts + a specimen label, content as the specimen-sheet body.",
 		motifLabel: "Mounting corners",
 		defaults: { ...INNER_DEFAULTS },
 		Component: PressedSpecimenCluster,
@@ -487,6 +404,7 @@ export const INNERS: Record<InnerId, InnerDef> = {
 };
 
 export const INNER_ORDER: InnerId[] = [
+	"rich-card",
 	"minimal",
 	"trail-signpost",
 	"field-journal",

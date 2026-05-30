@@ -1,25 +1,23 @@
-import { flourishSrc } from "../types";
 import type { InnerRenderProps } from "../types";
-import { useTriggerNav } from "../useTriggerNav";
+import { flourishSrc } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: vinyl-liner
+ * Inner: vinyl-liner — "record sleeve."
  *
- * A record sleeve with the disc (motif) peeking out the right edge: the album
- * art carries the flourish + heading, the teaser reads as liner notes, and
- * triggers are a numbered tracklist. Signature motif = the vinyl disc sliding
- * out of the sleeve.
+ * A record sleeve spread is the frame: an album-art label with the flourish +
+ * heading and a disc (motif) sliding out behind it form the accent, then the
+ * topic's REAL body (the shared light plate) reads as the liner-notes body beside
+ * it — dark sleeve chrome around the light content card. Signature motif
+ * (params.motif) = the vinyl disc peeking out of the sleeve.
  */
 
 export function VinylLinerCluster({
 	topic,
-	lastTriggerRef,
 	params,
 	accent,
+	children,
 }: InnerRenderProps) {
-	const { resolveTrigger } = useTriggerNav(lastTriggerRef);
-
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
 			<div className="vinyl relative flex items-stretch">
@@ -33,54 +31,33 @@ export function VinylLinerCluster({
 						<span className="vinyl-disc-label" style={{ background: accent }} />
 					</div>
 				)}
-				{/* sleeve */}
-				<div className="vinyl-sleeve relative z-10 flex-1 p-5">
-					<div
-						className="vinyl-art relative flex items-center justify-center mb-4"
-						style={{
-							background: `radial-gradient(circle at 35% 30%, ${accent} 0%, #1a1a1a 95%)`,
-						}}
-					>
-						<img
-							src={flourishSrc(topic.id)}
-							alt=""
-							aria-hidden="true"
-							className="w-20 h-20"
-							style={{ imageRendering: "pixelated" }}
-						/>
-						<h2 className="absolute bottom-2 left-3 right-3 font-black uppercase tracking-tight text-2xl text-white leading-none drop-shadow-lg">
+				{/* sleeve: album-art label + liner-notes body */}
+				<div className="vinyl-sleeve relative z-10 flex-1 grid grid-cols-1 md:grid-cols-[auto_1fr] gap-5 p-5">
+					<div className="md:w-44">
+						<div
+							className="vinyl-art relative flex items-center justify-center mb-3"
+							style={{
+								background: `radial-gradient(circle at 35% 30%, ${accent} 0%, #1a1a1a 95%)`,
+							}}
+						>
+							<img
+								src={flourishSrc(topic.id)}
+								alt=""
+								aria-hidden="true"
+								className="w-20 h-20"
+								style={{ imageRendering: "pixelated" }}
+							/>
+						</div>
+						<h2 className="font-black uppercase tracking-tight text-2xl text-white leading-none drop-shadow-lg">
 							{topic.heading}
 						</h2>
-					</div>
-
-					<p className="font-mono text-[11px] text-slate-300 leading-relaxed mb-4">
-						{topic.teaser}
-					</p>
-
-					<div className="flex flex-col">
-						<div className="font-mono text-[9px] uppercase tracking-[0.3em] text-slate-500 mb-2">
-							side a
+						<div className="mt-1 font-mono text-[10px] uppercase tracking-[0.3em] text-slate-400">
+							liner notes
 						</div>
-						{topic.triggers.map((trigger, ti) => {
-							const resolved = resolveTrigger(trigger, topic.teaser);
-							if (!resolved) return null;
-							return (
-								<button
-									key={resolved.key}
-									type="button"
-									onClick={(e) => resolved.navigate(e.currentTarget)}
-									className="vinyl-track group flex items-baseline gap-3 py-1.5 text-left"
-								>
-									<span className="font-mono text-xs text-slate-500 tabular-nums">
-										A{ti + 1}
-									</span>
-									<span className="font-semibold text-sm text-slate-100 group-hover:text-white group-hover:underline">
-										{resolved.title}
-									</span>
-								</button>
-							);
-						})}
 					</div>
+
+					{/* light content card as the liner-notes body */}
+					<div className="self-center">{children}</div>
 				</div>
 			</div>
 		</div>

@@ -1,65 +1,38 @@
-import { ArrowRight } from "lucide-react";
 import type { InnerRenderProps } from "../types";
-import { useTriggerNav } from "../useTriggerNav";
 import { DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: chalkboard
+ * Inner: chalkboard — "slate board."
  *
- * A slate board in a wooden tray: the heading in a chalk-textured hand, the
- * teaser as dusty cursive, and triggers as chalk-outlined boxes with a ✓ tick.
- * Signature motif = the chalk-dust smudge wash across the slate.
+ * A DARK slate board in a wooden frame is the frame: a chalk-dust wash (motif), a
+ * chalk-hand "today's lesson" eyebrow + the heading written in chalk, then the
+ * topic's REAL body (the shared light plate) RESTING on the slate as a pinned
+ * content card — dark slate chrome around the light card, NOT chalk-text content.
+ * A wooden chalk tray runs along the bottom. Signature motif (params.motif) = the
+ * chalk-dust smudge wash across the slate.
  */
 
 export function ChalkboardCluster({
 	topic,
-	lastTriggerRef,
 	params,
+	children,
 }: InnerRenderProps) {
-	const { resolveTrigger } = useTriggerNav(lastTriggerRef);
-
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
-			<div className="chalkboard relative px-8 md:px-12 py-10 text-center">
+			<div className="chalkboard relative px-8 md:px-12 pt-10 pb-12">
 				{params.motif && <span className="chalk-dust" aria-hidden="true" />}
 				<div className="relative z-10">
-					<div className="chalk-hand text-[11px] uppercase tracking-[0.4em] text-white/55 mb-3">
+					<div className="chalk-hand text-center text-[11px] uppercase tracking-[0.4em] text-white/55 mb-3">
 						today's lesson
 					</div>
 					<h2
-						className={`chalk-hand chalk-write ${DENSITY_HEADING[params.density]} text-white leading-none`}
+						className={`chalk-hand chalk-write text-center ${DENSITY_HEADING[params.density]} text-white leading-none`}
 					>
 						{topic.heading}
 					</h2>
-					<p className="chalk-hand text-base md:text-lg text-white/80 leading-relaxed mt-4 mx-auto max-w-md">
-						{topic.teaser}
-					</p>
 
-					<div className="flex flex-col items-center gap-3 mt-7">
-						{topic.triggers.map((trigger) => {
-							const resolved = resolveTrigger(trigger, topic.teaser);
-							if (!resolved) return null;
-							return (
-								<button
-									key={resolved.key}
-									type="button"
-									onClick={(e) => resolved.navigate(e.currentTarget)}
-									className="chalk-box group inline-flex items-center gap-3 px-5 py-2.5 text-left"
-								>
-									<span className="chalk-tick" aria-hidden="true">
-										✓
-									</span>
-									<span className="chalk-hand text-base md:text-lg text-white group-hover:text-white">
-										{resolved.title}
-									</span>
-									<ArrowRight
-										size={16}
-										className="text-white/70 group-hover:translate-x-1 transition-transform"
-									/>
-								</button>
-							);
-						})}
-					</div>
+					{/* light content card resting on the slate */}
+					<div className="mt-7">{children}</div>
 				</div>
 				{/* chalk tray */}
 				<span className="chalk-tray" aria-hidden="true" />
