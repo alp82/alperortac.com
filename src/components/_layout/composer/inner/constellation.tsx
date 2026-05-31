@@ -8,11 +8,19 @@ import { DENSITY_HEADING } from "./shared";
  * lines back the stage, and a centered column holds the constellation-styled
  * heading above the topic's REAL body (the shared light plate). A soft dark
  * scrim sits behind the column so the light plate reads cleanly over the stars.
- * Ties to the celestial sky easter egg. Signature motif = the connecting star
- * lines.
+ * Ties to the celestial sky easter egg. Signature toggle = the connecting star
+ * lines (params.lines); the `tint` knob recolors the lines, the field stars and
+ * the eyebrow inline (the cluster stars stay white).
  */
 
 type StarPoint = { x: number; y: number };
+
+/** tint → connecting-line / field-star / eyebrow color. */
+const TINT: Record<"indigo" | "cyan" | "violet", string> = {
+	indigo: "#c7d2fe",
+	cyan: "#7dd3fc",
+	violet: "#d8b4fe",
+};
 
 const CLUSTERS: readonly StarPoint[][] = [
 	[
@@ -51,14 +59,14 @@ export function ConstellationCluster({
 	topic,
 	index,
 	params,
-	accent,
 	children,
-}: InnerRenderProps) {
+}: InnerRenderProps<"constellation">) {
 	const cluster: readonly StarPoint[] =
 		CLUSTERS[index % CLUSTERS.length] ?? CLUSTERS[0] ?? [];
 	const linePath = cluster
 		.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
 		.join(" ");
+	const tint = TINT[params.tint];
 
 	return (
 		<div className="relative w-full max-w-3xl">
@@ -70,12 +78,14 @@ export function ConstellationCluster({
 				aria-hidden="true"
 			>
 				<title>constellation field</title>
-				{params.motif && (
+				{params.lines && (
 					<path
 						d={linePath}
 						fill="none"
-						stroke="rgba(199,210,254,0.5)"
-						strokeWidth="0.4"
+						stroke={tint}
+						strokeWidth="0.55"
+						strokeLinecap="round"
+						strokeLinejoin="round"
 					/>
 				)}
 				{cluster.map((p) => (
@@ -93,7 +103,8 @@ export function ConstellationCluster({
 						cx={p.x}
 						cy={p.y}
 						r="0.35"
-						fill="rgba(199,210,254,0.55)"
+						fill={tint}
+						fillOpacity={0.55}
 					/>
 				))}
 			</svg>
@@ -103,7 +114,7 @@ export function ConstellationCluster({
 				className="absolute -inset-x-6 -inset-y-8 pointer-events-none rounded-[2rem]"
 				style={{
 					background:
-						"radial-gradient(ellipse at center, rgba(7,10,20,0.72) 0%, rgba(7,10,20,0.45) 55%, transparent 100%)",
+						"radial-gradient(ellipse at center, rgba(7,10,20,0.45) 0%, rgba(7,10,20,0.22) 55%, transparent 100%)",
 				}}
 				aria-hidden="true"
 			/>
@@ -111,7 +122,7 @@ export function ConstellationCluster({
 			<div className="relative flex flex-col items-center text-center gap-5">
 				<div
 					className="text-[11px] font-mono uppercase tracking-[0.35em]"
-					style={{ color: accent }}
+					style={{ color: tint }}
 				>
 					◆ constellation {String(index + 1).padStart(2, "0")}
 				</div>

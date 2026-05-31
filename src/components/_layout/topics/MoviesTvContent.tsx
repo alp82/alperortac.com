@@ -14,7 +14,7 @@ export function MoviesTvContent({ lastTriggerRef }: TopicContentProps) {
 				I watched more than a thousand movies and shows, at least those that I
 				can remember. I love intricate stories, unique visuals and immersive
 				worlds. Kind of similar of what I value in a{" "}
-				<InlineLink href="#topic-games">
+				<InlineLink href="#games">
 					<em>good game</em>
 				</InlineLink>
 				.

@@ -32,9 +32,9 @@ describe("buildComposerSpec", () => {
 			},
 		});
 		expect(spec).toContain("inner.coding: minimal");
-		expect(spec).toContain("inner.coding.color:");
 		expect(spec).toContain("inner.coding.density:");
-		expect(spec).toContain("inner.coding.motif:");
+		expect(spec).toContain("inner.coding.underline:");
+		expect(spec).toContain("inner.coding.align:");
 	});
 
 	it("other topics stay omitted when one is customized", () => {

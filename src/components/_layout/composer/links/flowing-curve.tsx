@@ -5,27 +5,39 @@ import { railVars, useDrawIn, VBOX_H } from "./shared";
 /*
  * Link: flowing-curve (VERTICAL)
  *
- * A smooth S-curve DESCENDING the page between two topics, weaving side to side
- * as it falls and alternating its initial weave by index so the journey snakes
- * down. Straddles the seam and bleeds into both stages (mask-faded ends).
- * `curve` (0..100) sets the horizontal meander amplitude; `animate` draws the
- * stroke on top→bottom as it enters view.
+ * A smooth S-curve DESCENDING the page, weaving side to side as it falls and
+ * alternating its initial weave by index. `curve` sets the meander amplitude;
+ * `weave` sets how many bends fall down the descent (single → triple).
+ * `animate` draws the stroke top→bottom as it enters view.
  */
+
+const WEAVE: Record<"single" | "double" | "triple", number> = {
+	single: 1,
+	double: 2,
+	triple: 3,
+};
 
 export function FlowingCurveLink({
 	index,
 	isNight,
 	params,
 	accent,
-}: LinkRenderProps) {
+}: LinkRenderProps<"flowing-curve">) {
 	const stroke = linkStroke(params.color, accent, isNight);
 	const { ref, shown } = useDrawIn(params.animate);
 	const amp = (params.curve / 100) * 40; // horizontal meander in viewBox x-units
 	const dir = index % 2 === 0 ? 1 : -1;
 	const H = VBOX_H;
-	const x0 = 50 - dir * amp;
-	const x1 = 50 + dir * amp;
-	const d = `M ${x0} 6 C ${x0} ${H * 0.34}, ${x1} ${H * 0.66}, ${x1} ${H - 6}`;
+	const bends = WEAVE[params.weave];
+	// One cubic half-wave per bend, bowing alternately to each side; stitched
+	// top→bottom through the centerline so the bends read as one flowing snake.
+	const seg = (H - 12) / bends;
+	let d = "M 50 6";
+	for (let i = 0; i < bends; i++) {
+		const y0 = 6 + i * seg;
+		const xc = 50 + dir * (i % 2 === 0 ? 1 : -1) * amp;
+		d += ` C ${xc} ${y0 + seg * 0.34}, ${xc} ${y0 + seg * 0.66}, 50 ${y0 + seg}`;
+	}
 
 	return (
 		<div className="cmp-seam" aria-hidden="true">

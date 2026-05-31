@@ -39,11 +39,15 @@ export function DesignModeHost({
 	const {
 		state,
 		setBaseline,
-		setSection,
+		setStage,
+		setAllStages,
 		setInner,
+		setAllInners,
 		setLink,
-		patchSectionParams,
+		patchStageParams,
+		patchAllStageParams,
 		patchInnerParams,
+		patchAllInnerParams,
 		patchLinkParams,
 		reset,
 	} = useComposerControls();
@@ -129,11 +133,15 @@ export function DesignModeHost({
 				<DesignPanel
 					state={state}
 					setBaseline={setBaseline}
-					setSection={setSection}
+					setStage={setStage}
+					setAllStages={setAllStages}
 					setInner={setInner}
+					setAllInners={setAllInners}
 					setLink={setLink}
-					patchSectionParams={patchSectionParams}
+					patchStageParams={patchStageParams}
+					patchAllStageParams={patchAllStageParams}
 					patchInnerParams={patchInnerParams}
+					patchAllInnerParams={patchAllInnerParams}
 					patchLinkParams={patchLinkParams}
 					reset={reset}
 					onClose={() => setOpen(false)}

@@ -62,7 +62,7 @@ export function FloatingIslandStage({
 	return (
 		<article
 			ref={ref}
-			id={`topic-${topic.id}`}
+			id={topic.id}
 			className="cmp-stage relative flex items-center justify-center px-5 md:px-10 py-[9vh]"
 			style={
 				{

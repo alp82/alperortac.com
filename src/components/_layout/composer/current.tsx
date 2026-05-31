@@ -27,7 +27,7 @@ export function CurrentBlock({
 	lastTriggerRef,
 }: CurrentBlockProps) {
 	return (
-		<article id={`topic-${topic.id}`}>
+		<article id={topic.id}>
 			<SectionBody
 				topic={topic}
 				isNight={isNight}

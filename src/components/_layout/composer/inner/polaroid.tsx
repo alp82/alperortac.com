@@ -7,13 +7,11 @@ import { DENSITY_MAXW } from "./shared";
  *
  * A scrapbook page with a polaroid pinned in the corner: a wide kraft/paper
  * board (widened to hold the plate) carries a rotated polaroid accent in the
- * top corner (washi-tape motif + flourish photo), the themed heading as a
+ * top corner (washi-tape toggle + flourish photo), the themed heading as a
  * handwritten caption, and the topic's REAL body (the shared light plate) as
- * the page body. Playful collage. Signature motif = the washi tape on the
- * polaroid.
+ * the page body. Playful collage. Signature toggle = the washi tape on the
+ * polaroid; `tilt` rotates the pinned polaroid inline.
  */
-
-const CARD_TILT = [-4, 3.5, -2.5, 4];
 
 /* Kraft scrapbook board — paper grain + soft fibre speckle. */
 const BOARD_STYLE: React.CSSProperties = {
@@ -25,14 +23,22 @@ const BOARD_STYLE: React.CSSProperties = {
 	boxShadow: "2px 6px 18px -8px rgba(80,60,30,0.45)",
 };
 
+/** tilt → rotation (deg) of the pinned polaroid (applied inline). */
+const TILT_DEG: Record<InnerRenderProps<"polaroid">["params"]["tilt"], number> =
+	{
+		left: -5,
+		straight: 0,
+		right: 5,
+	};
+
 export function PolaroidCluster({
 	topic,
 	index,
 	params,
 	accent,
 	children,
-}: InnerRenderProps) {
-	const tilt = CARD_TILT[index % CARD_TILT.length] ?? -3;
+}: InnerRenderProps<"polaroid">) {
+	const tilt = TILT_DEG[params.tilt];
 
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
@@ -45,9 +51,7 @@ export function PolaroidCluster({
 					className="polaroid absolute -top-6 -right-3 md:-right-6 w-40 md:w-48 shrink-0 z-10"
 					style={{ transform: `rotate(${tilt}deg)` }}
 				>
-					{params.motif && (
-						<span className="polaroid-tape" aria-hidden="true" />
-					)}
+					{params.tape && <span className="polaroid-tape" aria-hidden="true" />}
 					<div
 						className="polaroid-photo flex items-center justify-center"
 						style={{ background: accent }}

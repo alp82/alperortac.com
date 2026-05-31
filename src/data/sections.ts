@@ -21,13 +21,13 @@ export const PANEL_SIDES: Record<Exclude<PanelKey, "sky">, "left" | "right"> = {
 export const MINIMAP_BOUNDARIES = [
 	{ id: "find-me", label: "Find Me" },
 	{ id: "craft", label: "Craft" },
-	{ id: "cta", label: "Collab" },
+	{ id: "contact", label: "Collab" },
 ] as const;
 
 export const SECTION_IDS = {
-	hero: "hero",
+	hero: "start",
 	findMe: "find-me",
 	craft: "craft",
-	cta: "cta",
+	cta: "contact",
 	footer: "footer",
 } as const;

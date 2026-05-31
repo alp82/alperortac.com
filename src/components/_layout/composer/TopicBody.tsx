@@ -4,6 +4,7 @@ import type { Topic } from "../../../data/topics";
 import { TopicPlate } from "../topics/primitives";
 import { TOPIC_CONTENTS } from "../topics/registry";
 import { TOPIC_ACCENT } from "./types";
+import type { InnerSurface } from "./types";
 import { type ResolvedTrigger, useTriggerNav } from "./useTriggerNav";
 
 /*
@@ -93,15 +94,22 @@ type TopicBodyProps = {
 	topic: Topic;
 	isNight: boolean;
 	lastTriggerRef: React.RefObject<HTMLElement | null>;
+	/** How the body sits inside its frame; defaults to the frosted plate (prod). */
+	surface?: InnerSurface;
 };
 
-export function TopicBody({ topic, isNight, lastTriggerRef }: TopicBodyProps) {
+export function TopicBody({
+	topic,
+	isNight,
+	lastTriggerRef,
+	surface = "plate",
+}: TopicBodyProps) {
 	const { resolveTrigger } = useTriggerNav(lastTriggerRef);
 	const accent = TOPIC_ACCENT[topic.id];
 	const CustomContent = TOPIC_CONTENTS[topic.id];
 
 	return CustomContent ? (
-		<TopicPlate isNight={isNight} className="mt-6 p-5 md:p-6">
+		<TopicPlate isNight={isNight} surface={surface} className="mt-6 p-5 md:p-6">
 			<CustomContent
 				lastTriggerRef={lastTriggerRef}
 				isNight={isNight}
@@ -113,6 +121,7 @@ export function TopicBody({ topic, isNight, lastTriggerRef }: TopicBodyProps) {
 			{topic.teaser && (
 				<TopicPlate
 					isNight={isNight}
+					surface={surface}
 					className="mt-3 p-3 text-lg md:text-xl font-medium leading-relaxed"
 				>
 					{topic.teaser.split("\n\n").map((para, i) => (

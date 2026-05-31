@@ -66,7 +66,7 @@ export function SplitStageStage({
 
 	return (
 		<article
-			id={`topic-${topic.id}`}
+			id={topic.id}
 			className="cmp-stage cmp-split"
 			style={
 				{

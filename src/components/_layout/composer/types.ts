@@ -138,38 +138,131 @@ export type InnerId =
 	| "minimal"
 	| "trail-signpost"
 	| "field-journal"
-	| "museum"
-	| "strata-core"
 	| "constellation"
 	| "terminal"
 	| "polaroid"
 	| "collectible"
 	| "comic"
 	| "ticket-stub"
-	| "receipt"
-	| "stamp-postcard"
-	| "manuscript"
 	| "blueprint"
 	| "circuit-board"
 	| "arcade-hud"
 	| "neon-sign"
-	| "vinyl-liner"
-	| "cassette"
 	| "chalkboard"
-	| "wanted-poster"
-	| "marquee-bulbs"
-	| "luggage-tag"
-	| "embossed-seal"
-	| "pressed-specimen";
+	| "topo-map"
+	| "seed-packet";
 
-export type InnerParams = {
-	/** Cluster color treatment. */
-	color: "accent" | "neutral" | "inverted";
-	/** Cluster scale / breathing room. */
+/** Shared by every inside style — cluster scale / breathing room. */
+export type InnerBase = {
 	density: "cozy" | "comfortable" | "roomy";
-	/** Each inner style's one signature motif (meaning is per-style). */
-	motif: boolean;
 };
+
+/*
+ * Per-inside-style params: the shared density plus THAT style's signature
+ * toggle and one theming knob, so every style's controls move its own identity
+ * — no generic color/motif grab-bag. Theming is data-driven in the components
+ * (inline), so these enums carry the whole look.
+ */
+
+/** rich-card ignores params — it renders the live shipped card. */
+export type RichCardParams = InnerBase;
+export type MinimalParams = InnerBase & {
+	underline: boolean;
+	align: "center" | "left";
+};
+export type TrailSignpostParams = InnerBase & {
+	marker: boolean;
+	wood: "pine" | "walnut" | "weathered";
+};
+export type FieldJournalParams = InnerBase & {
+	tape: boolean;
+	paper: "kraft" | "graph" | "aged";
+};
+export type ConstellationParams = InnerBase & {
+	lines: boolean;
+	tint: "indigo" | "cyan" | "violet";
+};
+export type TerminalParams = InnerBase & {
+	cursor: boolean;
+	scheme: "midnight" | "matrix" | "amber" | "ice";
+};
+export type PolaroidParams = InnerBase & {
+	tape: boolean;
+	tilt: "left" | "straight" | "right";
+};
+export type CollectibleParams = InnerBase & {
+	gem: boolean;
+	rarity: "common" | "rare" | "legendary";
+};
+export type ComicParams = InnerBase & {
+	halftone: boolean;
+	palette: "classic" | "noir" | "pop";
+};
+export type TicketStubParams = InnerBase & {
+	perforation: boolean;
+	color: "crimson" | "indigo" | "gold";
+};
+export type BlueprintParams = InnerBase & {
+	grid: boolean;
+	paper: "cyanotype" | "slate" | "charcoal";
+};
+export type CircuitBoardParams = InnerBase & {
+	traces: boolean;
+	mask: "green" | "blue" | "black" | "purple";
+};
+export type ArcadeHudParams = InnerBase & {
+	scanlines: boolean;
+	palette: "green" | "amber" | "ice" | "magenta";
+};
+export type NeonSignParams = InnerBase & {
+	flicker: boolean;
+	color: "pink" | "cyan" | "lime" | "gold";
+};
+export type ChalkboardParams = InnerBase & {
+	dust: boolean;
+	chalk: "white" | "yellow" | "pastel";
+};
+export type TopoMapParams = InnerBase & {
+	contours: boolean;
+	terrain: "forest" | "desert" | "alpine";
+};
+export type SeedPacketParams = InnerBase & {
+	illustration: boolean;
+	stock: "cream" | "kraft" | "sage";
+};
+
+/** id → that inside style's param shape. */
+export type InnerParamsMap = {
+	"rich-card": RichCardParams;
+	minimal: MinimalParams;
+	"trail-signpost": TrailSignpostParams;
+	"field-journal": FieldJournalParams;
+	constellation: ConstellationParams;
+	terminal: TerminalParams;
+	polaroid: PolaroidParams;
+	collectible: CollectibleParams;
+	comic: ComicParams;
+	"ticket-stub": TicketStubParams;
+	blueprint: BlueprintParams;
+	"circuit-board": CircuitBoardParams;
+	"arcade-hud": ArcadeHudParams;
+	"neon-sign": NeonSignParams;
+	chalkboard: ChalkboardParams;
+	"topo-map": TopoMapParams;
+	"seed-packet": SeedPacketParams;
+};
+
+/** The union of every inside style's params (what composer state holds). */
+export type AnyInnerParams = InnerParamsMap[InnerId];
+
+/**
+ * How the topic body sits inside an inner frame. `plate` keeps the frosted
+ * voice surface (translucent bg + left accent border — the production look, and
+ * fine for frames that sit straight on the stage). `light` / `dark` render the
+ * body BARE — transparent, no border, text tuned for a light or dark frame — so
+ * the prose blends into the frame's own surface instead of floating in a card.
+ */
+export type InnerSurface = "plate" | "light" | "dark";
 
 /* ── Layer 3: LINK (between-topic connector) ────────────────────────────── */
 
@@ -179,33 +272,76 @@ export type LinkId =
 	| "flowing-curve"
 	| "botanical-vine"
 	| "trail-dashes"
-	| "constellation-starline"
-	| "river-ribbon"
-	| "strata-seam"
-	| "dotted-thread";
+	| "constellation-starline";
 
-export type LinkParams = {
+/**
+ * Universal connector params — every connector is a stroked vertical rail, so
+ * these line/rail knobs apply across the board. Each connector's signature
+ * params extend this below.
+ */
+export type LinkBase = {
 	/** Connector stroke color source. */
 	color: "ink" | "sky" | "earth" | "accent";
 	/** Stroke weight in px, 1..8. */
 	weight: number;
-	/** Curve amount 0..100 (ignored by straight connectors). */
-	curve: number;
-	/**
-	 * Rail vertical extent in vh, 20..150. Grows the connector to fill the gap
-	 * between clusters (or span most of a stage for a continuous-thread feel).
-	 * Drives `--rail-h` on the rail; default 45 reproduces today's look.
-	 */
+	/** Rail vertical extent in vh, 20..150 (drives `--rail-h`). */
 	height: number;
-	/**
-	 * End-fade length 0..100. Higher melts the connector deeper into the stages
-	 * (longer/softer mask fade); lower gives crisper ends. Drives `--rail-fade`
-	 * (mapped to a % of the rail length); default 24 reproduces today's ~12%.
-	 */
+	/** End-fade 0..100; melts the ends into the stages (drives `--rail-fade`). */
 	blend: number;
 	/** Animate the draw-in on scroll. */
 	animate: boolean;
 };
+
+/* Per-connector signature params on top of LinkBase. */
+
+/** none renders nothing — base only (unused). */
+export type NoneLinkParams = LinkBase;
+export type RuledSeamParams = LinkBase & {
+	/** End-cap shape. */
+	caps: "round" | "bar" | "none";
+	/** A double parallel rule vs a single rule. */
+	double: boolean;
+};
+export type FlowingCurveParams = LinkBase & {
+	/** Horizontal meander amplitude 0..100. */
+	curve: number;
+	/** How many S-bends down the descent. */
+	weave: "single" | "double" | "triple";
+};
+export type BotanicalVineParams = LinkBase & {
+	curve: number;
+	/** Leaf density along the vine. */
+	foliage: "sparse" | "lush";
+	/** A flower bud at the growing tip. */
+	bud: boolean;
+};
+export type TrailDashesParams = LinkBase & {
+	curve: number;
+	/** Dash rhythm. */
+	dash: "fine" | "standard" | "bold";
+	/** Footprint markers along the path. */
+	footprints: boolean;
+};
+export type StarlineParams = LinkBase & {
+	curve: number;
+	/** Star-node count. */
+	stars: "few" | "many";
+	/** Node glow intensity. */
+	glow: "soft" | "bright";
+};
+
+/** id → that connector's param shape. */
+export type LinkParamsMap = {
+	none: NoneLinkParams;
+	"ruled-seam": RuledSeamParams;
+	"flowing-curve": FlowingCurveParams;
+	"botanical-vine": BotanicalVineParams;
+	"trail-dashes": TrailDashesParams;
+	"constellation-starline": StarlineParams;
+};
+
+/** The union of every connector's params (what composer state holds). */
+export type AnyLinkParams = LinkParamsMap[LinkId];
 
 /* ── Render contracts ───────────────────────────────────────────────────── */
 
@@ -217,12 +353,12 @@ export type LinkParams = {
  * exception: it renders the full shipped card via `SectionBody` and ignores
  * `children`.)
  */
-export type InnerRenderProps = {
+export type InnerRenderProps<Id extends InnerId = InnerId> = {
 	topic: Topic;
 	index: number;
 	isNight: boolean;
 	lastTriggerRef: React.RefObject<HTMLElement | null>;
-	params: InnerParams;
+	params: InnerParamsMap[Id];
 	/** Resolved accent for this topic (the cluster decides whether to use it). */
 	accent: string;
 	/** The topic's REAL body (shared `TopicBody`), rendered inside the frame. */
@@ -247,11 +383,11 @@ export type SectionRenderProps<Id extends SectionId = SectionId> = {
 };
 
 /** Layer-3 contract: a connector rendered at the seam between two topics. */
-export type LinkRenderProps = {
+export type LinkRenderProps<Id extends LinkId = LinkId> = {
 	/** Zero-based index of the topic ABOVE this seam (drives alternation). */
 	index: number;
 	isNight: boolean;
-	params: LinkParams;
+	params: LinkParamsMap[Id];
 	/** Resolved accent of the topic above (for the "accent" color source). */
 	accent: string;
 };
@@ -270,24 +406,22 @@ export type SectionDef<Id extends SectionId = SectionId> = {
 	Component: React.ComponentType<SectionRenderProps<Id>>;
 };
 
-export type InnerDef = {
-	id: InnerId;
+export type InnerDef<Id extends InnerId = InnerId> = {
+	id: Id;
 	label: string;
 	feel: string;
-	/** Label shown above the signature-motif toggle for this style. */
-	motifLabel: string;
-	defaults: InnerParams;
-	Component: React.ComponentType<InnerRenderProps>;
+	/** How the body should sit inside this frame (see InnerSurface). */
+	surface: InnerSurface;
+	defaults: InnerParamsMap[Id];
+	Component: React.ComponentType<InnerRenderProps<Id>>;
 };
 
-export type LinkDef = {
-	id: LinkId;
+export type LinkDef<Id extends LinkId = LinkId> = {
+	id: Id;
 	label: string;
 	feel: string;
-	/** False for `none` + `ruled-seam` (straight) — hides the curve slider. */
-	hasCurve: boolean;
-	defaults: LinkParams;
-	Component: React.ComponentType<LinkRenderProps> | null;
+	defaults: LinkParamsMap[Id];
+	Component: React.ComponentType<LinkRenderProps<Id>> | null;
 };
 
 /* ── Shared tokens / helpers (also used by the `current` baseline) ──────── */
@@ -312,7 +446,7 @@ export function flourishSrc(topicId: TopicId): string {
 
 /** Connector color source → concrete stroke color (night-aware). */
 export function linkStroke(
-	source: LinkParams["color"],
+	source: LinkBase["color"],
 	accent: string,
 	isNight: boolean,
 ): string {

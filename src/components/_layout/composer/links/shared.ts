@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { LinkParams } from "../types";
+import type { LinkBase } from "../types";
 
 /**
  * Portrait viewBox the vertical connectors draw within: x 0..SEAM_VIEWBOX_W is
@@ -154,7 +154,7 @@ export function revealDownStyle(
  * composer.css reads both with fallbacks that reproduce the old look if absent.
  * Spread onto the rail's style (merge with any existing inline style).
  */
-export function railVars(params: LinkParams): React.CSSProperties {
+export function railVars(params: LinkBase): React.CSSProperties {
 	return {
 		"--rail-h": `${params.height}vh`,
 		"--rail-fade": `${params.blend * 0.5}%`,

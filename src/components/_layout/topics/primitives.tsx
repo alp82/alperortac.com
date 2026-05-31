@@ -24,19 +24,31 @@ export type TopicContentProps = {
 };
 
 /**
- * The frosted "voice surface" that wraps a topic's body. Inverts at night so
- * prose stays readable against the dusk/night sky. Used by both the baseline
- * CurrentBlock dispatch and the DEV composer's promoted-topic Stage wrapper.
+ * The "voice surface" that wraps a topic's body.
+ *
+ * `surface` (default `plate`) keeps the frosted plate — translucent bg + left
+ * accent border, inverting at night — the production look, used by the baseline
+ * CurrentBlock dispatch. The DEV composer passes `light` / `dark` to render the
+ * body BARE (transparent, no border, text tuned to the frame) so prose blends
+ * into a themed inner frame instead of floating in a card.
  */
 export function TopicPlate({
 	isNight,
+	surface = "plate",
 	children,
 	className = "",
 }: {
 	isNight: boolean;
+	surface?: "plate" | "light" | "dark";
 	children: ReactNode;
 	className?: string;
 }) {
+	if (surface !== "plate") {
+		// Bare: blend into the frame's own surface. Text follows the frame, not
+		// the phase — dark text on a light frame, light text on a dark one.
+		const text = surface === "dark" ? "text-slate-50" : "text-slate-900";
+		return <div className={`max-w-3xl ${text} ${className}`}>{children}</div>;
+	}
 	const themed = isNight
 		? "is-night bg-slate-900/55 text-slate-50 border-white/40"
 		: "bg-white/40 text-slate-900 border-slate-900";
@@ -62,7 +74,7 @@ export function InlineLink({
 	href: string;
 	children: ReactNode;
 }) {
-	// Anchors (#topic-foo) scroll within the page; everything else opens in a
+	// Anchors (#foo) scroll within the page; everything else opens in a
 	// new tab.
 	const isAnchor = href.startsWith("#");
 	return (

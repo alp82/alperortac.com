@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import { SECTION_IDS } from "../../data/sections";
 import { TOPICS } from "../../data/topics";
 import { LINKS } from "./composer/index";
-import { TOPIC_ACCENT } from "./composer/types";
+import { type LinkRenderProps, TOPIC_ACCENT } from "./composer/types";
 import type { ComposerState } from "./composer/useComposerControls";
 import { TopicArticle } from "./TopicArticle";
 
@@ -33,7 +33,12 @@ export function CraftSection({
 }: CraftSectionProps) {
 	const showLinks =
 		DESIGN_MODE && composer && !composer.baseline && composer.link !== "none";
-	const LinkComponent = showLinks ? LINKS[composer.link].Component : null;
+	// Widening cast (same as Stage/Inside): the registry erases the id↔params
+	// link; setLink keeps link + linkParams in lockstep, so it's sound.
+	const LinkComponent = showLinks
+		? (LINKS[composer.link]
+				.Component as React.ComponentType<LinkRenderProps> | null)
+		: null;
 
 	return (
 		<section id={SECTION_IDS.craft} className="px-6">

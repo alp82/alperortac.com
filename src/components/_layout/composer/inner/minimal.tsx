@@ -5,10 +5,11 @@ import { DENSITY_GAP, DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 /*
  * Inner: minimal (DEFAULT) — "clean cluster."
  *
- * The clean frame: a styled heading + a thin accent underline (motif) form the
- * chrome, then the topic's REAL body (the shared light plate) sits below. No heavy
- * chrome — lets the Layer-1 stage do the talking. Signature motif (params.motif) =
- * the accent underline beneath the heading.
+ * The clean frame: a styled heading + a thin accent underline form the chrome,
+ * then the topic's REAL body (the shared light plate) sits below. No heavy
+ * chrome — lets the Layer-1 stage do the talking. Signature toggle
+ * (params.underline) = the accent underline beneath the heading; the `align`
+ * knob swings the whole cluster between centered and left.
  */
 
 export function MinimalCluster({
@@ -16,7 +17,9 @@ export function MinimalCluster({
 	params,
 	accent,
 	children,
-}: InnerRenderProps) {
+}: InnerRenderProps<"minimal">) {
+	const centered = params.align === "center";
+
 	const heading = (
 		<div>
 			<h2
@@ -24,9 +27,9 @@ export function MinimalCluster({
 			>
 				{topic.heading}
 			</h2>
-			{params.motif && (
+			{params.underline && (
 				<span
-					className="mx-auto mt-4 block h-1.5 w-20 rounded-full"
+					className={`${centered ? "mx-auto" : "ml-0"} mt-4 block h-1.5 w-20 rounded-full`}
 					style={{ background: accent }}
 					aria-hidden="true"
 				/>
@@ -36,7 +39,7 @@ export function MinimalCluster({
 
 	return (
 		<FrameShell
-			className={`flex flex-col items-center text-center ${DENSITY_GAP[params.density]}`}
+			className={`flex flex-col ${centered ? "items-center text-center" : "items-start text-left"} ${DENSITY_GAP[params.density]}`}
 			heading={heading}
 			contentClassName={`w-full ${DENSITY_MAXW[params.density]}`}
 		>

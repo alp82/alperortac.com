@@ -239,7 +239,7 @@ function LayoutHost() {
 								{TOPICS.map((topic) => (
 									<a
 										key={topic.id}
-										href={`#topic-${topic.id}`}
+										href={`#${topic.id}`}
 										onClick={() => setAboutOpen(false)}
 										className={aboutItemClass}
 									>
@@ -320,7 +320,7 @@ function LayoutHost() {
 				dangerouslySetInnerHTML={{
 					__html: `
 						html { scroll-behavior: smooth; }
-						[id^="topic-"], #hero, #find-me, #cta { scroll-margin-top: 80px; }
+						#craft article, #start, #find-me, #contact { scroll-margin-top: 80px; }
 						.cursor-pixel { cursor: crosshair; }
 						::selection {
 							background: #fef08a;

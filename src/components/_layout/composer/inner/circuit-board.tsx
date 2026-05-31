@@ -4,12 +4,24 @@ import { DENSITY_MAXW } from "./shared";
 /*
  * Inner: circuit-board — "PCB panel."
  *
- * A printed-circuit board is the frame: dark-green substrate with copper traces
- * (motif) and corner solder-pads as chrome, a silkscreen IC carrying the heading,
- * then the topic's REAL body (the shared light plate) seated in a routed area on
- * the board — dark PCB chrome around the light content card, NOT copper-text
- * content. Signature motif (params.motif) = the copper trace routing overlay.
+ * A printed-circuit board is the frame: a tinted substrate with copper traces
+ * (toggle) and corner solder-pads as chrome, a silkscreen IC carrying the
+ * heading, then the topic's REAL body (the shared light plate) seated in a
+ * routed area on the board — dark PCB chrome around the light content card.
+ * Signature toggle (`traces`) = the copper trace routing overlay; `mask`
+ * recolors the substrate + silkscreen inline.
  */
+
+/** mask → board substrate bg + silkscreen color (both applied inline). */
+const MASKS: Record<
+	InnerRenderProps<"circuit-board">["params"]["mask"],
+	{ board: string; silk: string }
+> = {
+	green: { board: "#0c3b24", silk: "#6ee7b7" },
+	blue: { board: "#0b2a47", silk: "#93c5fd" },
+	black: { board: "#141a17", silk: "#cbd5e1" },
+	purple: { board: "#2a1140", silk: "#d8b4fe" },
+};
 
 export function CircuitBoardCluster({
 	topic,
@@ -17,12 +29,19 @@ export function CircuitBoardCluster({
 	params,
 	accent,
 	children,
-}: InnerRenderProps) {
+}: InnerRenderProps<"circuit-board">) {
+	const mask = MASKS[params.mask];
+
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
 			<div
-				className={`pcb relative px-7 md:px-10 py-9 text-left ${params.motif ? "pcb-traces" : ""}`}
-				style={{ "--pcb-accent": accent } as React.CSSProperties}
+				className={`pcb relative px-7 md:px-10 py-9 text-left ${params.traces ? "pcb-traces" : ""}`}
+				style={
+					{
+						"--pcb-accent": accent,
+						background: mask.board,
+					} as React.CSSProperties
+				}
 			>
 				{/* corner solder pads */}
 				<span
@@ -46,11 +65,17 @@ export function CircuitBoardCluster({
 					{/* IC carrying the heading */}
 					<div className="pcb-chip relative inline-block px-5 py-3">
 						<span className="pcb-chip-pins" aria-hidden="true" />
-						<h2 className="font-mono font-bold uppercase tracking-tight text-2xl md:text-3xl text-emerald-50 leading-none relative z-10">
+						<h2
+							className="font-mono font-bold uppercase tracking-tight text-2xl md:text-3xl leading-none relative z-10"
+							style={{ color: mask.silk }}
+						>
 							{topic.heading}
 						</h2>
 					</div>
-					<span className="font-mono text-[10px] uppercase tracking-[0.3em] text-emerald-300/70 whitespace-nowrap">
+					<span
+						className="font-mono text-[10px] uppercase tracking-[0.3em] whitespace-nowrap"
+						style={{ color: mask.silk }}
+					>
 						rev {String(index + 1).padStart(2, "0")}
 					</span>
 				</div>

@@ -79,7 +79,7 @@ export function MarqueeScrollStage({
 	return (
 		<article
 			ref={ref}
-			id={`topic-${topic.id}`}
+			id={topic.id}
 			className="cmp-stage relative flex flex-col items-center justify-center px-6"
 			style={
 				{

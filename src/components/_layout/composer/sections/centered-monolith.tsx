@@ -33,7 +33,7 @@ export function CenteredMonolithStage({
 	const rim = accent ?? "rgba(255,255,255,0.7)";
 	return (
 		<article
-			id={`topic-${topic.id}`}
+			id={topic.id}
 			className="cmp-stage relative flex flex-col items-center justify-center text-center px-6"
 			style={
 				{

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { InnerRenderProps } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
@@ -7,22 +8,43 @@ import { DENSITY_MAXW } from "./shared";
  * An aged kraft / graph-paper page is the frame: a stamped+handwritten field-note
  * title with a fig. number, a dashed field rule, then the topic's REAL body (the
  * shared light plate) as the journal entry on the page. The plate sits ON the
- * kraft surface (paper-on-paper). Signature motif (params.motif) = a strip of
- * specimen tape pinning the top corner of the page.
+ * page surface (paper-on-paper). Signature toggle (params.tape) = a strip of
+ * specimen tape pinning the top corner of the page; the `paper` knob restocks the
+ * page (kraft / graph grid / aged tone) inline.
  */
+
+/** paper → inline override for the `.journal-page` surface. */
+const PAPER: Record<"kraft" | "graph" | "aged", CSSProperties> = {
+	kraft: {
+		background: "#ece0c8",
+	},
+	graph: {
+		backgroundColor: "#f3f1e9",
+		backgroundImage:
+			"repeating-linear-gradient(to right, rgba(70,110,160,0.12) 0 1px, transparent 1px 22px), repeating-linear-gradient(to bottom, rgba(70,110,160,0.12) 0 1px, transparent 1px 22px)",
+	},
+	aged: {
+		backgroundColor: "#e2d3b0",
+		backgroundImage:
+			"radial-gradient(ellipse at 100% 0%, rgba(74,50,32,0.32) 0%, transparent 45%)",
+	},
+};
 
 export function FieldJournalCluster({
 	topic,
 	index,
 	params,
 	children,
-}: InnerRenderProps) {
+}: InnerRenderProps<"field-journal">) {
 	const specimen = String(index + 1).padStart(2, "0");
 
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
-			<div className="journal-page relative px-6 md:px-10 py-10">
-				{params.motif && (
+			<div
+				className="journal-page relative px-6 md:px-10 py-10"
+				style={PAPER[params.paper]}
+			>
+				{params.tape && (
 					<span
 						className="specimen-tape"
 						style={{ top: "-9px", left: "22%" }}

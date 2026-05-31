@@ -4,27 +4,35 @@ import { DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 /*
  * Inner: neon-sign — "neon board."
  *
- * A dark backing board is the frame: the heading rendered as lit accent-colored
- * neon tubing (layered text-shadow) is the chrome, then the topic's REAL body
+ * A dark backing board is the frame: the heading rendered as lit neon-colored
+ * tubing (layered text-shadow) is the chrome, then the topic's REAL body
  * (the shared light plate) seated below in a legible panel — dark board + neon
- * glow around the light content card, NOT glowing-tube content. Signature motif
- * (params.motif) = the glow flicker on the heading (reduced-motion safe via CSS).
+ * glow around the light content card, NOT glowing-tube content. Signature toggle
+ * (params.flicker) = the glow flicker on the heading (reduced-motion safe via
+ * CSS); params.color sets the neon hue via the `--neon` var.
  */
+
+/** color → neon hue for the `--neon` CSS var. */
+const NEON: Record<InnerRenderProps<"neon-sign">["params"]["color"], string> = {
+	pink: "#ff5fa2",
+	cyan: "#5de0ff",
+	lime: "#b6ff5f",
+	gold: "#ffd24a",
+};
 
 export function NeonSignCluster({
 	topic,
 	params,
-	accent,
 	children,
-}: InnerRenderProps) {
+}: InnerRenderProps<"neon-sign">) {
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
 			<div
 				className="neon-board relative px-8 md:px-12 py-10"
-				style={{ "--neon": accent } as React.CSSProperties}
+				style={{ "--neon": NEON[params.color] } as React.CSSProperties}
 			>
 				<h2
-					className={`neon-text text-center ${params.motif ? "neon-flicker" : ""} ${DENSITY_HEADING[params.density]} font-black uppercase tracking-tight leading-none`}
+					className={`neon-text text-center ${params.flicker ? "neon-flicker" : ""} ${DENSITY_HEADING[params.density]} font-black uppercase tracking-tight leading-none`}
 				>
 					{topic.heading}
 				</h2>

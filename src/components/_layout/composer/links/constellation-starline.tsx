@@ -5,39 +5,44 @@ import { railVars, useAspectViewBox, useDrawIn } from "./shared";
 /*
  * Link: constellation-starline (VERTICAL)
  *
- * A faint dotted star-path DESCENDING the page between two topics, with small
- * star nodes at the bends that twinkle in — the celestial-sky world's
- * connective tissue, stars descending. Straddles the seam and bleeds into both
- * stages (mask-faded ends). `curve` sets the side-to-side drift; stars twinkle
- * in top→bottom as the seam enters view when `animate` is on.
- *
- * Shape-preserving: the viewBox height tracks the rail's real aspect ratio
- * (useAspectViewBox), so x/y scale uniformly — star nodes stay ROUND and the
- * connecting dash keeps a constant dot/gap as Height grows (no vertical stretch
- * into ellipses).
+ * A faint dotted star-path DESCENDING the page, with star nodes at the bends
+ * that twinkle in — the celestial world's connective tissue. `curve` sets the
+ * drift; `stars` sets the node count; `glow` sets their shine. Stars twinkle in
+ * top→bottom when `animate` is on. Shape-preserving viewBox so nodes stay round.
  */
+
+const STARS: Record<"few" | "many", number> = { few: 4, many: 7 };
+
+const GLOW: Record<"soft" | "bright", string> = {
+	soft: "drop-shadow(0 0 3px rgba(255,255,255,0.8))",
+	bright: "drop-shadow(0 0 6px rgba(255,255,255,0.95))",
+};
 
 export function ConstellationStarlineLink({
 	index,
 	isNight,
 	params,
 	accent,
-}: LinkRenderProps) {
+}: LinkRenderProps<"constellation-starline">) {
 	const stroke = linkStroke(params.color, accent, isNight);
 	const { ref, shown } = useDrawIn(params.animate);
 	const H = useAspectViewBox(ref);
 	const amp = (params.curve / 100) * 32; // horizontal drift in viewBox x-units
 	const dir = index % 2 === 0 ? 1 : -1;
-	// star nodes descend top→bottom, drifting side to side
-	const nodes = [
-		{ x: 50 - dir * amp * 0.6, y: H * 0.08 },
-		{ x: 50 + dir * amp, y: H * 0.36 },
-		{ x: 50 - dir * amp, y: H * 0.64 },
-		{ x: 50 + dir * amp * 0.6, y: H * 0.92 },
-	];
+	const count = STARS[params.stars];
+	// star nodes descend top→bottom, drifting side to side (ends drift less).
+	const nodes = Array.from({ length: count }, (_, i) => {
+		const s = i % 2 === 0 ? dir : -dir;
+		const edge = i === 0 || i === count - 1 ? 0.6 : 1;
+		return {
+			x: 50 + s * amp * edge,
+			y: H * (0.08 + (i / (count - 1)) * 0.84),
+		};
+	});
 	const linePath = nodes
 		.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
 		.join(" ");
+	const glow = GLOW[params.glow];
 
 	return (
 		<div className="cmp-seam" aria-hidden="true">
@@ -67,7 +72,7 @@ export function ConstellationStarlineLink({
 							r={params.weight}
 							fill={accent}
 							style={{
-								filter: "drop-shadow(0 0 3px rgba(255,255,255,0.8))",
+								filter: glow,
 								opacity: shown ? 1 : 0,
 								transition: params.animate
 									? `opacity 350ms ease-out ${i * 180}ms`
