@@ -42,7 +42,7 @@ export type Topic = {
  * `CareerContent` component (so both render the same words).
  */
 export const CAREER_TEASER =
-	"Professionally, I worked both in small startups and tech giants like Cisco. Started as Frontend engineer with strong opinions and a knack for sharing knowledge. Started to lead small to big teams and being responsible for product goals and coordinated execution.\n\nI'm a freelance consultant and engineer. Working with fund tax compliance, intelligent traffic start-ups and robotics companies.";
+	"Professionally, I worked both in small startups and tech giants like Cisco. Started as Frontend engineer with strong opinions and a knack for sharing knowledge. Started to lead small to big teams and being responsible for product goals and coordinated execution.\n\nI'm a freelance consultant. Working with fund tax compliance, intelligent traffic start-ups and robotics companies.";
 
 /**
  * Coding teaser prose, shared by the `coding` TOPICS entry and the dedicated

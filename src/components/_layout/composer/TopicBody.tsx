@@ -3,16 +3,15 @@ import { TRIGGERS_ENABLED } from "../../../data/flags";
 import type { Topic } from "../../../data/topics";
 import { TopicPlate } from "../topics/primitives";
 import { TOPIC_CONTENTS } from "../topics/registry";
-import { TOPIC_ACCENT } from "./types";
 import type { InnerSurface } from "./types";
+import { TOPIC_ACCENT } from "./types";
 import { type ResolvedTrigger, useTriggerNav } from "./useTriggerNav";
 
 /*
  * The shipped topic BODY — the plate/bespoke-else-teaser dispatch, extracted
  * VERBATIM out of `SectionBody` so it can be rendered as the `children` of any
  * composer frame (Layer-2 inner). Every inner is a CONTAINER that wraps this
- * real body; the `rich-card` inner is the one exception — it renders the full
- * shipped card itself via `SectionBody` and ignores `children`.
+ * real body.
  *
  * Resolves `accent` + `CustomContent` INTERNALLY from `topic.id`, so callers
  * can't pass a mismatched value. Carries no heading/accent layout/vertical

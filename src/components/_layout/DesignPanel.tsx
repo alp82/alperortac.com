@@ -9,8 +9,17 @@ import {
 	SECTION_ORDER,
 	SECTIONS,
 } from "./composer/index";
+import { DecoControls } from "./composer/inner/_deco";
+import { CELESTIAL_SPEC } from "./composer/inner/celestial";
+import {
+	SKYLINE_COLOR_OPTS,
+	SKYLINE_HAS_VARIETY,
+} from "./composer/inner/skyline";
+import { TERRAIN_SPEC } from "./composer/inner/terrain";
+import { WATERLINE_SPEC } from "./composer/inner/waterline";
+import { WEATHER_SPEC } from "./composer/inner/weather";
+import { WILDLIFE_SPEC } from "./composer/inner/wildlife";
 import type {
-	AccentSource,
 	AnyInnerParams,
 	AnyLinkParams,
 	AnySectionParams,
@@ -30,6 +39,7 @@ import type {
 import {
 	buildComposerSpec,
 	type ComposerState,
+	DEFAULT_INNER,
 	DEFAULT_SECTION,
 } from "./composer/useComposerControls";
 
@@ -68,24 +78,6 @@ type DesignPanelProps = Handlers & {
 	reset: () => void;
 	onClose: () => void;
 };
-
-const ACCENT_SWATCHES: {
-	value: AccentSource;
-	label: string;
-	swatch: string;
-}[] = [
-	{
-		value: "topic",
-		label: "Topic",
-		swatch: "linear-gradient(90deg,#a7f3d0,#c7d2fe)",
-	},
-	{ value: "fixed", label: "Amber", swatch: "#fde68a" },
-	{
-		value: "none",
-		label: "None",
-		swatch: "repeating-linear-gradient(45deg,#fff 0 3px,#cbd5e1 3px 6px)",
-	},
-];
 
 const LINK_COLOR_SWATCHES: {
 	value: LinkBase["color"];
@@ -244,37 +236,15 @@ function StageSpecificControls({
 		}
 		case "parallax-depth": {
 			const p = params as ParallaxParams;
+			// Backdrop shape (flourish) + layers (3) are locked — knobs removed.
 			return (
-				<>
-					<Segmented
-						label="Backdrop shape"
-						value={p.shape}
-						options={[
-							{ value: "flourish", label: "Flourish" },
-							{ value: "blob", label: "Blob" },
-							{ value: "rings", label: "Rings" },
-							{ value: "grid", label: "Grid" },
-							{ value: "strata", label: "Strata" },
-						]}
-						onChange={(shape) => patch({ shape })}
-					/>
-					<Slider
-						label="Drift depth"
-						value={p.depth}
-						min={0}
-						max={100}
-						onChange={(depth) => patch({ depth })}
-					/>
-					<Segmented
-						label="Layers"
-						value={String(p.layers)}
-						options={[
-							{ value: "2", label: "2" },
-							{ value: "3", label: "3" },
-						]}
-						onChange={(v) => patch({ layers: Number(v) as 2 | 3 })}
-					/>
-				</>
+				<Slider
+					label="Drift depth"
+					value={p.depth}
+					min={0}
+					max={100}
+					onChange={(depth) => patch({ depth })}
+				/>
 			);
 		}
 		case "marquee-scroll": {
@@ -398,33 +368,15 @@ function SectionParamsBlock({
 	params: AnySectionParams;
 	patch: SectionPatch;
 }) {
-	const [lo, hi] = SECTIONS[id].heightRange;
-	return (
-		<>
-			<Swatches
-				label="Accent source"
-				value={params.accent}
-				options={ACCENT_SWATCHES}
-				onChange={(accent) => patch({ accent })}
-			/>
-			<Slider
-				label="Stage height"
-				value={params.height}
-				min={lo}
-				max={hi}
-				unit="vh"
-				onChange={(height) => patch({ height })}
-			/>
-			<StageSpecificControls id={id} params={params} patch={patch} />
-		</>
-	);
+	// Accent (none) + stage height (90vh) are locked for both stages — knobs removed.
+	return <StageSpecificControls id={id} params={params} patch={patch} />;
 }
 
 type InnerPatch = (p: Partial<AnyInnerParams>) => void;
 
 /* Each inside style's signature toggle + theming knob. `params` is the union;
  * the active row's id always matches the live params, so the per-case cast is
- * sound. rich-card has no params and isn't shown (→ default null). */
+ * sound. An inner with no signature controls falls through to default null. */
 function InsideSpecificControls({
 	id,
 	params,
@@ -514,6 +466,16 @@ function InsideSpecificControls({
 						]}
 						onChange={(tint) => patch({ tint })}
 					/>
+					<Segmented
+						label="Figure"
+						value={p.figure}
+						options={[
+							{ value: "wing", label: "Wing" },
+							{ value: "crown", label: "Crown" },
+							{ value: "river", label: "River" },
+						]}
+						onChange={(figure) => patch({ figure })}
+					/>
 					<Toggle
 						label="Connecting lines"
 						checked={p.lines}
@@ -524,25 +486,19 @@ function InsideSpecificControls({
 		}
 		case "terminal": {
 			const p = params as InnerParamsMap["terminal"];
+			// Blinking cursor locked on — toggle removed.
 			return (
-				<>
-					<Segmented
-						label="Scheme"
-						value={p.scheme}
-						options={[
-							{ value: "midnight", label: "Midnight" },
-							{ value: "matrix", label: "Matrix" },
-							{ value: "amber", label: "Amber" },
-							{ value: "ice", label: "Ice" },
-						]}
-						onChange={(scheme) => patch({ scheme })}
-					/>
-					<Toggle
-						label="Blinking cursor"
-						checked={p.cursor}
-						onChange={(cursor) => patch({ cursor })}
-					/>
-				</>
+				<Segmented
+					label="Scheme"
+					value={p.scheme}
+					options={[
+						{ value: "midnight", label: "Midnight" },
+						{ value: "matrix", label: "Matrix" },
+						{ value: "amber", label: "Amber" },
+						{ value: "ice", label: "Ice" },
+					]}
+					onChange={(scheme) => patch({ scheme })}
+				/>
 			);
 		}
 		case "polaroid": {
@@ -613,24 +569,13 @@ function InsideSpecificControls({
 		}
 		case "ticket-stub": {
 			const p = params as InnerParamsMap["ticket-stub"];
+			// Ticket color locked to crimson — segmented removed.
 			return (
-				<>
-					<Segmented
-						label="Ticket color"
-						value={p.color}
-						options={[
-							{ value: "crimson", label: "Crimson" },
-							{ value: "indigo", label: "Indigo" },
-							{ value: "gold", label: "Gold" },
-						]}
-						onChange={(color) => patch({ color })}
-					/>
-					<Toggle
-						label="Perforation"
-						checked={p.perforation}
-						onChange={(perforation) => patch({ perforation })}
-					/>
-				</>
+				<Toggle
+					label="Perforation"
+					checked={p.perforation}
+					onChange={(perforation) => patch({ perforation })}
+				/>
 			);
 		}
 		case "blueprint": {
@@ -789,6 +734,180 @@ function InsideSpecificControls({
 					/>
 				</>
 			);
+		}
+		case "aurora": {
+			const p = params as InnerParamsMap["aurora"];
+			return (
+				<>
+					<Segmented
+						label="Hue"
+						value={p.hue}
+						options={[
+							{ value: "emerald", label: "Emerald" },
+							{ value: "violet", label: "Violet" },
+							{ value: "teal", label: "Teal" },
+						]}
+						onChange={(hue) => patch({ hue })}
+					/>
+					<Toggle
+						label="Stars"
+						checked={p.stars}
+						onChange={(stars) => patch({ stars })}
+					/>
+				</>
+			);
+		}
+		case "moonrise": {
+			const p = params as InnerParamsMap["moonrise"];
+			return (
+				<>
+					<Segmented
+						label="Phase"
+						value={p.phase}
+						options={[
+							{ value: "crescent", label: "Crescent" },
+							{ value: "gibbous", label: "Gibbous" },
+							{ value: "full", label: "Full" },
+						]}
+						onChange={(phase) => patch({ phase })}
+					/>
+					<Toggle
+						label="Stars"
+						checked={p.stars}
+						onChange={(stars) => patch({ stars })}
+					/>
+				</>
+			);
+		}
+		case "daybreak": {
+			const p = params as InnerParamsMap["daybreak"];
+			return (
+				<>
+					<Segmented
+						label="Sky"
+						value={p.sky}
+						options={[
+							{ value: "dawn", label: "Dawn" },
+							{ value: "golden", label: "Golden" },
+							{ value: "dusk", label: "Dusk" },
+						]}
+						onChange={(sky) => patch({ sky })}
+					/>
+					<Toggle
+						label="Sun rays"
+						checked={p.rays}
+						onChange={(rays) => patch({ rays })}
+					/>
+				</>
+			);
+		}
+		case "summit": {
+			const p = params as InnerParamsMap["summit"];
+			return (
+				<>
+					<Segmented
+						label="Range"
+						value={p.range}
+						options={[
+							{ value: "dawn", label: "Dawn" },
+							{ value: "dusk", label: "Dusk" },
+							{ value: "night", label: "Night" },
+						]}
+						onChange={(range) => patch({ range })}
+					/>
+					<Toggle
+						label="Snow caps"
+						checked={p.snow}
+						onChange={(snow) => patch({ snow })}
+					/>
+				</>
+			);
+		}
+		case "skyline": {
+			const p = params as InnerParamsMap["skyline"];
+			return (
+				<>
+					<Segmented
+						label="Element"
+						value={p.motif}
+						options={[
+							{ value: "birds", label: "Birds" },
+							{ value: "clouds", label: "Clouds" },
+							{ value: "plane", label: "Plane" },
+							{ value: "kite", label: "Kite" },
+							{ value: "balloon", label: "Balloon" },
+						]}
+						onChange={(motif) => patch({ motif })}
+					/>
+					<Segmented
+						label="Prominence"
+						value={p.prominence}
+						options={[
+							{ value: "whisper", label: "Whisper" },
+							{ value: "subtle", label: "Subtle" },
+							{ value: "present", label: "Present" },
+							{ value: "bold", label: "Bold" },
+						]}
+						onChange={(prominence) => patch({ prominence })}
+					/>
+					<Segmented
+						label="Placement"
+						value={p.placement}
+						options={[
+							{ value: "corner", label: "Corner" },
+							{ value: "cluster", label: "Cluster" },
+							{ value: "scatter", label: "Scatter" },
+							{ value: "edges", label: "Edges" },
+						]}
+						onChange={(placement) => patch({ placement })}
+					/>
+					{SKYLINE_HAS_VARIETY[p.motif] && (
+						<Segmented
+							label="Variety"
+							value={p.variety}
+							options={[
+								{ value: "uniform", label: "Uniform" },
+								{ value: "mixed", label: "Mixed" },
+							]}
+							onChange={(variety) => patch({ variety })}
+						/>
+					)}
+					<Segmented
+						label="Color"
+						value={p.color}
+						options={SKYLINE_COLOR_OPTS[p.motif].map((co) => ({
+							value: co,
+							label: co.charAt(0).toUpperCase() + co.slice(1),
+						}))}
+						onChange={(color) => patch({ color })}
+					/>
+					<Toggle
+						label="Drift"
+						checked={p.drift}
+						onChange={(drift) => patch({ drift })}
+					/>
+				</>
+			);
+		}
+		case "terrain": {
+			const p = params as InnerParamsMap["terrain"];
+			return <DecoControls spec={TERRAIN_SPEC} params={p} patch={patch} />;
+		}
+		case "waterline": {
+			const p = params as InnerParamsMap["waterline"];
+			return <DecoControls spec={WATERLINE_SPEC} params={p} patch={patch} />;
+		}
+		case "weather": {
+			const p = params as InnerParamsMap["weather"];
+			return <DecoControls spec={WEATHER_SPEC} params={p} patch={patch} />;
+		}
+		case "wildlife": {
+			const p = params as InnerParamsMap["wildlife"];
+			return <DecoControls spec={WILDLIFE_SPEC} params={p} patch={patch} />;
+		}
+		case "celestial": {
+			const p = params as InnerParamsMap["celestial"];
+			return <DecoControls spec={CELESTIAL_SPEC} params={p} patch={patch} />;
 		}
 		default:
 			return null;
@@ -1289,7 +1408,7 @@ export function DesignPanel({
 							<TopicSelector
 								label="Editing inside for"
 								active={activeTopic}
-								isCustom={(t) => state.clusters[t].id !== "rich-card"}
+								isCustom={(t) => state.clusters[t].id !== DEFAULT_INNER}
 								subtitle={(t) => INNERS[state.clusters[t].id].label}
 								onSelect={setActiveTopic}
 							/>
@@ -1302,13 +1421,11 @@ export function DesignPanel({
 										selected={id === selectedInner}
 										onSelect={() => pickInner(id)}
 									>
-										{id !== "rich-card" && (
-											<InnerParamsBlock
-												id={id}
-												params={activeCluster.params}
-												patch={patchInner}
-											/>
-										)}
+										<InnerParamsBlock
+											id={id}
+											params={activeCluster.params}
+											patch={patchInner}
+										/>
 									</LayerRow>
 								))}
 							</div>

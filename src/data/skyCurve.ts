@@ -11,6 +11,12 @@ export const SKY_NOON: RGB = { r: 135, g: 206, b: 235 };
 export const SKY_DUSK: RGB = { r: 244, g: 164, b: 96 };
 export const SKY_NIGHT: RGB = { r: 20, g: 10, b: 50 };
 
+// Scroll progress at which nav, footer, and section headers invert to white.
+// Decoupled from the sky curve so the day→night background timing stays put;
+// the dusk sky is still too light for white text right when the night
+// transition begins, so the UI flip lands a bit later than the sky shift.
+export const NIGHT_UI_THRESHOLD = 0.55;
+
 export const LEGACY_NEUTRAL_PARAMS: SkyCurve = {
 	enabled: true,
 	phase1: [0, 0.5],

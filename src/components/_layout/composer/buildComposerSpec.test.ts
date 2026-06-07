@@ -17,12 +17,12 @@ describe("buildComposerSpec", () => {
 		);
 	});
 
-	it("all-rich-card clusters emit no inner.* keys", () => {
-		// defaultState starts every topic on the baseline rich-card cluster.
+	it("all-default clusters emit no inner.* keys", () => {
+		// defaultState starts every topic on the untouched default constellation cluster.
 		expect(buildComposerSpec(makeState())).not.toContain("inner.");
 	});
 
-	it("a non-rich-card topic emits its inner.<topic>.* keys", () => {
+	it("a customized topic emits its inner.<topic>.* keys", () => {
 		const base = defaultState();
 		const spec = buildComposerSpec({
 			...base,

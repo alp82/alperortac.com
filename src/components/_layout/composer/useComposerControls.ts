@@ -44,8 +44,8 @@ export type ComposerState = {
 	clusters: Record<TopicId, TopicCluster>;
 };
 
-export const DEFAULT_SECTION: SectionId = "centered-monolith";
-export const DEFAULT_INNER: InnerId = "rich-card";
+export const DEFAULT_SECTION: SectionId = "parallax-depth";
+export const DEFAULT_INNER: InnerId = "constellation";
 export const DEFAULT_LINK: LinkId = "none";
 
 /** Every topic starts on the baseline stage (centered-monolith) with defaults. */
@@ -60,7 +60,7 @@ function defaultStages(): Record<TopicId, TopicStage> {
 	return out;
 }
 
-/** Every topic starts on the baseline cluster (rich-card) with its defaults. */
+/** Every topic starts on the default cluster (constellation) with its defaults. */
 function defaultClusters(): Record<TopicId, TopicCluster> {
 	const out = {} as Record<TopicId, TopicCluster>;
 	for (const t of TOPICS) {
@@ -251,8 +251,9 @@ export function useComposerControls() {
  * Single-line copy-spec string, namespaced per layer. The section/inner/link.*
  * keys are whatever the SELECTED style exposes (per-style params, emitted in
  * defaults order), so the line self-describes which knobs are live. Per-topic
- * inner.<topic> blocks are emitted only for topics that differ from rich-card;
- * link.* drops entirely when link === none. Baseline on → just `baseline: on`.
+ * inner.<topic> blocks are emitted only for topics that deviate from the default
+ * cluster (DEFAULT_INNER + its default params); link.* drops entirely when
+ * link === none. Baseline on → just `baseline: on`.
  *
  * e.g. `section: split-stage | section.accent: topic | section.height: 90 |
  * inner.coding: comic | inner.coding.density: roomy | inner.coding.halftone: on |
@@ -275,13 +276,22 @@ export function buildComposerSpec(state: ComposerState): string {
 		}
 	}
 
-	// Clusters are per-topic; emit only topics that differ from the baseline
-	// rich-card (an omitted topic = rich-card). rich-card's chrome is fixed, so
-	// even chosen explicitly its inner.* params carry no meaning — hence the
-	// continue covers both cases.
+	// Clusters are per-topic; emit only topics that DEVIATE from the default
+	// cluster (DEFAULT_INNER with its default params). A topic left untouched on
+	// the default is omitted; any id switch or param tweak makes it emit.
+	const innerDefaults = INNERS[DEFAULT_INNER].defaults as Record<
+		string,
+		unknown
+	>;
 	for (const t of TOPICS) {
 		const c = state.clusters[t.id];
-		if (c.id === "rich-card") continue;
+		const cp = c.params as Record<string, unknown>;
+		if (
+			c.id === DEFAULT_INNER &&
+			Object.keys(innerDefaults).every((k) => cp[k] === innerDefaults[k])
+		) {
+			continue;
+		}
 		parts.push(`inner.${t.id}: ${c.id}`);
 		// Per-style params, in defaults order; booleans as on/off.
 		for (const [k, v] of Object.entries(c.params)) {

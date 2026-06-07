@@ -4,11 +4,11 @@ import { MINIMAP_BOUNDARIES, PANEL_SIDES, SECTION_IDS } from "../sections";
 import { TOPICS } from "../topics";
 
 describe("sections topology", () => {
-	it("MINIMAP_BOUNDARIES match SECTION_IDS for {find-me, craft, cta}", () => {
+	it("MINIMAP_BOUNDARIES match SECTION_IDS for {find-me, craft, contact}", () => {
 		expect(MINIMAP_BOUNDARIES.map((b) => b.id)).toEqual([
 			SECTION_IDS.findMe,
 			SECTION_IDS.craft,
-			SECTION_IDS.cta,
+			SECTION_IDS.contact,
 		]);
 	});
 

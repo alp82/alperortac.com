@@ -14,8 +14,7 @@ import type { ComposerState } from "./useComposerControls";
  * Builds one topic's composition: resolves the accent (per the section's accent
  * param), builds the topic's REAL body (the shared TopicBody), and hands it to
  * the Layer-2 inner frame as `children`, all wrapped in the Layer-1 stage. Every
- * frame is a container around the same body; the `rich-card` inner ignores
- * `children` and renders the full shipped card itself.
+ * frame is a container around the same body.
  *
  * The sole importer of the inner + section registries on the topic path; gated
  * behind a folded import.meta.env.DEV literal at the call site (TopicArticle),

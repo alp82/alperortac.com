@@ -6,8 +6,7 @@ import { SectionBody } from "./SectionBody";
  *
  * Owns the topic's `<article>` shell (id anchor + vertical rhythm) and renders
  * the shared `SectionBody` (heading, accent layout, plate/bespoke-else-teaser)
- * inside it. The same `SectionBody` backs the DEV composer's `rich-card` inner,
- * so the live shipped card and rich-card stay byte-for-byte identical.
+ * inside it. `SectionBody` holds the shared production card chrome.
  *
  * Body dispatch lives in `SectionBody`: if `TOPIC_CONTENTS[topic.id]` exists,
  * the topic's dedicated component renders inside the plate; otherwise the legacy

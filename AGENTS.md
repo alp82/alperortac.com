@@ -41,11 +41,3 @@ A vertical scroll journey on the main path:
 
 - Mobile must work. Every desktop interaction needs a touch equivalent.
 - Reduced-motion preference is respected.
-
-## Status (2026-05-20)
-
-- v3 8-topic Craft band landed: Hero → Linktree → Craft (8 topical articles: The Craft → AI → Learning → Teaching → Movies & TV → Family → Music → Games) → Freelance/Collab CTA → Footer.
-- 10 native `<dialog>`-driven sidetrack panels (4 project + Career + 4 personal placeholder + Sky-Tuning), controlled by a single `openPanel` key.
-- Personal panels (Learning, Teaching, Family, Music) reuse the Career yellow brutalist banner pending real content.
-- Project panels and Career timeline are unchanged from v2 (placeholders still pending: see `src/data/career.ts` TODO and `src/components/ProjectPanel.tsx` Alp-River TODO).
-- Panel management was extracted into `src/components/_layout/PanelHost.tsx`; trigger cards live in `src/components/_layout/SectionTriggerCard.tsx`.

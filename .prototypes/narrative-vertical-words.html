@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Vertical stacked words — background parallax tracer</title>
+<style>
+  :root {
+    --ink: #0f172a;
+    --paper-day: rgb(135, 206, 235);   /* SKY_NOON */
+    --paper-dusk: rgb(244, 164, 96);   /* SKY_DUSK */
+    --paper-night: rgb(20, 10, 50);    /* SKY_NIGHT */
+
+    /* live control values (JS writes these) */
+    --wm-opacity: 0.20;
+    --wm-font: 8vh;        /* AUTO-FIT: JS derives this from longest word + paddings, not a free slider */
+    --wm-lh: 0.92;
+    --wm-inset: 4vw;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  html, body {
+    margin: 0; padding: 0;
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, "Inter", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: #fef08a; color: #000; }
+
+  /* ---- Fixed sky gradient layer (z -2). JS sets backgroundColor on scroll ---- */
+  #sky {
+    position: fixed; inset: 0; z-index: -2;
+    background-color: var(--paper-day);
+    transition: background-color 0.1s linear;
+  }
+  #sky .grain {
+    position: absolute; inset: 0; opacity: 0.04; pointer-events: none;
+    background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+  }
+
+  /* ---- The watermark layer being prototyped (z -1, between sky and content) ---- */
+  #watermark {
+    position: fixed; inset: 0; z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+    will-change: transform;
+  }
+  /* static stage wrapper; each word now carries its own bounded-drift translateY */
+  #wm-stage {
+    position: absolute;
+    inset: 0;
+    will-change: transform;
+  }
+
+  .word {
+    position: absolute;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.04em;
+    line-height: var(--wm-lh);
+    font-size: var(--wm-font);
+    opacity: 0;                        /* JS drives per-word opacity */
+    transition: opacity 0.25s ease;
+    color: var(--ink);                 /* JS flips to white in night half */
+    user-select: none;
+  }
+  .word .ltr { display: block; }
+
+  /* rotated 90 deg variant (toggle) */
+  .word.rotated {
+    flex-direction: row;
+    writing-mode: vertical-rl;         /* keeps it a single sideways word */
+    letter-spacing: 0.02em;
+  }
+  .word.rotated .ltr { display: inline; }
+
+  /* "continuous" mode: all three stacked top->bottom, no crossfade */
+  #watermark.continuous .word { opacity: var(--wm-opacity) !important; }
+
+  /* ---- Foreground content: brutalist spine ---- */
+  .shell { position: relative; z-index: 1; }
+
+  nav.bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 24px;
+    backdrop-filter: blur(4px);
+    background: rgba(255,255,255,0.10);
+    border-bottom: 1px solid rgba(255,255,255,0.20);
+    font-weight: 900; text-transform: uppercase; letter-spacing: -0.02em;
+    color: var(--ink); transition: color 0.1s linear;
+    font-size: 15px;
+  }
+  nav.bar .pill {
+    background: var(--ink); color: #fff; padding: 8px 14px;
+    box-shadow: 4px 4px 0 0 rgba(255,255,255,0.3);
+    font-size: 12px; letter-spacing: 0.12em;
+  }
+
+  section.block {
+    min-height: 100vh;
+    padding: 120px 24px 80px;
+    display: flex; flex-direction: column; justify-content: center;
+    max-width: 1100px; margin: 0 auto;
+  }
+  h1.hero {
+    font-size: clamp(40px, 9vw, 120px); font-weight: 900;
+    line-height: 0.9; letter-spacing: -0.04em; text-transform: uppercase;
+    margin: 0 0 24px; color: var(--ink);
+    text-shadow: 1px 1px 0 rgba(255,255,255,0.4);
+  }
+  .hero-plate {
+    font-size: clamp(18px, 2.2vw, 26px); font-weight: 600; max-width: 36ch;
+    background: rgba(255,255,255,0.40); backdrop-filter: blur(8px);
+    padding: 16px; border-left: 4px solid var(--ink);
+  }
+  h2.head {
+    font-size: clamp(30px, 6vw, 64px); font-weight: 900;
+    text-transform: uppercase; letter-spacing: -0.04em; line-height: 0.95;
+    margin: 0 0 32px; color: var(--ink);
+    text-shadow: 3px 3px 0 rgba(255,255,255,0.45);
+  }
+  h2.head.night-text { text-shadow: 3px 3px 0 rgba(0,0,0,0.4); }
+
+  /* link rows */
+  .rows { display: flex; flex-direction: column; gap: 12px; max-width: 540px; }
+  .row {
+    background: #fff; border: 4px solid var(--ink);
+    box-shadow: 6px 6px 0 0 rgba(0,0,0,1);
+    padding: 16px 20px; font-weight: 900; text-transform: uppercase;
+    letter-spacing: 0.02em; display: flex; justify-content: space-between;
+  }
+
+  /* project cards */
+  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .card {
+    background: #fff; border: 4px solid var(--ink);
+    box-shadow: 8px 8px 0 0 rgba(0,0,0,1); padding: 24px; min-height: 180px;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 26px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.02em; }
+  .card p { margin: 0; font-weight: 500; opacity: 0.8; }
+
+  /* passions list */
+  .passions { display: flex; flex-direction: column; gap: 4px; max-width: 700px; }
+  .passions .p {
+    font-size: clamp(28px, 5vw, 56px); font-weight: 900; text-transform: uppercase;
+    letter-spacing: -0.03em; line-height: 1.1; color: var(--ink);
+    text-shadow: 2px 2px 0 rgba(255,255,255,0.4);
+  }
+  .passions .zone-tag {
+    font-size: 11px; letter-spacing: 0.3em; opacity: 0.55; font-weight: 900;
+    margin: 18px 0 4px;
+  }
+
+  /* doors */
+  .doors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .door {
+    background: var(--ink); color: #fff; border: 4px solid var(--ink);
+    box-shadow: 10px 10px 0 0 rgba(255,255,255,0.25); padding: 28px; min-height: 220px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .door h3 { margin: 0; font-size: 30px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.02em; }
+  .door span { font-weight: 600; opacity: 0.75; }
+
+  footer.foot {
+    min-height: 60vh; padding: 80px 24px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    background: rgba(15,23,42,0.4); backdrop-filter: blur(8px);
+    color: #fff; display: flex; align-items: center;
+  }
+  footer.foot .inner { max-width: 1100px; margin: 0 auto; width: 100%;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+    font-weight: 900; text-transform: uppercase; letter-spacing: -0.02em; }
+
+  /* ---- Control panel ---- */
+  #panel {
+    position: fixed; bottom: 16px; right: 16px; z-index: 60;
+    width: 320px; max-width: calc(100vw - 32px);
+    background: #fff; color: var(--ink);
+    border: 3px solid var(--ink); box-shadow: 6px 6px 0 0 rgba(0,0,0,1);
+    font-size: 12px;
+  }
+  #panel .ph {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--ink); color: #fff; padding: 10px 12px;
+    font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer;
+  }
+  #panel .pbody { padding: 12px; display: grid; gap: 12px; max-height: 70vh; overflow: auto; }
+  #panel.collapsed .pbody { display: none; }
+  .ctl { display: grid; gap: 4px; }
+  .ctl label { font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; display: flex; justify-content: space-between; }
+  .ctl label .val { font-weight: 700; opacity: 0.7; font-variant-numeric: tabular-nums; }
+  .ctl input[type=range] { width: 100%; accent-color: var(--ink); }
+  .toggle { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .toggle .opt { font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; font-size: 10px; line-height: 1.2; }
+  .seg { display: inline-flex; border: 2px solid var(--ink); }
+  .seg button {
+    border: 0; background: #fff; color: var(--ink); font: inherit; font-weight: 900;
+    text-transform: uppercase; padding: 4px 8px; cursor: pointer; font-size: 10px;
+  }
+  .seg button.on { background: var(--ink); color: #fff; }
+  #copyBtn {
+    background: var(--ink); color: #fff; border: 0; font: inherit; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.08em; padding: 10px; cursor: pointer;
+    box-shadow: 3px 3px 0 0 rgba(0,0,0,0.4);
+  }
+  #copyBtn:active { transform: translate(1px,1px); }
+  .hint { font-size: 10px; opacity: 0.7; font-weight: 600; }
+  #spec { font-family: ui-monospace, monospace; font-size: 10px; background: #f1f5f9;
+    border: 1px solid #cbd5e1; padding: 6px; word-break: break-all; }
+
+  /* ---- Mobile: smaller, lower opacity, single edge, never crowd ---- */
+  @media (max-width: 560px) {
+    :root { --wm-inset: 2vw; }      /* font auto-fit is JS-driven now; mobile scale handled in JS */
+    #watermark { opacity: 0.7; }   /* extra knockdown so it never fights content */
+    .cards { grid-template-columns: 1fr; }
+    .doors { grid-template-columns: 1fr; }
+    nav.bar .links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <div id="sky"><div class="grain"></div></div>
+
+  <div id="watermark" aria-hidden="true">
+    <div id="wm-stage">
+      <!-- words positioned + opacity-driven by JS -->
+      <div class="word" data-word="0"></div>
+      <div class="word" data-word="1"></div>
+      <div class="word" data-word="2"></div>
+    </div>
+  </div>
+
+  <div class="shell">
+    <nav class="bar" id="nav">
+      <div>Alper Ortac</div>
+      <div class="pill" id="phasePill">PHASE: DAY</div>
+    </nav>
+
+    <!-- 1. HERO -->
+    <section class="block">
+      <h1 class="hero">Hey,<br>I'm Alper.</h1>
+      <p class="hero-plate"><strong>Web enthusiast</strong> and <strong>agentic coach</strong>, with a side-project habit and a camera.</p>
+    </section>
+
+    <!-- 2. FIND ME ONLINE -->
+    <section class="block">
+      <h2 class="head">Find Me Online</h2>
+      <div class="rows">
+        <div class="row"><span>X (Twitter)</span><span>&rarr;</span></div>
+        <div class="row"><span>YouTube</span><span>&rarr;</span></div>
+        <div class="row"><span>GitHub</span><span>&rarr;</span></div>
+        <div class="row"><span>LinkedIn</span><span>&rarr;</span></div>
+      </div>
+    </section>
+
+    <!-- 3. THE WORK  (BUILDER zone) -->
+    <section class="block">
+      <h2 class="head">The Work</h2>
+      <div class="cards">
+        <div class="card"><h3>GoodWatch</h3><p>Find what to watch next, fast.</p></div>
+        <div class="card"><h3>AIStack</h3><p>Curated tooling for builders.</p></div>
+        <div class="card"><h3>Alp-River</h3><p>An agentic workflow doctrine.</p></div>
+        <div class="card"><h3>Manaschmiede</h3><p>Where ideas get forged.</p></div>
+      </div>
+    </section>
+
+    <!-- 4. PASSIONS  (Builder -> Coach -> Human) -->
+    <section class="block">
+      <h2 class="head">Passions</h2>
+      <div class="passions">
+        <div class="zone-tag">— Builder —</div>
+        <div class="p">Coding</div>
+        <div class="p">AI</div>
+        <div class="p">Finance</div>
+        <div class="zone-tag">— Coach —</div>
+        <div class="p">Career</div>
+        <div class="p">Teaching</div>
+        <div class="zone-tag">— Human —</div>
+        <div class="p">Family</div>
+        <div class="p">Travel</div>
+        <div class="p">Movies &amp; TV</div>
+        <div class="p">Games</div>
+        <div class="p">Music</div>
+      </div>
+    </section>
+
+    <!-- 5. LET'S TALK  (HUMAN zone) -->
+    <section class="block">
+      <h2 class="head">Let's Talk</h2>
+      <div class="doors">
+        <div class="door"><h3>Talk</h3><span>Just say hi.</span></div>
+        <div class="door"><h3>Coach</h3><span>Level up together.</span></div>
+        <div class="door"><h3>Collaborate</h3><span>Build something.</span></div>
+      </div>
+    </section>
+
+    <!-- 6. FOOTER -->
+    <footer class="foot">
+      <div class="inner">
+        <div>© 2026 ALP — CREATING EVERY DAY</div>
+        <div>You made it to the night.</div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ---- Control panel ---- -->
+  <div id="panel">
+    <div class="ph" id="panelHeader">
+      <span>Watermark Controls</span>
+      <span id="collapseGlyph">▾</span>
+    </div>
+    <div class="pbody">
+
+      <div class="ctl">
+        <label>Opacity <span class="val" id="v-opacity">0.20</span></label>
+        <input type="range" id="c-opacity" min="0" max="0.6" step="0.01" value="0.20">
+      </div>
+
+      <div class="ctl">
+        <label>Padding top (vh) <span class="val" id="v-padtop">8</span></label>
+        <input type="range" id="c-padtop" min="0" max="30" step="0.5" value="8">
+      </div>
+
+      <div class="ctl">
+        <label>Padding bottom (vh) <span class="val" id="v-padbottom">8</span></label>
+        <input type="range" id="c-padbottom" min="0" max="30" step="0.5" value="8">
+      </div>
+
+      <div class="ctl">
+        <label>Drift travel (vh) <span class="val" id="v-travel">14</span></label>
+        <input type="range" id="c-travel" min="0" max="40" step="0.5" value="14">
+      </div>
+
+      <div class="ctl">
+        <label>Horizontal inset (vw) <span class="val" id="v-inset">4</span></label>
+        <input type="range" id="c-inset" min="-6" max="30" step="0.5" value="4">
+      </div>
+
+      <div class="ctl">
+        <label>Line-height (stack spacing) <span class="val" id="v-lh">0.92</span></label>
+        <input type="range" id="c-lh" min="0.7" max="1.6" step="0.01" value="0.92">
+      </div>
+
+      <div class="ctl">
+        <label>Edge / which side <span class="val" id="v-edge">alternate</span></label>
+        <div class="seg" id="seg-edge">
+          <button data-edge="left">Left</button>
+          <button data-edge="center">Center</button>
+          <button data-edge="right">Right</button>
+          <button data-edge="alternate" class="on">Alt</button>
+        </div>
+      </div>
+
+      <div class="toggle">
+        <span class="opt">Orientation</span>
+        <div class="seg" id="seg-orient">
+          <button data-orient="upright" class="on">Upright stack</button>
+          <button data-orient="rotated">Rotated 90°</button>
+        </div>
+      </div>
+
+      <div class="toggle">
+        <span class="opt">Color</span>
+        <div class="seg" id="seg-color">
+          <button data-color="track" class="on">Track day→night</button>
+          <button data-color="white">Always white</button>
+        </div>
+      </div>
+
+      <div class="toggle">
+        <span class="opt">Word mode</span>
+        <div class="seg" id="seg-mode">
+          <button data-mode="crossfade" class="on">Crossfade</button>
+          <button data-mode="continuous">Continuous</button>
+        </div>
+      </div>
+
+      <div class="toggle">
+        <span class="opt">Parallax</span>
+        <div class="seg" id="seg-parallax">
+          <button data-px="on" class="on">On</button>
+          <button data-px="off">Off (static)</button>
+        </div>
+      </div>
+
+      <div id="spec">layout pending…</div>
+      <button id="copyBtn">Copy spec</button>
+      <div class="hint">Copies a one-line spec to your clipboard. Paste it back into chat to lock the look.</div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- Sky color model (mirrors src/data/skyCurve.ts) ----
+  var SKY_NOON  = [135, 206, 235];
+  var SKY_DUSK  = [244, 164, 96];
+  var SKY_NIGHT = [20, 10, 50];
+  // DEFAULT_SKY_CURVE
+  var P1 = [0.162, 0.436];
+  var P2 = [0.466, 0.787];
+  var NIGHT_UI_THRESHOLD = 0.55;   // mirror of the 0.55 white-text flip
+
+  function lerp(a, b, t) { return Math.round(a + (b - a) * t); }
+  function rgb(c) { return "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")"; }
+  function skyAt(p) {
+    if (p <= P1[0]) return rgb(SKY_NOON);
+    if (p < P1[1]) { var t = (p - P1[0]) / (P1[1] - P1[0]);
+      return "rgb(" + lerp(SKY_NOON[0],SKY_DUSK[0],t) + "," + lerp(SKY_NOON[1],SKY_DUSK[1],t) + "," + lerp(SKY_NOON[2],SKY_DUSK[2],t) + ")"; }
+    if (p <= P2[0]) return rgb(SKY_DUSK);
+    if (p < P2[1]) { var t2 = (p - P2[0]) / (P2[1] - P2[0]);
+      return "rgb(" + lerp(SKY_DUSK[0],SKY_NIGHT[0],t2) + "," + lerp(SKY_DUSK[1],SKY_NIGHT[1],t2) + "," + lerp(SKY_DUSK[2],SKY_NIGHT[2],t2) + ")"; }
+    return rgb(SKY_NIGHT);
+  }
+
+  // ---- State (driven by controls) ----
+  var S = {
+    opacity: 0.20,
+    padTop: 8,        // vh gap above the word at zone entry
+    padBottom: 8,     // vh gap below the word at zone exit
+    travel: 14,       // vh each word drifts within its zone (uniform; the longest word reserves this slack)
+    inset: 4,
+    lh: 0.92,
+    edge: "alternate",
+    orient: "upright",
+    color: "track",
+    mode: "crossfade",
+    parallaxOn: true
+  };
+
+  var WORDS = ["BUILD", "COACH", "LIFE"];
+  var LONGEST = WORDS.reduce(function (m, w) { return Math.max(m, w.length); }, 0); // max letter count, now 5 (BUILD/COACH)
+
+  // Auto-fit letter size (px) shared by all words, derived from the LONGEST word + paddings:
+  //   LONGEST * letterSize * lh  <=  viewportHeight - padTop - padBottom
+  // so the full column + breathing room always fits the viewport (basis = actual WORDS, not a hardcoded count).
+  function letterSizePx() {
+    var winH = window.innerHeight;
+    var padPx = (S.padTop + S.padBottom) / 100 * winH;
+    var travelPx = S.travel / 100 * winH;            // reserve drift room so even the LONGEST word can move
+    var avail = Math.max(winH - padPx - travelPx, 40);
+    var size = avail / (LONGEST * S.lh);
+    if (window.innerWidth <= 560) size *= 0.78; // mobile: smaller column (never crowd)
+    return size;
+  }
+  // Rendered height (px) of a column of `len` letters at the current letter size.
+  function wordHeightPx(len) { return len * letterSizePx() * S.lh; }
+
+  // Scroll zones (fraction of page) per watermark word, with soft overlap.
+  // BUILD over THE WORK + Coding/AI/Finance; COACH over Career/Teaching;
+  // LIFE over Family..Music + LET'S TALK + footer.
+  var ZONES = [
+    { c: 0.33, w: 0.26 },  // BUILD
+    { c: 0.58, w: 0.16 },  // COACH
+    { c: 0.84, w: 0.30 }   // LIFE
+  ];
+
+  var root = document.documentElement;
+  var wm = document.getElementById("watermark");
+  var stage = document.getElementById("wm-stage");
+  var sky = document.getElementById("sky");
+  var nav = document.getElementById("nav");
+  var phasePill = document.getElementById("phasePill");
+  var wordEls = [].slice.call(document.querySelectorAll(".word"));
+  var specEl = document.getElementById("spec");
+
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion) { S.parallaxOn = false; setSeg("seg-parallax", "px", "off"); }
+
+  // build letter spans
+  function renderWords() {
+    wordEls.forEach(function (el, i) {
+      var word = WORDS[i];
+      el.innerHTML = "";
+      for (var k = 0; k < word.length; k++) {
+        var s = document.createElement("span");
+        s.className = "ltr";
+        s.textContent = word[k];
+        el.appendChild(s);
+      }
+    });
+  }
+  renderWords();
+
+  function applyStyleState() {
+    root.style.setProperty("--wm-opacity", S.opacity);
+    root.style.setProperty("--wm-font", letterSizePx().toFixed(2) + "px"); // AUTO-FIT, not a slider
+    root.style.setProperty("--wm-lh", S.lh);
+    root.style.setProperty("--wm-inset", S.inset + "vw");
+
+    var rotated = S.orient === "rotated";
+    wm.classList.toggle("continuous", S.mode === "continuous");
+
+    wordEls.forEach(function (el, i) {
+      el.classList.toggle("rotated", rotated);
+      positionWord(el, i);
+    });
+    updateSpec();
+    requestTick(); // re-place words with current scroll once geometry changes
+  }
+
+  // Horizontal-only placement. Vertical placement is the bounded-drift translateY,
+  // applied every frame in frame() so it tracks scroll. `top:0` anchors each word to
+  // the top of the fixed watermark layer; translateY moves it inside the viewport zone.
+  function positionWord(el, i) {
+    var edge = S.edge;
+    if (edge === "alternate") edge = (i % 2 === 0) ? "left" : "right";
+    el.style.left = el.style.right = "";
+    el.style.top = "0";
+    el.style.height = "auto";
+    if (edge === "left") {
+      el.style.left = "var(--wm-inset)";
+      el.dataset.hx = "0";           // no horizontal centering translate
+    } else if (edge === "right") {
+      el.style.right = "var(--wm-inset)";
+      el.dataset.hx = "0";
+    } else { // center
+      el.style.left = "50%";
+      el.dataset.hx = "-50%";        // horizontal centering folded into the transform
+    }
+  }
+
+  // ---- Scroll loop ----
+  var lastScroll = 0, ticking = false;
+  function onScroll() { lastScroll = window.scrollY; requestTick(); }
+  function requestTick() { if (!ticking) { ticking = true; requestAnimationFrame(frame); } }
+
+  function frame() {
+    ticking = false;
+    var winH = window.innerHeight;
+    var docH = document.documentElement.scrollHeight;
+    var total = Math.max(docH - winH, 1);
+    var p = Math.min(Math.max(lastScroll / total, 0), 1);
+
+    // sky
+    sky.style.backgroundColor = skyAt(p);
+
+    // night UI flip (0.55) — content text + nav
+    var night = p >= NIGHT_UI_THRESHOLD;
+    nav.style.color = night ? "#fff" : "#0f172a";
+    phasePill.textContent = "PHASE: " + (p < 0.5 ? "DAY" : p < 0.8 ? "DUSK" : "NIGHT");
+
+    // watermark color: track day->night (flip at 0.55) or always white
+    var wmColor;
+    if (S.color === "white") wmColor = "#fff";
+    else wmColor = night ? "#fff" : "#0f172a";
+    wordEls.forEach(function (el) { el.style.color = wmColor; });
+
+    // ---- BOUNDED IN-ZONE DRIFT (replaces unbounded parallax) ----
+    // Both bounds live INSIDE the viewport by construction, so the full word is
+    // always visible while it still drifts with scroll.
+    var padTopPx = S.padTop / 100 * winH;
+    var padBottomPx = S.padBottom / 100 * winH;
+    // travelPx 0 when parallax off or reduced motion -> static centered.
+    var travelPx = (S.parallaxOn && !reduceMotion) ? (S.travel / 100 * winH) : 0;
+
+    // continuous mode keeps its legacy down-the-page stacking; crossfade is the fix target.
+    var continuous = S.mode === "continuous";
+
+    for (var i = 0; i < wordEls.length; i++) {
+      var el = wordEls[i];
+      var z = ZONES[i];
+      var wordH = wordHeightPx(WORDS[i].length);
+
+      var ty;
+      if (continuous) {
+        // legacy: stack each word a viewport apart, drift with the page directly.
+        ty = i * winH - lastScroll;
+      } else {
+        var yMin = padTopPx;                        // highest the word may sit (padTop gap above)
+        var yMax = winH - wordH - padBottomPx;      // lowest the word may sit (padBottom gap below)
+        if (yMax < yMin) yMax = yMin;               // degenerate guard
+        var center = (yMin + yMax) / 2;
+        // UNIFORM travel for every word - including the longest, which reserves exactly this
+        // slack in letterSizePx so it is no longer pinned. Clamp to the word's actual slack.
+        var half = Math.min(travelPx, yMax - yMin) / 2;
+        // per-word scroll progress within ITS OWN VISIBLE zone (0 at entry -> 1 at exit),
+        // the same window the opacity falloff uses: p in [z.c - z.w, z.c + z.w].
+        var entry = z.c - z.w;
+        var exit  = z.c + z.w;
+        var span  = (exit - entry) || 1;
+        var pZone = Math.min(Math.max((p - entry) / span, 0), 1);
+        // REVERSED DRIFT: entry (pZone 0) -> center+half (lower); exit (pZone 1) -> center-half
+        // (higher) -> the column drifts UP as the user scrolls down (slow upward parallax).
+        ty = center + half * (1 - 2 * pZone);
+      }
+
+      var hx = el.dataset.hx === "-50%" ? "-50%" : "0";
+      el.style.transform = "translate3d(" + hx + "," + ty.toFixed(2) + "px,0)";
+
+      // per-word crossfade opacity by zone (skip in continuous mode — CSS handles it)
+      if (!continuous) {
+        var d = Math.abs(p - z.c);
+        var a = Math.max(0, 1 - d / z.w);  // triangular falloff -> soft crossfade
+        el.style.opacity = (a * S.opacity).toFixed(3);
+      }
+    }
+  }
+
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", function () { applyStyleState(); requestTick(); });
+
+  // ---- Controls wiring ----
+  function bindSlider(id, key, valId, fmt) {
+    var inp = document.getElementById(id);
+    var out = document.getElementById(valId);
+    inp.addEventListener("input", function () {
+      S[key] = parseFloat(inp.value);
+      out.textContent = fmt ? fmt(S[key]) : inp.value;
+      applyStyleState();
+      requestTick();
+    });
+  }
+  bindSlider("c-opacity", "opacity", "v-opacity", function (v) { return v.toFixed(2); });
+  bindSlider("c-padtop", "padTop", "v-padtop", function (v) { return v; });
+  bindSlider("c-padbottom", "padBottom", "v-padbottom", function (v) { return v; });
+  bindSlider("c-travel", "travel", "v-travel", function (v) { return v; });
+  bindSlider("c-inset", "inset", "v-inset", function (v) { return v; });
+  bindSlider("c-lh", "lh", "v-lh", function (v) { return v.toFixed(2); });
+
+  function setSeg(segId, attr, value) {
+    var seg = document.getElementById(segId);
+    if (!seg) return;
+    [].slice.call(seg.children).forEach(function (b) {
+      b.classList.toggle("on", b.getAttribute("data-" + attr) === value);
+    });
+  }
+  function bindSeg(segId, attr, key, after) {
+    var seg = document.getElementById(segId);
+    seg.addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      S[key] = b.getAttribute("data-" + attr);
+      if (key === "parallaxOn") S.parallaxOn = (S[key] === "on");
+      setSeg(segId, attr, b.getAttribute("data-" + attr));
+      if (after) after();
+      applyStyleState();
+      requestTick();
+    });
+  }
+  bindSeg("seg-edge", "edge", "edge");
+  bindSeg("seg-orient", "orient", "orient");
+  bindSeg("seg-color", "color", "color");
+  bindSeg("seg-mode", "mode", "mode");
+  // parallax seg sets a string then maps to boolean
+  document.getElementById("seg-parallax").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    S.parallaxOn = b.getAttribute("data-px") === "on";
+    setSeg("seg-parallax", "px", b.getAttribute("data-px"));
+    applyStyleState(); requestTick();
+  });
+
+  // ---- Spec output ----
+  function specString() {
+    return [
+      "orientation: " + S.orient,
+      "color: " + (S.color === "track" ? "track-day-night" : "always-white"),
+      "word_mode: " + S.mode,
+      "opacity: " + S.opacity.toFixed(2),
+      "pad_top: " + S.padTop + "vh",
+      "pad_bottom: " + S.padBottom + "vh",
+      "drift_travel: " + (S.parallaxOn ? S.travel + "vh" : "0vh"),
+      "inset: " + S.inset + "vw",
+      "line_height: " + S.lh.toFixed(2),
+      "edge: " + S.edge
+    ].join(" | ");
+  }
+  function updateSpec() { specEl.textContent = specString(); }
+
+  document.getElementById("copyBtn").addEventListener("click", function () {
+    var txt = specString();
+    var btn = this;
+    function done() { btn.textContent = "Copied! Paste in chat"; setTimeout(function(){ btn.textContent = "Copy spec"; }, 1600); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function () { fallback(txt); done(); });
+    } else { fallback(txt); done(); }
+  });
+  function fallback(txt) {
+    var ta = document.createElement("textarea");
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  // collapse panel
+  document.getElementById("panelHeader").addEventListener("click", function () {
+    var p = document.getElementById("panel");
+    p.classList.toggle("collapsed");
+    document.getElementById("collapseGlyph").textContent = p.classList.contains("collapsed") ? "▸" : "▾";
+  });
+
+  // init
+  applyStyleState();
+  onScroll();
+})();
+</script>
+</body>
+</html>

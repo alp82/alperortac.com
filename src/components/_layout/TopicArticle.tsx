@@ -14,8 +14,7 @@ import type { ComposerState } from "./composer/useComposerControls";
  *      for promoted ones).
  *
  *   2. DEV composer active → full TopicComposition (Section + Inner from the
- *      registries). The default `rich-card` inner reproduces the shipped card;
- *      the other inner styles restyle the cluster.
+ *      registries), which restyles each topic's stage + cluster.
  *
  *   Both paths gate behind a folded `import.meta.env.DEV` literal, so Rollup
  *   dead-strips TopicComposition + the section/inner registries from production.

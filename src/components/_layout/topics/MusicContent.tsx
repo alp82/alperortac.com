@@ -24,6 +24,7 @@ export function MusicContent({ lastTriggerRef }: TopicContentProps) {
 					label="Last.fm"
 					Icon={SiLastdotfm}
 					brand="#D51007"
+					badge="275k scrobbles since 2006"
 				/>
 				<ExternalCard
 					href="https://open.spotify.com/user/1140243663?si=f613e1c43ce74d54"

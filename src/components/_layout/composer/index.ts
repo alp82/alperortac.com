@@ -1,20 +1,29 @@
 import { ArcadeHudCluster } from "./inner/arcade-hud";
+import { AuroraCluster } from "./inner/aurora";
 import { BlueprintCluster } from "./inner/blueprint";
+import { CelestialCluster } from "./inner/celestial";
 import { ChalkboardCluster } from "./inner/chalkboard";
 import { CircuitBoardCluster } from "./inner/circuit-board";
 import { CollectibleCluster } from "./inner/collectible";
 import { ComicCluster } from "./inner/comic";
 import { ConstellationCluster } from "./inner/constellation";
+import { DaybreakCluster } from "./inner/daybreak";
 import { FieldJournalCluster } from "./inner/field-journal";
 import { MinimalCluster } from "./inner/minimal";
+import { MoonriseCluster } from "./inner/moonrise";
 import { NeonSignCluster } from "./inner/neon-sign";
 import { PolaroidCluster } from "./inner/polaroid";
-import { RichCardCluster } from "./inner/rich-card";
 import { SeedPacketCluster } from "./inner/seed-packet";
+import { SkylineCluster } from "./inner/skyline";
+import { SummitCluster } from "./inner/summit";
 import { TerminalCluster } from "./inner/terminal";
+import { TerrainCluster } from "./inner/terrain";
 import { TicketStubCluster } from "./inner/ticket-stub";
 import { TopoMapCluster } from "./inner/topo-map";
 import { TrailSignpostCluster } from "./inner/trail-signpost";
+import { WaterlineCluster } from "./inner/waterline";
+import { WeatherCluster } from "./inner/weather";
+import { WildlifeCluster } from "./inner/wildlife";
 import { BotanicalVineLink } from "./links/botanical-vine";
 import { ConstellationStarlineLink } from "./links/constellation-starline";
 import { FlowingCurveLink } from "./links/flowing-curve";
@@ -97,8 +106,8 @@ export const SECTIONS: { [Id in SectionId]: SectionDef<Id> } = {
 		baseHeight: 110,
 		heightRange: [90, 140],
 		defaults: {
-			accent: "topic",
-			height: 110,
+			accent: "none",
+			height: 90,
 			shape: "flourish",
 			depth: 50,
 			layers: 3,
@@ -128,7 +137,7 @@ export const SECTIONS: { [Id in SectionId]: SectionDef<Id> } = {
 		baseHeight: 90,
 		heightRange: [72, 115],
 		defaults: {
-			accent: "topic",
+			accent: "none",
 			height: 90,
 			floatHeight: 50,
 			bob: 50,
@@ -154,26 +163,11 @@ export const SECTIONS: { [Id in SectionId]: SectionDef<Id> } = {
 	},
 };
 
-export const SECTION_ORDER: SectionId[] = [
-	"centered-monolith",
-	"split-stage",
-	"parallax-depth",
-	"marquee-scroll",
-	"floating-island",
-	"zoom-focus",
-];
+export const SECTION_ORDER: SectionId[] = ["parallax-depth", "floating-island"];
 
 /* ── Layer 2: INNER STYLES (the centered cluster) ───────────────────────── */
 
 export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
-	"rich-card": {
-		id: "rich-card",
-		label: "Rich Card",
-		feel: "The live shipped section card — flourish, per-section layout, and content exactly as the site renders it. The default.",
-		surface: "plate",
-		defaults: { density: "roomy" },
-		Component: RichCardCluster,
-	},
 	minimal: {
 		id: "minimal",
 		label: "Minimal",
@@ -201,10 +195,143 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 	constellation: {
 		id: "constellation",
 		label: "Constellation",
-		feel: "Among the stars: a star field + connecting lines in a chosen tint. Ties to the sky easter egg.",
+		feel: "Night sky: a faint star field with a low connecting figure — delicate, the natural fit as the journey reaches night.",
 		surface: "dark",
-		defaults: { density: "roomy", lines: true, tint: "indigo" },
+		defaults: {
+			density: "roomy",
+			lines: true,
+			tint: "indigo",
+			figure: "wing",
+		},
 		Component: ConstellationCluster,
+	},
+	aurora: {
+		id: "aurora",
+		label: "Aurora",
+		feel: "Night sky: soft northern-lights curtains drifting behind the cluster. A natural fit deep into the night.",
+		surface: "dark",
+		defaults: { density: "roomy", stars: true, hue: "emerald" },
+		Component: AuroraCluster,
+	},
+	moonrise: {
+		id: "moonrise",
+		label: "Moonrise",
+		feel: "Night sky: a glowing moon + halo with a scatter of stars. Calm, late in the journey.",
+		surface: "dark",
+		defaults: { density: "roomy", stars: true, phase: "crescent" },
+		Component: MoonriseCluster,
+	},
+	daybreak: {
+		id: "daybreak",
+		label: "Daybreak",
+		feel: "Time of day: a warm sky with a low sun + rays — dawn, golden hour or dusk via the sky knob.",
+		surface: "light",
+		defaults: { density: "roomy", rays: true, sky: "golden" },
+		Component: DaybreakCluster,
+	},
+	summit: {
+		id: "summit",
+		label: "Summit",
+		feel: "Nature: layered mountain-ridge silhouettes under a graded sky. Fits the journey's high points.",
+		surface: "dark",
+		defaults: { density: "roomy", snow: false, range: "dusk" },
+		Component: SummitCluster,
+	},
+	skyline: {
+		id: "skyline",
+		label: "Skyline",
+		feel: "Sky elements (birds / clouds / plane / kite / balloon) as light line-art over the existing sky — tune prominence, placement, variety + colour per element. No background of its own.",
+		surface: "plate",
+		defaults: {
+			density: "roomy",
+			motif: "birds",
+			prominence: "subtle",
+			placement: "scatter",
+			variety: "mixed",
+			color: "ink",
+			drift: true,
+		},
+		Component: SkylineCluster,
+	},
+	terrain: {
+		id: "terrain",
+		label: "Terrain",
+		feel: "Nature / land: low silhouettes — pine, grass, cairn, rolling hills — over the existing ground.",
+		surface: "plate",
+		defaults: {
+			density: "roomy",
+			motif: "pine",
+			prominence: "subtle",
+			placement: "scatter",
+			variety: "mixed",
+			color: "ink",
+			drift: true,
+		},
+		Component: TerrainCluster,
+	},
+	waterline: {
+		id: "waterline",
+		label: "Waterline",
+		feel: "Nature / water: waves, koi, a sailboat or a lighthouse low over the scene.",
+		surface: "plate",
+		defaults: {
+			density: "roomy",
+			motif: "waves",
+			prominence: "subtle",
+			placement: "scatter",
+			variety: "mixed",
+			color: "ink",
+			drift: true,
+		},
+		Component: WaterlineCluster,
+	},
+	weather: {
+		id: "weather",
+		label: "Weather",
+		feel: "Atmosphere: rain, snow, drifting leaves or a corner sunbeam over the sky.",
+		surface: "plate",
+		defaults: {
+			density: "roomy",
+			motif: "rain",
+			prominence: "subtle",
+			placement: "scatter",
+			variety: "mixed",
+			color: "ink",
+			drift: true,
+		},
+		Component: WeatherCluster,
+	},
+	wildlife: {
+		id: "wildlife",
+		label: "Wildlife",
+		feel: "Creatures: butterflies, a deer, a fox or an owl — line-art over the scene.",
+		surface: "plate",
+		defaults: {
+			density: "roomy",
+			motif: "butterfly",
+			prominence: "subtle",
+			placement: "scatter",
+			variety: "mixed",
+			color: "ink",
+			drift: true,
+		},
+		Component: WildlifeCluster,
+	},
+	celestial: {
+		id: "celestial",
+		label: "Celestial",
+		feel: "Night sky: sparkle stars, a crescent moon, a meteor or ringed Saturn over the dark.",
+		surface: "plate",
+		defaults: {
+			density: "roomy",
+			motif: "stars",
+			prominence: "subtle",
+			placement: "scatter",
+			variety: "mixed",
+			color: "ink",
+			drift: true,
+		},
+		Component: CelestialCluster,
 	},
 	terminal: {
 		id: "terminal",
@@ -305,22 +432,16 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 };
 
 export const INNER_ORDER: InnerId[] = [
-	"rich-card",
-	"minimal",
-	"trail-signpost",
-	"field-journal",
 	"constellation",
+	"skyline",
+	"terrain",
+	"waterline",
+	"weather",
+	"wildlife",
+	"celestial",
 	"terminal",
-	"polaroid",
-	"collectible",
-	"comic",
 	"ticket-stub",
-	"blueprint",
-	"circuit-board",
 	"arcade-hud",
-	"neon-sign",
-	"chalkboard",
-	"topo-map",
 	"seed-packet",
 ];
 

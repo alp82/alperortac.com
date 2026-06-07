@@ -25,9 +25,9 @@ export const MINIMAP_BOUNDARIES = [
 ] as const;
 
 export const SECTION_IDS = {
-	hero: "start",
+	start: "start",
 	findMe: "find-me",
 	craft: "craft",
-	cta: "contact",
+	contact: "contact",
 	footer: "footer",
 } as const;

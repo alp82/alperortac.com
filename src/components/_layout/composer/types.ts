@@ -134,7 +134,6 @@ export type AnySectionParams = SectionParamsMap[SectionId];
 /* ── Layer 2: INNER STYLE ───────────────────────────────────────────────── */
 
 export type InnerId =
-	| "rich-card"
 	| "minimal"
 	| "trail-signpost"
 	| "field-journal"
@@ -150,12 +149,28 @@ export type InnerId =
 	| "neon-sign"
 	| "chalkboard"
 	| "topo-map"
-	| "seed-packet";
+	| "seed-packet"
+	| "aurora"
+	| "moonrise"
+	| "daybreak"
+	| "summit"
+	| "skyline"
+	| "terrain"
+	| "waterline"
+	| "weather"
+	| "wildlife"
+	| "celestial";
 
 /** Shared by every inside style — cluster scale / breathing room. */
 export type InnerBase = {
 	density: "cozy" | "comfortable" | "roomy";
 };
+
+/* Shared look-&-feel controls for the decoration inner groups (skyline + the
+ * environment groups that run on the shared deco engine). */
+export type DecoProminence = "whisper" | "subtle" | "present" | "bold";
+export type DecoPlacement = "corner" | "cluster" | "scatter" | "edges";
+export type DecoColor = "ink" | "tinted" | "vivid";
 
 /*
  * Per-inside-style params: the shared density plus THAT style's signature
@@ -164,8 +179,6 @@ export type InnerBase = {
  * (inline), so these enums carry the whole look.
  */
 
-/** rich-card ignores params — it renders the live shipped card. */
-export type RichCardParams = InnerBase;
 export type MinimalParams = InnerBase & {
 	underline: boolean;
 	align: "center" | "left";
@@ -181,6 +194,7 @@ export type FieldJournalParams = InnerBase & {
 export type ConstellationParams = InnerBase & {
 	lines: boolean;
 	tint: "indigo" | "cyan" | "violet";
+	figure: "wing" | "crown" | "river";
 };
 export type TerminalParams = InnerBase & {
 	cursor: boolean;
@@ -230,10 +244,73 @@ export type SeedPacketParams = InnerBase & {
 	illustration: boolean;
 	stock: "cream" | "kraft" | "sage";
 };
+export type AuroraParams = InnerBase & {
+	stars: boolean;
+	hue: "emerald" | "violet" | "teal";
+};
+export type MoonriseParams = InnerBase & {
+	stars: boolean;
+	phase: "full" | "gibbous" | "crescent";
+};
+export type DaybreakParams = InnerBase & {
+	rays: boolean;
+	sky: "dawn" | "golden" | "dusk";
+};
+export type SummitParams = InnerBase & {
+	snow: boolean;
+	range: "dawn" | "dusk" | "night";
+};
+export type SkylineParams = InnerBase & {
+	motif: "birds" | "clouds" | "plane" | "kite" | "balloon";
+	prominence: "whisper" | "subtle" | "present" | "bold";
+	placement: "corner" | "cluster" | "scatter" | "edges";
+	variety: "uniform" | "mixed";
+	color: "ink" | "tinted" | "vivid";
+	drift: boolean;
+};
+export type TerrainParams = InnerBase & {
+	motif: "pine" | "grass" | "rocks" | "hills";
+	prominence: DecoProminence;
+	placement: DecoPlacement;
+	variety: "uniform" | "mixed";
+	color: DecoColor;
+	drift: boolean;
+};
+export type WaterlineParams = InnerBase & {
+	motif: "waves" | "koi" | "sailboat" | "lighthouse";
+	prominence: DecoProminence;
+	placement: DecoPlacement;
+	variety: "uniform" | "mixed";
+	color: DecoColor;
+	drift: boolean;
+};
+export type WeatherParams = InnerBase & {
+	motif: "rain" | "snow" | "leaves" | "sunbeam";
+	prominence: DecoProminence;
+	placement: DecoPlacement;
+	variety: "uniform" | "mixed";
+	color: DecoColor;
+	drift: boolean;
+};
+export type WildlifeParams = InnerBase & {
+	motif: "butterfly" | "deer" | "fox" | "owl";
+	prominence: DecoProminence;
+	placement: DecoPlacement;
+	variety: "uniform" | "mixed";
+	color: DecoColor;
+	drift: boolean;
+};
+export type CelestialParams = InnerBase & {
+	motif: "stars" | "moon" | "meteor" | "saturn";
+	prominence: DecoProminence;
+	placement: DecoPlacement;
+	variety: "uniform" | "mixed";
+	color: DecoColor;
+	drift: boolean;
+};
 
 /** id → that inside style's param shape. */
 export type InnerParamsMap = {
-	"rich-card": RichCardParams;
 	minimal: MinimalParams;
 	"trail-signpost": TrailSignpostParams;
 	"field-journal": FieldJournalParams;
@@ -250,6 +327,16 @@ export type InnerParamsMap = {
 	chalkboard: ChalkboardParams;
 	"topo-map": TopoMapParams;
 	"seed-packet": SeedPacketParams;
+	aurora: AuroraParams;
+	moonrise: MoonriseParams;
+	daybreak: DaybreakParams;
+	summit: SummitParams;
+	skyline: SkylineParams;
+	terrain: TerrainParams;
+	waterline: WaterlineParams;
+	weather: WeatherParams;
+	wildlife: WildlifeParams;
+	celestial: CelestialParams;
 };
 
 /** The union of every inside style's params (what composer state holds). */
@@ -349,9 +436,7 @@ export type AnyLinkParams = LinkParamsMap[LinkId];
  * Layer-2 contract: a frame is a CONTAINER — it renders its themed heading +
  * decoration and the topic's REAL body (`children`, the shared `TopicBody`)
  * inside it. No section framing, no own vertical padding — the Layer-1 stage
- * owns height/backdrop/landscape and renders this inside it. (`rich-card` is the
- * exception: it renders the full shipped card via `SectionBody` and ignores
- * `children`.)
+ * owns height/backdrop/landscape and renders this inside it.
  */
 export type InnerRenderProps<Id extends InnerId = InnerId> = {
 	topic: Topic;

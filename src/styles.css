@@ -276,6 +276,22 @@ body.panel-open {
 	}
 }
 
+/* Brand glyph layer that carries a gradient or multi-color fill the way a single
+   CSS color can't (Instagram's gradient, TikTok's cyan/red split). On the
+   button's hover fill that layer inverts to white for contrast; any sibling
+   fringe layers keep their color. */
+.glyph-hover-white {
+	transition: fill 80ms ease-out;
+}
+.btn-brutalist:hover .glyph-hover-white {
+	fill: #ffffff;
+}
+@media (prefers-reduced-motion: reduce) {
+	.glyph-hover-white {
+		transition: none;
+	}
+}
+
 /* ---- THE PLATE (frosted copy panel: hero / topic teaser / linktree) ----
    Baseline hook: the visible look is inline Tailwind on each element; this
    class only smooths colour/blur changes during the day→night flip. Kept as

@@ -148,11 +148,13 @@ export function ExternalCard({
 	label,
 	Icon,
 	brand,
+	badge,
 }: {
 	href: string;
 	label: string;
 	Icon: ComponentType<{ size?: number; color?: string; className?: string }>;
 	brand: string;
+	badge?: string;
 }) {
 	return (
 		<a
@@ -162,6 +164,11 @@ export function ExternalCard({
 			style={brandTintStyle(brand)}
 			className={EXTERNAL_CARD_CLASS}
 		>
+			{badge && (
+				<span className="absolute -top-2 right-4 z-10 pointer-events-none font-mono text-xs md:text-sm font-bold leading-tight uppercase tracking-[0.15em] -rotate-3 border-2 border-slate-900 bg-[#D51007] text-white px-2.5 py-1 shadow-[3px_3px_0_0_#0f172a] transition-colors duration-200 group-hover:bg-white group-hover:text-slate-900">
+					{badge}
+				</span>
+			)}
 			<div className="flex items-center justify-between gap-5">
 				<span className="flex items-center gap-4 min-w-0">
 					<span

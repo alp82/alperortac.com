@@ -4,12 +4,8 @@ import { flourishSrc, TOPIC_ACCENT } from "./types";
 
 /*
  * The shipped section card's CHROME — heading block + accent layout — wrapped
- * around the shared `TopicBody`. Extracted out of `current.tsx` so it can be
- * shared verbatim by two callers:
- *
- *   1. production `CurrentBlock`, which wraps this in its `<article>` shell;
- *   2. the DEV composer's `rich-card` inner, which renders the live card inside
- *      a Stage.
+ * around the shared `TopicBody`. Extracted out of `current.tsx` so production
+ * `CurrentBlock` can wrap it in its `<article>` shell.
  *
  * Resolves `layout` + `accent` INTERNALLY from `topic.id` (so neither caller can
  * pass a mismatched value) and wraps its output in a `relative` element carrying

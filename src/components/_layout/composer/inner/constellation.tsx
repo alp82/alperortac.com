@@ -1,58 +1,66 @@
 import type { InnerRenderProps } from "../types";
-import { DENSITY_HEADING } from "./shared";
+import { DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: constellation
+ * Inner: constellation (celestial / night)
  *
- * A content panel among the stars: a dark full-bleed star field + connecting
- * lines back the stage, and a centered column holds the constellation-styled
- * heading above the topic's REAL body (the shared light plate). A soft dark
- * scrim sits behind the column so the light plate reads cleanly over the stars.
- * Ties to the celestial sky easter egg. Signature toggle = the connecting star
- * lines (params.lines); the `tint` knob recolors the lines, the field stars and
- * the eyebrow inline (the cluster stars stay white).
+ * Delicate night frame: a faint scatter of field stars in the UPPER area and a
+ * thin connecting star-figure sitting RIGHT BELOW THE TITLE (in the gap before
+ * the body), so the decoration reads without merging into the paragraph text.
+ * Lines are hairline (vector-effect:non-scaling-stroke); nodes small + soft;
+ * nothing paints a background — it floats over the stage sky.
+ *
+ * Signature toggle = the connecting lines; `tint` recolors lines/eyebrow/field;
+ * `figure` swaps the star-pattern.
  */
 
-type StarPoint = { x: number; y: number };
-
-/** tint → connecting-line / field-star / eyebrow color. */
 const TINT: Record<"indigo" | "cyan" | "violet", string> = {
 	indigo: "#c7d2fe",
 	cyan: "#7dd3fc",
 	violet: "#d8b4fe",
 };
 
-const CLUSTERS: readonly StarPoint[][] = [
-	[
-		{ x: 18, y: 30 },
-		{ x: 48, y: 18 },
-		{ x: 74, y: 40 },
-		{ x: 60, y: 72 },
-		{ x: 30, y: 64 },
-	],
-	[
-		{ x: 22, y: 52 },
-		{ x: 40, y: 22 },
-		{ x: 68, y: 30 },
-		{ x: 82, y: 60 },
-		{ x: 52, y: 78 },
-	],
-];
+type Pt = { x: number; y: number };
 
-/* A wide scatter of background stars (independent of the foreground cluster). */
-const FIELD: readonly StarPoint[] = [
-	{ x: 6, y: 12 },
-	{ x: 14, y: 78 },
-	{ x: 28, y: 40 },
-	{ x: 38, y: 88 },
-	{ x: 50, y: 8 },
-	{ x: 58, y: 54 },
-	{ x: 66, y: 84 },
-	{ x: 78, y: 22 },
-	{ x: 88, y: 66 },
-	{ x: 94, y: 36 },
-	{ x: 46, y: 70 },
-	{ x: 72, y: 50 },
+/* Figures drawn in a wide, short band (viewBox 0 0 100 24) under the title. */
+const FIGURES: Record<"wing" | "crown" | "river", Pt[]> = {
+	wing: [
+		{ x: 6, y: 17 },
+		{ x: 26, y: 6 },
+		{ x: 46, y: 14 },
+		{ x: 66, y: 5 },
+		{ x: 84, y: 13 },
+		{ x: 96, y: 19 },
+	],
+	crown: [
+		{ x: 8, y: 18 },
+		{ x: 24, y: 6 },
+		{ x: 40, y: 16 },
+		{ x: 52, y: 4 },
+		{ x: 64, y: 16 },
+		{ x: 80, y: 6 },
+		{ x: 94, y: 18 },
+	],
+	river: [
+		{ x: 5, y: 9 },
+		{ x: 24, y: 17 },
+		{ x: 42, y: 8 },
+		{ x: 60, y: 18 },
+		{ x: 78, y: 10 },
+		{ x: 95, y: 19 },
+	],
+};
+
+/* Faint field stars, confined to the UPPER half so they never land on the body. */
+const FIELD: { x: number; y: number; r: number }[] = [
+	{ x: 10, y: 12, r: 1 },
+	{ x: 26, y: 30, r: 1.3 },
+	{ x: 44, y: 8, r: 1 },
+	{ x: 60, y: 26, r: 1 },
+	{ x: 74, y: 10, r: 1.3 },
+	{ x: 90, y: 22, r: 1 },
+	{ x: 18, y: 46, r: 1 },
+	{ x: 82, y: 44, r: 1 },
 ];
 
 export function ConstellationCluster({
@@ -61,76 +69,79 @@ export function ConstellationCluster({
 	params,
 	children,
 }: InnerRenderProps<"constellation">) {
-	const cluster: readonly StarPoint[] =
-		CLUSTERS[index % CLUSTERS.length] ?? CLUSTERS[0] ?? [];
-	const linePath = cluster
+	const tint = TINT[params.tint];
+	const fig = FIGURES[params.figure];
+	const path = fig
 		.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
 		.join(" ");
-	const tint = TINT[params.tint];
 
 	return (
-		<div className="relative w-full max-w-3xl">
-			{/* full-bleed star field behind the whole cluster */}
-			<svg
-				className="absolute -inset-x-[12vw] -inset-y-16 w-[calc(100%+24vw)] h-[calc(100%+8rem)] pointer-events-none"
-				viewBox="0 0 100 100"
-				preserveAspectRatio="xMidYMid slice"
+		<div className={`relative w-full ${DENSITY_MAXW[params.density]}`}>
+			{/* faint field stars — upper half only */}
+			<div
+				className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
 				aria-hidden="true"
 			>
-				<title>constellation field</title>
-				{params.lines && (
-					<path
-						d={linePath}
-						fill="none"
-						stroke={tint}
-						strokeWidth="0.55"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					/>
-				)}
-				{cluster.map((p) => (
-					<circle
-						key={`c-${p.x}-${p.y}`}
-						cx={p.x}
-						cy={p.y}
-						r="0.7"
-						fill="rgba(255,255,255,0.85)"
+				{FIELD.map((s) => (
+					<span
+						key={`f-${s.x}-${s.y}`}
+						className="absolute rounded-full"
+						style={{
+							left: `${s.x}%`,
+							top: `${s.y}%`,
+							width: `${s.r}px`,
+							height: `${s.r}px`,
+							background: tint,
+							opacity: 0.5,
+						}}
 					/>
 				))}
-				{FIELD.map((p) => (
-					<circle
-						key={`f-${p.x}-${p.y}`}
-						cx={p.x}
-						cy={p.y}
-						r="0.35"
-						fill={tint}
-						fillOpacity={0.55}
-					/>
-				))}
-			</svg>
+			</div>
 
-			{/* soft dark scrim so the light plate reads over the stars */}
-			<div
-				className="absolute -inset-x-6 -inset-y-8 pointer-events-none rounded-[2rem]"
-				style={{
-					background:
-						"radial-gradient(ellipse at center, rgba(7,10,20,0.45) 0%, rgba(7,10,20,0.22) 55%, transparent 100%)",
-				}}
-				aria-hidden="true"
-			/>
-
-			<div className="relative flex flex-col items-center text-center gap-5">
+			<div className="relative z-10 flex flex-col items-center text-center gap-5">
 				<div
-					className="text-[11px] font-mono uppercase tracking-[0.35em]"
+					className="font-mono text-[11px] uppercase tracking-[0.35em]"
 					style={{ color: tint }}
 				>
 					◆ constellation {String(index + 1).padStart(2, "0")}
 				</div>
 				<h2
-					className={`${DENSITY_HEADING[params.density]} font-black uppercase tracking-tighter text-white leading-[0.9] drop-shadow-[0_2px_14px_rgba(0,0,0,0.7)]`}
+					className={`${DENSITY_HEADING[params.density]} font-black uppercase tracking-tighter text-white leading-[0.9] [text-shadow:0_2px_10px_rgba(0,0,0,0.45)]`}
 				>
 					{topic.heading}
 				</h2>
+
+				{/* connecting figure — compact band right below the title */}
+				<svg
+					className="pointer-events-none h-12 w-full max-w-md"
+					viewBox="0 0 100 24"
+					preserveAspectRatio="xMidYMid meet"
+					aria-hidden="true"
+				>
+					<title>constellation</title>
+					{params.lines && (
+						<path
+							d={path}
+							fill="none"
+							stroke={tint}
+							strokeWidth={1}
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							vectorEffect="non-scaling-stroke"
+							opacity={0.5}
+						/>
+					)}
+					{fig.map((p) => (
+						<circle
+							key={`n-${p.x}-${p.y}`}
+							cx={p.x}
+							cy={p.y}
+							r={1.1}
+							fill="#f8fafc"
+							opacity={0.9}
+						/>
+					))}
+				</svg>
 
 				<div className="w-full text-left">{children}</div>
 			</div>

@@ -3,7 +3,7 @@ import { SECTION_IDS } from "../../data/sections";
 
 export function CTASection() {
 	return (
-		<section id={SECTION_IDS.cta} className="py-24 px-6">
+		<section id={SECTION_IDS.contact} className="py-24 px-6">
 			<div className="bg-slate-900 text-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_rgba(255,255,255,0.2)] p-10 max-w-3xl mx-auto">
 				<h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 leading-[0.95]">
 					You made it to the night.

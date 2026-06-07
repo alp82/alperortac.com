@@ -1644,3 +1644,97 @@
 		transition: none;
 	}
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   ENVIRONMENT INNER STYLES — night-sky / time-of-day / nature frames.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── aurora ── soft northern-lights curtains ── */
+.cmp-aurora {
+	filter: blur(20px);
+	opacity: 0.55;
+}
+.cmp-aurora-band {
+	position: absolute;
+	top: -10%;
+	bottom: -10%;
+	width: 55%;
+	mix-blend-mode: screen;
+	will-change: transform;
+}
+.cmp-aurora-band-1 {
+	left: -4%;
+	background: linear-gradient(
+		150deg,
+		transparent 12%,
+		var(--aur-a, #34d399) 50%,
+		transparent 88%
+	);
+	animation: cmp-aurora-drift 16s ease-in-out infinite alternate;
+}
+.cmp-aurora-band-2 {
+	right: -4%;
+	background: linear-gradient(
+		210deg,
+		transparent 12%,
+		var(--aur-b, #22d3ee) 50%,
+		transparent 88%
+	);
+	animation: cmp-aurora-drift 22s ease-in-out infinite alternate-reverse;
+}
+@keyframes cmp-aurora-drift {
+	from {
+		transform: translateY(-5%) skewX(-7deg) scaleY(0.95);
+	}
+	to {
+		transform: translateY(5%) skewX(7deg) scaleY(1.05);
+	}
+}
+
+/* ── moonrise ── glowing moon disc (halo + terminator set inline) ── */
+.cmp-moon {
+	border-radius: 50%;
+	background: radial-gradient(circle at 36% 33%, #fdfdff, #cdd6e6 68%, #aab4c8);
+}
+
+/* ── daybreak ── slow sun-ray spin ── */
+.cmp-sun-rays {
+	transform-origin: 50% 100%;
+	will-change: transform;
+	animation: cmp-sun-spin 80s linear infinite;
+}
+@keyframes cmp-sun-spin {
+	from {
+		transform: translateX(-50%) rotate(0deg);
+	}
+	to {
+		transform: translateX(-50%) rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cmp-aurora-band-1,
+	.cmp-aurora-band-2,
+	.cmp-sun-rays {
+		animation: none;
+	}
+}
+
+/* ── skyline ── gentle horizontal drift for sky motifs ── */
+.cmp-drift {
+	will-change: transform;
+	animation: cmp-drift 9s ease-in-out infinite alternate;
+}
+@keyframes cmp-drift {
+	from {
+		transform: translateX(-6px);
+	}
+	to {
+		transform: translateX(6px);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.cmp-drift {
+		animation: none;
+	}
+}

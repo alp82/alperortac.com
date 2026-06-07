@@ -12,21 +12,20 @@ import { FindMeSection } from "../components/_layout/FindMeSection";
 import { HeroSection } from "../components/_layout/HeroSection";
 import { PanelHost } from "../components/_layout/PanelHost";
 import { Minimap } from "../components/Minimap";
+import { NarrativeWatermark } from "../components/NarrativeWatermark";
 import { PixelBackground } from "../components/PixelBackground";
 import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
 import { SECTION_IDS } from "../data/sections";
-import { DEFAULT_SKY_CURVE, type SkyCurve } from "../data/skyCurve";
+import {
+	DEFAULT_SKY_CURVE,
+	NIGHT_UI_THRESHOLD,
+	type SkyCurve,
+} from "../data/skyCurve";
 import { TOPICS } from "../data/topics";
 
 export const Route = createFileRoute("/_layout")({ component: LayoutHost });
 
 const CELESTIAL_STORAGE_KEY = "alp-celestial-v1";
-
-// Scroll progress at which nav, footer, and section headers invert to white.
-// Decoupled from the sky curve so the day→night background timing stays put;
-// the dusk sky is still too light for white text right when the night
-// transition begins, so the UI flip lands a bit later than the sky shift.
-const NIGHT_UI_THRESHOLD = 0.55;
 
 function isValidCurve(v: unknown): v is SkyCurve {
 	return (
@@ -93,6 +92,7 @@ const DESIGN_MODE = import.meta.env.DEV;
 
 function LayoutHost() {
 	const [scrollProgress, setScrollProgress] = useState(0);
+	const [scrollY, setScrollY] = useState(0);
 	const [celestial, setCelestial] = useCelestialState();
 	const [skyOpen, setSkyOpen] = useState(false);
 	const [aboutOpen, setAboutOpen] = useState(false);
@@ -121,6 +121,7 @@ function LayoutHost() {
 					? Math.min(Math.max(currentScroll / totalScroll, 0), 1)
 					: 0;
 			setScrollProgress(progress);
+			setScrollY(currentScroll);
 		};
 
 		// Seed the sky from the browser's restored scroll position once on mount,
@@ -160,6 +161,7 @@ function LayoutHost() {
 	return (
 		<div className="font-sans text-slate-900 selection:bg-yellow-200">
 			<PixelBackground scrollProgress={scrollProgress} celestial={celestial} />
+			<NarrativeWatermark scrollProgress={scrollProgress} scrollY={scrollY} />
 			<Minimap scrollProgress={scrollProgress} celestial={celestial} />
 
 			<button
@@ -201,7 +203,7 @@ function LayoutHost() {
 					style={{ color: navColor }}
 				>
 					<a
-						href={`#${SECTION_IDS.hero}`}
+						href={`#${SECTION_IDS.start}`}
 						className="hover:opacity-70 transition-colors"
 					>
 						Start
@@ -250,7 +252,7 @@ function LayoutHost() {
 						)}
 					</div>
 					<a
-						href={`#${SECTION_IDS.cta}`}
+						href={`#${SECTION_IDS.contact}`}
 						className="hover:opacity-70 transition-colors"
 					>
 						Contact

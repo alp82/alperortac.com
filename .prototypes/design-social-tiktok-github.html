@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TikTok + GitHub — social link picker</title>
+<style>
+  :root {
+    --ink: #0f172a;
+    --paper: #eaf2fb;
+    --paper-soft: #f3f7fc;
+    --muted: #64748b;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: var(--paper); color: var(--ink);
+    font-family: ui-sans-serif, system-ui, "Inter", "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 18% 8%, rgba(15,23,42,0.04) 1px, transparent 1px),
+      radial-gradient(circle at 82% 55%, rgba(15,23,42,0.03) 1px, transparent 1px);
+    background-size: 24px 24px, 32px 32px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 36px 24px 120px; }
+
+  header.top h1 { font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace; font-size: 14px;
+    text-transform: uppercase; letter-spacing: 0.12em; font-weight: 900; margin: 0 0 6px; }
+  header.top p { margin: 0; color: var(--muted); font-size: 13px; max-width: 76ch; line-height: 1.5; }
+  header.top code { font-family: ui-monospace, monospace; font-size: 12px; background: #fff; padding: 1px 5px;
+    border-radius: 3px; border: 1px solid rgba(15,23,42,.12); }
+
+  h2.sec { font-family: ui-monospace, monospace; font-size: 13px; text-transform: uppercase; letter-spacing: 0.14em;
+    font-weight: 900; margin: 40px 0 4px; display: flex; align-items: center; gap: 12px; }
+  h2.sec .swatches { display: inline-flex; gap: 5px; }
+  h2.sec .chip { width: 15px; height: 15px; border-radius: 4px; border: 1px solid rgba(15,23,42,.2); }
+  .sec-note { color: var(--muted); font-size: 12px; margin: 0 0 18px; font-family: ui-monospace, monospace; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 22px; }
+  .tile { background: var(--paper-soft); border: 2px solid var(--ink); border-radius: 8px; padding: 18px 18px 20px;
+    box-shadow: 5px 5px 0 0 rgba(15,23,42,.12); }
+  .tile.baseline { background: #f3f4f6; }
+  .tile h3 { margin: 0 0 2px; font-size: 15px; font-weight: 900; letter-spacing: -0.01em; }
+  .tile h3 .tag { font-family: ui-monospace, monospace; font-size: 10px; font-weight: 700; color: #fff; background: var(--ink);
+    padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-right: 8px; letter-spacing: 0.06em; }
+  .tile .desc { margin: 0 0 16px; color: var(--muted); font-size: 12.5px; line-height: 1.5; min-height: 36px; }
+  .states { display: grid; gap: 12px; }
+  .state-row { display: grid; grid-template-columns: 38px 1fr; align-items: center; gap: 10px; }
+  .state-row .lbl { font-family: ui-monospace, monospace; font-size: 9px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.08em; text-align: right; line-height: 1.2; }
+
+  /* faithful .btn-brutalist social link */
+  .iglink { display: flex; align-items: center; justify-content: space-between; width: 100%;
+    text-decoration: none; text-align: left; font-weight: 900; text-transform: uppercase; letter-spacing: 0.045em; font-size: 15px;
+    padding: 16px 16px; border: 2px solid var(--ink); border-radius: 4px; color: var(--ink);
+    background: var(--rest-bg, #fff); box-shadow: 6px 6px 0 0 var(--ink); cursor: pointer; user-select: none;
+    transition: transform 80ms ease-out, box-shadow 80ms ease-out, background 120ms ease-out, color 120ms ease-out; }
+  .iglink .left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .iglink .ico { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .iglink .ico svg { display: block; }
+  .iglink .ico .main { fill: var(--g-main, var(--ink)); transition: fill 80ms ease-out; }
+  .iglink .label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .iglink .arrow { flex-shrink: 0; opacity: 0; transform: translateX(12px);
+    transition: opacity 200ms ease-out, transform 200ms ease-out; }
+  .iglink .arrow svg { display: block; }
+  .iglink:hover, .iglink.force-hover { background: var(--hover-bg, var(--rest-bg)); color: var(--hover-text, var(--ink));
+    transform: translate(2px, 2px); box-shadow: 4px 4px 0 0 var(--ink); }
+  .iglink:hover .main, .iglink.force-hover .main { fill: var(--g-main-h, #fff); }
+  .iglink:hover .arrow, .iglink.force-hover .arrow { opacity: 1; transform: translateX(0); }
+  .iglink.force-hover { cursor: default; }
+
+  .spec { margin-top: 16px; font-family: ui-monospace, monospace; font-size: 10.5px; line-height: 1.5;
+    color: #475569; background: #fff; border: 1px solid rgba(15,23,42,.1); border-radius: 5px; padding: 9px 11px;
+    white-space: pre-wrap; word-break: break-word; }
+  footer { margin-top: 44px; color: var(--muted); font-size: 12px; font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <h1>TikTok + GitHub · social link picker</h1>
+      <p>Same real <code>.btn-brutalist</code> link as the live section. Top button is live (hover it); bottom is a frozen <b>hover</b> snapshot. Baseline = what ships today (both flat black). TikTok glyph uses the signature cyan/red chromatic split; GitHub explores its new brand-green foundation.</p>
+    </header>
+
+    <h2 class="sec">TikTok
+      <span class="swatches">
+        <span class="chip" style="background:#25F4EE"></span>
+        <span class="chip" style="background:#FE2C55"></span>
+        <span class="chip" style="background:#000000"></span>
+      </span>
+    </h2>
+    <p class="sec-note">Splash cyan #25F4EE · Razzmatazz red #FE2C55 · black #000</p>
+    <div class="grid" id="grid-tiktok"></div>
+
+    <h2 class="sec">GitHub
+      <span class="swatches">
+        <span class="chip" style="background:#0FBF3E"></span>
+        <span class="chip" style="background:#101411"></span>
+        <span class="chip" style="background:#8CF2A6"></span>
+      </span>
+    </h2>
+    <p class="sec-note">Hero green #0FBF3E · process black #101411 (brand.github.com leads with green now)</p>
+    <div class="grid" id="grid-github"></div>
+
+    <footer>throwaway · .prototypes/design-social-tiktok-github.html</footer>
+  </div>
+
+<script>
+  const TIKTOK = "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z";
+  const GITHUB = "M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12";
+  const ARROW = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+
+  // glyph builders
+  function tiktokGlyph(split) {
+    const fringe = split
+      ? '<path transform="translate(-1.3,-1.3)" fill="#25F4EE" d="' + TIKTOK + '"/>' +
+        '<path transform="translate(1.3,1.3)" fill="#FE2C55" d="' + TIKTOK + '"/>'
+      : '';
+    return '<svg width="28" height="28" viewBox="-2 -2 28 28">' + fringe +
+      '<path class="main" d="' + TIKTOK + '"/></svg>';
+  }
+  function githubGlyph() {
+    return '<svg width="28" height="28" viewBox="0 0 24 24"><path class="main" d="' + GITHUB + '"/></svg>';
+  }
+
+  function vars(v) {
+    return [
+      "--rest-bg:" + v.restBg,
+      "--hover-bg:" + v.hoverBg,
+      "--hover-text:" + (v.hoverText || "#fff"),
+      "--g-main:" + v.gMain,
+      "--g-main-h:" + (v.gMainH || "#fff")
+    ].join(";");
+  }
+  function button(v, force) {
+    const glyph = v.glyph === "tiktok" ? tiktokGlyph(v.split) : githubGlyph();
+    return '<a class="iglink' + (force ? ' force-hover' : '') + '" style="' + vars(v) + '">' +
+      '<span class="left"><span class="ico">' + glyph + '</span><span class="label">' + v.label + '</span></span>' +
+      '<span class="arrow">' + ARROW + '</span></a>';
+  }
+  function tile(v) {
+    return '<div class="tile' + (v.cls ? ' ' + v.cls : '') + '">' +
+      '<h3><span class="tag">' + v.tag + '</span>' + v.name + '</h3>' +
+      '<p class="desc">' + v.desc + '</p>' +
+      '<div class="states">' +
+        '<div class="state-row"><span class="lbl">rest →<br>hover</span>' + button(v, false) + '</div>' +
+        '<div class="state-row"><span class="lbl">hover<br>frozen</span>' + button(v, true) + '</div>' +
+      '</div><div class="spec">' + v.spec + '</div></div>';
+  }
+
+  const TT_GRAD = 'linear-gradient(135deg, #25F4EE 0%, #FE2C55 100%)';
+  const TIKTOK_VARIANTS = [
+    { tag:"now", cls:"baseline", glyph:"tiktok", split:false, label:"TikTok", name:"Baseline (current)",
+      desc:"What ships today: flat black glyph, grey tint, flat black hover. No brand color at all.",
+      restBg:"#e6e7ec", hoverBg:"#000000", gMain:"#000000", gMainH:"#fff",
+      spec:"flat #000 glyph  ·  hover #000 (no color)" },
+    { tag:"T1", glyph:"tiktok", split:true, label:"TikTok", name:"Signature · split on black",
+      desc:"The real TikTok mark: black note with cyan/red chromatic offset. Hover goes black, note turns white, fringe stays.",
+      restBg:"#e9eaf0", hoverBg:"#000000", gMain:"#050608", gMainH:"#ffffff",
+      spec:"split glyph (cyan ↖ / red ↘)  ·  hover #000" },
+    { tag:"T2", glyph:"tiktok", split:true, label:"TikTok", name:"Vivid · cyan→red hover",
+      desc:"Split glyph at rest; hover fills with a cyan→red diagonal sweep, note inverts to white.",
+      restBg:"#e9eaf0", hoverBg:TT_GRAD, gMain:"#050608", gMainH:"#ffffff",
+      spec:"split glyph  ·  hover " + TT_GRAD },
+    { tag:"T3", glyph:"tiktok", split:false, label:"TikTok", name:"Razzmatazz · single red",
+      desc:"No split — clean single-accent. Red glyph at rest, hover fills Razzmatazz red, glyph white. Matches the other one-color buttons.",
+      restBg:"color-mix(in srgb, #FE2C55 14%, white)", hoverBg:"#FE2C55", gMain:"#FE2C55", gMainH:"#ffffff",
+      spec:"glyph #FE2C55  ·  hover #FE2C55" },
+    { tag:"T4", glyph:"tiktok", split:true, label:"TikTok", name:"Splash · cyan hover",
+      desc:"Split glyph; hover fills Splash cyan. Cyan is light, so the note stays dark for contrast — fringe still reads.",
+      restBg:"color-mix(in srgb, #25F4EE 20%, white)", hoverBg:"#25F4EE", gMain:"#050608", gMainH:"#050608", hoverText:"#050608",
+      spec:"split glyph  ·  hover #25F4EE, dark note" },
+    { tag:"T5", glyph:"tiktok", split:true, label:"TikTok", name:"Delicate · split on ink",
+      desc:"Keeps the dark-hover of the X/Threads trio (ink #0f172a) but adds TikTok's identity through the cyan/red fringe only.",
+      restBg:"#e9eaf0", hoverBg:"#0f172a", gMain:"#050608", gMainH:"#ffffff",
+      spec:"split glyph  ·  hover #0f172a (trio match)" }
+  ];
+
+  const GH_GRAD = 'linear-gradient(135deg, #0FBF3E 0%, #0A241B 100%)';
+  const GITHUB_VARIANTS = [
+    { tag:"now", cls:"baseline", glyph:"github", label:"GitHub", name:"Baseline (current)",
+      desc:"What ships today: flat #181717 glyph, grey tint, flat #181717 hover. Pre-rebrand near-black.",
+      restBg:"#dee1e6", hoverBg:"#181717", gMain:"#181717", gMainH:"#fff",
+      spec:"flat #181717 glyph  ·  hover #181717" },
+    { tag:"G1", glyph:"github", label:"GitHub", name:"Brand green hover",
+      desc:"Dark glyph at rest; hover fills GitHub's hero green #0FBF3E, glyph white. Pulls the new brand color in boldly.",
+      restBg:"#e7ebe8", hoverBg:"#0FBF3E", gMain:"#101411", gMainH:"#ffffff",
+      spec:"glyph #101411  ·  hover #0FBF3E (hero green)" },
+    { tag:"G2", glyph:"github", label:"GitHub", name:"Green glyph · black hover",
+      desc:"Green Octocat at rest as the accent; hover goes process-black #101411, glyph white. Quieter, green lives in the mark.",
+      restBg:"#e7ebe8", hoverBg:"#101411", gMain:"#0FBF3E", gMainH:"#ffffff",
+      spec:"glyph #0FBF3E  ·  hover #101411" },
+    { tag:"G3", glyph:"github", label:"GitHub", name:"True mono (process black)",
+      desc:"Subtle upgrade of the baseline to the real brand black #101411 instead of #181717. Stays monochrome.",
+      restBg:"#dee1e6", hoverBg:"#101411", gMain:"#101411", gMainH:"#ffffff",
+      spec:"glyph #101411  ·  hover #101411" },
+    { tag:"G4", glyph:"github", label:"GitHub", name:"Green→ink gradient hover",
+      desc:"Dark glyph on a faint green tint; hover fills a green→deep-green gradient. Brand green without going flat-loud.",
+      restBg:"color-mix(in srgb, #0FBF3E 13%, white)", hoverBg:GH_GRAD, gMain:"#101411", gMainH:"#ffffff",
+      spec:"hover " + GH_GRAD }
+  ];
+
+  document.getElementById('grid-tiktok').innerHTML = TIKTOK_VARIANTS.map(tile).join('');
+  document.getElementById('grid-github').innerHTML = GITHUB_VARIANTS.map(tile).join('');
+</script>
+</body>
+</html>
