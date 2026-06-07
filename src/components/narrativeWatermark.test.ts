@@ -36,15 +36,14 @@ describe("Constants", () => {
 		expect(LONGEST).toBe(5);
 	});
 
-	it("TC-C-02: edges — BUILD=left, LIFE=right; no COACH; two words; every word has an edge", () => {
+	it("TC-C-02: edges — BUILD=left, LIVE=right; two words; every word has an edge", () => {
 		const byText = (t: string): WatermarkWord => {
 			const found = WORDS.find((w) => w.text === t);
 			if (!found) throw new Error(`Word "${t}" not in WORDS`);
 			return found;
 		};
 		expect(byText("BUILD").zone.edge).toBe("left");
-		expect(byText("LIFE").zone.edge).toBe("right");
-		expect(WORDS.find((w) => w.text === "COACH")).toBeUndefined();
+		expect(byText("LIVE").zone.edge).toBe("right");
 		expect(WORDS.length).toBe(2);
 		for (const w of WORDS) {
 			expect(["left", "right"]).toContain(w.zone.edge);
@@ -60,14 +59,14 @@ describe("Constants", () => {
 		expect(WM.lineHeight).toBe(0.92);
 	});
 
-	it("TC-C-04: per-word colors — BUILD dark, LIFE light", () => {
+	it("TC-C-04: per-word colors — BUILD dark, LIVE light", () => {
 		const byText = (t: string): WatermarkWord => {
 			const found = WORDS.find((w) => w.text === t);
 			if (!found) throw new Error(`Word "${t}" not in WORDS`);
 			return found;
 		};
 		expect(byText("BUILD").color).toBe("#0f172a");
-		expect(byText("LIFE").color).toBe("#fff");
+		expect(byText("LIVE").color).toBe("#fff");
 	});
 });
 

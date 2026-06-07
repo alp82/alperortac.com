@@ -15,11 +15,10 @@ export type WatermarkWord = {
 };
 
 // Two data-driven words tiled across the page. Color is fixed per word
-// (independent of scroll - no night flip): BUILD dark on the left, LIFE light
+// (independent of scroll - no night flip): BUILD dark on the left, LIVE light
 // on the right. Zones are re-aimed so the triangular falloff tails overlap
 // across the page center; the crossover lands at p=0.5 so there's no dead gap
-// where COACH (was 0.57) used to peak. Positional placeholders pending the
-// deferred Build/Coach/Life content restructure.
+// at the seam. Positional placeholders pending the deferred content restructure.
 export const WORDS: readonly WatermarkWord[] = [
 	{
 		text: "BUILD",
@@ -27,7 +26,7 @@ export const WORDS: readonly WatermarkWord[] = [
 		zone: { c: 0.3, w: 0.36, edge: "left" },
 		revealAfterVh: 1,
 	},
-	{ text: "LIFE", color: "#fff", zone: { c: 0.7, w: 0.36, edge: "right" } },
+	{ text: "LIVE", color: "#fff", zone: { c: 0.7, w: 0.36, edge: "right" } },
 ];
 
 // Longest word drives the auto-fit so the full column always fits the viewport.

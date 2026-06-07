@@ -184,8 +184,9 @@ function LayoutHost() {
 			)}
 
 			<nav className="fixed top-0 left-0 right-0 md:right-20 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-sm bg-white/10 border-b border-white/20">
-				<div
-					className="text-xl font-black tracking-tighter uppercase flex items-center gap-2 drop-shadow-md transition-colors duration-100"
+				<a
+					href={`#${SECTION_IDS.start}`}
+					className="text-xl font-black tracking-tighter uppercase flex items-center gap-2 drop-shadow-md transition-colors duration-100 hover:opacity-70"
 					style={{ color: navColor }}
 				>
 					<img
@@ -197,7 +198,7 @@ function LayoutHost() {
 						className="w-8 h-8 rounded-full border-2 border-slate-900 object-cover shrink-0"
 					/>
 					Alper Ortac
-				</div>
+				</a>
 				<div
 					className="hidden md:flex gap-8 font-bold text-sm uppercase tracking-widest drop-shadow-sm transition-colors duration-100 items-center"
 					style={{ color: navColor }}
