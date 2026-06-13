@@ -3,10 +3,10 @@ import type { CelestialState } from "../data/celestial";
 import { skyAt } from "../data/skyCurve";
 import {
 	celestialPosition,
-	moonOpacityAt,
 	MOON_WINDOW,
-	sunOpacityAt,
+	moonOpacityAt,
 	SUN_WINDOW,
+	sunOpacityAt,
 	windowedProgress,
 } from "./minimap/helpers";
 
@@ -163,7 +163,7 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 			onPointerCancel={stopDrag}
 			role="presentation"
 			aria-hidden="true"
-			className="hidden md:block fixed right-0 top-0 w-20 h-screen border-l-2 border-slate-900 cursor-pointer select-none z-40 overflow-hidden touch-none"
+			className="hidden md:block fixed right-0 top-0 w-20 h-screen border-l-2 border-white/20 cursor-pointer select-none z-40 overflow-hidden touch-none"
 			style={{
 				background: minimapGradient,
 				willChange: "transform",
@@ -202,7 +202,7 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 				}}
 			/>
 			<div
-				className="absolute left-0 right-0 border-y-2 border-slate-900 pointer-events-none"
+				className="absolute left-0 right-0 border-y-2 border-white/20 pointer-events-none"
 				style={{
 					top: `${viewportTopPct}%`,
 					height: `${viewportHeightPct}%`,

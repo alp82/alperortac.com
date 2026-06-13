@@ -1,0 +1,1042 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>World camera — one continuous diegetic world</title>
+<style>
+  :root {
+    --ink: #0f172a;
+    --paper: #fafaf7;
+    --line: #0f172a;
+    --accent: #fde047;
+    --shadow: 4px 4px 0 0 #0f172a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--paper); color: var(--ink); font-family: ui-monospace, "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace; }
+
+  .layout { display: grid; grid-template-columns: minmax(320px, 30%) 1fr; min-height: 100vh; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  /* ---------- LEFT: brutalist control panel (hard edges ONLY here) ---------- */
+  .panel {
+    border-right: 2px solid var(--line); background: #fff; padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 14px; overflow-y: auto; max-height: 100vh;
+  }
+  @media (max-width: 900px) {
+    .panel { max-height: none; border-right: none; border-bottom: 2px solid var(--line); order: -1; }
+  }
+  .panel h1 { font-size: 13px; margin: 0; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 900; }
+  .panel .subtitle { font-size: 11px; margin: 0; opacity: 0.65; line-height: 1.4; }
+
+  .section {
+    border: 2px solid var(--line); background: #fff; padding: 10px 12px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .section-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.8; }
+  .section-note { font-size: 10px; opacity: 0.6; line-height: 1.4; }
+
+  .control-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .control-value {
+    min-width: 60px; text-align: right; font-size: 11px; font-weight: 700; padding: 3px 6px;
+    background: #f1f5f9; border: 1px solid var(--line); font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] { flex: 1; min-width: 140px; accent-color: var(--ink); }
+  select {
+    font: inherit; font-size: 11px; font-weight: 700; padding: 6px 8px;
+    border: 2px solid var(--line); background: #fff; cursor: pointer; flex: 1; min-width: 140px;
+  }
+
+  .segmented { display: flex; flex-wrap: wrap; border: 2px solid var(--line); background: #fff; }
+  .segmented button {
+    font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 6px 10px; background: #fff; border: none; cursor: pointer; color: var(--ink);
+    flex: 1 0 auto; border-right: 2px solid var(--line); border-bottom: 2px solid var(--line);
+  }
+  .segmented.cols button { flex: 1 0 45%; }
+  .segmented button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+  .toggle-row { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; }
+  .toggle-row input { width: 16px; height: 16px; accent-color: var(--ink); }
+
+  .run-btn {
+    font: inherit; font-size: 12px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 10px 14px; background: #fff; border: 2px solid var(--line); cursor: pointer;
+    box-shadow: var(--shadow); color: var(--ink);
+  }
+  .run-btn:hover { background: var(--accent); }
+  .run-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 0 var(--line); }
+
+  .copy-row { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+  .copy-btn {
+    font: inherit; font-size: 12px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 12px 14px; background: var(--accent); border: 2px solid var(--line); cursor: pointer;
+    box-shadow: var(--shadow); color: var(--ink);
+  }
+  .copy-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 0 var(--line); }
+  .copy-hint { font-size: 10px; opacity: 0.7; line-height: 1.4; }
+  .copy-status { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #166534; height: 14px; }
+  .spec-out {
+    width: 100%; font: inherit; font-size: 10px; border: 2px solid var(--line); padding: 6px;
+    background: #f8fafc; resize: vertical; min-height: 54px; display: none;
+  }
+  .spec-out.show { display: block; }
+
+  /* ---------- RIGHT: preview ---------- */
+  .preview-col { display: flex; flex-direction: column; min-height: 100vh; background: var(--paper); }
+  .stage-head {
+    padding: 12px 18px; border-bottom: 2px solid var(--line); background: #fff;
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  }
+  .stage-head h2 { font-size: 12px; margin: 0; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 900; }
+  .stage-head .hint { font-size: 10px; opacity: 0.6; }
+
+  /* The viewport is the CAMERA onto the world */
+  .viewport {
+    position: relative; flex: 1; min-height: 560px; overflow: hidden; background: #87ceeb;
+    touch-action: none; cursor: grab; user-select: none;
+  }
+  .viewport.grabbing { cursor: grabbing; }
+
+  /* ---------- CAMERA: a giant plane translated/scaled as one unit ---------- */
+  .camera {
+    position: absolute; top: 0; left: 0; width: 2400px; height: 2600px;
+    transform-origin: 0 0; will-change: transform;
+  }
+
+  /* sky fills the whole plane; recolored per camera.y in JS */
+  .sky-fill { position: absolute; inset: 0; background: rgb(135,206,235); }
+  .sky-haze {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(to bottom, rgba(255,255,255,0) 70%, rgba(255,255,255,0.10) 100%);
+    mix-blend-mode: screen;
+  }
+
+  /* depth layers — translated by camera * depthFactor in JS for parallax */
+  .layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; will-change: transform; pointer-events: none; }
+  .layer.props { pointer-events: auto; }
+
+  .celestial { position: absolute; width: 150px; height: 150px; border-radius: 50%; transform: translate(-50%,-50%); will-change: opacity; }
+  .sun {
+    background: radial-gradient(circle at 38% 34%, #fffdf0, #fde047 58%, #fbbf24);
+    box-shadow: 0 0 90px 30px rgba(253,224,71,0.5), 0 0 180px 80px rgba(253,224,71,0.22);
+  }
+  .moon {
+    width: 110px; height: 110px;
+    background: radial-gradient(circle at 36% 32%, #ffffff, #e2e8f0 60%, #cbd5e1);
+    box-shadow: 0 0 90px 34px rgba(226,232,240,0.25);
+  }
+  .moon::before, .moon::after { content: ""; position: absolute; border-radius: 50%; background: rgba(148,163,184,0.45); }
+  .moon::before { width: 26px; height: 26px; top: 20px; right: 22px; }
+  .moon::after  { width: 16px; height: 16px; bottom: 26px; left: 26px; }
+
+  .stars { position: absolute; inset: 0; opacity: 0; }
+  .star { position: absolute; border-radius: 50%; background: #fff; }
+  @keyframes twinkle { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
+  .star { animation: twinkle var(--tw,3s) ease-in-out infinite; animation-delay: var(--td,0s); }
+
+  .aurora { position: absolute; left: 8%; right: 8%; height: 420px; opacity: 0; mix-blend-mode: screen; filter: blur(26px); }
+  .aurora-band { position: absolute; left:0; right:0; height: 180px; border-radius: 50%; }
+  .aurora-band.a { top: 6%;  background: radial-gradient(ellipse 60% 100% at 40% 50%, rgba(52,211,153,0.55), transparent 70%); }
+  .aurora-band.b { top: 30%; background: radial-gradient(ellipse 70% 100% at 60% 50%, rgba(56,189,248,0.45), transparent 70%); }
+
+  .cloud { position: absolute; opacity: 0.5; }
+  .cloud svg { display: block; width: 100%; height: auto; }
+
+  .range { position: absolute; left: -4%; right: -4%; }
+  .range svg { display: block; width: 100%; height: auto; }
+
+  /* ground / soil cross-section under the surface line */
+  .surface-soil {
+    position: absolute; left: 0; right: 0;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.06) 0 2px, rgba(0,0,0,0) 2px 22px),
+      linear-gradient(to bottom, #6b4f3a, #4a3526 40%, #2a1d12 100%);
+  }
+  .surface-soil::before {
+    content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 14px;
+    background: linear-gradient(to bottom, #5d8a4a, #3f6b34); border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+
+  /* ---------- PLACES (props built into the scenery) ---------- */
+  .place { position: absolute; }
+
+  /* hero */
+  .hero { text-align: center; color: var(--ink); width: 460px; }
+  .hero .avatar {
+    width: 100px; height: 100px; border-radius: 50%; margin: 0 auto 16px auto;
+    background: radial-gradient(circle at 35% 30%, #fff, #cbe6f5 60%, #8ec6e6);
+    border: 2px solid rgba(15,23,42,0.25); box-shadow: 0 8px 30px rgba(15,23,42,0.18);
+  }
+  .hero h3 { margin: 0 0 6px 0; font-size: 30px; letter-spacing: 0.02em; }
+  .hero p { margin: 0 auto; max-width: 380px; font-size: 13px; line-height: 1.5; opacity: 0.85; }
+
+  /* frosted plates (soft — the world is never hard-edged) */
+  .plate {
+    width: 380px; padding: 20px 22px; border-radius: 20px;
+    background: rgba(255,255,255,0.16); backdrop-filter: blur(10px) saturate(1.15);
+    -webkit-backdrop-filter: blur(10px) saturate(1.15);
+    border: 1px solid rgba(255,255,255,0.45); box-shadow: 0 12px 44px rgba(15,23,42,0.2); color: #0f172a;
+  }
+  .plate .kicker { font-size: 9px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.6; }
+  .plate h4 { margin: 4px 0 8px 0; font-size: 20px; }
+  .plate p { margin: 0; font-size: 12.5px; line-height: 1.55; opacity: 0.9; }
+  .plate.dead { opacity: 0.8; }
+  .plate.live { cursor: pointer; transition: transform 140ms ease, box-shadow 140ms ease; }
+  .plate.live:hover, .plate.live:focus-visible { transform: translateY(-2px); box-shadow: 0 16px 54px rgba(15,23,42,0.3); outline: none; }
+  .plate.live .open-cue {
+    display: inline-block; margin-top: 12px; font-size: 10px; font-weight: 800; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 5px 9px; border-radius: 999px;
+    background: rgba(15,23,42,0.12); border: 1px solid rgba(15,23,42,0.2);
+  }
+  .plate.night-text { color: #f1f5f9; }
+  .plate.night-text .open-cue { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.3); }
+
+  /* cavern mouth + chamber */
+  .cavern-mouth {
+    position: absolute; border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(20,14,30,0.0), rgba(12,9,18,0.85) 55%, rgba(8,6,14,0.96) 100%);
+    box-shadow: inset 0 30px 60px rgba(0,0,0,0.6);
+  }
+  .chamber {
+    position: absolute; border-radius: 18px;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.10) 0 2px, rgba(0,0,0,0) 2px 26px),
+      linear-gradient(to bottom, rgba(46,35,26,0.92), rgba(20,14,9,0.96));
+    border: 1px solid rgba(120,90,60,0.4); box-shadow: inset 0 0 80px rgba(0,0,0,0.7);
+    color: #ecdcc6; padding: 22px 24px;
+  }
+  .chamber .sign {
+    font-size: 12.5px; line-height: 1.6; color: #e7d6bd; margin: 0 0 14px 0; max-width: 520px;
+  }
+  .chamber .sign a { color: #facc15; }
+  .chamber .strata { display: flex; flex-direction: column; gap: 7px; margin: 0 0 16px 0; }
+  .crate {
+    font-size: 12px; padding: 9px 13px; border-radius: 4px; border-left: 4px solid rgba(180,130,80,0.7);
+    background: linear-gradient(90deg, rgba(160,120,80,0.28), rgba(120,90,60,0.10));
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.18); display: flex; gap: 8px; align-items: baseline;
+  }
+  .crate .pri { font-weight: 800; color: #fff3df; }
+  .crate .sec { opacity: 0.78; font-size: 11px; }
+  .chamber .cloudtrio-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.6; margin: 4px 0 8px 0; }
+
+  /* observatory / night cliff */
+  .observatory { position: absolute; color: #eef2ff; }
+  .obs-cliff {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 180px;
+    background: linear-gradient(to bottom, rgba(30,30,55,0.0), rgba(18,18,40,0.85));
+    border-radius: 50% 50% 0 0 / 80px 80px 0 0;
+  }
+  .obs-sign {
+    width: 360px; padding: 18px 20px; border-radius: 16px;
+    background: rgba(12,10,30,0.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(148,163,184,0.3); color: #e2e8f0;
+  }
+  .obs-sign .stat-line { font-size: 14px; font-weight: 800; margin: 0 0 12px 0; }
+  .obs-sign .genre-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px 0; }
+  .obs-sign .genre-tags span {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+  }
+  .obs-sign .d-links { display: flex; gap: 14px; font-size: 12px; font-weight: 700; }
+  .obs-sign .d-links a { color: #7dd3fc; }
+  .obs-note { font-size: 10px; opacity: 0.7; margin: 10px 0 0 0; line-height: 1.5; max-width: 360px; color: #cbd5e1; }
+
+  /* cover-lanterns hung in the night sky as a constellation */
+  .lantern {
+    position: absolute; width: 58px; height: 58px; border-radius: 9px; overflow: hidden;
+    box-shadow: 0 0 22px rgba(255,255,255,0.22), 0 6px 18px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; justify-content: flex-end; padding: 6px;
+    transform: translate(-50%,-50%);
+  }
+  .lantern .lbl { font-size: 8px; font-weight: 800; color: rgba(255,255,255,0.95); text-shadow: 0 1px 2px rgba(0,0,0,0.6); line-height: 1.2; }
+  .lantern .lbl .ar { opacity: 0.8; font-weight: 600; }
+
+  /* dead scenery plaque */
+  .plaque {
+    width: 300px; padding: 16px 18px; border-radius: 16px; color: #0f172a;
+    background: rgba(255,255,255,0.14); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.4);
+  }
+  .plaque .kicker { font-size: 9px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.55; }
+  .plaque h4 { margin: 4px 0 6px 0; font-size: 16px; }
+  .plaque p { margin: 0; font-size: 11.5px; line-height: 1.5; opacity: 0.85; }
+
+  /* ---------- HUD: return + minimap (fixed to the camera frame, not the world) ---------- */
+  .return-btn {
+    position: absolute; top: 14px; left: 14px; z-index: 30;
+    font: inherit; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 8px 12px; background: rgba(255,255,255,0.9); border: 2px solid var(--line); cursor: pointer;
+    box-shadow: 2px 2px 0 0 var(--line); display: none;
+  }
+  .return-btn.show { display: block; }
+  .return-btn:active { transform: translate(2px,2px); box-shadow: 0 0 0 0 var(--line); }
+
+  /* minimap echoes Minimap.tsx: gradient body, viewport rectangle, sun/moon dots */
+  .minimap {
+    position: absolute; top: 14px; right: 14px; z-index: 30;
+    width: 96px; height: 132px; border: 2px solid rgba(255,255,255,0.5); border-radius: 4px;
+    overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.4); cursor: pointer; touch-action: none;
+  }
+  .minimap .mm-sky { position: absolute; inset: 0; }
+  .minimap .mm-dim { position: absolute; inset: 0; background: #020617; opacity: 0.4; }
+  .minimap .mm-place { position: absolute; border-radius: 2px; background: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.5); }
+  .minimap .mm-place.tech { background: rgba(180,130,80,0.55); }
+  .minimap .mm-place.music { background: rgba(125,211,252,0.5); }
+  .minimap .mm-vp { position: absolute; border: 2px solid rgba(255,255,255,0.85); box-shadow: 0 0 0 9999px rgba(2,6,23,0.32); }
+  .minimap .mm-dot { position: absolute; width: 7px; height: 7px; border-radius: 50%; transform: translate(-50%,-50%); }
+  .minimap .mm-sun { background: #fde047; border: 1px solid #f59e0b; box-shadow: 0 0 6px rgba(253,224,71,0.7); }
+  .minimap .mm-moon { background: #f1f5f9; border: 1px solid #cbd5e1; }
+  .minimap-label {
+    position: absolute; top: 150px; right: 14px; z-index: 30; font-size: 8px; font-weight: 800;
+    letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.85); text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    width: 96px; text-align: center;
+  }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <!-- ============ LEFT: CONTROL PANEL ============ -->
+    <aside class="panel">
+      <div>
+        <h1>World camera</h1>
+        <p class="subtitle">One continuous, diegetic world. Opening a topic flies the CAMERA to a different AREA of the same landscape &mdash; you never leave the world. Drag the stage / scroll to move along the main path; click a live plate or hit Travel to fly to a place. ESC / Return flies back.</p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Camera style</div>
+        <div class="segmented" id="cameraStyle" role="radiogroup" aria-label="Camera style">
+          <button type="button" data-value="pan"   aria-pressed="false">Pan</button>
+          <button type="button" data-value="dolly" aria-pressed="true">Dolly</button>
+          <button type="button" data-value="arc"   aria-pressed="false">Arc</button>
+        </div>
+        <div class="section-note" id="csNote"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Framing / zoom</div>
+        <div class="segmented" id="framing" role="radiogroup" aria-label="Framing">
+          <button type="button" data-value="wide"   aria-pressed="false">Wide</button>
+          <button type="button" data-value="medium" aria-pressed="true">Medium</button>
+          <button type="button" data-value="close"  aria-pressed="false">Close</button>
+        </div>
+        <div class="section-note">How close the camera pushes in at the destination. Surroundings always stay at the frame edges.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Parallax strength</div>
+        <div class="control-row">
+          <input id="parallax" type="range" min="0" max="1" step="0.05" value="0.6" />
+          <div class="control-value" id="parallaxVal">0.60</div>
+        </div>
+        <div class="section-note">How much far layers lag behind near layers as the camera moves.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Duration</div>
+        <div class="control-row">
+          <input id="duration" type="range" min="200" max="2000" step="10" value="900" />
+          <div class="control-value" id="durationVal">900ms</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Easing</div>
+        <div class="control-row">
+          <select id="easing">
+            <option value="ease-out">ease-out</option>
+            <option value="cubic-bezier(0.22,1,0.36,1)" selected>site curve (.22,1,.36,1)</option>
+            <option value="ease-in-out">ease-in-out</option>
+            <option value="cubic-bezier(0.34,1.56,0.64,1)">spring (.34,1.56,.64,1)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Topic / destination</div>
+        <div class="segmented" id="topic" role="radiogroup" aria-label="Topic">
+          <button type="button" data-value="tech"  aria-pressed="true">Tech-stack cavern</button>
+          <button type="button" data-value="music" aria-pressed="false">Music night-sky</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Motion</div>
+        <label class="toggle-row">
+          <input type="checkbox" id="reducedMotion" />
+          Simulate reduced-motion
+        </label>
+        <div class="section-note" id="rmNote"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Travel</div>
+        <div class="control-row">
+          <button class="run-btn" id="runBtn" style="flex:1;">Travel to place &rarr;</button>
+        </div>
+        <div class="section-note">Flies the camera to the selected topic's area. Press ESC or click &larr; Return to fly back to the path.</div>
+      </div>
+
+      <div class="copy-row">
+        <button class="copy-btn" id="copyBtn">Copy spec</button>
+        <div class="copy-status" id="copyStatus" aria-live="polite"></div>
+        <textarea class="spec-out" id="specOut" readonly aria-label="Spec JSON fallback"></textarea>
+        <p class="copy-hint">Click Copy spec, then paste the JSON back into chat to lock your chosen camera behavior.</p>
+      </div>
+    </aside>
+
+    <!-- ============ RIGHT: PREVIEW STAGE (the camera) ============ -->
+    <section class="preview-col">
+      <div class="stage-head">
+        <h2>The world</h2>
+        <span class="hint">Drag to move the camera along the path &middot; click a live plate to travel &middot; ESC to return</span>
+      </div>
+
+      <div class="viewport" id="viewport">
+        <!-- CAMERA PLANE: every layer lives inside, parallax applied per layer -->
+        <div class="camera" id="camera">
+          <div class="sky-fill" id="skyFill"></div>
+
+          <!-- FAR sky bodies -->
+          <div class="layer" id="layerSky" data-depth="0.15">
+            <div class="aurora" id="aurora" style="top:1820px;">
+              <div class="aurora-band a"></div><div class="aurora-band b"></div>
+            </div>
+            <div class="stars" id="stars"></div>
+            <div class="celestial sun" id="sun" style="left:1500px;top:240px;"></div>
+            <div class="celestial moon" id="moon" style="left:1700px;top:1760px;"></div>
+          </div>
+
+          <!-- FAR mountains -->
+          <div class="layer" id="layerFar" data-depth="0.30">
+            <div class="range" id="rangeBack" style="top:520px;"></div>
+          </div>
+          <!-- MID mountains + clouds -->
+          <div class="layer" id="layerMid" data-depth="0.55">
+            <div class="cloud" style="left:200px;top:160px;width:200px;" data-cloud></div>
+            <div class="cloud" style="left:1500px;top:120px;width:160px;" data-cloud></div>
+            <div class="cloud" style="left:900px;top:300px;width:240px;" data-cloud></div>
+            <div class="range" id="rangeMid" style="top:640px;"></div>
+          </div>
+          <!-- FOREGROUND hills + ground/soil cross-section -->
+          <div class="layer" id="layerNear" data-depth="0.85">
+            <div class="range" id="rangeFront" style="top:760px;"></div>
+            <!-- surface soil band; cavern is carved below it -->
+            <div class="surface-soil" style="left:0;top:980px;width:100%;height:1620px;"></div>
+          </div>
+
+          <!-- PROPS: places (full camera speed, interactive) -->
+          <div class="layer props" id="layerProps" data-depth="1">
+
+            <!-- HERO (sky / day) — top of path -->
+            <div class="place hero" style="left:790px;top:170px;">
+              <div class="avatar"></div>
+              <h3>Alper Ortac</h3>
+              <p>Engineer &amp; freelancer building things that radiate energy. This is one continuous world &mdash; travel the camera through it to explore each place.</p>
+            </div>
+
+            <!-- CODING plate (main path) -->
+            <div class="place plate live" id="plate-coding" tabindex="0" role="button"
+                 aria-label="Travel to Coding cavern" data-topic="tech"
+                 style="left:830px;top:560px;">
+              <div class="kicker">Live topic &middot; main path</div>
+              <h4>Coding</h4>
+              <p>Nowadays I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up Tanstack and self-hosting it on one of my Hetzner VPS.</p>
+              <span class="open-cue">Travel down into the cavern &darr;</span>
+            </div>
+
+            <!-- dead scenery between coding and music -->
+            <div class="place plaque" style="left:870px;top:840px;">
+              <div class="kicker">Between</div>
+              <h4>The clearing</h4>
+              <p>A quiet stretch of the path. The light tips toward dusk here &mdash; the world is larger than its two landmarks.</p>
+            </div>
+
+            <!-- MUSIC plate (main path, lower / dusk) -->
+            <div class="place plate live night-text" id="plate-music" tabindex="0" role="button"
+                 aria-label="Travel to Music night-sky" data-topic="music"
+                 style="left:830px;top:1060px;">
+              <div class="kicker">Live topic &middot; main path</div>
+              <h4>Music</h4>
+              <p>I'm into music that radiates infinite energy. From Metalcore, over Progrock to Liquid D'n'B and Tech House. Loudness and high production value spurs me.</p>
+              <span class="open-cue">Travel up to the night sky &uarr;</span>
+            </div>
+
+            <!-- dead scenery deep on the path -->
+            <div class="place plaque night-text" style="left:880px;top:1340px;">
+              <div class="kicker">Underground</div>
+              <h4>The deep path</h4>
+              <p>Further down the world continues. From here you could keep descending past the night floor.</p>
+            </div>
+
+            <!-- ===== TECH-STACK CAVERN: below & beside Coding ===== -->
+            <div class="place cavern-mouth" style="left:120px;top:980px;width:520px;height:120px;"></div>
+            <div class="place chamber" id="placeTech" style="left:80px;top:1080px;width:600px;">
+              <p class="sign">I self-host as much as I can to avoid serverless horrors (<a href="https://serverlesshorrors.com" target="_blank" rel="noopener">serverlesshorrors.com</a>). Hetzner Cloud is the best compromise between cost, performance and value. What's running on it?</p>
+              <div class="strata" id="techStrata"></div>
+              <p class="cloudtrio-label">For some services I still rely on cloud software:</p>
+              <div class="strata" id="techCloud"></div>
+              <p class="sign">When I spin up a new web apps, I usually build it with Tanstack Start, Tailwind and Convex.</p>
+            </div>
+
+            <!-- ===== MUSIC NIGHT-SKY: up & over (high in the world) ===== -->
+            <div class="place observatory" id="placeMusic" style="left:1480px;top:1640px;width:840px;height:860px;">
+              <div class="obs-cliff"></div>
+              <div id="lanterns"></div>
+              <div class="obs-sign" style="position:absolute;left:30px;bottom:30px;">
+                <p class="stat-line">275k scrobbles since 2006</p>
+                <div class="genre-tags">
+                  <span>Metalcore</span><span>Progrock</span><span>Liquid D'n'B</span><span>Tech House</span>
+                </div>
+                <div class="d-links">
+                  <a href="https://www.last.fm/user/Alper_" target="_blank" rel="noopener">Last.fm</a>
+                  <a href="https://open.spotify.com/user/1140243663" target="_blank" rel="noopener">Spotify</a>
+                </div>
+                <p class="obs-note">Cover-lanterns above are placeholder gradient tiles demonstrating the constellation format &mdash; the real sky would hang actual cover art.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- HUD -->
+        <button class="return-btn" id="returnBtn">&larr; Return to path</button>
+        <div class="minimap" id="minimap">
+          <div class="mm-sky" id="mmSky"></div>
+          <div class="mm-place tech" id="mmTech"></div>
+          <div class="mm-place music" id="mmMusic"></div>
+          <div class="mm-dim"></div>
+          <div class="mm-dot mm-sun" id="mmSun"></div>
+          <div class="mm-dot mm-moon" id="mmMoon"></div>
+          <div class="mm-vp" id="mmVp"></div>
+        </div>
+        <div class="minimap-label">you are here</div>
+      </div>
+    </section>
+  </div>
+
+<script>
+  "use strict";
+
+  /* ============================================================
+   * SKY CURVE — ported from src/data/skyCurve.ts
+   * ============================================================ */
+  const NOON  = { r: 135, g: 206, b: 235 };
+  const DUSK  = { r: 244, g: 164, b:  96 };
+  const NIGHT = { r:  20, g:  10, b:  50 };
+  const CURVE = { phase1: [0.162, 0.436], phase2: [0.466, 0.787], boost: 0.8 };
+
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  const lerp = (a, b, t) => Math.round(a + (b - a) * t);
+  const lerpf = (a, b, t) => a + (b - a) * t;
+  const bell = (t) => Math.sin(t * Math.PI);
+  const lerpRgb = (a, b, t) => ({ r: lerp(a.r,b.r,t), g: lerp(a.g,b.g,t), b: lerp(a.b,b.b,t) });
+
+  function rgbToHsl(rgb) {
+    const r = rgb.r/255, g = rgb.g/255, b = rgb.b/255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h = 0, s = 0; const l = (max+min)/2;
+    if (max !== min) {
+      const d = max-min;
+      s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+      switch (max) {
+        case r: h = (g-b)/d + (g<b?6:0); break;
+        case g: h = (b-r)/d + 2; break;
+        case b: h = (r-g)/d + 4; break;
+      }
+      h /= 6;
+    }
+    return { h, s, l };
+  }
+  function hslToRgb(hsl) {
+    const { h, s, l } = hsl;
+    if (s === 0) { const v = Math.round(l*255); return { r:v, g:v, b:v }; }
+    const hue2rgb = (p,q,t) => {
+      if (t<0) t+=1; if (t>1) t-=1;
+      if (t<1/6) return p+(q-p)*6*t;
+      if (t<1/2) return q;
+      if (t<2/3) return p+(q-p)*(2/3-t)*6;
+      return p;
+    };
+    const q = l<0.5 ? l*(1+s) : l+s-l*s;
+    const p = 2*l-q;
+    return {
+      r: Math.round(hue2rgb(p,q,h+1/3)*255),
+      g: Math.round(hue2rgb(p,q,h)*255),
+      b: Math.round(hue2rgb(p,q,h-1/3)*255),
+    };
+  }
+  function boostSat(rgb, boost, weight) {
+    const hsl = rgbToHsl(rgb);
+    hsl.s = clamp01(hsl.s * (1 + boost*weight));
+    return hslToRgb(hsl);
+  }
+  function skyRgb(p) {
+    const [s1,e1] = CURVE.phase1, [s2,e2] = CURVE.phase2;
+    if (p <= s1) return NOON;
+    if (p < e1) { const t=(p-s1)/(e1-s1); return boostSat(lerpRgb(NOON,DUSK,t), CURVE.boost, bell(t)); }
+    if (p <= s2) return DUSK;
+    if (p < e2) { const t=(p-s2)/(e2-s2); return boostSat(lerpRgb(DUSK,NIGHT,t), CURVE.boost, bell(t)); }
+    return NIGHT;
+  }
+  const rgbCss = (c) => `rgb(${c.r}, ${c.g}, ${c.b})`;
+
+  /* ============================================================
+   * CELESTIAL — ported arc math from minimap/helpers.ts
+   * ============================================================ */
+  const SUN_WINDOW  = { start: 0,    end: 0.65 };
+  const MOON_WINDOW = { start: 0.45, end: 1.0 };
+  function windowedProgress(p, win) {
+    const range = win.end - win.start;
+    if (range <= 0) return 0;
+    return clamp01((p - win.start) / range);
+  }
+  const sunOpacityAt  = (p) => p < 0.45 ? 1 : Math.max(0, 1 - (p - 0.45) / 0.2);
+  const moonOpacityAt = (p) => p < 0.5  ? 0 : Math.min(1, (p - 0.5) / 0.2);
+
+  /* ============================================================
+   * World dimensions + region anchors
+   * "world progress" p (0..1) is driven by camera.y so sky/celestial
+   * react to where the camera is, blending the world into one piece.
+   * ============================================================ */
+  const WORLD_W = 2400, WORLD_H = 2600;
+  // map a camera-center world-Y to a 0..1 atmosphere progress
+  const SKY_TOP_Y = 200, SKY_BOT_Y = 2300;
+  const worldProgress = (cy) => clamp01((cy - SKY_TOP_Y) / (SKY_BOT_Y - SKY_TOP_Y));
+
+  /* ============================================================
+   * State
+   * ============================================================ */
+  const state = {
+    paradigm: "world-camera",
+    cameraStyle: "dolly",
+    framing: "medium",
+    parallax: 0.6,
+    durationMs: 900,
+    easing: "cubic-bezier(0.22,1,0.36,1)",
+    topic: "tech",
+    reducedMotion: false,
+  };
+
+  const CS_NOTES = {
+    pan:   "Slide straight across the plane to the place. Pure translation, no zoom.",
+    dolly: "Pan + zoom in together — the camera pushes into the place as it arrives.",
+    arc:   "A slightly curved path with a touch of rotate, like banking toward the place.",
+  };
+  const FRAMING_SCALE = { wide: 1.0, medium: 1.5, close: 2.1 };
+
+  /* ============================================================
+   * DOM
+   * ============================================================ */
+  const $ = (id) => document.getElementById(id);
+  const viewport = $("viewport");
+  const camera   = $("camera");
+  const skyFill  = $("skyFill");
+  const sun = $("sun"), moon = $("moon"), stars = $("stars"), aurora = $("aurora");
+  const layerSky = $("layerSky"), layerFar = $("layerFar"), layerMid = $("layerMid"), layerNear = $("layerNear"), layerProps = $("layerProps");
+  const rangeBack = $("rangeBack"), rangeMid = $("rangeMid"), rangeFront = $("rangeFront");
+  const returnBtn = $("returnBtn");
+  const mmSky = $("mmSky"), mmVp = $("mmVp"), mmSun = $("mmSun"), mmMoon = $("mmMoon"), mmTech = $("mmTech"), mmMusic = $("mmMusic");
+  const csNote = $("csNote"), rmNote = $("rmNote");
+
+  const PARALLAX_LAYERS = [
+    { el: layerSky,  depth: 0.15 },
+    { el: layerFar,  depth: 0.30 },
+    { el: layerMid,  depth: 0.55 },
+    { el: layerNear, depth: 0.85 },
+    { el: layerProps,depth: 1.00 },
+  ];
+
+  /* ---------- build atmosphere art ---------- */
+  (function buildStars(){
+    let html = "";
+    for (let i = 0; i < 220; i++) {
+      const x = Math.random()*100, y = Math.random()*100;
+      const s = Math.random()*2.4 + 0.6;
+      const tw = (Math.random()*3 + 2).toFixed(2);
+      const td = (Math.random()*5).toFixed(2);
+      html += `<span class="star" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;--tw:${tw}s;--td:${td}s;box-shadow:0 0 ${s*2}px rgba(255,255,255,0.6)"></span>`;
+    }
+    stars.innerHTML = html;
+  })();
+  (function buildClouds(){
+    document.querySelectorAll("[data-cloud]").forEach((el) => {
+      el.innerHTML = `<svg viewBox="0 0 120 50" aria-hidden="true"><g fill="#ffffff">
+        <ellipse cx="40" cy="32" rx="34" ry="16"/><ellipse cx="66" cy="26" rx="26" ry="18"/>
+        <ellipse cx="86" cy="34" rx="22" ry="13"/><ellipse cx="22" cy="36" rx="20" ry="12"/></g></svg>`;
+    });
+  })();
+  function ridgeSVG(path, fill) {
+    return `<svg viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true">
+      <path d="${path}" fill="${fill}" style="shape-rendering:geometricPrecision"/></svg>`;
+  }
+  const RIDGE_BACK  = "M0,300 V150 L120,90 L210,140 L320,70 L430,150 L560,60 L690,140 L820,80 L920,150 L1000,110 V300 Z";
+  const RIDGE_MID   = "M0,300 V190 L90,140 L180,200 L300,120 L420,200 L540,130 L660,210 L780,140 L900,200 L1000,160 V300 Z";
+  const RIDGE_FRONT = "M0,300 V230 L130,180 L250,240 L380,170 L520,250 L640,190 L780,250 L900,200 L1000,240 V300 Z";
+  rangeBack.innerHTML  = ridgeSVG(RIDGE_BACK,  "#5b7d8c");
+  rangeMid.innerHTML   = ridgeSVG(RIDGE_MID,   "#41606e");
+  rangeFront.innerHTML = ridgeSVG(RIDGE_FRONT, "#2c4450");
+
+  /* ---------- tech-stack crates (VERBATIM content) ---------- */
+  const TECH_PRIMARY = [
+    ["Coolify", "— to spin up my web apps"],
+    ["Windmill", "— to orchestrate data pipelines (for millions of movies and tv shows)"],
+    ["CrateDB", "— for big data"],
+    ["Convex", "— for realtime data"],
+    ["MongoDB", "— for raw data (from scraping)"],
+    ["Redis", "— for Pub/Sub and caching"],
+    ["SpacetimeDB", "— for my browser game"],
+  ];
+  const TECH_CLOUD = [
+    ["Posthog", "— for analytics"],
+    ["Grafana", "— for monitoring"],
+    ["Namecheap", "— for Emails"],
+  ];
+  function crateHTML(list){
+    return list.map(([p,s]) => `<div class="crate"><span class="pri">${p}</span><span class="sec">${s}</span></div>`).join("");
+  }
+  $("techStrata").innerHTML = crateHTML(TECH_PRIMARY);
+  $("techCloud").innerHTML  = crateHTML(TECH_CLOUD);
+
+  /* ---------- album cover-lanterns hung as a constellation ---------- */
+  const ALBUM_POS = [
+    {x:12,y:14},{x:30,y:8},{x:48,y:18},{x:66,y:10},{x:84,y:20},{x:22,y:34},
+    {x:42,y:40},{x:60,y:32},{x:78,y:30},{x:14,y:50},{x:34,y:58},{x:52,y:50},
+    {x:72,y:54},{x:88,y:46},{x:8,y:66},{x:28,y:72},{x:46,y:64},{x:64,y:70},
+    {x:82,y:64},{x:20,y:84},{x:40,y:80},{x:58,y:84},{x:76,y:80},{x:90,y:72},
+  ];
+  const GRADS = [
+    "linear-gradient(135deg,#ff6b6b,#5f0a87)","linear-gradient(135deg,#0f2027,#2c5364)",
+    "linear-gradient(135deg,#f7971e,#ffd200)","linear-gradient(135deg,#43cea2,#185a9d)",
+    "linear-gradient(135deg,#c31432,#240b36)","linear-gradient(135deg,#1f4037,#99f2c8)",
+    "linear-gradient(135deg,#ee0979,#ff6a00)","linear-gradient(135deg,#141e30,#243b55)",
+    "linear-gradient(135deg,#8e2de2,#4a00e0)","linear-gradient(135deg,#ff512f,#dd2476)",
+    "linear-gradient(135deg,#00c6ff,#0072ff)","linear-gradient(135deg,#f12711,#f5af19)",
+  ];
+  (function buildLanterns(){
+    let html = "";
+    for (let i = 1; i <= 24; i++) {
+      const g = GRADS[(i-1) % GRADS.length];
+      const n = String(i).padStart(2,"0");
+      const pos = ALBUM_POS[i-1];
+      html += `<div class="lantern" style="background:${g};left:${pos.x}%;top:${pos.y}%"><div class="lbl">LP ${n}<br><span class="ar">ARTIST ${n}</span></div></div>`;
+    }
+    $("lanterns").innerHTML = html;
+  })();
+
+  /* ============================================================
+   * CAMERA — the heart of the paradigm
+   * ============================================================ */
+  // viewport size
+  function vp() { const r = viewport.getBoundingClientRect(); return { w: r.width, h: r.height }; }
+
+  // camera holds the world-space CENTER point we're looking at, + scale
+  let cam = { cx: 1200, cy: 360, scale: 1 };
+
+  // PLACES: world-space center + the scale to frame them (scaled by framing)
+  function frameScale(base) { return base * FRAMING_SCALE[state.framing]; }
+  const PLACES = {
+    path:  () => ({ cx: 1200, cy: 360, scale: 1 }),
+    tech:  () => ({ cx: 380, cy: 1340, scale: frameScale(1.0) }),
+    music: () => ({ cx: 1900, cy: 1980, scale: frameScale(0.9) }),
+  };
+
+  // clamp the camera so we never expose beyond the plane edges
+  function clampCam(c) {
+    const v = vp();
+    const halfW = v.w / (2 * c.scale);
+    const halfH = v.h / (2 * c.scale);
+    c.cx = Math.max(halfW, Math.min(WORLD_W - halfW, c.cx));
+    c.cy = Math.max(halfH, Math.min(WORLD_H - halfH, c.cy));
+    return c;
+  }
+
+  let renderPending = false;
+  function requestRender() {
+    if (renderPending) return;
+    renderPending = true;
+    requestAnimationFrame(() => { renderPending = false; render(); });
+  }
+
+  function render() {
+    const v = vp();
+    // top-left of camera in world space
+    const tlx = cam.cx - v.w / (2 * cam.scale);
+    const tly = cam.cy - v.h / (2 * cam.scale);
+
+    // base camera transform (props layer = full speed)
+    camera.style.transform = `scale(${cam.scale}) translate(${-tlx}px, ${-tly}px)`;
+
+    // parallax: shift each non-prop layer by (1 - depth*strength) of camera travel.
+    // far layers (low depth) lag more. strength scales the effect.
+    const strength = state.parallax;
+    PARALLAX_LAYERS.forEach(({ el, depth }) => {
+      if (el === layerProps) { el.style.transform = ""; return; }
+      // offset opposite to camera so far layers appear to move less
+      const lag = (1 - depth) * strength;
+      el.style.transform = `translate(${tlx * lag}px, ${tly * lag}px)`;
+    });
+
+    // atmosphere driven by camera.cy → one continuous day→dusk→night world
+    const p = worldProgress(cam.cy);
+    const col = rgbCss(skyRgb(p));
+    skyFill.style.background = col;
+    viewport.style.background = col;
+
+    sun.style.opacity = sunOpacityAt(p).toFixed(2);
+    moon.style.opacity = moonOpacityAt(p).toFixed(2);
+    const [s2,e2] = CURVE.phase2;
+    stars.style.opacity = clamp01((p - s2) / Math.max(e2 - s2, 0.001)).toFixed(2);
+    aurora.style.opacity = (clamp01((p - e2) / Math.max(1 - e2, 0.001)) * 0.85).toFixed(2);
+
+    // tint ranges toward night
+    const dark = clamp01((p - 0.4) / 0.5);
+    [rangeBack, rangeMid, rangeFront].forEach((r) => {
+      r.style.filter = `brightness(${(1 - dark*0.5).toFixed(2)}) saturate(${(1 - dark*0.3).toFixed(2)})`;
+    });
+
+    updateMinimap(tlx, tly, v, p);
+  }
+
+  /* ---------- minimap (echoes Minimap.tsx) ---------- */
+  let mmReady = false;
+  function initMinimap() {
+    // vertical sky gradient sampled from the same curve
+    const STOPS = 40; const parts = [];
+    for (let i=0;i<STOPS;i++){ const pp=i/(STOPS-1); parts.push(`${rgbCss(skyRgb(worldProgress(SKY_TOP_Y + pp*(SKY_BOT_Y-SKY_TOP_Y))))} ${(pp*100).toFixed(1)}%`); }
+    mmSky.style.background = `linear-gradient(to bottom, ${parts.join(", ")})`;
+    // place markers (world rect → minimap %)
+    placeMarker(mmTech,  80, 1080, 600, 360);
+    placeMarker(mmMusic, 1480, 1640, 840, 700);
+    mmReady = true;
+  }
+  function placeMarker(el, x, y, w, h) {
+    el.style.left = (x/WORLD_W*100)+"%"; el.style.top = (y/WORLD_H*100)+"%";
+    el.style.width = (w/WORLD_W*100)+"%"; el.style.height = (h/WORLD_H*100)+"%";
+  }
+  function updateMinimap(tlx, tly, v, p) {
+    if (!mmReady) return;
+    const vwWorld = v.w / cam.scale, vhWorld = v.h / cam.scale;
+    mmVp.style.left = (tlx/WORLD_W*100)+"%";
+    mmVp.style.top  = (tly/WORLD_H*100)+"%";
+    mmVp.style.width  = (vwWorld/WORLD_W*100)+"%";
+    mmVp.style.height = (vhWorld/WORLD_H*100)+"%";
+    // sun/moon dots ride the camera.y progress
+    mmSun.style.left = "70%"; mmSun.style.top = (clamp01(worldProgressInv(p))*100)+"%";
+    mmSun.style.opacity = sunOpacityAt(p);
+    mmMoon.style.left = "78%"; mmMoon.style.top = (clamp01(0.15 + (1-windowedProgress(p,MOON_WINDOW))*0.0))*100 + "%";
+    // simpler: place moon high when night
+    mmMoon.style.top = ((0.85 - 0.6*windowedProgress(p,MOON_WINDOW))*100)+"%";
+    mmMoon.style.opacity = moonOpacityAt(p);
+  }
+  // sun dot: high at noon (low %), descends toward dusk
+  function worldProgressInv(p){ return 0.1 + windowedProgress(p,SUN_WINDOW)*0.5; }
+
+  /* ============================================================
+   * flyTo — tween cam.{cx,cy,scale} via rAF using selected easing
+   * ============================================================ */
+  const EASING_FN = {
+    "ease-out": (t) => 1 - Math.pow(1 - t, 3),
+    "ease-in-out": (t) => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2,
+    "cubic-bezier(0.22,1,0.36,1)": cubicBezier(0.22,1,0.36,1),
+    "cubic-bezier(0.34,1.56,0.64,1)": cubicBezier(0.34,1.56,0.64,1),
+  };
+  function cubicBezier(x1,y1,x2,y2){
+    // sample-based approximation
+    function bez(t,a,b){ return 3*(1-t)*(1-t)*t*a + 3*(1-t)*t*t*b + t*t*t; }
+    return function(x){
+      let lo=0,hi=1,t=x;
+      for(let i=0;i<20;i++){ t=(lo+hi)/2; const xx=bez(t,x1,x2); if(xx<x) lo=t; else hi=t; }
+      return bez(t,y1,y2);
+    };
+  }
+
+  let flying = false, flyRAF = 0;
+  function flyTo(target, dur, easingKey, style) {
+    cancelAnimationFrame(flyRAF);
+    const ease = EASING_FN[easingKey] || EASING_FN["ease-out"];
+    const from = { cx: cam.cx, cy: cam.cy, scale: cam.scale };
+    const to = clampCam(Object.assign({}, target));
+    const start = performance.now();
+    flying = true;
+    function step(now) {
+      let t = dur <= 0 ? 1 : clamp01((now - start) / dur);
+      const e = ease(t);
+      cam.cx = lerpf(from.cx, to.cx, e);
+      cam.cy = lerpf(from.cy, to.cy, e);
+      // dolly eases scale with the move; pan snaps scale toward end early; arc adds a tiny rotate handled below
+      if (style === "pan") {
+        // keep scale change minimal until near the end (move first, then settle zoom)
+        cam.scale = lerpf(from.scale, to.scale, clamp01((e-0.6)/0.4));
+      } else {
+        cam.scale = lerpf(from.scale, to.scale, e);
+      }
+      // arc: bow the horizontal path with a sine curve before rendering
+      if (style === "arc") {
+        const bow = Math.sin(e * Math.PI);
+        cam.cx += bow * 90 * (to.cx < from.cx ? -1 : 1) * 0.4;
+      }
+      render();
+      // arc: add a slight banking rotate on top of render's base transform
+      if (style === "arc") {
+        const v = vp();
+        const tlx = cam.cx - v.w/(2*cam.scale), tly = cam.cy - v.h/(2*cam.scale);
+        const rot = Math.sin(e * Math.PI) * 1.2;
+        camera.style.transform = `rotate(${rot}deg) scale(${cam.scale}) translate(${-tlx}px, ${-tly}px)`;
+      }
+      if (t < 1) { flyRAF = requestAnimationFrame(step); }
+      else { flying = false; }
+    }
+    flyRAF = requestAnimationFrame(step);
+  }
+
+  function motionReduced(){ return state.reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+
+  /* ============================================================
+   * Travel / return
+   * ============================================================ */
+  let atPlace = null;
+  function travelTo(topic) {
+    atPlace = topic;
+    returnBtn.classList.add("show");
+    const target = PLACES[topic]();
+    if (motionReduced()) { flyTo(target, 220, "ease-out", "pan"); return; }
+    flyTo(target, state.durationMs, state.easing, state.cameraStyle);
+  }
+  function returnToPath() {
+    atPlace = null;
+    returnBtn.classList.remove("show");
+    const target = PLACES.path();
+    if (motionReduced()) { flyTo(target, 220, "ease-out", "pan"); return; }
+    flyTo(target, state.durationMs, state.easing, state.cameraStyle);
+  }
+
+  /* ============================================================
+   * Drag / scroll to move the camera along the path
+   * ============================================================ */
+  let dragging = false, lastX = 0, lastY = 0;
+  viewport.addEventListener("pointerdown", (e) => {
+    if (e.target.closest(".plate.live") || e.target.closest("#minimap") || e.target.closest("#returnBtn")) return;
+    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    viewport.classList.add("grabbing");
+    viewport.setPointerCapture(e.pointerId);
+  });
+  viewport.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const dx = (e.clientX - lastX) / cam.scale;
+    const dy = (e.clientY - lastY) / cam.scale;
+    lastX = e.clientX; lastY = e.clientY;
+    cam.cx -= dx; cam.cy -= dy;
+    clampCam(cam);
+    requestRender();
+  });
+  function endDrag(e){ dragging = false; viewport.classList.remove("grabbing"); }
+  viewport.addEventListener("pointerup", endDrag);
+  viewport.addEventListener("pointercancel", endDrag);
+
+  // wheel scrolls the camera vertically along the path
+  viewport.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    cam.cy += e.deltaY / cam.scale;
+    clampCam(cam);
+    requestRender();
+  }, { passive: false });
+
+  // minimap drag-to-jump
+  const minimap = $("minimap");
+  function mmJump(clientX, clientY){
+    const r = minimap.getBoundingClientRect();
+    const fx = clamp01((clientX - r.left)/r.width);
+    const fy = clamp01((clientY - r.top)/r.height);
+    cam.cx = fx * WORLD_W; cam.cy = fy * WORLD_H;
+    clampCam(cam); requestRender();
+  }
+  let mmDrag = false;
+  minimap.addEventListener("pointerdown", (e)=>{ mmDrag=true; minimap.setPointerCapture(e.pointerId); mmJump(e.clientX,e.clientY); });
+  minimap.addEventListener("pointermove", (e)=>{ if(mmDrag) mmJump(e.clientX,e.clientY); });
+  minimap.addEventListener("pointerup",   ()=>{ mmDrag=false; });
+
+  /* ============================================================
+   * Plate clicks → travel
+   * ============================================================ */
+  document.querySelectorAll(".plate.live").forEach((pl) => {
+    const topic = pl.dataset.topic;
+    pl.addEventListener("click", () => travelTo(topic));
+    pl.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); travelTo(topic); } });
+  });
+  returnBtn.addEventListener("click", returnToPath);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && atPlace) returnToPath(); });
+
+  /* ============================================================
+   * Controls
+   * ============================================================ */
+  function wireSegmented(rootId, key, onChange) {
+    const root = $(rootId);
+    root.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const v = btn.dataset.value;
+        state[key] = v;
+        root.querySelectorAll("button").forEach((b) =>
+          b.setAttribute("aria-pressed", b.dataset.value === v ? "true" : "false"));
+        if (onChange) onChange(v);
+      });
+    });
+  }
+  wireSegmented("cameraStyle", "cameraStyle", (v) => { csNote.textContent = CS_NOTES[v] || ""; });
+  wireSegmented("framing", "framing", () => { if (atPlace) travelTo(atPlace); });
+  wireSegmented("topic", "topic");
+
+  $("parallax").addEventListener("input", (e) => {
+    state.parallax = parseFloat(e.target.value);
+    $("parallaxVal").textContent = state.parallax.toFixed(2);
+    requestRender();
+  });
+  $("duration").addEventListener("input", (e) => {
+    state.durationMs = parseInt(e.target.value, 10);
+    $("durationVal").textContent = state.durationMs + "ms";
+  });
+  $("easing").addEventListener("change", (e) => { state.easing = e.target.value; });
+  $("reducedMotion").addEventListener("change", (e) => {
+    state.reducedMotion = e.target.checked;
+    rmNote.textContent = e.target.checked ? "Travel collapses to a short, gentle move (no zoom punch, no jarring jump)." : "";
+  });
+  $("runBtn").addEventListener("click", () => travelTo(state.topic));
+  csNote.textContent = CS_NOTES[state.cameraStyle];
+
+  /* ============================================================
+   * Copy spec
+   * ============================================================ */
+  $("copyBtn").addEventListener("click", () => {
+    const spec = {
+      paradigm: "world-camera",
+      cameraStyle: state.cameraStyle,
+      framing: state.framing,
+      parallax: state.parallax,
+      durationMs: state.durationMs,
+      easing: state.easing,
+      topic: state.topic,
+    };
+    const text = JSON.stringify(spec, null, 2);
+    const status = $("copyStatus");
+    const out = $("specOut");
+    out.value = text;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => { status.textContent = "Copied ✓"; setTimeout(()=>status.textContent="",2500); },
+        () => { out.classList.add("show"); out.select(); status.textContent = "Select + copy below"; }
+      );
+    } else {
+      out.classList.add("show"); out.select(); status.textContent = "Select + copy below";
+    }
+  });
+
+  /* ============================================================
+   * Boot
+   * ============================================================ */
+  initMinimap();
+  cam = clampCam(Object.assign({}, PLACES.path()));
+  render();
+  window.addEventListener("resize", () => { clampCam(cam); requestRender(); });
+</script>
+</body>
+</html>

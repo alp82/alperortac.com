@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Landscape reveals — object-anchored detail gallery</title>
+<style>
+  :root {
+    --ink: #0f172a;
+    --paper: #fafaf7;
+    --line: #0f172a;
+    --accent: #fde047;
+    --shadow: 4px 4px 0 0 #0f172a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--paper); color: var(--ink); font-family: ui-monospace, "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace; }
+
+  .layout { display: grid; grid-template-columns: minmax(320px, 30%) 1fr; min-height: 100vh; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  /* ---------- LEFT: brutalist control panel (hard edges ONLY here) ---------- */
+  .panel {
+    border-right: 2px solid var(--line); background: #fff; padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 14px; overflow-y: auto; max-height: 100vh;
+  }
+  @media (max-width: 900px) {
+    .panel { max-height: none; border-right: none; border-bottom: 2px solid var(--line); order: -1; }
+  }
+  .panel h1 { font-size: 13px; margin: 0; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 900; }
+  .panel .subtitle { font-size: 11px; margin: 0; opacity: 0.65; line-height: 1.4; }
+
+  .section {
+    border: 2px solid var(--line); background: #fff; padding: 10px 12px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .section-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.8; }
+  .section-note { font-size: 10px; opacity: 0.6; line-height: 1.4; }
+
+  .control-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .control-value {
+    min-width: 60px; text-align: right; font-size: 11px; font-weight: 700; padding: 3px 6px;
+    background: #f1f5f9; border: 1px solid var(--line); font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] { flex: 1; min-width: 140px; accent-color: var(--ink); }
+  select {
+    font: inherit; font-size: 11px; font-weight: 700; padding: 6px 8px;
+    border: 2px solid var(--line); background: #fff; cursor: pointer; flex: 1; min-width: 140px;
+  }
+
+  /* example picker — vertical list of named examples with swatches */
+  .examples { display: flex; flex-direction: column; gap: 0; border: 2px solid var(--line); }
+  .ex-item {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    font: inherit; font-size: 11px; font-weight: 700; padding: 8px 10px; cursor: pointer;
+    background: #fff; border: none; border-bottom: 2px solid var(--line); color: var(--ink);
+  }
+  .ex-item:last-child { border-bottom: none; }
+  .ex-item[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .ex-swatch { width: 22px; height: 22px; border-radius: 4px; flex: 0 0 auto; border: 1px solid rgba(0,0,0,0.3); }
+  .ex-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .ex-name { letter-spacing: 0.04em; }
+  .ex-sub { font-size: 9px; font-weight: 600; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.08em; }
+  .ex-item[aria-pressed="true"] .ex-sub { opacity: 0.85; }
+
+  .toggle-row { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; }
+  .toggle-row input { width: 16px; height: 16px; accent-color: var(--ink); }
+
+  .run-btn {
+    font: inherit; font-size: 12px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 10px 14px; background: #fff; border: 2px solid var(--line); cursor: pointer;
+    box-shadow: var(--shadow); color: var(--ink);
+  }
+  .run-btn:hover { background: var(--accent); }
+  .run-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 0 var(--line); }
+
+  .copy-row { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+  .copy-btn {
+    font: inherit; font-size: 12px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 12px 14px; background: var(--accent); border: 2px solid var(--line); cursor: pointer;
+    box-shadow: var(--shadow); color: var(--ink);
+  }
+  .copy-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 0 var(--line); }
+  .copy-hint { font-size: 10px; opacity: 0.7; line-height: 1.4; }
+  .copy-status { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #166534; height: 14px; }
+  .spec-out {
+    width: 100%; font: inherit; font-size: 10px; border: 2px solid var(--line); padding: 6px;
+    background: #f8fafc; resize: vertical; min-height: 64px; display: none;
+  }
+  .spec-out.show { display: block; }
+
+  /* ---------- RIGHT: preview ---------- */
+  .preview-col { display: flex; flex-direction: column; min-height: 100vh; background: var(--paper); }
+  .stage-head {
+    padding: 12px 18px; border-bottom: 2px solid var(--line); background: #fff;
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  }
+  .stage-head h2 { font-size: 12px; margin: 0; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 900; }
+  .stage-head .hint { font-size: 10px; opacity: 0.6; }
+
+  /* The stage holds the resting scene + the reveal layers, all clipped */
+  .stage {
+    position: relative; flex: 1; min-height: 560px; overflow: hidden; background: #87ceeb;
+    user-select: none; touch-action: manipulation;
+  }
+
+  /* SCENE: the clean resting landscape. This is what blurs/dims/recedes on reveal. */
+  .scene {
+    position: absolute; inset: 0; z-index: 1; overflow: hidden;
+    will-change: transform, filter, opacity; transform-origin: 50% 50%;
+  }
+  .sky-bg { position: absolute; inset: 0; background: rgb(135,206,235); }
+  .sky-haze {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(to bottom, rgba(255,255,255,0) 42%, rgba(255,255,255,0.16) 78%, rgba(255,255,255,0.30) 100%);
+    mix-blend-mode: screen; opacity: 0.7;
+  }
+
+  .celestial { position: absolute; width: 96px; height: 96px; border-radius: 50%; transform: translate(-50%,-50%); will-change: left, top, opacity; }
+  .sun {
+    background: radial-gradient(circle at 38% 34%, #fffdf0, #fde047 58%, #fbbf24);
+    box-shadow: 0 0 70px 22px rgba(253,224,71,0.55), 0 0 140px 60px rgba(253,224,71,0.25);
+  }
+  .moon {
+    width: 84px; height: 84px;
+    background: radial-gradient(circle at 36% 32%, #ffffff, #e2e8f0 60%, #cbd5e1);
+    box-shadow: 0 0 70px 26px rgba(226,232,240,0.28);
+  }
+  .moon::before, .moon::after { content: ""; position: absolute; border-radius: 50%; background: rgba(148,163,184,0.45); }
+  .moon::before { width: 20px; height: 20px; top: 16px; right: 18px; }
+  .moon::after  { width: 12px; height: 12px; bottom: 20px; left: 20px; }
+  /* faint halo ring hint for the moon example */
+  .moon-halo {
+    position: absolute; width: 168px; height: 168px; border-radius: 50%; transform: translate(-50%,-50%);
+    border: 2px solid rgba(255,255,255,0.22); box-shadow: 0 0 40px 10px rgba(226,232,240,0.18) inset, 0 0 30px 6px rgba(226,232,240,0.16);
+    opacity: 0; pointer-events: none;
+  }
+
+  .stars { position: absolute; inset: 0; opacity: 0; }
+  .star { position: absolute; border-radius: 50%; background: #fff; }
+  @keyframes twinkle { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
+  .star { animation: twinkle var(--tw,3s) ease-in-out infinite; animation-delay: var(--td,0s); }
+
+  .clouds { position: absolute; inset: 0; }
+  .cloud { position: absolute; opacity: 0.55; will-change: transform; }
+  .cloud svg { display: block; width: 100%; height: auto; }
+  @keyframes drift { from { transform: translateX(0); } to { transform: translateX(24px); } }
+  .cloud { animation: drift var(--cd,30s) ease-in-out infinite alternate; }
+
+  /* mountain ranges */
+  .ranges { position: absolute; left: 0; right: 0; bottom: 0; height: 64%; }
+  .range { position: absolute; left: -4%; right: -4%; bottom: 0; }
+  .range svg { display: block; width: 100%; height: auto; }
+  .range.back  { bottom: 24%; opacity: 0.5; }
+  .range.mid   { bottom: 12%; opacity: 0.68; }
+  .range.front { bottom: 0;   opacity: 0.85; }
+
+  /* ground band */
+  .ground {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 14%;
+    background: linear-gradient(to bottom, #6b4f3a, #4a3526 55%, #2e2015);
+    border-top: 2px solid rgba(0,0,0,0.22);
+  }
+  .ground::before {
+    content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 14px;
+    background: linear-gradient(to bottom, #5d8a4a, #3f6b34); border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+
+  /* lake / water surface (still-lake example) */
+  .lake {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 30%;
+    background: linear-gradient(to bottom, rgba(120,170,200,0.55), rgba(40,80,120,0.85));
+    border-top: 1px solid rgba(220,240,255,0.5);
+  }
+  .lake-glint {
+    position: absolute; width: 60px; height: 8px; border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.9), rgba(255,255,255,0) 70%);
+    opacity: 0; filter: blur(1px);
+  }
+
+  /* lone tree (tree example) */
+  .tree { position: absolute; bottom: 14%; width: 200px; height: 240px; transform: translateX(-50%); }
+  .tree svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .tree .glimmer { opacity: 0; }
+
+  /* low fog bank (fog example) */
+  .fogbank {
+    position: absolute; left: -10%; right: -10%; bottom: 6%; height: 38%;
+    background: radial-gradient(ellipse 60% 70% at 50% 70%, rgba(236,240,245,0.85), rgba(236,240,245,0.4) 55%, rgba(236,240,245,0) 80%);
+    filter: blur(6px); opacity: 0.85;
+  }
+  .fog-dense {
+    position: absolute; width: 220px; height: 120px; bottom: 12%;
+    background: radial-gradient(ellipse 60% 70% at 50% 60%, rgba(248,250,253,0.95), rgba(248,250,253,0) 72%);
+    filter: blur(4px); opacity: 0;
+  }
+
+  /* HINT OBJECT WRAPPER — a hit target placed over the diegetic object */
+  .hint-target {
+    position: absolute; z-index: 4; cursor: pointer; transform: translate(-50%,-50%);
+    border-radius: 50%; -webkit-tap-highlight-color: transparent;
+  }
+  .hint-target:focus-visible { outline: 2px solid rgba(255,255,255,0.8); outline-offset: 4px; }
+  /* the "Highlight hint" pulse / outline */
+  @keyframes hintpulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.0); }
+    50%     { box-shadow: 0 0 0 6px rgba(255,255,255,0.35), 0 0 28px 10px rgba(255,255,255,0.25); }
+  }
+  .hint-target.pulsing { animation: hintpulse 1.1s ease-in-out 2; outline: 1px dashed rgba(255,255,255,0.7); }
+
+  /* a special warmer cloud used as a hint (day cloud example) */
+  .cloud.warm svg g { fill: #ffe4ec; }
+
+  /* ---------- REVEAL: detail surface emerging FROM the object ---------- */
+  /* soft, frosted — never hard-edged, never opaque page swap */
+  .reveal {
+    position: absolute; z-index: 8; display: none; overflow: hidden;
+    border-radius: 22px;
+    background: rgba(244,247,252,0.82);
+    backdrop-filter: blur(16px) saturate(1.15); -webkit-backdrop-filter: blur(16px) saturate(1.15);
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 30px 90px rgba(15,23,42,0.45);
+    color: #0f172a;
+    will-change: transform, opacity; backface-visibility: hidden;
+    transform-origin: 50% 50%;
+  }
+  .reveal.show { display: block; }
+  .reveal.nightskin { background: rgba(12,10,30,0.84); color: #e6ecff; border-color: rgba(148,163,184,0.3); }
+  .reveal.nightskin a { color: #7dd3fc; }
+  .reveal.caveskin {
+    background: rgba(26,18,12,0.88);
+    border-color: rgba(120,90,60,0.5); color: #ecdcc6;
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.7), 0 30px 90px rgba(0,0,0,0.55);
+  }
+  .reveal.caveskin a { color: #facc15; }
+  .reveal-scroll { position: absolute; inset: 0; overflow-y: auto; padding: 50px 28px 40px 28px; }
+  .reveal h3.r-title { margin: 0 0 4px 0; font-size: 24px; letter-spacing: 0.01em; }
+  .reveal .r-sub { font-size: 11px; opacity: 0.7; margin: 0 0 16px 0; }
+  .reveal p { font-size: 12.5px; line-height: 1.6; margin: 0 0 14px 0; }
+  .reveal .demo-tag {
+    display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 999px; margin: 0 0 14px 0;
+    background: rgba(15,23,42,0.1); border: 1px solid rgba(15,23,42,0.2);
+  }
+  .reveal.nightskin .demo-tag, .reveal.caveskin .demo-tag { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
+
+  /* tech strata list */
+  .r-list { list-style: none; padding: 0; margin: 0 0 16px 0; display: flex; flex-direction: column; gap: 6px; }
+  .r-list li {
+    font-size: 12px; padding: 8px 12px; border-radius: 4px;
+    border-left: 4px solid rgba(180,130,80,0.7);
+    background: linear-gradient(90deg, rgba(160,120,80,0.28), rgba(120,90,60,0.10));
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.16); display: flex; gap: 8px; align-items: baseline;
+  }
+  .r-list li .pri { font-weight: 800; color: #fff3df; }
+  .r-list li .sec { opacity: 0.78; font-size: 11px; }
+  .strata-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.6; margin: 4px 0 8px 0; }
+
+  /* music constellated wall */
+  .stat-line { font-size: 13px; font-weight: 800; margin: 0 0 12px 0; }
+  .genre-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px 0; }
+  .genre-tags span {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+  }
+  .r-links { display: flex; gap: 14px; margin: 0 0 16px 0; font-size: 12px; font-weight: 700; }
+  .album-wall.constellated {
+    display: block; position: relative; height: 320px; border-radius: 14px; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 0%, rgba(40,30,80,0.5), rgba(8,6,22,0.85));
+  }
+  .album-tile {
+    position: absolute; width: 50px; height: 50px; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 0 18px rgba(255,255,255,0.25), 0 4px 14px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; justify-content: flex-end; padding: 5px;
+    transform: translate(-50%,-50%);
+  }
+  .album-tile .lbl { font-size: 8px; font-weight: 800; color: rgba(255,255,255,0.95); text-shadow: 0 1px 2px rgba(0,0,0,0.6); line-height: 1.2; }
+  .album-tile .lbl .ar { opacity: 0.8; font-weight: 600; }
+
+  /* scrim that demotes the world (dim) — between scene and reveal */
+  .scrim { position: absolute; inset: 0; z-index: 6; background: rgba(8,10,24,0); pointer-events: none; display: none; }
+  .scrim.show { display: block; }
+
+  /* return / esc edge button */
+  .return-btn {
+    position: absolute; top: 14px; left: 14px; z-index: 20;
+    font: inherit; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 8px 12px; background: rgba(255,255,255,0.92); border: 2px solid var(--line); cursor: pointer;
+    box-shadow: 2px 2px 0 0 var(--line); display: none;
+  }
+  .return-btn.show { display: block; }
+  .return-btn:active { transform: translate(2px,2px); box-shadow: 0 0 0 0 var(--line); }
+
+  /* reveal button (always available, top-right) */
+  .reveal-cta {
+    position: absolute; top: 14px; right: 14px; z-index: 20;
+    font: inherit; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 8px 12px; background: rgba(255,255,255,0.92); border: 2px solid var(--line); cursor: pointer;
+    box-shadow: 2px 2px 0 0 var(--line);
+  }
+  .reveal-cta:active { transform: translate(2px,2px); box-shadow: 0 0 0 0 var(--line); }
+  .reveal-cta.hidden { display: none; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <!-- ============ LEFT: CONTROL PANEL ============ -->
+    <aside class="panel">
+      <div>
+        <h1>Landscape reveals</h1>
+        <p class="subtitle">A gallery of object-anchored detail reveals. The resting scene is clean &mdash; a topic is only HINTED by one landscape object. Click the hint object (or Reveal) and the camera moves toward it, the world blurs/dims/recedes, and the detail emerges FROM that object. ESC / Return reverses it.</p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Example</div>
+        <div class="examples" id="examples" role="radiogroup" aria-label="Example"></div>
+        <div class="section-note" id="exNote"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Duration</div>
+        <div class="control-row">
+          <input id="duration" type="range" min="200" max="2000" step="10" value="900" />
+          <div class="control-value" id="durationVal">900ms</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Easing</div>
+        <div class="control-row">
+          <select id="easing">
+            <option value="ease-out">ease-out</option>
+            <option value="cubic-bezier(0.22,1,0.36,1)" selected>site curve (.22,1,.36,1)</option>
+            <option value="ease-in-out">ease-in-out</option>
+            <option value="cubic-bezier(0.34,1.56,0.64,1)">spring (.34,1.56,.64,1)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Discoverability</div>
+        <label class="toggle-row">
+          <input type="checkbox" id="highlightHint" />
+          Highlight hint
+        </label>
+        <div class="section-note">Briefly pulses + outlines the hint object so you can judge how findable it is at rest.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Motion</div>
+        <label class="toggle-row">
+          <input type="checkbox" id="reducedMotion" />
+          Simulate reduced-motion
+        </label>
+        <div class="section-note" id="rmNote">Collapses the reveal to a short gentle fade that still ends on the detail. Honors prefers-reduced-motion automatically.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Play</div>
+        <div class="control-row">
+          <button class="run-btn" id="revealBtn" style="flex:1;">Reveal &rarr;</button>
+        </div>
+        <div class="section-note">Plays the selected example's object-anchored reveal. ESC or Return reverses it.</div>
+      </div>
+
+      <div class="copy-row">
+        <button class="copy-btn" id="copyBtn">Copy spec</button>
+        <div class="copy-status" id="copyStatus" aria-live="polite"></div>
+        <textarea class="spec-out" id="specOut" readonly aria-label="Spec JSON fallback"></textarea>
+        <p class="copy-hint">Click Copy spec, then paste the JSON back into chat to lock the object + time + reveal you like best.</p>
+      </div>
+    </aside>
+
+    <!-- ============ RIGHT: PREVIEW STAGE ============ -->
+    <section class="preview-col">
+      <div class="stage-head">
+        <h2 id="stageTitle">The resting scene</h2>
+        <span class="hint" id="stageHint">Look for the subtle hint &middot; click it or hit Reveal</span>
+      </div>
+
+      <div class="stage" id="stage">
+        <!-- SCENE: clean resting landscape (rebuilt per example) -->
+        <div class="scene" id="scene">
+          <div class="sky-bg" id="skyBg"></div>
+          <div class="stars" id="stars"></div>
+          <div class="moon-halo" id="moonHalo"></div>
+          <div class="celestial sun" id="sun"></div>
+          <div class="celestial moon" id="moon"></div>
+          <div class="clouds" id="clouds"></div>
+          <div class="fogbank" id="fogbank"></div>
+          <div class="fog-dense" id="fogDense"></div>
+          <div class="ranges" id="ranges">
+            <div class="range back" id="rangeBack"></div>
+            <div class="range mid" id="rangeMid"></div>
+            <div class="range front" id="rangeFront"></div>
+          </div>
+          <div class="lake" id="lake"><div class="lake-glint" id="lakeGlint"></div></div>
+          <div class="tree" id="tree"></div>
+          <div class="ground" id="ground"></div>
+          <div class="sky-haze"></div>
+        </div>
+
+        <!-- HINT hit-target (positioned per example) -->
+        <button class="hint-target" id="hintTarget" aria-label="Reveal detail"></button>
+
+        <!-- scrim demotes the world -->
+        <div class="scrim" id="scrim"></div>
+
+        <!-- REVEAL detail surface (emerges from the object) -->
+        <div class="reveal" id="reveal" role="dialog" aria-modal="true" aria-label="Detail view">
+          <div class="reveal-scroll" id="revealScroll"></div>
+        </div>
+
+        <!-- HUD -->
+        <button class="reveal-cta" id="revealCta">Reveal &rarr;</button>
+        <button class="return-btn" id="returnBtn">&larr; Return</button>
+      </div>
+    </section>
+  </div>
+
+<script>
+  "use strict";
+
+  /* ============================================================
+   * SKY CURVE — ported from src/data/skyCurve.ts
+   * ============================================================ */
+  const NOON  = { r: 135, g: 206, b: 235 };
+  const DUSK  = { r: 244, g: 164, b:  96 };
+  const NIGHT = { r:  20, g:  10, b:  50 };
+  const CURVE = { phase1: [0.162, 0.436], phase2: [0.466, 0.787], boost: 0.8 };
+
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  const lerp = (a, b, t) => Math.round(a + (b - a) * t);
+  const lerpf = (a, b, t) => a + (b - a) * t;
+  const bell = (t) => Math.sin(t * Math.PI);
+  const lerpRgb = (a, b, t) => ({ r: lerp(a.r,b.r,t), g: lerp(a.g,b.g,t), b: lerp(a.b,b.b,t) });
+
+  function rgbToHsl(rgb) {
+    const r = rgb.r/255, g = rgb.g/255, b = rgb.b/255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h = 0, s = 0; const l = (max+min)/2;
+    if (max !== min) {
+      const d = max-min;
+      s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+      switch (max) {
+        case r: h = (g-b)/d + (g<b?6:0); break;
+        case g: h = (b-r)/d + 2; break;
+        case b: h = (r-g)/d + 4; break;
+      }
+      h /= 6;
+    }
+    return { h, s, l };
+  }
+  function hslToRgb(hsl) {
+    const { h, s, l } = hsl;
+    if (s === 0) { const v = Math.round(l*255); return { r:v, g:v, b:v }; }
+    const hue2rgb = (p,q,t) => {
+      if (t<0) t+=1; if (t>1) t-=1;
+      if (t<1/6) return p+(q-p)*6*t;
+      if (t<1/2) return q;
+      if (t<2/3) return p+(q-p)*(2/3-t)*6;
+      return p;
+    };
+    const q = l<0.5 ? l*(1+s) : l+s-l*s;
+    const p = 2*l-q;
+    return {
+      r: Math.round(hue2rgb(p,q,h+1/3)*255),
+      g: Math.round(hue2rgb(p,q,h)*255),
+      b: Math.round(hue2rgb(p,q,h-1/3)*255),
+    };
+  }
+  function boostSat(rgb, boost, weight) {
+    const hsl = rgbToHsl(rgb);
+    hsl.s = clamp01(hsl.s * (1 + boost*weight));
+    return hslToRgb(hsl);
+  }
+  function skyRgb(p) {
+    const [s1,e1] = CURVE.phase1, [s2,e2] = CURVE.phase2;
+    if (p <= s1) return NOON;
+    if (p < e1) { const t=(p-s1)/(e1-s1); return boostSat(lerpRgb(NOON,DUSK,t), CURVE.boost, bell(t)); }
+    if (p <= s2) return DUSK;
+    if (p < e2) { const t=(p-s2)/(e2-s2); return boostSat(lerpRgb(DUSK,NIGHT,t), CURVE.boost, bell(t)); }
+    return NIGHT;
+  }
+  const rgbCss = (c) => `rgb(${c.r}, ${c.g}, ${c.b})`;
+
+  /* time-of-day -> a single sky-curve progress p (drives sun/moon/star fades) */
+  const TOD_P = { dawn: 0.10, day: 0.0, golden: 0.30, dusk: 0.55, night: 0.95 };
+
+  /* ============================================================
+   * Easing (ported cubic-bezier sampler from world-camera.html)
+   * ============================================================ */
+  function cubicBezier(x1,y1,x2,y2){
+    function bez(t,a,b){ return 3*(1-t)*(1-t)*t*a + 3*(1-t)*t*t*b + t*t*t; }
+    return function(x){
+      let lo=0,hi=1,t=x;
+      for(let i=0;i<20;i++){ t=(lo+hi)/2; const xx=bez(t,x1,x2); if(xx<x) lo=t; else hi=t; }
+      return bez(t,y1,y2);
+    };
+  }
+  const EASING_FN = {
+    "ease-out": (t) => 1 - Math.pow(1 - t, 3),
+    "ease-in-out": (t) => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2,
+    "cubic-bezier(0.22,1,0.36,1)": cubicBezier(0.22,1,0.36,1),
+    "cubic-bezier(0.34,1.56,0.64,1)": cubicBezier(0.34,1.56,0.64,1),
+  };
+
+  /* ============================================================
+   * DOM
+   * ============================================================ */
+  const $ = (id) => document.getElementById(id);
+  const stage = $("stage");
+  const scene = $("scene"), skyBg = $("skyBg");
+  const sun = $("sun"), moon = $("moon"), moonHalo = $("moonHalo");
+  const stars = $("stars"), clouds = $("clouds");
+  const fogbank = $("fogbank"), fogDense = $("fogDense");
+  const ranges = $("ranges"), rangeBack = $("rangeBack"), rangeMid = $("rangeMid"), rangeFront = $("rangeFront");
+  const lake = $("lake"), lakeGlint = $("lakeGlint"), tree = $("tree"), ground = $("ground");
+  const hintTarget = $("hintTarget");
+  const scrim = $("scrim");
+  const reveal = $("reveal"), revealScroll = $("revealScroll");
+  const returnBtn = $("returnBtn"), revealCta = $("revealCta");
+  const stageTitle = $("stageTitle"), stageHint = $("stageHint"), exNote = $("exNote");
+
+  /* ============================================================
+   * Build reusable atmosphere art (ported)
+   * ============================================================ */
+  (function buildStars(){
+    let html = "";
+    for (let i = 0; i < 180; i++) {
+      const x = Math.random()*100, y = Math.random()*78;
+      const s = Math.random()*2.2 + 0.6;
+      const tw = (Math.random()*3 + 2).toFixed(2);
+      const td = (Math.random()*5).toFixed(2);
+      html += `<span class="star" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;--tw:${tw}s;--td:${td}s;box-shadow:0 0 ${s*2}px rgba(255,255,255,0.6)"></span>`;
+    }
+    stars.innerHTML = html;
+  })();
+
+  function cloudSVG() {
+    return `<svg viewBox="0 0 120 50" aria-hidden="true"><g fill="#ffffff">
+      <ellipse cx="40" cy="32" rx="34" ry="16"/><ellipse cx="66" cy="26" rx="26" ry="18"/>
+      <ellipse cx="86" cy="34" rx="22" ry="13"/><ellipse cx="22" cy="36" rx="20" ry="12"/></g></svg>`;
+  }
+  // resting clouds: a calm scatter; one will be flagged "warm + larger" per the cloud example
+  const CLOUD_DEFS = [
+    { x: 14, y: 16, scale: 1.0, cd: 34 },
+    { x: 40, y: 11, scale: 0.8, cd: 28 },
+    { x: 63, y: 19, scale: 1.0, cd: 31 },
+    { x: 83, y: 13, scale: 0.85, cd: 26 },
+  ];
+  function buildClouds(warmIndex) {
+    let html = "";
+    CLOUD_DEFS.forEach((c, i) => {
+      const warm = (i === warmIndex);
+      const scale = warm ? c.scale * 1.35 : c.scale; // warm cloud a touch larger
+      html += `<div class="cloud${warm ? " warm" : ""}" data-i="${i}" style="left:${c.x}%;top:${c.y}%;width:${140*scale}px;--cd:${c.cd}s">${cloudSVG()}</div>`;
+    });
+    clouds.innerHTML = html;
+  }
+
+  function ridgeSVG(path, fill) {
+    return `<svg viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true">
+      <path d="${path}" fill="${fill}" style="shape-rendering:geometricPrecision"/></svg>`;
+  }
+  const RIDGE_BACK  = "M0,300 V150 L120,90 L210,140 L320,70 L430,150 L560,60 L690,140 L820,80 L920,150 L1000,110 V300 Z";
+  const RIDGE_MID   = "M0,300 V190 L90,140 L180,200 L300,120 L420,200 L540,130 L660,210 L780,140 L900,200 L1000,160 V300 Z";
+  // a front ridge variant carrying a notch/cave opening (used by the cave example)
+  const RIDGE_FRONT       = "M0,300 V230 L130,180 L250,240 L380,170 L520,250 L640,190 L780,250 L900,200 L1000,240 V300 Z";
+  const RIDGE_FRONT_NOTCH = "M0,300 V230 L130,180 L250,240 L360,175 L430,250 L470,250 L500,210 L540,250 L640,190 L780,250 L900,200 L1000,240 V300 Z";
+  function buildRanges(notch) {
+    rangeBack.innerHTML  = ridgeSVG(RIDGE_BACK,  "#5b7d8c");
+    rangeMid.innerHTML   = ridgeSVG(RIDGE_MID,   "#41606e");
+    rangeFront.innerHTML = ridgeSVG(notch ? RIDGE_FRONT_NOTCH : RIDGE_FRONT, "#2c4450");
+  }
+
+  // lone tree SVG with a glimmering branch tip
+  function buildTree() {
+    tree.innerHTML = `
+      <svg viewBox="0 0 200 240" aria-hidden="true">
+        <path d="M96,240 L96,150 Q92,120 80,100 M104,240 L104,140 Q112,110 130,92 M100,240 L100,120 Q100,90 100,70"
+              stroke="#3a2a1c" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <g fill="#4d7c3a" opacity="0.92">
+          <ellipse cx="100" cy="70" rx="62" ry="44"/>
+          <ellipse cx="66" cy="92" rx="40" ry="30"/>
+          <ellipse cx="136" cy="92" rx="40" ry="30"/>
+          <ellipse cx="100" cy="48" rx="44" ry="32"/>
+        </g>
+        <g fill="#5d9148" opacity="0.7">
+          <ellipse cx="84" cy="60" rx="30" ry="20"/>
+          <ellipse cx="120" cy="78" rx="26" ry="18"/>
+        </g>
+        <g class="glimmer" id="treeGlimmer">
+          <circle cx="146" cy="74" r="4" fill="#fff7c2"/>
+          <circle cx="146" cy="74" r="9" fill="none" stroke="rgba(255,247,194,0.6)" stroke-width="1.5"/>
+        </g>
+      </svg>`;
+  }
+
+  /* ============================================================
+   * Content (VERBATIM for tech + music; demo elsewhere)
+   * ============================================================ */
+  function codingHTML() {
+    return `
+      <h3 class="r-title">Coding</h3>
+      <p class="r-sub">Cloud &middot; day &middot; light teaser</p>
+      <p>Nowadays I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up Tanstack and self-hosting it on one of my Hetzner VPS.</p>
+    `;
+  }
+  function techHTML() {
+    return `
+      <h3 class="r-title">Tech Stack</h3>
+      <p class="r-sub">Mountain cave &middot; dusk</p>
+      <p>I self-host as much as I can to avoid serverless horrors (<a href="https://serverlesshorrors.com" target="_blank" rel="noopener">serverlesshorrors.com</a>). Hetzner Cloud is the best compromise between cost, performance and value. What's running on it?</p>
+      <ul class="r-list">
+        <li><span class="pri">Coolify</span><span class="sec">— to spin up my web apps</span></li>
+        <li><span class="pri">Windmill</span><span class="sec">— to orchestrate data pipelines (for millions of movies and tv shows)</span></li>
+        <li><span class="pri">CrateDB</span><span class="sec">— for big data</span></li>
+        <li><span class="pri">Convex</span><span class="sec">— for realtime data</span></li>
+        <li><span class="pri">MongoDB</span><span class="sec">— for raw data (from scraping)</span></li>
+        <li><span class="pri">Redis</span><span class="sec">— for Pub/Sub and caching</span></li>
+        <li><span class="pri">SpacetimeDB</span><span class="sec">— for my browser game</span></li>
+      </ul>
+      <p class="strata-label">For some services I still rely on cloud software:</p>
+      <ul class="r-list">
+        <li><span class="pri">Posthog</span><span class="sec">— for analytics</span></li>
+        <li><span class="pri">Grafana</span><span class="sec">— for monitoring</span></li>
+        <li><span class="pri">Namecheap</span><span class="sec">— for Emails</span></li>
+      </ul>
+      <p>When I spin up a new web apps, I usually build it with Tanstack Start, Tailwind and Convex.</p>
+    `;
+  }
+  const ALBUM_POS = [
+    {x:12,y:14},{x:30,y:8},{x:48,y:18},{x:66,y:10},{x:84,y:20},{x:22,y:34},
+    {x:42,y:40},{x:60,y:32},{x:78,y:30},{x:14,y:50},{x:34,y:58},{x:52,y:50},
+    {x:72,y:54},{x:88,y:46},{x:8,y:66},{x:28,y:72},{x:46,y:64},{x:64,y:70},
+    {x:82,y:64},{x:20,y:84},{x:40,y:80},{x:58,y:84},{x:76,y:80},{x:90,y:72},
+  ];
+  const GRADS = [
+    "linear-gradient(135deg,#ff6b6b,#5f0a87)","linear-gradient(135deg,#0f2027,#2c5364)",
+    "linear-gradient(135deg,#f7971e,#ffd200)","linear-gradient(135deg,#43cea2,#185a9d)",
+    "linear-gradient(135deg,#c31432,#240b36)","linear-gradient(135deg,#1f4037,#99f2c8)",
+    "linear-gradient(135deg,#ee0979,#ff6a00)","linear-gradient(135deg,#141e30,#243b55)",
+    "linear-gradient(135deg,#8e2de2,#4a00e0)","linear-gradient(135deg,#ff512f,#dd2476)",
+    "linear-gradient(135deg,#00c6ff,#0072ff)","linear-gradient(135deg,#f12711,#f5af19)",
+  ];
+  function musicHTML() {
+    let tiles = "";
+    for (let i = 1; i <= 24; i++) {
+      const g = GRADS[(i-1) % GRADS.length];
+      const n = String(i).padStart(2,"0");
+      const pos = ALBUM_POS[i-1];
+      tiles += `<div class="album-tile" style="background:${g};left:${pos.x}%;top:${pos.y}%"><div class="lbl">LP ${n}<br><span class="ar">ARTIST ${n}</span></div></div>`;
+    }
+    return `
+      <h3 class="r-title">Music</h3>
+      <p class="r-sub">The moon &middot; night</p>
+      <p class="stat-line">275k scrobbles since 2006</p>
+      <div class="genre-tags">
+        <span>Metalcore</span><span>Progrock</span><span>Liquid D'n'B</span><span>Tech House</span>
+      </div>
+      <div class="r-links">
+        <a href="https://www.last.fm/user/Alper_" target="_blank" rel="noopener">Last.fm</a>
+        <a href="https://open.spotify.com/user/1140243663" target="_blank" rel="noopener">Spotify</a>
+      </div>
+      <span class="demo-tag">Covers demo the format</span>
+      <div class="album-wall constellated">${tiles}</div>
+    `;
+  }
+  function demoHTML(title, sub, lines) {
+    return `
+      <h3 class="r-title">${title}</h3>
+      <p class="r-sub">${sub}</p>
+      <span class="demo-tag">Demo content</span>
+      ${lines.map((l) => `<p>${l}</p>`).join("")}
+    `;
+  }
+
+  /* ============================================================
+   * EXAMPLES — each defines the clean scene + hint + reveal
+   * skin:    reveal surface theme
+   * emphasis: which beat the transition leans on (camera | blur | panout)
+   * ============================================================ */
+  const EXAMPLES = [
+    {
+      id: "cloud-day", name: "Cloud", sub: "Day · swell",
+      object: "cloud", timeOfDay: "day", reveal: "cloud-swell",
+      swatch: "linear-gradient(135deg,#bfe3ff,#ffe4ec)",
+      emphasis: "blur", skin: "",
+      content: () => codingHTML(),
+      note: "Among white clouds one is faintly warmer/pinker and a touch larger. Camera drifts up to it; it swells and opens into a frosted card while the rest of the sky blurs + desaturates.",
+    },
+    {
+      id: "cave-dusk", name: "Mountain cave", sub: "Dusk · push-in",
+      object: "mountain", timeOfDay: "dusk", reveal: "cave-push",
+      swatch: "linear-gradient(135deg,#f4a460,#2c1810)",
+      emphasis: "camera", skin: "caveskin",
+      content: () => techHTML(),
+      note: "One ridge has a darker notch. Camera pushes INTO the notch; the interior opens and the detail is laid as glowing strata on the cave walls. The dusk sky stays blurred at the cave mouth.",
+    },
+    {
+      id: "moon-night", name: "The moon", sub: "Night · constellate",
+      object: "moon", timeOfDay: "night", reveal: "constellate",
+      swatch: "linear-gradient(135deg,#0b1030,#cbd5e1)",
+      emphasis: "panout", skin: "nightskin",
+      content: () => musicHTML(),
+      note: "The moon wears a faint halo ring. Camera pans up to it; ~24 album covers constellate outward as cover-stars across the night sky while the foreground hills blur.",
+    },
+    {
+      id: "tree-golden", name: "Lone tree", sub: "Golden · unfurl",
+      object: "tree", timeOfDay: "golden", reveal: "canopy-unfurl",
+      swatch: "linear-gradient(135deg,#ffd27a,#4d7c3a)",
+      emphasis: "camera", skin: "",
+      content: () => demoHTML("Field notes", "Lone tree · golden hour", ["One branch glimmers. Camera moves in; the tree grows and its canopy unfurls into the detail surface (botanical).", "This slot would hold a real topic — the point here is the grow-and-unfurl reveal mechanic."]),
+      note: "One branch glimmers. Camera moves in; the tree grows and its canopy unfurls into the detail surface.",
+    },
+    {
+      id: "lake-dusk", name: "Still lake", sub: "Dusk · dip-under",
+      object: "lake", timeOfDay: "dusk", reveal: "reflection-dip",
+      swatch: "linear-gradient(135deg,#f4a460,#28507a)",
+      emphasis: "camera", skin: "nightskin",
+      content: () => demoHTML("Beneath the surface", "Still lake · dusk", ["A glint sits on the water. Camera tilts down to the reflection and dips beneath the waterline; the detail is revealed calmly underwater.", "Placeholder topic — the reveal is the calm tilt-and-submerge beat."]),
+      note: "A glint on the water. Camera tilts down to the reflection and dips beneath the waterline; detail revealed calmly underwater.",
+    },
+    {
+      id: "fog-dawn", name: "Fog bank", sub: "Dawn · part",
+      object: "fog", timeOfDay: "dawn", reveal: "mist-part",
+      swatch: "linear-gradient(135deg,#cdd6e0,#f6e8d8)",
+      emphasis: "blur", skin: "",
+      content: () => demoHTML("In the mist", "Fog bank · dawn", ["A denser patch of low mist marks the spot. Camera moves into the mist; it parts to reveal a frosted detail while the world stays faintly behind.", "Placeholder topic — the reveal is the part-the-mist beat."]),
+      note: "A denser patch of low mist. Camera into the mist; it parts to reveal a frosted detail; the world stays faintly behind.",
+    },
+    {
+      id: "sun-day", name: "Sun", sub: "Day · rays fan",
+      object: "sun", timeOfDay: "day", reveal: "ray-fan",
+      swatch: "linear-gradient(135deg,#fffdf0,#fbbf24)",
+      emphasis: "panout", skin: "",
+      content: () => demoHTML("Radiant", "Sun · midday", ["The sun pulses a touch brighter. Camera eases toward it; its rays fan out and resolve into a radial detail surface.", "Placeholder topic — the reveal is the radial ray-fan beat."]),
+      note: "The sun pulses brighter than expected. Camera eases toward it; rays fan into a radial detail surface.",
+    },
+    {
+      id: "stars-night", name: "Star cluster", sub: "Night · connect",
+      object: "stars", timeOfDay: "night", reveal: "constellation-link",
+      swatch: "linear-gradient(135deg,#0b1030,#7dd3fc)",
+      emphasis: "panout", skin: "nightskin",
+      content: () => demoHTML("The cluster", "Star cluster · night", ["A knot of stars sits a little brighter. Camera eases up; the dots connect into a constellation and the detail panel forms along the lines.", "Placeholder topic — the reveal is the connect-the-stars beat."]),
+      note: "A brighter knot of stars. Camera eases up; the dots connect into a constellation panel.",
+    },
+  ];
+
+  /* hint target geometry per object, in % of the stage (so it tracks resize) */
+  const HINT_POS = {
+    "cloud-day":   { x: 14, y: 16, r: 70 },
+    "cave-dusk":   { x: 48, y: 70, r: 56 },
+    "moon-night":  { x: 74, y: 24, r: 64 },
+    "tree-golden": { x: 30, y: 64, r: 80 },
+    "lake-dusk":   { x: 56, y: 82, r: 56 },
+    "fog-dawn":    { x: 50, y: 78, r: 90 },
+    "sun-day":     { x: 76, y: 22, r: 70 },
+    "stars-night": { x: 38, y: 20, r: 60 },
+  };
+
+  /* ============================================================
+   * State
+   * ============================================================ */
+  const state = {
+    paradigm: "landscape-reveal",
+    exampleId: "moon-night",
+    durationMs: 900,
+    easing: "cubic-bezier(0.22,1,0.36,1)",
+    reducedMotion: false,
+  };
+  const exById = (id) => EXAMPLES.find((e) => e.id === id);
+
+  const rmMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const motionReduced = () => state.reducedMotion || rmMedia.matches;
+
+  /* ============================================================
+   * Build the example picker list
+   * ============================================================ */
+  (function buildPicker(){
+    let html = "";
+    EXAMPLES.forEach((e) => {
+      html += `<button type="button" class="ex-item" role="radio" data-id="${e.id}" aria-pressed="false" aria-checked="false">
+        <span class="ex-swatch" style="background:${e.swatch}"></span>
+        <span class="ex-meta"><span class="ex-name">${e.name}</span><span class="ex-sub">${e.sub}</span></span>
+      </button>`;
+    });
+    $("examples").innerHTML = html;
+    $("examples").querySelectorAll(".ex-item").forEach((btn) => {
+      btn.addEventListener("click", () => selectExample(btn.dataset.id));
+    });
+  })();
+
+  /* ============================================================
+   * Render the clean RESTING scene for an example
+   * (set sky/celestial/stars to the example's time-of-day, show
+   *  only that example's objects, place the hint target)
+   * ============================================================ */
+  function applyAtmosphere(p) {
+    const col = rgbCss(skyRgb(p));
+    skyBg.style.background = col;
+    stage.style.background = col;
+    sun.style.opacity  = (p < 0.45 ? 1 : Math.max(0, 1 - (p - 0.45) / 0.2)).toFixed(2);
+    moon.style.opacity = (p < 0.5  ? 0 : Math.min(1, (p - 0.5) / 0.2)).toFixed(2);
+    const [s2,e2] = CURVE.phase2;
+    stars.style.opacity = clamp01((p - s2) / Math.max(e2 - s2, 0.001)).toFixed(2);
+    const dark = clamp01((p - 0.4) / 0.5);
+    [rangeBack, rangeMid, rangeFront].forEach((r) => {
+      r.style.filter = `brightness(${(1 - dark*0.5).toFixed(2)}) saturate(${(1 - dark*0.3).toFixed(2)})`;
+    });
+    ground.style.filter = `brightness(${(1 - dark*0.4).toFixed(2)})`;
+  }
+
+  // position sun/moon for a given time of day (simple resting positions)
+  function placeCelestials(tod) {
+    // sun higher/left for day-golden, lower-right for dusk; moon high for night
+    const sunPos = {
+      day:    { x: 76, y: 22 },
+      golden: { x: 22, y: 30 },
+      dawn:   { x: 18, y: 34 },
+      dusk:   { x: 30, y: 46 },
+      night:  { x: 78, y: 18 },
+    }[tod] || { x: 70, y: 24 };
+    sun.style.left = sunPos.x + "%"; sun.style.top = sunPos.y + "%";
+    const moonPos = { x: 74, y: 24 };
+    moon.style.left = moonPos.x + "%"; moon.style.top = moonPos.y + "%";
+    moonHalo.style.left = moonPos.x + "%"; moonHalo.style.top = moonPos.y + "%";
+  }
+
+  let current = null;
+  function selectExample(id) {
+    if (isOpen) returnToRest(true); // snap back if mid-reveal
+    state.exampleId = id;
+    current = exById(id);
+
+    // picker pressed state
+    $("examples").querySelectorAll(".ex-item").forEach((b) => {
+      const on = b.dataset.id === id;
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.setAttribute("aria-checked", on ? "true" : "false");
+    });
+
+    const tod = current.timeOfDay;
+    const p = TOD_P[tod];
+
+    // sky + celestials
+    placeCelestials(tod);
+    applyAtmosphere(p);
+
+    // object visibility — show ONLY what this clean scene needs
+    const showCloud = (current.object === "cloud" || tod === "day" || tod === "golden") && current.object !== "stars" && current.object !== "moon";
+    clouds.style.display = (tod === "night") ? "none" : "block";
+    buildClouds(current.object === "cloud" ? 0 : -1); // flag the first cloud warm only for the cloud example
+
+    moonHalo.style.opacity = (current.object === "moon") ? "0.9" : "0";
+    buildRanges(current.object === "mountain"); // notch only for the cave example
+    buildTree();
+    tree.style.display = (current.object === "tree") ? "block" : "none";
+    tree.style.left = "30%";
+    $("treeGlimmer") && ($("treeGlimmer").style.opacity = current.object === "tree" ? "1" : "0");
+
+    lake.style.display = (current.object === "lake") ? "block" : "none";
+    ground.style.display = (current.object === "lake") ? "none" : "block";
+    lakeGlint.style.opacity = (current.object === "lake") ? "0.9" : "0";
+    if (current.object === "lake") { lakeGlint.style.left = "52%"; lakeGlint.style.top = "20%"; }
+
+    fogbank.style.display = (current.object === "fog") ? "block" : "none";
+    fogDense.style.display = (current.object === "fog") ? "block" : "none";
+    fogDense.style.opacity = (current.object === "fog") ? "0.95" : "0";
+    if (current.object === "fog") { fogDense.style.left = "42%"; fogDense.style.bottom = "16%"; }
+
+    // place the hint hit-target
+    const hp = HINT_POS[id];
+    hintTarget.style.left = hp.x + "%";
+    hintTarget.style.top  = hp.y + "%";
+    hintTarget.style.width = (hp.r * 2) + "px";
+    hintTarget.style.height = (hp.r * 2) + "px";
+
+    // headings + note
+    stageTitle.textContent = `${current.name} — ${cap(tod)}`;
+    stageHint.textContent = "Look for the subtle hint · click it or hit Reveal";
+    exNote.textContent = current.note;
+
+    // reset HUD
+    revealCta.classList.remove("hidden");
+    returnBtn.classList.remove("show");
+
+    if (highlightOn) pulseHint();
+  }
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  /* ============================================================
+   * Highlight hint (discoverability check)
+   * ============================================================ */
+  let highlightOn = false;
+  function pulseHint() {
+    hintTarget.classList.remove("pulsing");
+    void hintTarget.offsetWidth;
+    hintTarget.classList.add("pulsing");
+  }
+
+  /* ============================================================
+   * REVEAL engine — object-anchored
+   * The scene recedes/blurs/dims toward the object; the reveal
+   * surface scales up FROM the object's screen position.
+   * ============================================================ */
+  let isOpen = false, busy = false;
+  let timers = [];
+  const after = (ms, fn) => { const t = setTimeout(fn, ms); timers.push(t); return t; };
+  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+
+  function stageRect() { return stage.getBoundingClientRect(); }
+  // object screen position in px within the stage
+  function objectPoint() {
+    const hp = HINT_POS[state.exampleId];
+    const r = stageRect();
+    return { x: r.width * hp.x/100, y: r.height * hp.y/100, w: r.width, h: r.height };
+  }
+
+  function resetReveal() {
+    clearTimers();
+    [scene, reveal, scrim].forEach((el) => { el.style.transition = "none"; });
+    scene.style.transform = ""; scene.style.filter = ""; scene.style.opacity = "";
+    scene.style.transformOrigin = "50% 50%";
+    reveal.className = "reveal";
+    reveal.style.cssText = "";
+    scrim.classList.remove("show"); scrim.style.background = "rgba(8,10,24,0)";
+    void stage.offsetWidth;
+  }
+
+  function doReveal() {
+    if (busy || isOpen || !current) return;
+    busy = true; isOpen = true;
+    resetReveal();
+
+    const dur = motionReduced() ? 240 : state.durationMs;
+    const ease = motionReduced() ? "ease-out" : state.easing;
+    const pt = objectPoint();
+    const emphasis = current.emphasis;
+
+    returnBtn.classList.add("show");
+    revealCta.classList.add("hidden");
+
+    // size the reveal surface: large, but inset so the world stays visible at the edges
+    const pad = 40;
+    const rw = Math.min(560, pt.w - pad*2);
+    const rh = Math.min(pt.h - pad*2, pt.h * 0.86);
+    const rx = (pt.w - rw) / 2;
+    const ry = (pt.h - rh) / 2;
+    reveal.style.left = rx + "px";
+    reveal.style.top = ry + "px";
+    reveal.style.width = rw + "px";
+    reveal.style.height = rh + "px";
+    if (current.skin) reveal.classList.add(current.skin);
+
+    // load content
+    revealScroll.innerHTML = current.content();
+    revealScroll.scrollTop = 0;
+    reveal.classList.add("show");
+
+    // reveal grows FROM the object's point: set origin to object, start tiny
+    const ox = ((pt.x - rx) / rw * 100);
+    const oy = ((pt.y - ry) / rh * 100);
+    reveal.style.transformOrigin = `${ox}% ${oy}%`;
+
+    if (motionReduced()) {
+      // gentle fade that still ends on the detail
+      reveal.style.transform = "scale(0.96)"; reveal.style.opacity = "0";
+      scrim.classList.add("show");
+      void reveal.offsetWidth;
+      reveal.style.transition = `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}`;
+      scrim.style.transition = `background ${dur}ms ${ease}`;
+      scene.style.transition = `filter ${dur}ms ${ease}, opacity ${dur}ms ${ease}`;
+      reveal.style.transform = "scale(1)"; reveal.style.opacity = "1";
+      scrim.style.background = "rgba(8,10,24,0.35)";
+      scene.style.filter = "blur(4px) saturate(0.85)"; scene.style.opacity = "0.5";
+      finishOpen(dur); return;
+    }
+
+    // --- SCENE DEMOTION: blur / dim / recede, weighted by emphasis ---
+    // camera-move toward the object: shift + scale the scene so it pushes toward the object point
+    const camX = (pt.w/2 - pt.x);
+    const camY = (pt.h/2 - pt.y);
+    let sceneScale, sceneBlur, sceneSat, sceneDim, sceneOpacity, camPush;
+    if (emphasis === "camera") {        // lean on camera-move INTO the object
+      sceneScale = 1.7; sceneBlur = 5; sceneSat = 0.85; sceneDim = 0.45; sceneOpacity = 0.55; camPush = 1.0;
+    } else if (emphasis === "blur") {   // lean on blur/desaturate
+      sceneScale = 1.12; sceneBlur = 9; sceneSat = 0.55; sceneDim = 0.35; sceneOpacity = 0.6; camPush = 0.4;
+    } else {                            // panout: recede + pan, lighter blur
+      sceneScale = 0.92; sceneBlur = 3.5; sceneSat = 0.8; sceneDim = 0.5; sceneOpacity = 0.55; camPush = -0.5;
+    }
+    // set scene transform-origin to the object so scale focuses there
+    scene.style.transformOrigin = `${pt.x/pt.w*100}% ${pt.y/pt.h*100}%`;
+
+    // reveal starts collapsed at the object
+    reveal.style.transform = "scale(0.04)"; reveal.style.opacity = "0";
+    scrim.classList.add("show");
+    void reveal.offsetWidth;
+
+    reveal.style.transition = `transform ${dur}ms ${ease}, opacity ${Math.round(dur*0.6)}ms ${ease}`;
+    scene.style.transition = `transform ${dur}ms ${ease}, filter ${dur}ms ${ease}, opacity ${dur}ms ${ease}`;
+    scrim.style.transition = `background ${dur}ms ${ease}`;
+
+    // play
+    scene.style.transform = `translate(${camX*camPush}px, ${camY*camPush}px) scale(${sceneScale})`;
+    scene.style.filter = `blur(${sceneBlur}px) saturate(${sceneSat})`;
+    scene.style.opacity = sceneOpacity.toFixed(2);
+    scrim.style.background = `rgba(8,10,24,${sceneDim})`;
+    reveal.style.transform = "scale(1)"; reveal.style.opacity = "1";
+
+    finishOpen(dur);
+  }
+  function finishOpen(dur) { after(dur + 40, () => { busy = false; }); }
+
+  function returnToRest(immediate) {
+    if (!isOpen) return;
+    isOpen = false;
+    const dur = immediate ? 0 : (motionReduced() ? 220 : state.durationMs);
+    const ease = motionReduced() ? "ease-out" : state.easing;
+    clearTimers();
+    returnBtn.classList.remove("show");
+
+    if (immediate) { resetReveal(); reveal.classList.remove("show"); revealCta.classList.remove("hidden"); busy = false; return; }
+
+    const pt = objectPoint();
+    busy = true;
+    reveal.style.transition = `transform ${dur}ms ${ease}, opacity ${Math.round(dur*0.7)}ms ${ease}`;
+    scene.style.transition = `transform ${dur}ms ${ease}, filter ${dur}ms ${ease}, opacity ${dur}ms ${ease}`;
+    scrim.style.transition = `background ${dur}ms ${ease}`;
+    // collapse reveal back toward the object, restore the clean scene
+    reveal.style.transform = motionReduced() ? "scale(0.96)" : "scale(0.04)";
+    reveal.style.opacity = "0";
+    scene.style.transform = ""; scene.style.filter = ""; scene.style.opacity = "";
+    scrim.style.background = "rgba(8,10,24,0)";
+    after(dur + 30, () => {
+      reveal.classList.remove("show");
+      reveal.className = "reveal";
+      scrim.classList.remove("show");
+      revealCta.classList.remove("hidden");
+      busy = false;
+    });
+  }
+
+  /* ============================================================
+   * Wiring
+   * ============================================================ */
+  hintTarget.addEventListener("click", () => doReveal());
+  revealCta.addEventListener("click", () => doReveal());
+  revealBtnWire();
+  function revealBtnWire(){ $("revealBtn").addEventListener("click", () => doReveal()); }
+  returnBtn.addEventListener("click", () => returnToRest(false));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && isOpen) returnToRest(false); });
+
+  $("duration").addEventListener("input", (e) => {
+    state.durationMs = parseInt(e.target.value, 10);
+    $("durationVal").textContent = state.durationMs + "ms";
+  });
+  $("easing").addEventListener("change", (e) => { state.easing = e.target.value; });
+  $("highlightHint").addEventListener("change", (e) => {
+    highlightOn = e.target.checked;
+    if (highlightOn && !isOpen) pulseHint();
+    else hintTarget.classList.remove("pulsing");
+  });
+  $("reducedMotion").addEventListener("change", (e) => { state.reducedMotion = e.target.checked; });
+
+  /* ============================================================
+   * Copy spec
+   * ============================================================ */
+  $("copyBtn").addEventListener("click", () => {
+    const e = current;
+    const spec = {
+      paradigm: "landscape-reveal",
+      example: e.id,
+      object: e.object,
+      timeOfDay: e.timeOfDay,
+      reveal: e.reveal,
+      durationMs: state.durationMs,
+      easing: state.easing,
+    };
+    const text = JSON.stringify(spec, null, 2);
+    const status = $("copyStatus");
+    const out = $("specOut");
+    out.value = text;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => { status.textContent = "Copied ✓"; setTimeout(()=>status.textContent="",2500); },
+        () => { out.classList.add("show"); out.select(); status.textContent = "Select + copy below"; }
+      );
+    } else {
+      out.classList.add("show"); out.select(); status.textContent = "Select + copy below";
+    }
+  });
+
+  /* ============================================================
+   * Boot
+   * ============================================================ */
+  selectExample(state.exampleId);
+  window.addEventListener("resize", () => { if (!isOpen) selectExample(state.exampleId); });
+</script>
+</body>
+</html>

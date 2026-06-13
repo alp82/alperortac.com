@@ -1,0 +1,1504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Detail transitions — nature-narrative picker</title>
+<style>
+  :root {
+    --ink: #0f172a;
+    --paper: #fafaf7;
+    --line: #0f172a;
+    --accent: #fde047;
+    --shadow: 4px 4px 0 0 #0f172a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--paper); color: var(--ink); font-family: ui-monospace, "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 30%) 1fr;
+    min-height: 100vh;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- LEFT: brutalist control panel (hard edges stay HERE only) ---------- */
+  .panel {
+    border-right: 2px solid var(--line);
+    background: #fff;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+    max-height: 100vh;
+  }
+  @media (max-width: 900px) {
+    .panel { max-height: none; border-right: none; border-bottom: 2px solid var(--line); order: -1; }
+  }
+  .panel h1 {
+    font-size: 13px; margin: 0;
+    text-transform: uppercase; letter-spacing: 0.1em; font-weight: 900;
+  }
+  .panel .subtitle { font-size: 11px; margin: 0; opacity: 0.65; line-height: 1.4; }
+
+  .section {
+    border: 2px solid var(--line);
+    background: #fff;
+    padding: 10px 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .section-title {
+    font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em;
+    opacity: 0.8;
+  }
+  .section-note { font-size: 10px; opacity: 0.6; line-height: 1.4; }
+
+  .control-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .control-value {
+    min-width: 60px; text-align: right; font-size: 11px; font-weight: 700;
+    padding: 3px 6px; background: #f1f5f9; border: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] { flex: 1; min-width: 140px; accent-color: var(--ink); }
+  select {
+    font: inherit; font-size: 11px; font-weight: 700;
+    padding: 6px 8px; border: 2px solid var(--line); background: #fff; cursor: pointer;
+    flex: 1; min-width: 140px;
+  }
+
+  .segmented {
+    display: flex; flex-wrap: wrap; border: 2px solid var(--line); background: #fff;
+  }
+  .segmented button {
+    font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 6px 10px; background: #fff; border: none; cursor: pointer;
+    color: var(--ink); flex: 1 0 auto; border-right: 2px solid var(--line); border-bottom: 2px solid var(--line);
+  }
+  .segmented.cols button { flex: 1 0 45%; }
+  .segmented button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+  .toggle-row { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; }
+  .toggle-row input { width: 16px; height: 16px; accent-color: var(--ink); }
+
+  .run-btn {
+    font: inherit; font-size: 12px; font-weight: 900; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 10px 14px;
+    background: #fff; border: 2px solid var(--line); cursor: pointer;
+    box-shadow: var(--shadow); color: var(--ink);
+  }
+  .run-btn:hover { background: var(--accent); }
+  .run-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 0 var(--line); }
+
+  .copy-row { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+  .copy-btn {
+    font: inherit; font-size: 12px; font-weight: 900; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 12px 14px;
+    background: var(--accent); border: 2px solid var(--line); cursor: pointer;
+    box-shadow: var(--shadow); color: var(--ink);
+  }
+  .copy-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 0 var(--line); }
+  .copy-hint { font-size: 10px; opacity: 0.7; line-height: 1.4; }
+  .copy-status {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #166534; height: 14px;
+  }
+
+  /* ---------- RIGHT: preview ---------- */
+  .preview-col { display: flex; flex-direction: column; min-height: 100vh; background: var(--paper); }
+  .stage-head {
+    padding: 12px 18px; border-bottom: 2px solid var(--line); background: #fff;
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  }
+  .stage-head h2 { font-size: 12px; margin: 0; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 900; }
+  .stage-head .hint { font-size: 10px; opacity: 0.6; }
+
+  /* The viewport that holds world + detail layers, clipped */
+  .viewport {
+    position: relative; flex: 1; min-height: 520px; overflow: hidden;
+    background: #87ceeb;
+  }
+  .viewport.perspective { perspective: 1400px; perspective-origin: 50% 45%; }
+
+  /* ---------- SKY + CELESTIAL: fixed atmosphere behind the scrolling content ---------- */
+  .atmosphere {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+    will-change: filter, transform, opacity;
+  }
+  .sky-bg { position: absolute; inset: 0; background: rgb(135,206,235); }
+  /* soft vertical haze so the horizon glows, not a flat fill */
+  .sky-haze {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,0) 40%, rgba(255,255,255,0.18) 78%, rgba(255,255,255,0.30) 100%);
+    mix-blend-mode: screen; opacity: 0.7;
+  }
+  .celestial {
+    position: absolute; width: 96px; height: 96px; border-radius: 50%;
+    transform: translate(-50%,-50%); will-change: left, top, opacity;
+  }
+  .sun {
+    background: radial-gradient(circle at 38% 34%, #fffdf0, #fde047 58%, #fbbf24);
+    box-shadow: 0 0 70px 22px rgba(253,224,71,0.55), 0 0 140px 60px rgba(253,224,71,0.25);
+  }
+  .moon {
+    width: 78px; height: 78px;
+    background: radial-gradient(circle at 36% 32%, #ffffff, #e2e8f0 60%, #cbd5e1);
+    box-shadow: 0 0 70px 26px rgba(226,232,240,0.28);
+  }
+  .moon::before, .moon::after {
+    content: ""; position: absolute; border-radius: 50%; background: rgba(148,163,184,0.45);
+  }
+  .moon::before { width: 18px; height: 18px; top: 14px; right: 16px; }
+  .moon::after  { width: 12px; height: 12px; bottom: 18px; left: 18px; }
+
+  /* star field — fades in toward night */
+  .stars { position: absolute; inset: 0; opacity: 0; }
+  .star { position: absolute; border-radius: 50%; background: #fff; }
+  @keyframes twinkle { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
+  .star { animation: twinkle var(--tw,3s) ease-in-out infinite; animation-delay: var(--td,0s); }
+
+  /* aurora ribbons — only at deepest night */
+  .aurora { position: absolute; left:-10%; right:-10%; top: 4%; height: 46%; opacity: 0; mix-blend-mode: screen; filter: blur(22px); }
+  .aurora-band { position: absolute; left:0; right:0; height: 120px; border-radius: 50%; }
+  .aurora-band.a { top: 6%;  background: radial-gradient(ellipse 60% 100% at 40% 50%, rgba(52,211,153,0.55), transparent 70%); }
+  .aurora-band.b { top: 26%; background: radial-gradient(ellipse 70% 100% at 60% 50%, rgba(56,189,248,0.45), transparent 70%); }
+
+  /* drifting clouds (day) — thin SVG silhouettes */
+  .clouds { position: absolute; inset: 0; }
+  .cloud { position: absolute; opacity: 0.5; will-change: transform; }
+  .cloud svg { display: block; width: 100%; height: auto; }
+
+  /* ---------- PARALLAX MOUNTAIN RANGES (soft tinted silhouettes) ---------- */
+  .ranges { position: absolute; left: 0; right: 0; bottom: 0; height: 62%; }
+  .range { position: absolute; left: -4%; right: -4%; bottom: 0; will-change: transform; }
+  .range svg { display: block; width: 100%; height: auto; }
+  .range.back  { bottom: 22%; opacity: 0.45; }
+  .range.mid   { bottom: 11%; opacity: 0.6;  }
+  .range.front { bottom: 0;   opacity: 0.8;  }
+
+  /* ground / soil band at the very bottom — sets up dig */
+  .ground {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 16%;
+    background: linear-gradient(to bottom, #6b4f3a, #4a3526 55%, #2e2015);
+    border-top: 2px solid rgba(0,0,0,0.25);
+  }
+  .ground::before {
+    content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 14px;
+    background: linear-gradient(to bottom, #5d8a4a, #3f6b34);
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+
+  /* ---------- WORLD: scrollable journey content over the atmosphere ---------- */
+  .world {
+    position: absolute; inset: 0; z-index: 2;
+    overflow-y: auto; overflow-x: hidden;
+    transform-origin: 50% 50%;
+    will-change: transform, filter, opacity;
+  }
+  .world-inner { position: relative; min-height: 2000px; padding: 0 0 120px 0; }
+
+  .hero { position: relative; z-index: 2; padding: 64px 28px 40px 28px; text-align: center; color: var(--ink); }
+  .hero .avatar {
+    width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 16px auto;
+    background: radial-gradient(circle at 35% 30%, #fff, #cbe6f5 60%, #8ec6e6);
+    border: 2px solid rgba(15,23,42,0.25);
+    box-shadow: 0 8px 30px rgba(15,23,42,0.18);
+  }
+  .hero h3 { margin: 0 0 6px 0; font-size: 22px; letter-spacing: 0.02em; }
+  .hero p { margin: 0 auto; max-width: 360px; font-size: 12px; line-height: 1.5; opacity: 0.85; }
+
+  /* delicate frosted nature plates */
+  .plate {
+    position: relative; z-index: 2;
+    margin: 34px auto; width: min(78%, 460px);
+    padding: 18px 20px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.16);
+    backdrop-filter: blur(10px) saturate(1.15);
+    -webkit-backdrop-filter: blur(10px) saturate(1.15);
+    border: 1px solid rgba(255,255,255,0.45);
+    box-shadow: 0 10px 40px rgba(15,23,42,0.18);
+    color: #0f172a;
+  }
+  .plate .kicker { font-size: 9px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.6; }
+  .plate h4 { margin: 4px 0 8px 0; font-size: 18px; }
+  .plate p { margin: 0; font-size: 12px; line-height: 1.55; opacity: 0.9; }
+  .plate.dead { opacity: 0.82; }
+  .plate.live { cursor: pointer; transition: transform 140ms ease, box-shadow 140ms ease; }
+  .plate.live:hover, .plate.live:focus-visible {
+    transform: translateY(-2px); box-shadow: 0 16px 50px rgba(15,23,42,0.28); outline: none;
+  }
+  .plate.live .open-cue {
+    display: inline-block; margin-top: 10px; font-size: 10px; font-weight: 800;
+    letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 8px;
+    border-radius: 999px; background: rgba(15,23,42,0.12); border: 1px solid rgba(15,23,42,0.2);
+  }
+  .plate.night-text { color: #f1f5f9; }
+  .plate.night-text .open-cue { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.3); }
+
+  /* small seed motif on live plates, used by Bloom */
+  .seed {
+    position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%);
+    width: 16px; height: 16px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    background: radial-gradient(circle at 40% 35%, #a3e635, #4d7c0f);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25); opacity: 0.85;
+  }
+
+  /* ---------- ASCEND constellation/topo map ---------- */
+  .map-layer {
+    position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none;
+  }
+  .map-layer.show { display: block; }
+  .map-topo { position: absolute; inset: 0; opacity: 0; transition: opacity 300ms ease; }
+  .map-layer.show .map-topo { opacity: 0.35; }
+  .map-link { position: absolute; inset: 0; pointer-events: none; }
+  .map-node {
+    position: absolute; width: 78px; height: 78px; border-radius: 50%;
+    transform: translate(-50%,-50%) scale(0.4); opacity: 0;
+    background: rgba(255,255,255,0.20);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.5);
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #f1f5f9; box-shadow: 0 0 24px rgba(255,255,255,0.25);
+    transition: opacity 260ms ease, transform 260ms ease;
+  }
+  .map-layer.show .map-node { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  .map-node.chosen { background: rgba(253,224,71,0.35); border-color: rgba(253,224,71,0.7); }
+
+  /* ---------- DETAIL surface ---------- */
+  .detail {
+    position: absolute; z-index: 8;
+    background: rgba(244,247,252,0.80);
+    backdrop-filter: blur(18px) saturate(1.15);
+    -webkit-backdrop-filter: blur(18px) saturate(1.15);
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 30px 90px rgba(15,23,42,0.45);
+    color: #0f172a; overflow: hidden; display: none;
+    will-change: transform, opacity, clip-path;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  }
+  .detail.show { display: block; }
+  /* night-styled detail (nightfall / ascend at deep night) */
+  .detail.nightskin {
+    background: rgba(12,10,30,0.86); color: #e2e8f0; border-color: rgba(148,163,184,0.3);
+  }
+  .detail.nightskin a { color: #7dd3fc; }
+  .detail.nightskin .d-sub { color: #cbd5e1; }
+  .detail-scroll { position: absolute; inset: 0; overflow-y: auto; padding: 26px 30px 60px 30px; }
+  /* At full depth the detail heading shares the corner with Return — reserve clearance. */
+  .detail.depth-full .detail-scroll { padding-top: 58px; }
+  .detail h3.d-title { margin: 0 0 4px 0; font-size: 26px; letter-spacing: 0.01em; }
+  .detail .d-sub { font-size: 11px; opacity: 0.7; margin: 0 0 18px 0; }
+  .detail p { font-size: 12.5px; line-height: 1.6; margin: 0 0 14px 0; }
+  .detail a { color: #0c4a6e; }
+  .detail ul.d-list { list-style: none; padding: 0; margin: 0 0 16px 0; display: flex; flex-direction: column; gap: 6px; }
+  .detail ul.d-list li {
+    font-size: 12px; padding: 8px 12px; border-radius: 10px;
+    background: rgba(255,255,255,0.55); border: 1px solid rgba(15,23,42,0.1);
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  /* strata styling for the Tech list when opened via Descend / Ridge unfold */
+  .detail.strata ul.d-list li {
+    border-radius: 4px; border: none;
+    border-left: 4px solid rgba(120,80,50,0.55);
+    background: linear-gradient(90deg, rgba(160,120,80,0.22), rgba(120,90,60,0.10));
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.10);
+  }
+  .detail ul.d-list li .pri { font-weight: 800; }
+  .detail ul.d-list li .sec { opacity: 0.72; font-size: 11px; }
+
+  .stat-line { font-size: 13px; font-weight: 800; margin: 0 0 12px 0; }
+  .genre-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px 0; }
+  .genre-tags span {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px; background: rgba(15,23,42,0.1); border: 1px solid rgba(15,23,42,0.15);
+  }
+  .detail.nightskin .genre-tags span { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
+  .d-links { display: flex; gap: 14px; margin: 0 0 18px 0; font-size: 12px; font-weight: 700; }
+  .album-note { font-size: 10px; opacity: 0.65; margin: 0 0 12px 0; line-height: 1.5; }
+  .album-wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+  /* "night sky of album stars" layout for Nightfall */
+  .album-wall.constellated {
+    display: block; position: relative; height: 360px;
+    border-radius: 14px; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 0%, rgba(40,30,80,0.5), rgba(8,6,22,0.85));
+  }
+  .album-wall.constellated .album-tile {
+    position: absolute; width: 54px; height: 54px;
+    box-shadow: 0 0 18px rgba(255,255,255,0.25), 0 4px 14px rgba(0,0,0,0.5);
+  }
+  .album-tile {
+    aspect-ratio: 1 / 1; border-radius: 8px; position: relative; overflow: hidden;
+    border: 1px solid rgba(15,23,42,0.12); box-shadow: 0 4px 14px rgba(15,23,42,0.16);
+    display: flex; flex-direction: column; justify-content: flex-end; padding: 6px;
+  }
+  .album-tile .lbl { font-size: 8px; font-weight: 800; letter-spacing: 0.04em; color: rgba(255,255,255,0.95); text-shadow: 0 1px 2px rgba(0,0,0,0.5); line-height: 1.2; }
+  .album-tile .lbl .ar { opacity: 0.8; font-weight: 600; }
+
+  /* return / esc edge button */
+  .return-btn {
+    position: absolute; top: 14px; left: 14px; z-index: 20;
+    font: inherit; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 8px 12px; background: rgba(255,255,255,0.9); border: 2px solid var(--line); cursor: pointer;
+    box-shadow: 2px 2px 0 0 var(--line); display: none;
+  }
+  .return-btn.show { display: block; }
+  .return-btn:active { transform: translate(2px,2px); box-shadow: 0 0 0 0 var(--line); }
+
+  /* dim/atmosphere scrim used by several methods */
+  .scrim { position: absolute; inset: 0; z-index: 7; background: rgba(15,23,42,0); pointer-events: none; display: none; }
+  .scrim.show { display: block; }
+
+  /* ---------- FOG ROLL layer ---------- */
+  .fog { position: absolute; inset: 0; z-index: 7; pointer-events: none; display: none; opacity: 0; }
+  .fog.show { display: block; }
+  .fog-bank {
+    position: absolute; top: -20%; bottom: -20%; width: 70%;
+    background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(236,240,245,0.95), rgba(236,240,245,0.55) 55%, rgba(236,240,245,0) 78%);
+    filter: blur(8px);
+  }
+  .fog-bank.one { left: -75%; }
+  .fog-bank.two { right: -75%; }
+
+  /* ---------- DESCEND soil strata layer ---------- */
+  .soil-curtain { position: absolute; inset: 0; z-index: 7; pointer-events: none; display: none; }
+  .soil-curtain.show { display: block; }
+  .soil-half {
+    position: absolute; left: 0; right: 0; height: 50%;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.10) 0 2px, rgba(0,0,0,0) 2px 18px),
+      linear-gradient(to bottom, #6b4f3a, #2e2015);
+  }
+  .soil-half.top { top: 0; transform: translateY(-100%); }
+  .soil-half.bottom { bottom: 0; transform: translateY(100%);
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.10) 0 2px, rgba(0,0,0,0) 2px 18px),
+      linear-gradient(to bottom, #4a3526, #1a120b);
+  }
+
+  /* ---------- TIDE waterline ---------- */
+  .tide { position: absolute; left:0; right:0; bottom:0; height: 0; z-index: 7; pointer-events: none; display:none;
+    background: linear-gradient(to bottom, rgba(56,189,248,0.42), rgba(14,116,144,0.62));
+    border-top: 2px solid rgba(186,230,253,0.7);
+    will-change: height;
+  }
+  .tide.show { display: block; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <!-- ============ LEFT: CONTROL PANEL ============ -->
+    <aside class="panel">
+      <div>
+        <h1>Detail transitions</h1>
+        <p class="subtitle">Nature-narrative ways to open a detail view inside the scroll journey. Scroll the stage (noon &rarr; dusk &rarr; night), then click a live plate (Coding / Music) or hit Run. The landscape itself transforms to reveal the detail.</p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Method</div>
+        <div class="segmented cols" id="method" role="radiogroup" aria-label="Transition method">
+          <button type="button" data-value="descend"  aria-pressed="true">Descend / dig</button>
+          <button type="button" data-value="nightfall" aria-pressed="false">Nightfall</button>
+          <button type="button" data-value="fog"       aria-pressed="false">Fog roll</button>
+          <button type="button" data-value="ridge"     aria-pressed="false">Ridge unfold</button>
+          <button type="button" data-value="bloom"     aria-pressed="false">Bloom / grow</button>
+          <button type="button" data-value="ascend"    aria-pressed="false">Ascend / map</button>
+          <button type="button" data-value="tide"      aria-pressed="false">Tide</button>
+          <button type="button" data-value="baseline"  aria-pressed="false">Side-slide (baseline)</button>
+        </div>
+        <div class="section-note" id="methodNote"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Depth</div>
+        <div class="segmented" id="depth" role="radiogroup" aria-label="Depth">
+          <button type="button" data-value="peek" aria-pressed="false">Peek</button>
+          <button type="button" data-value="half" aria-pressed="false">Half</button>
+          <button type="button" data-value="full" aria-pressed="true">Full</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Content</div>
+        <div class="segmented" id="content" role="radiogroup" aria-label="Content payload">
+          <button type="button" data-value="tech"  aria-pressed="true">Tech stack</button>
+          <button type="button" data-value="album" aria-pressed="false">Album wall</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Duration</div>
+        <div class="control-row">
+          <input id="duration" type="range" min="150" max="1600" step="10" value="800" />
+          <div class="control-value" id="durationVal">800ms</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Easing</div>
+        <div class="control-row">
+          <select id="easing">
+            <option value="ease-out">ease-out</option>
+            <option value="cubic-bezier(0.22,1,0.36,1)" selected>site curve (.22,1,.36,1)</option>
+            <option value="ease-in-out">ease-in-out</option>
+            <option value="cubic-bezier(0.34,1.56,0.64,1)">spring (.34,1.56,.64,1)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Motion</div>
+        <label class="toggle-row">
+          <input type="checkbox" id="reducedMotion" />
+          Simulate reduced-motion (crossfade)
+        </label>
+        <div class="section-note" id="rmNote"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Run</div>
+        <div class="control-row">
+          <button class="run-btn" id="runBtn" style="flex:1;">Run transition &rarr;</button>
+        </div>
+        <div class="section-note">Opens the selected plate's detail (or whichever Content forces). Press ESC or click &larr; Return to play the inverse nature beat.</div>
+      </div>
+
+      <div class="copy-row">
+        <button class="copy-btn" id="copyBtn">Copy spec</button>
+        <div class="copy-status" id="copyStatus" aria-live="polite"></div>
+        <p class="copy-hint">Click Copy spec, then paste the JSON back into chat to lock your chosen approach.</p>
+      </div>
+    </aside>
+
+    <!-- ============ RIGHT: PREVIEW STAGE ============ -->
+    <section class="preview-col">
+      <div class="stage-head">
+        <h2>Journey stage</h2>
+        <span class="hint">Scroll inside this panel · day &rarr; dusk &rarr; night · click a live plate</span>
+      </div>
+
+      <div class="viewport" id="viewport">
+        <!-- ATMOSPHERE: sky, sun, moon, stars, aurora, clouds, ranges, ground -->
+        <div class="atmosphere" id="atmosphere">
+          <div class="sky-bg" id="skyBg"></div>
+          <div class="aurora" id="aurora">
+            <div class="aurora-band a"></div>
+            <div class="aurora-band b"></div>
+          </div>
+          <div class="stars" id="stars"></div>
+          <div class="celestial sun" id="sun"></div>
+          <div class="celestial moon" id="moon"></div>
+          <div class="clouds" id="clouds"></div>
+          <div class="ranges" id="ranges">
+            <div class="range back" id="rangeBack"></div>
+            <div class="range mid" id="rangeMid"></div>
+            <div class="range front" id="rangeFront"></div>
+          </div>
+          <div class="ground" id="ground"></div>
+          <div class="sky-haze"></div>
+        </div>
+
+        <!-- WORLD: scrollable journey content -->
+        <div class="world" id="world">
+          <div class="world-inner" id="worldInner">
+            <div class="hero">
+              <div class="avatar"></div>
+              <h3>Alper Ortac</h3>
+              <p>Engineer &amp; freelancer building things that radiate energy. Scroll down to descend through the journey from sky to soil.</p>
+            </div>
+
+            <div class="plate dead">
+              <div class="kicker">About</div>
+              <h4>The foundation</h4>
+              <p>A nature-themed scroll journey from sky to soil. This plate is static scenery so the live ones stand out.</p>
+            </div>
+
+            <div class="plate live" id="plate-coding" tabindex="0" role="button" aria-label="Open Coding detail" data-topic="coding">
+              <div class="kicker">Live topic</div>
+              <h4>Coding</h4>
+              <p>Nowadays I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up Tanstack and self-hosting it on one of my Hetzner VPS.</p>
+              <span class="open-cue">Open detail &rarr;</span>
+              <span class="seed" aria-hidden="true"></span>
+            </div>
+
+            <div class="plate dead">
+              <div class="kicker">Between</div>
+              <h4>Descending</h4>
+              <p>The light tips toward dusk here. Keep scrolling and the sky deepens toward night.</p>
+            </div>
+
+            <div class="plate live night-text" id="plate-music" tabindex="0" role="button" aria-label="Open Music detail" data-topic="music">
+              <div class="kicker">Live topic</div>
+              <h4>Music</h4>
+              <p>I'm into music that radiates infinite energy. From Metalcore, over Progrock to Liquid D'n'B and Tech House. Loudness and high production value spurs me.</p>
+              <span class="open-cue">Open detail &rarr;</span>
+              <span class="seed" aria-hidden="true"></span>
+            </div>
+
+            <div class="plate dead night-text">
+              <div class="kicker">Underground</div>
+              <h4>Night floor</h4>
+              <p>The bottom of the journey. From here the experience would continue underground.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ASCEND map nodes -->
+        <div class="map-layer" id="mapLayer">
+          <svg class="map-topo" id="mapTopo" viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <svg class="map-link" id="mapLink" preserveAspectRatio="none" aria-hidden="true"></svg>
+        </div>
+
+        <!-- method overlays -->
+        <div class="scrim" id="scrim"></div>
+        <div class="fog" id="fog">
+          <div class="fog-bank one"></div>
+          <div class="fog-bank two"></div>
+        </div>
+        <div class="soil-curtain" id="soil">
+          <div class="soil-half top"></div>
+          <div class="soil-half bottom"></div>
+        </div>
+        <div class="tide" id="tide"></div>
+
+        <!-- DETAIL -->
+        <div class="detail" id="detail" role="dialog" aria-modal="true" aria-label="Detail view">
+          <div class="detail-scroll" id="detailScroll"></div>
+        </div>
+
+        <!-- return -->
+        <button class="return-btn" id="returnBtn">&larr; Return</button>
+      </div>
+    </section>
+  </div>
+
+<script>
+  "use strict";
+
+  /* ============================================================
+   * SKY CURVE — ported from src/data/skyCurve.ts (held anchors +
+   * per-window saturation boost so in-betweens stay vibrant).
+   * ============================================================ */
+  const NOON  = { r: 135, g: 206, b: 235 };
+  const DUSK  = { r: 244, g: 164, b:  96 };
+  const NIGHT = { r:  20, g:  10, b:  50 };
+  const CURVE = { phase1: [0.162, 0.436], phase2: [0.466, 0.787], boost: 0.8 };
+
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  const lerp = (a, b, t) => Math.round(a + (b - a) * t);
+  const bell = (t) => Math.sin(t * Math.PI);
+  const lerpRgb = (a, b, t) => ({ r: lerp(a.r,b.r,t), g: lerp(a.g,b.g,t), b: lerp(a.b,b.b,t) });
+
+  function rgbToHsl(rgb) {
+    const r = rgb.r/255, g = rgb.g/255, b = rgb.b/255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h = 0, s = 0; const l = (max+min)/2;
+    if (max !== min) {
+      const d = max-min;
+      s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+      switch (max) {
+        case r: h = (g-b)/d + (g<b?6:0); break;
+        case g: h = (b-r)/d + 2; break;
+        case b: h = (r-g)/d + 4; break;
+      }
+      h /= 6;
+    }
+    return { h, s, l };
+  }
+  function hslToRgb(hsl) {
+    const { h, s, l } = hsl;
+    if (s === 0) { const v = Math.round(l*255); return { r:v, g:v, b:v }; }
+    const hue2rgb = (p,q,t) => {
+      if (t<0) t+=1; if (t>1) t-=1;
+      if (t<1/6) return p+(q-p)*6*t;
+      if (t<1/2) return q;
+      if (t<2/3) return p+(q-p)*(2/3-t)*6;
+      return p;
+    };
+    const q = l<0.5 ? l*(1+s) : l+s-l*s;
+    const p = 2*l-q;
+    return {
+      r: Math.round(hue2rgb(p,q,h+1/3)*255),
+      g: Math.round(hue2rgb(p,q,h)*255),
+      b: Math.round(hue2rgb(p,q,h-1/3)*255),
+    };
+  }
+  function boostSat(rgb, boost, weight) {
+    const hsl = rgbToHsl(rgb);
+    hsl.s = clamp01(hsl.s * (1 + boost*weight));
+    return hslToRgb(hsl);
+  }
+  function skyRgb(p) {
+    const [s1,e1] = CURVE.phase1, [s2,e2] = CURVE.phase2;
+    if (p <= s1) return NOON;
+    if (p < e1) { const t=(p-s1)/(e1-s1); return boostSat(lerpRgb(NOON,DUSK,t), CURVE.boost, bell(t)); }
+    if (p <= s2) return DUSK;
+    if (p < e2) { const t=(p-s2)/(e2-s2); return boostSat(lerpRgb(DUSK,NIGHT,t), CURVE.boost, bell(t)); }
+    return NIGHT;
+  }
+  const rgbCss = (c) => `rgb(${c.r}, ${c.g}, ${c.b})`;
+
+  /* ============================================================
+   * CELESTIAL — ported arc math from minimap/helpers.ts + celestial.ts
+   * ============================================================ */
+  const SUN_PARAMS  = { startX: 75, startY: 12, endX: 28, endY: 58, arcLift: 8 };
+  const MOON_PARAMS = { startX: 27, startY: 45, endX: 16, endY: 13, arcLift: 6 };
+  const SUN_WINDOW  = { start: 0,    end: 0.65 };
+  const MOON_WINDOW = { start: 0.45, end: 1.0 };
+  function windowedProgress(p, win) {
+    const range = win.end - win.start;
+    if (range <= 0) return 0;
+    return clamp01((p - win.start) / range);
+  }
+  function celestialPos(local, params) {
+    const x = params.startX + (params.endX - params.startX) * local;
+    const yLin = params.startY + (params.endY - params.startY) * local;
+    const y = yLin - Math.sin(local * Math.PI) * params.arcLift;
+    return { x, y };
+  }
+  const sunOpacityAt  = (p) => p < 0.45 ? 1 : Math.max(0, 1 - (p - 0.45) / 0.2);
+  const moonOpacityAt = (p) => p < 0.5  ? 0 : Math.min(1, (p - 0.5) / 0.2);
+
+  /* ============================================================
+   * State
+   * ============================================================ */
+  const state = {
+    method: "descend",
+    depth: "full",
+    content: "tech",
+    durationMs: 800,
+    easing: "cubic-bezier(0.22,1,0.36,1)",
+    reducedMotion: false,
+  };
+
+  const METHOD_NOTES = {
+    "descend":   "Signature dig: the ground splits and the camera descends through soil strata into an underground chamber. The tech list reads as geological layers.",
+    "nightfall": "Time runs forward fast — sun sets, moon + stars rise, sky deepens to night, and the detail surfaces in the dark. Albums become a night sky of cover-stars.",
+    "fog":       "Mist sweeps across, softening + dimming the world, then parts to reveal a frosted panel. The world stays faintly visible behind the haze.",
+    "ridge":     "A ridge in the scene hinges and cross-sections open to reveal its inner layers, which become the detail. The landscape itself reshapes.",
+    "bloom":     "A seed at the clicked plate grows; its canopy unfurls into the detail surface. Organic scale-up from the plate's center.",
+    "ascend":    "Camera pulls up above the valley; topics become a constellation / topo overview, then the chosen node opens.",
+    "tide":      "A waterline rises and the detail floats up from beneath the surface; reverse lets the tide recede.",
+    "baseline":  "Neutral reference (the thing we're replacing): detail slides in 100%, world slides out the other way. No nature beat.",
+  };
+
+  /* ============================================================
+   * DOM
+   * ============================================================ */
+  const $ = (id) => document.getElementById(id);
+  const viewport   = $("viewport");
+  const atmosphere = $("atmosphere");
+  const world      = $("world");
+  const skyBg      = $("skyBg");
+  const sun        = $("sun");
+  const moon       = $("moon");
+  const stars      = $("stars");
+  const aurora     = $("aurora");
+  const clouds     = $("clouds");
+  const rangeBack  = $("rangeBack");
+  const rangeMid   = $("rangeMid");
+  const rangeFront = $("rangeFront");
+  const ground     = $("ground");
+  const mapLayer   = $("mapLayer");
+  const mapTopo    = $("mapTopo");
+  const mapLink    = $("mapLink");
+  const scrim      = $("scrim");
+  const fog        = $("fog");
+  const soil       = $("soil");
+  const tide       = $("tide");
+  const detail     = $("detail");
+  const detailScroll = $("detailScroll");
+  const returnBtn  = $("returnBtn");
+  const methodNote = $("methodNote");
+  const rmNote     = $("rmNote");
+
+  /* ---------- Build atmosphere art ---------- */
+  // stars
+  (function buildStars(){
+    let html = "";
+    for (let i = 0; i < 140; i++) {
+      const x = Math.random()*100, y = Math.random()*70;
+      const s = Math.random()*2 + 0.6;
+      const tw = (Math.random()*3 + 2).toFixed(2);
+      const td = (Math.random()*5).toFixed(2);
+      html += `<span class="star" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;--tw:${tw}s;--td:${td}s;box-shadow:0 0 ${s*2}px rgba(255,255,255,0.6)"></span>`;
+    }
+    stars.innerHTML = html;
+  })();
+
+  // clouds — thin soft silhouettes (SVG), each with its own parallax speed
+  const CLOUD_DEFS = [
+    { x: 8,  y: 14, scale: 1.3, speed: 0.10 },
+    { x: 58, y: 9,  scale: 0.9, speed: -0.07 },
+    { x: 80, y: 22, scale: 1.1, speed: 0.05 },
+    { x: 34, y: 28, scale: 0.8, speed: -0.12 },
+  ];
+  (function buildClouds(){
+    let html = "";
+    CLOUD_DEFS.forEach((c, i) => {
+      html += `<div class="cloud" data-i="${i}" style="left:${c.x}%;top:${c.y}%;width:${140*c.scale}px">
+        <svg viewBox="0 0 120 50" aria-hidden="true">
+          <g fill="#ffffff">
+            <ellipse cx="40" cy="32" rx="34" ry="16"/>
+            <ellipse cx="66" cy="26" rx="26" ry="18"/>
+            <ellipse cx="86" cy="34" rx="22" ry="13"/>
+            <ellipse cx="22" cy="36" rx="20" ry="12"/>
+          </g>
+        </svg></div>`;
+    });
+    clouds.innerHTML = html;
+  })();
+  const cloudEls = Array.from(clouds.querySelectorAll(".cloud"));
+
+  // ridgelines — soft layered silhouettes (paths reminiscent of the site's mountain SVG)
+  function ridgeSVG(path, fill) {
+    return `<svg viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true">
+      <path d="${path}" fill="${fill}" style="shape-rendering:geometricPrecision"/></svg>`;
+  }
+  const RIDGE_BACK  = "M0,300 V150 L120,90 L210,140 L320,70 L430,150 L560,60 L690,140 L820,80 L920,150 L1000,110 V300 Z";
+  const RIDGE_MID   = "M0,300 V190 L90,140 L180,200 L300,120 L420,200 L540,130 L660,210 L780,140 L900,200 L1000,160 V300 Z";
+  const RIDGE_FRONT = "M0,300 V230 L130,180 L250,240 L380,170 L520,250 L640,190 L780,250 L900,200 L1000,240 V300 Z";
+  rangeBack.innerHTML  = ridgeSVG(RIDGE_BACK,  "#5b7d8c");
+  rangeMid.innerHTML   = ridgeSVG(RIDGE_MID,   "#41606e");
+  rangeFront.innerHTML = ridgeSVG(RIDGE_FRONT, "#2c4450");
+
+  /* ============================================================
+   * Scene update driven by world scroll (throttled via rAF)
+   * ============================================================ */
+  let scrollP = 0;
+  let rafPending = false;
+  function computeScrollP() {
+    const max = world.scrollHeight - world.clientHeight;
+    return max > 0 ? clamp01(world.scrollTop / max) : 0;
+  }
+  function applyScene(p) {
+    const h = world.clientHeight;
+    const w = world.clientWidth;
+
+    // sky
+    const col = rgbCss(skyRgb(p));
+    skyBg.style.background = col;
+    viewport.style.background = col;
+
+    // sun
+    const sp = celestialPos(windowedProgress(p, SUN_WINDOW), SUN_PARAMS);
+    sun.style.left = sp.x + "%";
+    sun.style.top = sp.y + "%";
+    sun.style.opacity = sunOpacityAt(p).toFixed(2);
+
+    // moon
+    const mp = celestialPos(windowedProgress(p, MOON_WINDOW), MOON_PARAMS);
+    moon.style.left = mp.x + "%";
+    moon.style.top = mp.y + "%";
+    moon.style.opacity = moonOpacityAt(p).toFixed(2);
+
+    // stars fade in across phase2; aurora at deepest night
+    const [s2,e2] = CURVE.phase2;
+    const starsOp = clamp01((p - s2) / Math.max(e2 - s2, 0.001));
+    stars.style.opacity = starsOp.toFixed(2);
+    aurora.style.opacity = (clamp01((p - e2) / Math.max(1 - e2, 0.001)) * 0.85).toFixed(2);
+
+    // clouds drift + thin out toward night
+    const cloudFade = 1 - clamp01((p - 0.35) / 0.4) * 0.85;
+    cloudEls.forEach((el, i) => {
+      const def = CLOUD_DEFS[i];
+      el.style.transform = `translateX(${p * 600 * def.speed}px)`;
+      el.style.opacity = (0.5 * cloudFade).toFixed(2);
+    });
+
+    // parallax ranges: drift up at different rates as you scroll down
+    rangeBack.style.transform  = `translateY(${p * 30}px)`;
+    rangeMid.style.transform   = `translateY(${p * 60}px)`;
+    rangeFront.style.transform = `translateY(${p * 100}px)`;
+    // tint ranges toward the night sky as it darkens
+    const dark = clamp01((p - 0.4) / 0.5);
+    [rangeBack, rangeMid, rangeFront].forEach((r) => {
+      r.style.filter = `brightness(${(1 - dark * 0.55).toFixed(2)}) saturate(${(1 - dark*0.3).toFixed(2)})`;
+    });
+    ground.style.filter = `brightness(${(1 - dark * 0.4).toFixed(2)})`;
+  }
+  function onScroll() {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(() => {
+      rafPending = false;
+      scrollP = computeScrollP();
+      if (!isOpen) applyScene(scrollP);
+    });
+  }
+  world.addEventListener("scroll", onScroll, { passive: true });
+
+  /* ============================================================
+   * Segmented helpers
+   * ============================================================ */
+  function wireSegmented(rootId, key, onChange) {
+    const root = $(rootId);
+    root.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const v = btn.dataset.value;
+        state[key] = v;
+        root.querySelectorAll("button").forEach((b) =>
+          b.setAttribute("aria-pressed", b.dataset.value === v ? "true" : "false"));
+        if (onChange) onChange(v);
+      });
+    });
+  }
+  wireSegmented("method", "method", (v) => { methodNote.textContent = METHOD_NOTES[v] || ""; });
+  wireSegmented("depth", "depth");
+  wireSegmented("content", "content");
+
+  $("duration").addEventListener("input", (e) => {
+    state.durationMs = parseInt(e.target.value, 10);
+    $("durationVal").textContent = state.durationMs + "ms";
+  });
+  $("easing").addEventListener("change", (e) => { state.easing = e.target.value; });
+  $("reducedMotion").addEventListener("change", (e) => {
+    state.reducedMotion = e.target.checked;
+    rmNote.textContent = e.target.checked ? "All methods collapse to a fast crossfade." : "";
+  });
+
+  const rmMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const motionReduced = () => state.reducedMotion || rmMedia.matches;
+
+  /* ============================================================
+   * Detail content (VERBATIM)
+   * ============================================================ */
+  function techHTML() {
+    return `
+      <h3 class="d-title">Tech Stack</h3>
+      <p class="d-sub">Coding · detail view</p>
+      <p>I self-host as much as I can to avoid serverless horrors (serverlesshorrors.com). Hetzner Cloud is the best compromise between cost, performance and value. What's running on it?</p>
+      <ul class="d-list">
+        <li><span class="pri">Coolify</span><span class="sec">— to spin up my web apps</span></li>
+        <li><span class="pri">Windmill</span><span class="sec">— to orchestrate data pipelines (for millions of movies and tv shows)</span></li>
+        <li><span class="pri">CrateDB</span><span class="sec">— for big data</span></li>
+        <li><span class="pri">Convex</span><span class="sec">— for realtime data</span></li>
+        <li><span class="pri">MongoDB</span><span class="sec">— for raw data (from scraping)</span></li>
+        <li><span class="pri">Redis</span><span class="sec">— for Pub/Sub and caching</span></li>
+        <li><span class="pri">SpacetimeDB</span><span class="sec">— for my browser game</span></li>
+      </ul>
+      <p>For some services I still rely on cloud software:</p>
+      <ul class="d-list">
+        <li><span class="pri">Posthog</span><span class="sec">— for analytics</span></li>
+        <li><span class="pri">Grafana</span><span class="sec">— for monitoring</span></li>
+        <li><span class="pri">Namecheap</span><span class="sec">— for Emails</span></li>
+      </ul>
+      <p>When I spin up a new web apps, I usually build it with Tanstack Start, Tailwind and Convex.</p>
+    `;
+  }
+  // album positions for the constellated (night-sky) variant
+  const ALBUM_POS = [
+    {x:12,y:14},{x:30,y:8},{x:48,y:18},{x:66,y:10},{x:84,y:20},{x:22,y:34},
+    {x:42,y:40},{x:60,y:32},{x:78,y:44},{x:14,y:54},{x:34,y:62},{x:52,y:56},
+    {x:72,y:64},{x:88,y:54},{x:8,y:74},{x:28,y:80},{x:46,y:74},{x:64,y:82},
+    {x:82,y:76},{x:20,y:90},{x:40,y:88},{x:58,y:92},{x:76,y:90},{x:90,y:84},
+  ];
+  function albumHTML(constellated) {
+    const grads = [
+      "linear-gradient(135deg,#ff6b6b,#5f0a87)","linear-gradient(135deg,#0f2027,#2c5364)",
+      "linear-gradient(135deg,#f7971e,#ffd200)","linear-gradient(135deg,#43cea2,#185a9d)",
+      "linear-gradient(135deg,#c31432,#240b36)","linear-gradient(135deg,#1f4037,#99f2c8)",
+      "linear-gradient(135deg,#ee0979,#ff6a00)","linear-gradient(135deg,#141e30,#243b55)",
+      "linear-gradient(135deg,#8e2de2,#4a00e0)","linear-gradient(135deg,#ff512f,#dd2476)",
+      "linear-gradient(135deg,#00c6ff,#0072ff)","linear-gradient(135deg,#f12711,#f5af19)",
+    ];
+    let tiles = "";
+    for (let i = 1; i <= 24; i++) {
+      const g = grads[(i - 1) % grads.length];
+      const n = String(i).padStart(2, "0");
+      const pos = constellated ? `style="background:${g};left:${ALBUM_POS[i-1].x}%;top:${ALBUM_POS[i-1].y}%"`
+                               : `style="background:${g}"`;
+      tiles += `<div class="album-tile" ${pos}><div class="lbl">LP ${n}<br><span class="ar">ARTIST ${n}</span></div></div>`;
+    }
+    const wallClass = constellated ? "album-wall constellated" : "album-wall";
+    return `
+      <h3 class="d-title">Music</h3>
+      <p class="d-sub">Music · detail view</p>
+      <p class="stat-line">275k scrobbles since 2006</p>
+      <div class="genre-tags">
+        <span>Metalcore</span><span>Progrock</span><span>Liquid D'n'B</span><span>Tech House</span>
+      </div>
+      <div class="d-links">
+        <a href="https://www.last.fm/user/Alper_" target="_blank" rel="noopener">Last.fm</a>
+        <a href="https://open.spotify.com/user/1140243663" target="_blank" rel="noopener">Spotify</a>
+      </div>
+      <p class="album-note">Covers below are placeholder gradient tiles demonstrating the wall format — the real wall would pull cover art.</p>
+      <div class="${wallClass}">${tiles}</div>
+    `;
+  }
+
+  /* ============================================================
+   * Geometry
+   * ============================================================ */
+  function viewportRect() { return viewport.getBoundingClientRect(); }
+  function detailBox(depth) {
+    const r = viewportRect();
+    if (depth === "peek") {
+      const w = Math.min(360, r.width * 0.7);
+      const h = Math.min(440, r.height * 0.7);
+      return { left: (r.width - w) / 2, top: (r.height - h) / 2, w, h };
+    }
+    if (depth === "half") {
+      const w = Math.min(r.width, Math.max(360, r.width * 0.62));
+      return { left: r.width - w, top: 0, w, h: r.height };
+    }
+    return { left: 0, top: 0, w: r.width, h: r.height };
+  }
+  function plateCenterInViewport(topic) {
+    const r = viewportRect();
+    const el = topic === "music" ? $("plate-music") : $("plate-coding");
+    if (!el) return { x: r.width / 2, y: r.height / 2 };
+    const pr = el.getBoundingClientRect();
+    return { x: pr.left - r.left + pr.width / 2, y: pr.top - r.top + pr.height / 2 };
+  }
+
+  /* ============================================================
+   * Transition engine
+   * ============================================================ */
+  let isOpen = false;
+  let busy = false;
+  let activeTopic = null;
+  let savedScroll = 0;
+  let pendingTimers = [];
+  const after = (ms, fn) => { const t = setTimeout(fn, ms); pendingTimers.push(t); return t; };
+
+  function clearTimers() { pendingTimers.forEach(clearTimeout); pendingTimers = []; }
+
+  function resetLayers() {
+    clearTimers();
+    [world, atmosphere, detail, mapLayer, scrim, fog, soil, tide].forEach((el) => { el.style.transition = "none"; });
+    world.style.transform = ""; world.style.filter = ""; world.style.opacity = ""; world.style.clipPath = "";
+    world.style.transformOrigin = "50% 50%";
+    atmosphere.style.transform = ""; atmosphere.style.filter = ""; atmosphere.style.opacity = "";
+    atmosphere.style.transformOrigin = "50% 50%";
+    detail.className = "detail";
+    detail.style.cssText = "";
+    detail.classList.remove("show");
+    mapLayer.classList.remove("show"); mapLink.innerHTML = ""; mapTopo.innerHTML = "";
+    mapLayer.querySelectorAll(".map-node").forEach((n) => n.remove());
+    scrim.classList.remove("show"); scrim.style.background = "rgba(15,23,42,0)";
+    fog.classList.remove("show"); fog.style.opacity = "0";
+    fog.querySelector(".one").style.transform = ""; fog.querySelector(".two").style.transform = "";
+    soil.classList.remove("show");
+    soil.querySelector(".top").style.transform = "translateY(-100%)";
+    soil.querySelector(".bottom").style.transform = "translateY(100%)";
+    tide.classList.remove("show"); tide.style.height = "0";
+    viewport.classList.remove("perspective");
+    void viewport.offsetWidth;
+  }
+
+  function placeDetailBase(box) {
+    detail.style.left = box.left + "px";
+    detail.style.top = box.top + "px";
+    detail.style.width = box.w + "px";
+    detail.style.height = box.h + "px";
+    detail.style.borderRadius = (state.depth === "full") ? "0" : "20px";
+    detail.classList.add("depth-" + state.depth);
+    detail.classList.add("show");
+  }
+
+  function loadDetailContent(topic, opts) {
+    opts = opts || {};
+    let useAlbum;
+    if (topic === "coding") useAlbum = false;
+    else if (topic === "music") useAlbum = true;
+    else useAlbum = state.content === "album";
+    detailScroll.innerHTML = useAlbum ? albumHTML(!!opts.constellated) : techHTML();
+    detailScroll.scrollTop = 0;
+    if (opts.strata && !useAlbum) detail.classList.add("strata");
+    if (opts.nightskin) detail.classList.add("nightskin");
+  }
+
+  function open(topic) {
+    if (busy || isOpen) return;
+    busy = true; isOpen = true; activeTopic = topic;
+    savedScroll = world.scrollTop;
+    resetLayers();
+
+    const dur = motionReduced() ? 180 : state.durationMs;
+    const ease = motionReduced() ? "ease-out" : state.easing;
+    const box = detailBox(state.depth);
+    const center = plateCenterInViewport(topic);
+    const r = viewportRect();
+
+    returnBtn.classList.add("show");
+
+    if (motionReduced()) { loadDetailContent(topic, {}); crossfadeIn(box, dur, ease); return; }
+
+    switch (state.method) {
+      case "descend":   openDescend(topic, box, center, dur, ease); break;
+      case "nightfall": openNightfall(topic, box, dur, ease); break;
+      case "fog":       openFog(topic, box, dur, ease); break;
+      case "ridge":     openRidge(topic, box, center, dur, ease); break;
+      case "bloom":     openBloom(topic, box, center, dur, ease); break;
+      case "ascend":    openAscend(topic, box, r, dur, ease); break;
+      case "tide":      openTide(topic, box, dur, ease); break;
+      case "baseline":  openBaseline(topic, box, dur, ease); break;
+      default:          loadDetailContent(topic, {}); crossfadeIn(box, dur, ease);
+    }
+  }
+
+  function finishOpen(dur) { after(dur + 30, () => { busy = false; }); }
+
+  /* ---- reduced-motion crossfade ---- */
+  function crossfadeIn(box, dur, ease) {
+    placeDetailBase(box);
+    detail.style.opacity = "0";
+    scrim.classList.add("show");
+    void detail.offsetWidth;
+    detail.style.transition = `opacity ${dur}ms ${ease}`;
+    scrim.style.transition = `background ${dur}ms ${ease}`;
+    detail.style.opacity = "1";
+    scrim.style.background = "rgba(15,23,42,0.35)";
+    finishOpen(dur);
+  }
+
+  /* ---- 1. DESCEND / DIG: ground splits, camera sinks through soil to a strata chamber ---- */
+  function openDescend(topic, box, center, dur, ease) {
+    loadDetailContent(topic, { strata: true });
+    placeDetailBase(box);
+    detail.style.opacity = "0";
+    detail.style.transform = "translateY(28px)";
+    soil.classList.add("show");
+    const top = soil.querySelector(".top"), bot = soil.querySelector(".bottom");
+    // world + atmosphere lift upward (camera descends), soil curtains slide in from edges to "pass" us
+    void detail.offsetWidth;
+    const tA = Math.round(dur * 0.55);
+    world.style.transition = `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}, filter ${dur}ms ${ease}`;
+    atmosphere.style.transition = `transform ${dur}ms ${ease}, filter ${dur}ms ${ease}`;
+    top.style.transition = `transform ${tA}ms ${ease}`;
+    bot.style.transition = `transform ${tA}ms ${ease}`;
+    world.style.transform = "translateY(-34%) scale(1.05)";
+    world.style.filter = "brightness(0.5)";
+    world.style.opacity = "0.0";
+    atmosphere.style.transform = "translateY(-22%)";
+    atmosphere.style.filter = "brightness(0.45)";
+    top.style.transform = "translateY(0)";
+    bot.style.transform = "translateY(0)";
+    // chamber (detail) rises out of the dark
+    after(tA, () => {
+      detail.style.transition = `transform ${dur - tA}ms ${ease}, opacity ${dur - tA}ms ${ease}`;
+      detail.style.transform = "translateY(0)";
+      detail.style.opacity = "1";
+      top.style.transition = `transform ${dur - tA}ms ${ease}`;
+      bot.style.transition = `transform ${dur - tA}ms ${ease}`;
+      top.style.transform = "translateY(-100%)";
+      bot.style.transform = "translateY(100%)";
+    });
+    finishOpen(dur);
+  }
+
+  /* ---- 2. NIGHTFALL: time fast-forwards to night, detail surfaces in the dark ---- */
+  function openNightfall(topic, box, dur, ease) {
+    const useAlbum = topic === "music" || (topic !== "coding" && state.content === "album");
+    loadDetailContent(topic, { constellated: useAlbum, nightskin: true });
+    placeDetailBase(box);
+    detail.style.opacity = "0";
+    detail.style.transform = "translateY(24px) scale(0.98)";
+    // animate the scene from current p to deep night by tweening applyScene
+    const startP = scrollP;
+    const endP = 0.98;
+    const t0 = performance.now();
+    const sweep = Math.round(dur * 0.7);
+    function tick(now) {
+      const k = clamp01((now - t0) / sweep);
+      const eased = 1 - Math.pow(1 - k, 3);
+      applyScene(startP + (endP - startP) * eased);
+      if (k < 1 && isOpen) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+    void detail.offsetWidth;
+    after(Math.round(dur * 0.45), () => {
+      detail.style.transition = `transform ${dur - Math.round(dur*0.45)}ms ${ease}, opacity ${dur - Math.round(dur*0.45)}ms ${ease}`;
+      detail.style.transform = "translateY(0) scale(1)";
+      detail.style.opacity = "1";
+    });
+    finishOpen(dur);
+  }
+
+  /* ---- 3. FOG ROLL: mist sweeps in, world dims + stays faintly visible, fog parts on frosted panel ---- */
+  function openFog(topic, box, dur, ease) {
+    loadDetailContent(topic, {});
+    placeDetailBase(box);
+    detail.style.opacity = "0";
+    fog.classList.add("show");
+    const one = fog.querySelector(".one"), two = fog.querySelector(".two");
+    void detail.offsetWidth;
+    const tA = Math.round(dur * 0.5);
+    world.style.transition = `filter ${tA}ms ${ease}, opacity ${tA}ms ${ease}`;
+    atmosphere.style.transition = `filter ${tA}ms ${ease}`;
+    fog.style.transition = `opacity ${tA}ms ${ease}`;
+    one.style.transition = `transform ${tA}ms ${ease}`;
+    two.style.transition = `transform ${tA}ms ${ease}`;
+    // mist sweeps to center, world softens but never disappears
+    fog.style.opacity = "1";
+    one.style.transform = "translateX(115%)";
+    two.style.transform = "translateX(-115%)";
+    world.style.filter = "blur(6px) brightness(0.82) saturate(0.85)";
+    world.style.opacity = "0.55";
+    atmosphere.style.filter = "blur(4px) brightness(0.85)";
+    // fog parts, frosted detail fades up
+    after(tA, () => {
+      detail.style.transition = `opacity ${dur - tA}ms ${ease}`;
+      detail.style.opacity = "1";
+      one.style.transition = `transform ${dur - tA}ms ${ease}`;
+      two.style.transition = `transform ${dur - tA}ms ${ease}`;
+      fog.style.transition = `opacity ${dur - tA}ms ${ease}`;
+      one.style.transform = "translateX(40%)";
+      two.style.transform = "translateX(-40%)";
+      fog.style.opacity = "0.35";
+    });
+    finishOpen(dur);
+  }
+
+  /* ---- 4. RIDGE UNFOLD: a ridge hinges open, its cross-section becomes the detail (strata) ---- */
+  function openRidge(topic, box, center, dur, ease) {
+    loadDetailContent(topic, { strata: true });
+    viewport.classList.add("perspective");
+    placeDetailBase(box);
+    // front ridge hinges down/back; detail unfolds from a hinge at top edge
+    detail.style.transformOrigin = "50% 0%";
+    detail.style.opacity = "0";
+    detail.style.transform = "rotateX(-78deg)";
+    void detail.offsetWidth;
+    rangeFront.style.transition = `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}`;
+    rangeMid.style.transition = `transform ${dur}ms ${ease}`;
+    world.style.transition = `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}, filter ${dur}ms ${ease}`;
+    atmosphere.style.transition = `transform ${dur}ms ${ease}`;
+    detail.style.transition = `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}`;
+    rangeFront.style.transform = "translateY(40%) rotateX(60deg)";
+    rangeFront.style.opacity = "0.2";
+    rangeMid.style.transform = "translateY(28px) rotateX(20deg)";
+    world.style.transform = "rotateX(12deg) scale(0.94)";
+    world.style.filter = "brightness(0.7)";
+    world.style.opacity = "0";
+    atmosphere.style.transform = "rotateX(8deg)";
+    detail.style.transform = "rotateX(0deg)";
+    detail.style.opacity = "1";
+    finishOpen(dur);
+  }
+
+  /* ---- 5. BLOOM / GROW: a seed at the plate grows; canopy unfurls into the detail surface ---- */
+  function openBloom(topic, box, center, dur, ease) {
+    loadDetailContent(topic, {});
+    placeDetailBase(box);
+    const ox = clamp01((center.x - box.left) / box.w) * 100;
+    const oy = clamp01((center.y - box.top) / box.h) * 100;
+    detail.style.transformOrigin = `${ox}% ${oy}%`;
+    detail.style.opacity = "0";
+    detail.style.transform = "scale(0.04)";
+    // detail expands organically; soft spring feel via clip + scale
+    world.style.transformOrigin = `${center.x}px ${center.y}px`;
+    void detail.offsetWidth;
+    const growEase = state.easing === "ease-out" ? "cubic-bezier(0.34,1.56,0.64,1)" : ease;
+    world.style.transition = `transform ${dur}ms ${ease}, filter ${dur}ms ${ease}, opacity ${dur}ms ${ease}`;
+    detail.style.transition = `transform ${dur}ms ${growEase}, opacity ${Math.round(dur*0.4)}ms ${ease}`;
+    world.style.transform = "scale(1.15)";
+    world.style.filter = "blur(4px) brightness(0.85)";
+    world.style.opacity = "0.35";
+    detail.style.transform = "scale(1)";
+    detail.style.opacity = "1";
+    finishOpen(dur);
+  }
+
+  /* ---- 6. ASCEND / FLY-UP TO MAP: camera pulls up, topics become a constellation, chosen node opens ---- */
+  function openAscend(topic, box, r, dur, ease) {
+    loadDetailContent(topic, { nightskin: scrollP > 0.5 });
+    const nodes = [
+      { label: "About",      topic: null },
+      { label: "Coding",     topic: "coding" },
+      { label: "Music",      topic: "music" },
+      { label: "Foundation", topic: null },
+      { label: "Night",      topic: null },
+      { label: "More",       topic: null },
+    ];
+    const cx = r.width / 2, cy = r.height / 2;
+    const radius = Math.min(r.width, r.height) * 0.33;
+    // topo contour lines
+    let topo = "";
+    for (let i = 1; i <= 6; i++) {
+      const yy = 40 + i * 32;
+      topo += `<path d="M0,${yy} Q100,${yy-22} 200,${yy} T400,${yy}" fill="none" stroke="#cbd5e1" stroke-width="1"/>`;
+    }
+    mapTopo.innerHTML = topo;
+    // place nodes + remember positions for connector lines
+    const placed = [];
+    nodes.forEach((n, i) => {
+      const ang = (i / nodes.length) * Math.PI * 2 - Math.PI / 2;
+      const x = cx + Math.cos(ang) * radius;
+      const y = cy + Math.sin(ang) * radius;
+      const el = document.createElement("div");
+      el.className = "map-node" + (n.topic === topic ? " chosen" : "");
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+      el.textContent = n.label;
+      mapLayer.appendChild(el);
+      placed.push({ x, y });
+    });
+    // constellation connector lines
+    mapLink.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
+    let lines = "";
+    for (let i = 0; i < placed.length; i++) {
+      const a = placed[i], b = placed[(i + 1) % placed.length];
+      lines += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>`;
+    }
+    mapLink.innerHTML = lines;
+
+    // phase A: camera pulls UP & back — world + atmosphere shrink, sky darkens toward overview
+    world.style.transformOrigin = "50% 50%";
+    atmosphere.style.transformOrigin = "50% 50%";
+    world.style.transition = `transform ${dur}ms ${ease}, filter ${dur}ms ${ease}`;
+    atmosphere.style.transition = `transform ${dur}ms ${ease}, filter ${dur}ms ${ease}`;
+    world.style.transform = "translateY(-12%) scale(0.42)";
+    world.style.filter = "brightness(0.7) saturate(0.85)";
+    atmosphere.style.transform = "scale(1.1)";
+    atmosphere.style.filter = "brightness(0.6) saturate(0.9)";
+    scrim.classList.add("show");
+    scrim.style.transition = `background ${dur}ms ${ease}`;
+    scrim.style.background = "rgba(8,6,22,0.45)";
+    requestAnimationFrame(() => mapLayer.classList.add("show"));
+
+    // phase B: chosen node expands into detail
+    const half = Math.round(dur * 0.58);
+    after(half, () => {
+      placeDetailBase(box);
+      detail.style.transformOrigin = "50% 50%";
+      detail.style.opacity = "0";
+      detail.style.transform = "scale(0.3)";
+      void detail.offsetWidth;
+      detail.style.transition = `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}`;
+      detail.style.transform = "scale(1)";
+      detail.style.opacity = "1";
+      mapLayer.classList.remove("show");
+    });
+    finishOpen(dur + half);
+  }
+
+  /* ---- 7. TIDE: a waterline rises, detail floats up from beneath ---- */
+  function openTide(topic, box, dur, ease) {
+    loadDetailContent(topic, {});
+    placeDetailBase(box);
+    tide.classList.add("show");
+    detail.style.opacity = "0";
+    detail.style.transform = "translateY(45%)";
+    void detail.offsetWidth;
+    const tA = Math.round(dur * 0.5);
+    tide.style.transition = `height ${tA}ms ${ease}`;
+    world.style.transition = `filter ${tA}ms ${ease}, transform ${tA}ms ${ease}`;
+    atmosphere.style.transition = `filter ${tA}ms ${ease}`;
+    tide.style.height = "100%";
+    world.style.filter = "blur(2px) brightness(0.8) saturate(1.1)";
+    world.style.transform = "translateY(-3%)";
+    atmosphere.style.filter = "brightness(0.85)";
+    after(tA - 60, () => {
+      detail.style.transition = `transform ${dur - tA}ms ${ease}, opacity ${dur - tA}ms ${ease}`;
+      detail.style.transform = "translateY(0)";
+      detail.style.opacity = "1";
+    });
+    finishOpen(dur);
+  }
+
+  /* ---- 8. BASELINE side-slide (neutral reference) ---- */
+  function openBaseline(topic, box, dur, ease) {
+    loadDetailContent(topic, {});
+    placeDetailBase(box);
+    detail.style.opacity = "1";
+    detail.style.transform = "translateX(100%)";
+    void detail.offsetWidth;
+    world.style.transition = `transform ${dur}ms ${ease}`;
+    atmosphere.style.transition = `transform ${dur}ms ${ease}`;
+    detail.style.transition = `transform ${dur}ms ${ease}`;
+    world.style.transform = "translateX(-100%)";
+    atmosphere.style.transform = "translateX(-30%)";
+    detail.style.transform = "translateX(0)";
+    finishOpen(dur);
+  }
+
+  /* ============================================================
+   * Close — inverse nature beat
+   * ============================================================ */
+  function close() {
+    if (busy || !isOpen) return;
+    busy = true;
+    const dur = motionReduced() ? 180 : state.durationMs;
+    const ease = motionReduced() ? "ease-out" : state.easing;
+
+    if (motionReduced()) {
+      detail.style.transition = `opacity ${dur}ms ${ease}`;
+      scrim.style.transition = `background ${dur}ms ${ease}`;
+      detail.style.opacity = "0";
+      scrim.style.background = "rgba(15,23,42,0)";
+      teardown(dur);
+      return;
+    }
+
+    const m = state.method;
+    const reTransition = (el, props) => { el.style.transition = props; };
+
+    if (m === "descend") {
+      // climb back up out of the ground
+      const top = soil.querySelector(".top"), bot = soil.querySelector(".bottom");
+      reTransition(top, `transform ${dur}ms ${ease}`);
+      reTransition(bot, `transform ${dur}ms ${ease}`);
+      reTransition(detail, `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}`);
+      reTransition(world, `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}, filter ${dur}ms ${ease}`);
+      reTransition(atmosphere, `transform ${dur}ms ${ease}, filter ${dur}ms ${ease}`);
+      top.style.transform = "translateY(0)"; bot.style.transform = "translateY(0)";
+      detail.style.transform = "translateY(28px)"; detail.style.opacity = "0";
+      world.style.transform = ""; world.style.filter = ""; world.style.opacity = "1";
+      atmosphere.style.transform = ""; atmosphere.style.filter = "";
+      after(Math.round(dur*0.5), () => {
+        top.style.transform = "translateY(-100%)"; bot.style.transform = "translateY(100%)";
+      });
+    } else if (m === "nightfall") {
+      // sunrise: sweep scene back to the saved scroll position
+      reTransition(detail, `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}`);
+      detail.style.transform = "translateY(24px) scale(0.98)"; detail.style.opacity = "0";
+      const startP = 0.98, endP = scrollP;
+      const t0 = performance.now(); const sweep = dur;
+      const tick = (now) => {
+        const k = clamp01((now - t0) / sweep);
+        applyScene(startP + (endP - startP) * (1 - Math.pow(1 - k, 3)));
+        if (k < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    } else if (m === "fog") {
+      // fog clears
+      const one = fog.querySelector(".one"), two = fog.querySelector(".two");
+      reTransition(detail, `opacity ${dur}ms ${ease}`);
+      reTransition(world, `filter ${dur}ms ${ease}, opacity ${dur}ms ${ease}`);
+      reTransition(atmosphere, `filter ${dur}ms ${ease}`);
+      reTransition(one, `transform ${dur}ms ${ease}`);
+      reTransition(two, `transform ${dur}ms ${ease}`);
+      reTransition(fog, `opacity ${dur}ms ${ease}`);
+      detail.style.opacity = "0";
+      world.style.filter = ""; world.style.opacity = "1";
+      atmosphere.style.filter = "";
+      one.style.transform = "translateX(-120%)"; two.style.transform = "translateX(120%)";
+      fog.style.opacity = "0";
+    } else if (m === "ridge") {
+      // ridge folds shut
+      reTransition(detail, `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}`);
+      reTransition(rangeFront, `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}`);
+      reTransition(rangeMid, `transform ${dur}ms ${ease}`);
+      reTransition(world, `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}, filter ${dur}ms ${ease}`);
+      reTransition(atmosphere, `transform ${dur}ms ${ease}`);
+      detail.style.transform = "rotateX(-78deg)"; detail.style.opacity = "0";
+      rangeFront.style.transform = ""; rangeFront.style.opacity = "0.8";
+      rangeMid.style.transform = "";
+      world.style.transform = ""; world.style.filter = ""; world.style.opacity = "1";
+      atmosphere.style.transform = "";
+    } else if (m === "bloom") {
+      // canopy retracts
+      reTransition(detail, `transform ${dur}ms ${ease}, opacity ${Math.round(dur*0.5)}ms ${ease}`);
+      reTransition(world, `transform ${dur}ms ${ease}, filter ${dur}ms ${ease}, opacity ${dur}ms ${ease}`);
+      detail.style.transform = "scale(0.04)"; detail.style.opacity = "0";
+      world.style.transform = ""; world.style.filter = ""; world.style.opacity = "1";
+    } else if (m === "ascend") {
+      // descend back from the map
+      mapLayer.classList.remove("show");
+      reTransition(detail, `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}`);
+      reTransition(world, `transform ${dur}ms ${ease}, filter ${dur}ms ${ease}`);
+      reTransition(atmosphere, `transform ${dur}ms ${ease}, filter ${dur}ms ${ease}`);
+      reTransition(scrim, `background ${dur}ms ${ease}`);
+      detail.style.transform = "scale(0.3)"; detail.style.opacity = "0";
+      world.style.transform = ""; world.style.filter = "";
+      atmosphere.style.transform = ""; atmosphere.style.filter = "";
+      scrim.style.background = "rgba(8,6,22,0)";
+    } else if (m === "tide") {
+      // tide recedes
+      reTransition(detail, `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}`);
+      reTransition(tide, `height ${dur}ms ${ease}`);
+      reTransition(world, `filter ${dur}ms ${ease}, transform ${dur}ms ${ease}`);
+      reTransition(atmosphere, `filter ${dur}ms ${ease}`);
+      detail.style.transform = "translateY(45%)"; detail.style.opacity = "0";
+      tide.style.height = "0";
+      world.style.filter = ""; world.style.transform = "";
+      atmosphere.style.filter = "";
+    } else if (m === "baseline") {
+      reTransition(world, `transform ${dur}ms ${ease}`);
+      reTransition(atmosphere, `transform ${dur}ms ${ease}`);
+      reTransition(detail, `transform ${dur}ms ${ease}`);
+      world.style.transform = "translateX(0)";
+      atmosphere.style.transform = "translateX(0)";
+      detail.style.transform = "translateX(100%)";
+    } else {
+      reTransition(detail, `opacity ${dur}ms ${ease}`);
+      detail.style.opacity = "0";
+    }
+    teardown(dur);
+  }
+
+  function teardown(dur) {
+    returnBtn.classList.remove("show");
+    after(dur + 40, () => {
+      resetLayers();
+      isOpen = false; busy = false; activeTopic = null;
+      world.scrollTop = savedScroll;
+      scrollP = computeScrollP();
+      applyScene(scrollP);
+    });
+  }
+
+  /* ============================================================
+   * Triggers
+   * ============================================================ */
+  $("plate-coding").addEventListener("click", () => open("coding"));
+  $("plate-music").addEventListener("click", () => open("music"));
+  [$("plate-coding"), $("plate-music")].forEach((el) => {
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(el.dataset.topic); }
+    });
+  });
+  $("runBtn").addEventListener("click", () => {
+    const topic = state.content === "album" ? "music" : "coding";
+    open(topic);
+  });
+  returnBtn.addEventListener("click", close);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && isOpen) close(); });
+
+  /* ============================================================
+   * Copy spec
+   * ============================================================ */
+  $("copyBtn").addEventListener("click", async () => {
+    const spec = {
+      feature: "detail-transition",
+      method: state.method, // descend | nightfall | fog | ridge | bloom | ascend | tide | baseline
+      depth: state.depth,
+      content: state.content,
+      durationMs: state.durationMs,
+      easing: state.easing,
+      reducedMotion: state.reducedMotion,
+    };
+    const text = JSON.stringify(spec, null, 2);
+    const status = $("copyStatus");
+    try {
+      await navigator.clipboard.writeText(text);
+      status.textContent = "Copied. Paste into chat.";
+    } catch (_) {
+      const ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); status.textContent = "Copied. Paste into chat."; }
+      catch (_) { status.textContent = "Copy failed. See console."; console.log(text); }
+      document.body.removeChild(ta);
+    }
+    after(2500, () => { status.textContent = ""; });
+  });
+
+  /* ============================================================
+   * Init
+   * ============================================================ */
+  window.addEventListener("resize", () => { if (!isOpen) { scrollP = computeScrollP(); applyScene(scrollP); } });
+  methodNote.textContent = METHOD_NOTES[state.method];
+  scrollP = computeScrollP();
+  applyScene(scrollP);
+</script>
+</body>
+</html>

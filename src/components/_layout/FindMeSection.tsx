@@ -296,7 +296,7 @@ export function FindMeSection() {
 	return (
 		<section
 			id={SECTION_IDS.findMe}
-			className="py-24 px-6 relative overflow-hidden text-slate-900"
+			className="pt-4 pb-64 px-6 relative overflow-hidden text-slate-900"
 		>
 			<div className="max-w-xl mx-auto relative z-10">
 				<div className="text-center mb-12">

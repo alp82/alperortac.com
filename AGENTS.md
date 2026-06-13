@@ -12,7 +12,7 @@ A vertical scroll journey on the main path:
 
 - **Hero (top, sky/day)** — avatar, headline, intro.
 - **Linktree** — one column, sectioned by VIDEO / POSTS / CODE.
-- **Craft band** — eight topical articles (The Craft / AI / Learning / Teaching / Movies & TV / Family / Music / Games). Each one has a heading, a one-line teaser, and 1-2 trigger cards opening a sidetrack panel.
+- **Craft band** — a stack of topical articles spanning the craft, tech, and personal-life threads. Each one has a heading, a one-line teaser, and 1-2 trigger cards opening a sidetrack panel.
 - **Freelance / Collab CTA** — one dedicated block.
 - **Footer (ground/night)** — minimal, ambient.
 

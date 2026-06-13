@@ -1,0 +1,1434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Journey Explore — 2D camera-explore reveal</title>
+<style>
+"use strict"; /* (marker — JS uses strict mode below) */
+
+/* ════════════════════════════════════════════════════════════════════
+   JOURNEY EXPLORE — 2D EXPLORATION-GAME reveal engine.
+
+   The resting page is the REAL journey page, reproduced faithfully and
+   lifted wholesale from journey-reveals.html (same PixelBackground backdrop,
+   section order, frosted plates, night-aware flip, verbatim content).
+
+   The ONLY thing replaced is the reveal engine. Triggering a topic does NOT
+   open a modal and does NOT scale any text. Instead a CAMERA moves through a
+   genuine 2D WORLD:
+
+     #stage   viewport (overflow hidden)
+       #world  ← gets the camera transform translate(cx,cy) scale(cz)
+                 holds ALL scenery (sky tint, mountains, clouds, sun/moon,
+                 stars, ground) + #character + invisible landmark anchors.
+                 SCALING HAPPENS HERE → the scenery enlarges, we push in.
+       #detail-layer  ← NOT transformed by the camera. Screen space.
+                        Holds the single readable detail. Its font is ALWAYS
+                        natural size regardless of camera zoom.
+
+   No centred modal, no full-screen blur scrim with a floating card. The
+   world stays visible because the camera genuinely moved/zoomed through it.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --topic-accent: #cbd5e1;
+  --cam-dur: 900ms;
+  --cam-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { box-sizing: border-box; }
+html { image-rendering: pixelated; }
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+::selection { background: #fef08a; color: #000; }
+a { color: inherit; }
+img { display: block; }
+
+/* faint film grain (matches real page) */
+.grain {
+  position: fixed; inset: 0; z-index: -9; pointer-events: none; opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ════════════════ RESTING BACKDROP (ported from PixelBackground.tsx) ════════════════
+   This is the resting page's fixed sky, byte-for-byte the real page. The
+   camera-explore world (below) is a SEPARATE overlay that only appears while
+   exploring, so the resting page is never disturbed. */
+#sky {
+  position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: -10;
+  transition: background-color 100ms linear;
+  overflow: hidden;
+}
+@media (min-width: 768px) { #sky { right: 80px; } }
+
+.stars-layer, .shooting-layer {
+  position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  transition: opacity 100ms linear;
+}
+.star {
+  position: absolute; background: #fff; border-radius: 9999px;
+  animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.1; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+.shoot {
+  position: absolute; height: 1px; left: 100%; width: 120px;
+  background: linear-gradient(to right, transparent, #fff, #fff);
+  transform: rotate(-35deg);
+  animation: shooting-star 5s linear infinite;
+}
+@keyframes shooting-star {
+  0% { transform: translateX(0) translateY(0) rotate(-35deg); opacity: 1; }
+  100% { transform: translateX(-1500px) translateY(1000px) rotate(-35deg); opacity: 0; }
+}
+
+.celestial { position: absolute; transform: translate(-50%, -50%); transition: opacity 100ms linear; }
+.sun-disc {
+  width: 96px; height: 96px; background: #fef08a; border-radius: 9999px;
+  box-shadow: 0 0 40px rgba(253,224,71,0.5); border: 4px solid #fde047;
+}
+.moon-disc {
+  width: 80px; height: 80px; background: #f1f5f9; border-radius: 9999px;
+  box-shadow: 0 0 60px rgba(255,255,255,0.2); border: 4px solid #cbd5e1;
+  position: relative; overflow: hidden;
+}
+.moon-crater { position: absolute; border-radius: 9999px; background: #e2e8f0; }
+.moon-c1 { width: 24px; height: 24px; top: 8px; right: 16px; opacity: 0.6; }
+.moon-c2 { width: 32px; height: 32px; bottom: 16px; left: 8px; opacity: 0.4; }
+.moon-c3 { width: 16px; height: 16px; top: 32px; left: 32px; opacity: 0.5; }
+
+.cloud {
+  position: absolute; left: 0; top: 0; width: 120px; height: auto;
+  opacity: 0.4; user-select: none; pointer-events: none;
+  transition: transform 0.1s linear;
+}
+.mountains {
+  position: absolute; bottom: 0; width: 100%; height: 40vh; pointer-events: none;
+  transition: opacity 100ms linear;
+}
+.mountains svg { width: 100%; height: 100%; opacity: 0.3; }
+
+/* ════════════════ NAV (ported from _layout.tsx) ════════════════ */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  background: rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+@media (min-width: 768px) { nav { right: 80px; } }
+.nav-brand {
+  font-size: 20px; font-weight: 900; letter-spacing: -0.04em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px; text-decoration: none;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2)); color: #0f172a; transition: color .1s;
+}
+.nav-brand img { width: 32px; height: 32px; border-radius: 9999px; border: 2px solid #0f172a; object-fit: cover; }
+.nav-links { display: none; gap: 32px; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; align-items: center; }
+@media (min-width: 768px) { .nav-links { display: flex; } }
+.nav-links a { text-decoration: none; }
+.nav-follow {
+  padding: 8px 16px; font-weight: 700; font-size: 14px; text-decoration: none;
+  background: #0f172a; color: #fff; box-shadow: 4px 4px 0 0 rgba(255,255,255,0.3);
+}
+
+/* ════════════════ MAIN SHELL ════════════════ */
+.main-shell { min-height: 100vh; }
+@media (min-width: 768px) { .main-shell { padding-right: 80px; } }
+
+section { padding-left: 24px; padding-right: 24px; }
+.hero {
+  min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding-top: 96px; padding-bottom: 16px; text-align: center;
+}
+.hero img.avatar {
+  width: 112px; height: 112px; border-radius: 9999px; border: 4px solid #0f172a;
+  box-shadow: 6px 6px 0 0 rgba(0,0,0,1); margin-bottom: 32px; object-fit: cover;
+}
+@media (min-width: 768px) { .hero img.avatar { width: 128px; height: 128px; } }
+.hero h1 {
+  font-size: 60px; font-weight: 900; margin: 0 0 24px; line-height: 0.9; letter-spacing: -0.04em;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15)); color: #0f172a;
+}
+@media (min-width: 768px) { .hero h1 { font-size: 96px; } }
+.hero-plate {
+  font-size: 20px; color: #1e293b; max-width: 32rem; font-weight: 500; line-height: 1.6;
+}
+@media (min-width: 768px) { .hero-plate { font-size: 24px; } }
+
+.plate {
+  background: rgba(255,255,255,0.4); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  padding: 16px; border-left: 4px solid #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  transition: background-color 200ms ease-out, border-color 200ms ease-out, color 200ms ease-out;
+}
+.is-night .plate, .plate.is-night {
+  background: rgba(15,23,42,0.55); color: #f8fafc; border-color: rgba(255,255,255,0.4);
+}
+
+/* ════════════════ FIND ME ONLINE (ported) ════════════════ */
+.findme { padding: 96px 24px; position: relative; overflow: hidden; color: #0f172a; }
+.findme-inner { max-width: 36rem; margin: 0 auto; position: relative; z-index: 1; }
+.findme h2 {
+  font-size: 36px; font-weight: 900; margin: 0 0 16px; text-transform: uppercase; letter-spacing: -0.04em;
+  text-align: center; text-shadow: 4px 4px 0 rgba(255,255,255,0.5);
+}
+@media (min-width: 768px) { .findme h2 { font-size: 60px; } }
+.findme-tag {
+  font-size: 16px; font-weight: 700; opacity: 0.9; display: inline-block;
+  background: rgba(255,255,255,0.4); backdrop-filter: blur(12px); padding: 8px 16px; border-left: 4px solid #0f172a;
+}
+.findme-head { text-align: center; margin-bottom: 48px; }
+.findme-group { margin-bottom: 40px; }
+.findme-group-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.findme-group-head h3 { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3em; opacity: 0.7; margin: 0; }
+.findme-rule { flex: 1; height: 1px; background: rgba(15,23,42,0.2); }
+
+.btn-brutalist {
+  display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left;
+  font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; text-decoration: none;
+  background: var(--btn-tint, #fff); color: #0f172a;
+  border: 2px solid #0f172a; box-shadow: 4px 4px 0 0 #0f172a;
+  padding: 16px 20px; margin-bottom: 12px; cursor: pointer; transition: transform .1s, box-shadow .1s, background .2s, color .2s;
+}
+.btn-brutalist:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 0 #0f172a; background: var(--btn-tint-hover, #0f172a); color: var(--btn-text-hover, #fff); }
+.btn-brutalist .b-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.btn-brutalist .b-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.btn-brutalist .b-arrow { opacity: 0; transform: translateX(12px); transition: all .2s ease-out; flex-shrink: 0; font-weight: 900; }
+.btn-brutalist:hover .b-arrow { opacity: 1; transform: translateX(0); }
+
+/* ════════════════ CRAFT BAND — topic articles (ported) ════════════════ */
+#craft { padding: 0 24px; }
+.craft-inner { max-width: 64rem; margin: 0 auto; }
+article.topic { position: relative; }
+.topic-stage { position: relative; padding: 96px 0; }
+.topic-stage.accent-bar { padding-left: 32px; }
+.topic-stage.accent-bar::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 10px; background: var(--topic-accent);
+}
+.topic-stage.full-bleed::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 40%; background: var(--topic-accent); z-index: -1;
+}
+.topic-stamp { position: absolute; right: 16px; top: 16px; width: 48px; height: 48px; transform: rotate(-6deg); pointer-events: none; }
+.topic-head { max-width: 48rem; display: flex; align-items: center; gap: 12px; }
+.topic-head h2 {
+  font-size: 36px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.04em; margin: 0;
+  transition: color 300ms; color: #0f172a;
+}
+@media (min-width: 768px) { .topic-head h2 { font-size: 60px; } }
+.is-night .topic-head h2 { color: #fff; }
+.topic-flourish { width: 48px; height: 48px; flex-shrink: 0; pointer-events: none; }
+.topic-body { max-width: 48rem; margin-top: 24px; }
+.topic-body p { font-size: 18px; font-weight: 500; line-height: 1.6; margin: 0 0 12px; }
+@media (min-width: 768px) { .topic-body p { font-size: 20px; } }
+.topic-body p:last-child { margin-bottom: 0; }
+.topic-plate-inner { margin-top: 12px; padding: 12px; }
+.topic-trigger-hint {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 20px;
+  font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em;
+  border: 2px solid currentColor; padding: 8px 14px; cursor: pointer; background: transparent;
+  color: inherit; transition: background .15s, transform .1s;
+}
+.topic-trigger-hint:hover { transform: translateY(-1px); background: rgba(15,23,42,0.06); }
+.is-night .topic-trigger-hint:hover { background: rgba(255,255,255,0.1); }
+
+.bullets { list-style: none; padding: 0; margin: 0; }
+.bullets li { display: flex; gap: 12px; font-size: 16px; line-height: 1.6; margin-bottom: 8px; }
+@media (min-width: 768px) { .bullets li { font-size: 18px; } }
+.bullets .marker { font-weight: 900; opacity: 0.6; flex-shrink: 0; }
+.bullets .primary { font-weight: 700; }
+.bullets .secondary { opacity: 0.8; }
+.inline-link { font-weight: 700; text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 2px; }
+
+.ext-card {
+  display: block; width: 100%; text-decoration: none; padding: 24px;
+  font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em;
+  border: 2px solid #0f172a; box-shadow: 4px 4px 0 0 #0f172a; background: var(--btn-tint, #fff);
+  margin-bottom: 12px; position: relative; transition: transform .1s, box-shadow .1s, background .2s, color .2s;
+}
+.ext-card:hover { transform: translate(2px,2px); box-shadow: 2px 2px 0 0 #0f172a; background: var(--btn-tint-hover, #0f172a); color: var(--btn-text-hover, #fff); }
+.ext-card .row { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.ext-card .tile { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; border: 2px solid #0f172a; flex-shrink: 0; }
+.ext-card .label { font-size: 24px; font-weight: 900; text-transform: uppercase; line-height: 1; }
+@media (min-width: 768px) { .ext-card .label { font-size: 30px; } }
+.ext-card .badge {
+  position: absolute; top: -8px; right: 16px; z-index: 2; font-family: ui-monospace, monospace;
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em;
+  transform: rotate(-3deg); border: 2px solid #0f172a; background: #D51007; color: #fff;
+  padding: 4px 10px; box-shadow: 3px 3px 0 0 #0f172a;
+}
+
+.cover-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px; }
+.cover-tile { aspect-ratio: 1; border: 2px solid #0f172a; background: repeating-linear-gradient(45deg, #c7d2fe 0 8px, #e0e7ff 8px 16px); display: flex; align-items: flex-end; }
+.cover-tile span { font-size: 9px; font-weight: 900; text-transform: uppercase; padding: 4px; background: rgba(15,23,42,0.7); color: #fff; width: 100%; }
+.cover-note { font-size: 12px; font-style: italic; opacity: 0.7; margin-top: 8px; }
+
+.career-list { list-style: none; padding: 0; margin: 32px 0 0; max-width: 32rem; }
+.career-list li { position: relative; padding-left: 32px; border-left: 2px solid; margin-bottom: 40px; }
+.career-dot { position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 9999px; }
+.career-year { display: inline-block; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; padding: 2px 8px; margin-bottom: 8px; color: #0f172a; }
+.career-role { font-size: 20px; font-weight: 900; text-transform: uppercase; line-height: 1; margin: 0 0 4px; }
+@media (min-width: 768px) { .career-role { font-size: 24px; } }
+.career-co { font-size: 14px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; color: #475569; }
+.is-night .career-co { color: #cbd5e1; }
+.is-night .career-role { color: #f8fafc; }
+.career-desc { font-size: 16px; line-height: 1.6; font-weight: 500; margin: 0 0 12px; color: #334155; }
+.is-night .career-desc { color: #e2e8f0; }
+.career-stack { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 0; }
+.career-stack li { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px; border: 2px solid rgba(15,23,42,0.6); color: #334155; margin: 0; }
+.is-night .career-stack li { border-color: rgba(255,255,255,0.4); color: #e2e8f0; }
+
+/* ════════════════ CTA + FOOTER (ported) ════════════════ */
+.cta { padding: 96px 24px; }
+.cta-box { background: #0f172a; color: #fff; border: 4px solid #0f172a; box-shadow: 12px 12px 0 0 rgba(255,255,255,0.2); padding: 40px; max-width: 48rem; margin: 0 auto; }
+.cta-box h2 { font-size: 30px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 0.95; }
+@media (min-width: 768px) { .cta-box h2 { font-size: 48px; } }
+.cta-box p { font-size: 18px; opacity: 0.8; margin: 0 0 32px; line-height: 1.6; }
+.cta-mail { display: inline-flex; align-items: center; gap: 12px; background: #fff; color: #0f172a; padding: 16px 24px; font-weight: 900; text-transform: uppercase; font-size: 14px; letter-spacing: 0.1em; text-decoration: none; box-shadow: 6px 6px 0 0 rgba(255,255,255,0.4); }
+footer { padding: 48px 24px; border-top: 1px solid rgba(255,255,255,0.2); background: rgba(15,23,42,0.4); backdrop-filter: blur(12px); transition: color .1s; }
+.footer-inner { max-width: 72rem; margin: 0 auto; display: flex; flex-direction: column; gap: 32px; justify-content: space-between; align-items: center; }
+@media (min-width: 768px) { .footer-inner { flex-direction: row; } }
+.footer-brand { font-weight: 900; text-transform: uppercase; letter-spacing: -0.04em; }
+.footer-phase { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+
+.topic-stage { cursor: pointer; }
+.topic-stage:focus-visible { outline: 3px solid #0f172a; outline-offset: 6px; }
+
+/* ════════════════════════════════════════════════════════════════════
+   CAMERA-EXPLORE OVERLAY — the NEW reveal engine.
+
+   #stage is a full-viewport overlay (fixed, overflow hidden) that is
+   invisible/inert at rest. Activating a topic shows it and drives the camera.
+   ════════════════════════════════════════════════════════════════════ */
+#stage {
+  position: fixed; inset: 0; z-index: 80; overflow: hidden;
+  opacity: 0; pointer-events: none;
+  transition: opacity 260ms ease;
+}
+@media (min-width: 768px) { #stage { right: 0; } }
+body.exploring #stage { opacity: 1; pointer-events: auto; }
+
+/* #world holds ALL scenery + character + anchors and IS what the camera
+   scales/translates. transform-origin is the focal landmark. Scaling THIS
+   layer enlarges the scenery — the camera pushes into the landscape. */
+#world {
+  position: absolute; inset: 0;
+  transform-origin: var(--cam-ox, 50%) var(--cam-oy, 50%);
+  transform: translate(0px, 0px) scale(1);
+  transition: transform var(--cam-dur) var(--cam-ease);
+  will-change: transform;
+}
+
+/* world sky tint fills the whole world box */
+#worldSky { position: absolute; inset: -20%; transition: background-color 400ms linear; }
+
+/* world scenery sub-layers (parallax-ish positions in world space) */
+#worldStars { position: absolute; inset: -20%; pointer-events: none; opacity: 0; transition: opacity 400ms linear; }
+#worldStars .wstar { position: absolute; background: #fff; border-radius: 9999px; }
+
+.w-celestial { position: absolute; transform: translate(-50%, -50%); }
+.w-sun {
+  width: 110px; height: 110px; background: #fef08a; border-radius: 9999px;
+  box-shadow: 0 0 50px rgba(253,224,71,0.55); border: 5px solid #fde047;
+}
+.w-moon {
+  width: 150px; height: 150px; background: #f1f5f9; border-radius: 9999px;
+  box-shadow: 0 0 70px rgba(255,255,255,0.25); border: 5px solid #cbd5e1;
+  position: relative; overflow: hidden;
+}
+.w-moon .moon-crater { background: #e2e8f0; }
+.w-moon .moon-c1 { width: 44px; height: 44px; top: 16px; right: 28px; opacity: 0.6; }
+.w-moon .moon-c2 { width: 56px; height: 56px; bottom: 28px; left: 16px; opacity: 0.4; }
+.w-moon .moon-c3 { width: 30px; height: 30px; top: 60px; left: 60px; opacity: 0.5; }
+
+#worldClouds { position: absolute; inset: 0; pointer-events: none; }
+#worldClouds .wcloud { position: absolute; width: 180px; opacity: 0.45; }
+
+/* mountains: the crisp #4a7a8c range, big enough that the camera can push
+   INTO a peak. Positioned across the lower world. */
+#worldMountains { position: absolute; left: -20%; right: -20%; bottom: 0; height: 62%; pointer-events: none; }
+#worldMountains svg { width: 100%; height: 100%; opacity: 0.55; }
+
+/* ground plane below the peaks so the character has somewhere to stand */
+#worldGround {
+  position: absolute; left: -20%; right: -20%; bottom: 0; height: 16%;
+  background: linear-gradient(to bottom, #3c6675, #2c4d59);
+  opacity: 0.65;
+}
+
+/* diegetic reveal flourishes placed ON existing scenery (cave mouth on a
+   peak, lanterns by the moon). Hidden until the camera arrives. Optional
+   polish — NOT resting-layout additions. */
+.landmark-flair {
+  position: absolute; transform: translate(-50%, -50%) scale(0.4);
+  opacity: 0; transition: opacity 400ms ease, transform 500ms var(--cam-ease);
+  pointer-events: none;
+}
+.landmark-flair.lit { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.flair-cave {
+  width: 46px; height: 56px; background: #11202a;
+  border-radius: 46px 46px 6px 6px / 60px 60px 6px 6px;
+  box-shadow: 0 0 22px rgba(0,0,0,0.6) inset, 0 0 14px rgba(167,243,208,0.5);
+}
+.flair-lantern { width: 18px; height: 26px; background: #fde047; border: 3px solid #1e293b; border-radius: 4px; box-shadow: 0 0 22px rgba(253,224,71,0.9); }
+
+/* #character — the protagonist. Part of #world so the camera frames it; it
+   travels toward the active landmark. Idle bob at rest. */
+#character {
+  position: absolute; width: 64px; height: 64px;
+  transform: translate(-50%, -100%);
+  transition: left var(--cam-dur) var(--cam-ease), top var(--cam-dur) var(--cam-ease);
+  z-index: 5; filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.4));
+}
+#character img { width: 100%; height: 100%; border-radius: 9999px; border: 3px solid #0f172a; object-fit: cover; }
+#character .char-bob { animation: char-bob 2.4s ease-in-out infinite; }
+@keyframes char-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+#character .char-shadow {
+  position: absolute; left: 50%; bottom: -10px; width: 48px; height: 12px;
+  transform: translateX(-50%); background: rgba(0,0,0,0.28); border-radius: 50%;
+  filter: blur(2px); animation: shadow-pulse 2.4s ease-in-out infinite;
+}
+@keyframes shadow-pulse { 0%,100% { transform: translateX(-50%) scale(1); opacity: .28; } 50% { transform: translateX(-50%) scale(0.85); opacity: .2; } }
+
+/* DEPTH BLUR (support only): far/out-of-focus scenery softens during a move,
+   then lifts as focus lands. NEVER a full-screen scrim behind a card. */
+#worldMountains, #worldClouds, #worldStars, #worldSky {
+  transition: opacity 400ms linear, filter var(--cam-dur) var(--cam-ease), background-color 400ms linear;
+}
+body.depthblur.moving #worldClouds,
+body.depthblur.moving #worldStars { filter: blur(5px); }
+
+/* ════════════════════════════════════════════════════════════════════
+   #detail-layer — NOT inside #world, so the camera transform never touches
+   it. Pure screen space → the detail font is ALWAYS natural/readable.
+   The single detail instance fades in at the landmark's PROJECTED screen
+   position after the camera settles. The world stays visible around it.
+   ════════════════════════════════════════════════════════════════════ */
+#detail-layer { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
+#detailCard {
+  position: absolute;
+  width: min(440px, 86vw);
+  max-height: min(72vh, 680px); overflow-y: auto;
+  opacity: 0; transform: translateY(14px) scale(0.985);
+  transition: opacity 360ms ease, transform 360ms var(--cam-ease);
+  pointer-events: auto;
+  /* readable plate — frosted, but it sits ON the visible moved world, NOT
+     over a full-screen blur scrim. */
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 3px solid #0f172a; box-shadow: 8px 8px 0 0 rgba(15,23,42,0.35);
+  padding: 22px 24px;
+  /* a little pointer/leader so it reads as "info at this place" */
+}
+.is-night #detailCard { background: rgba(15,23,42,0.84); color: #f8fafc; border-color: rgba(255,255,255,0.55); box-shadow: 8px 8px 0 0 rgba(0,0,0,0.4); }
+#detailCard.shown { opacity: 1; transform: translateY(0) scale(1); }
+#detailCard .dc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+#detailCard .dc-head img { width: 40px; height: 40px; flex-shrink: 0; }
+#detailCard .dc-head h2 { font-size: 26px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em; margin: 0; }
+#detailCard .topic-body { margin-top: 0; }
+#detailCard .topic-body p { font-size: 15px; }
+@media (min-width: 768px) { #detailCard .topic-body p { font-size: 16px; } }
+
+/* a thin leader line from the card toward the landmark (anchors "here") */
+#detailLeader {
+  position: absolute; z-index: 19; pointer-events: none; opacity: 0;
+  transition: opacity 360ms ease;
+}
+#detailLeader.shown { opacity: 0.8; }
+#detailLeader .dot { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: var(--topic-accent, #cbd5e1); border: 2px solid #0f172a; transform: translate(-50%,-50%); box-shadow: 0 0 16px var(--topic-accent, #cbd5e1); }
+.is-night #detailLeader .dot { border-color: #fff; }
+
+/* RETURN control */
+#return-btn {
+  position: fixed; top: 84px; right: 24px; z-index: 90; display: none;
+  font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; font-size: 13px;
+  background: #0f172a; color: #fff; border: 2px solid #fff; padding: 12px 18px; cursor: pointer;
+  box-shadow: 4px 4px 0 0 rgba(255,255,255,0.4);
+}
+body.exploring #return-btn { display: block; }
+
+/* reduced motion: collapse the camera move to a near-instant settle that
+   STILL ends framed on the landmark with the detail readable. */
+body.rm #world { transition-duration: 1ms !important; }
+body.rm #character { transition-duration: 1ms !important; }
+body.rm #detailCard { transition-duration: 120ms !important; }
+body.rm #character .char-bob,
+body.rm #character .char-shadow { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  #world, #character { transition-duration: 1ms !important; }
+  #detailCard { transition-duration: 120ms !important; }
+}
+
+/* ════════════════ DEV CONTROL PANEL (the ONLY brutalist surface) ════════════════ */
+#devpanel {
+  position: fixed; left: 16px; top: 16px; z-index: 100; width: 280px;
+  background: #f8fafc; border: 3px solid #0f172a; box-shadow: 8px 8px 0 0 #0f172a;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; color: #0f172a;
+  max-height: calc(100vh - 32px); overflow-y: auto;
+}
+#devpanel header { background: #0f172a; color: #fff; padding: 10px 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+#devpanel .body { padding: 12px; }
+.ctl { margin-bottom: 16px; }
+.ctl > label.lbl { display: block; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+.seg button { font-family: inherit; font-size: 10px; font-weight: 900; text-transform: uppercase; padding: 8px 2px; border: 2px solid #0f172a; background: #fff; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: #0f172a; color: #fff; }
+#devpanel input[type="range"] { width: 100%; accent-color: #0f172a; }
+#devpanel select { width: 100%; font-family: inherit; font-size: 12px; padding: 6px; border: 2px solid #0f172a; background: #fff; }
+.rowflex { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; }
+.val { font-size: 12px; font-weight: 700; }
+.hint-line { font-size: 10px; opacity: 0.7; margin: -8px 0 12px; line-height: 1.4; }
+#copybtn { width: 100%; font-family: inherit; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; padding: 10px; border: 2px solid #0f172a; background: #fde047; cursor: pointer; box-shadow: 3px 3px 0 0 #0f172a; }
+#copybtn:active { transform: translate(3px,3px); box-shadow: 0 0 0 0 #0f172a; }
+#spec { width: 100%; margin-top: 8px; font-family: inherit; font-size: 10px; border: 2px solid #0f172a; padding: 6px; min-height: 72px; resize: vertical; }
+.paste-hint { font-size: 10px; opacity: 0.75; margin-top: 6px; line-height: 1.4; }
+#panel-toggle { display: none; }
+
+@media (max-width: 900px) {
+  #devpanel { position: static; width: auto; margin: 0; box-shadow: none; border-left: none; border-right: none; border-top: none; }
+  #devpanel.collapsed .body { display: none; }
+  #panel-toggle { display: inline-block; background: none; border: 2px solid #fff; color: #fff; font-family: inherit; font-weight: 900; font-size: 11px; padding: 2px 8px; cursor: pointer; }
+  #detailCard { width: min(440px, 92vw); }
+}
+</style>
+</head>
+<body data-move="zoom">
+<div class="grain" aria-hidden="true"></div>
+
+<!-- ════════════ RESTING BACKDROP (real page, untouched) ════════════ -->
+<div id="sky" aria-hidden="true">
+  <div class="stars-layer" id="starsLayer"></div>
+  <div class="shooting-layer" id="shootLayer"></div>
+  <div class="celestial" id="sunEl"><div class="sun-disc"></div></div>
+  <div class="celestial" id="moonEl">
+    <div class="moon-disc">
+      <div class="moon-crater moon-c1"></div>
+      <div class="moon-crater moon-c2"></div>
+      <div class="moon-crater moon-c3"></div>
+    </div>
+  </div>
+  <svg class="cloud" id="cloud0" viewBox="0 0 100 60"><path fill="white" d="M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z"/></svg>
+  <svg class="cloud" id="cloud1" viewBox="0 0 100 60"><path fill="white" d="M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z"/></svg>
+  <svg class="cloud" id="cloud2" viewBox="0 0 100 60"><path fill="white" d="M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z"/></svg>
+  <div class="mountains" id="mountains">
+    <svg viewBox="0 0 1000 400" preserveAspectRatio="none">
+      <path fill="#4a7a8c" style="shape-rendering:crispEdges" d="M0 400V300l100-50h50l100 100h50l150-150h50l100 80h100l200-180h100v300z"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ════════════ DEV PANEL (brutalist — the only brutalist surface) ════════════ -->
+<div id="devpanel">
+  <header>
+    Camera-Explore Lab
+    <button id="panel-toggle" type="button" aria-expanded="true">HIDE</button>
+  </header>
+  <div class="body">
+    <div class="ctl">
+      <label class="lbl">Camera move (override)</label>
+      <div class="seg" id="moveSeg">
+        <button type="button" data-move="pan" aria-pressed="false">Pan</button>
+        <button type="button" data-move="zoom" aria-pressed="true">Zoom</button>
+        <button type="button" data-move="pan-zoom" aria-pressed="false">Pan→Zoom</button>
+      </div>
+    </div>
+    <p class="hint-line">Each topic has a natural default; this overrides it for comparison.</p>
+    <div class="ctl">
+      <label class="lbl" for="durRange">Duration <span class="val" id="durVal">900ms</span></label>
+      <input type="range" id="durRange" min="200" max="2000" step="50" value="900" />
+    </div>
+    <div class="ctl">
+      <label class="lbl" for="easeSel">Easing</label>
+      <select id="easeSel">
+        <option value="cubic-bezier(0.16,1,0.3,1)" selected>zoom-focus · (.16,1,.3,1)</option>
+        <option value="ease-out">ease-out</option>
+        <option value="ease-in-out">ease-in-out</option>
+        <option value="cubic-bezier(0.34,1.56,0.64,1)">spring · (.34,1.56,.64,1)</option>
+      </select>
+    </div>
+    <div class="ctl">
+      <label class="rowflex"><input type="checkbox" id="blurChk" checked /> Depth blur</label>
+    </div>
+    <div class="ctl">
+      <label class="rowflex"><input type="checkbox" id="rmChk" /> Simulate reduced motion</label>
+    </div>
+    <div class="ctl">
+      <button id="copybtn" type="button">Copy spec JSON</button>
+      <textarea id="spec" readonly aria-label="copy-spec payload"></textarea>
+      <p class="paste-hint">Tap a topic plate to send the camera there. Then hit Copy and paste the JSON back into chat.</p>
+    </div>
+  </div>
+</div>
+
+<button id="return-btn" type="button">← Return (Esc)</button>
+
+<!-- ════════════ CAMERA-EXPLORE OVERLAY (inert at rest) ════════════ -->
+<div id="stage" aria-hidden="true">
+  <div id="world">
+    <div id="worldSky"></div>
+    <div id="worldStars"></div>
+    <div id="worldClouds">
+      <svg class="wcloud" style="left:6%; top:14%;" viewBox="0 0 100 60"><path fill="white" d="M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z"/></svg>
+      <svg class="wcloud" style="left:52%; top:9%; width:140px;" viewBox="0 0 100 60"><path fill="white" d="M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z"/></svg>
+      <svg class="wcloud" style="left:74%; top:22%;" viewBox="0 0 100 60"><path fill="white" d="M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z"/></svg>
+    </div>
+    <div class="w-celestial" id="worldSun" style="left:74%; top:16%;"><div class="w-sun"></div></div>
+    <div class="w-celestial" id="worldMoon" style="left:22%; top:18%;">
+      <div class="w-moon">
+        <div class="moon-crater moon-c1"></div>
+        <div class="moon-crater moon-c2"></div>
+        <div class="moon-crater moon-c3"></div>
+      </div>
+      <!-- lanterns by the moon (Music reveal flourish) -->
+    </div>
+    <div id="worldMountains">
+      <svg viewBox="0 0 1000 400" preserveAspectRatio="none">
+        <path fill="#4a7a8c" style="shape-rendering:crispEdges" d="M0 400V300l100-50h50l100 100h50l150-150h50l100 80h100l200-180h100v300z"/>
+      </svg>
+    </div>
+    <div id="worldGround"></div>
+
+    <!-- diegetic landmark flourishes (lit only when the camera arrives) -->
+    <div class="landmark-flair" id="flairTech" style="left:65%; top:43%;"><div class="flair-cave"></div></div>
+    <div class="landmark-flair" id="flairMoonL" style="left:14%; top:14%;"><div class="flair-lantern"></div></div>
+    <div class="landmark-flair" id="flairMoonR" style="left:30%; top:14%;"><div class="flair-lantern"></div></div>
+
+    <!-- the protagonist -->
+    <div id="character" style="left:50%; top:84%;">
+      <div class="char-shadow"></div>
+      <div class="char-bob"><img src="../public/alper-avatar-64.webp" alt="Alper avatar" /></div>
+    </div>
+  </div>
+
+  <!-- detail layer: OUTSIDE #world → never scaled. Readable, screen-space. -->
+  <div id="detail-layer">
+    <div id="detailLeader"><div class="dot"></div></div>
+    <div id="detailCard" role="dialog" aria-live="polite"></div>
+  </div>
+</div>
+
+<!-- ════════════ NAV ════════════ -->
+<nav>
+  <a class="nav-brand" href="#start">
+    <img src="../public/alper-avatar-64.webp" alt="" aria-hidden="true" />
+    Alper Ortac
+  </a>
+  <div class="nav-links" style="color:#0f172a">
+    <a href="#start">Start</a>
+    <a href="#craft">About Me</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <a class="nav-follow" href="#find-me">Follow Me</a>
+</nav>
+
+<!-- ════════════ JOURNEY (resting real page — untouched) ════════════ -->
+<div class="main-shell">
+<div id="journey">
+
+  <section class="hero" id="start">
+    <img class="avatar" src="../public/alper-avatar.webp" alt="Alp portrait" />
+    <h1>HEY, I'M ALPER.</h1>
+    <p class="plate hero-plate">
+      <strong>Web enthusiast</strong> and <strong>agentic coach</strong>,<br />
+      with a side project habit and a camera.
+    </p>
+  </section>
+
+  <section class="findme" id="find-me">
+    <div class="findme-inner">
+      <div class="findme-head">
+        <h2>Find Me Online</h2>
+        <p class="findme-tag">Pick a platform. I'm here, posting, shipping, replying.</p>
+      </div>
+      <div id="findmeGroups"></div>
+    </div>
+  </section>
+
+  <section id="craft">
+    <div class="craft-inner" id="craftBand"></div>
+  </section>
+
+  <section class="cta" id="contact">
+    <div class="cta-box">
+      <h2>You made it to the night.</h2>
+      <p>If any of this resonated — a project, a passion, a way of thinking — drop a line.</p>
+      <a class="cta-mail" href="mailto:alportac@gmail.com">✉ alportac@gmail.com</a>
+    </div>
+  </section>
+
+  <footer id="footer">
+    <div class="footer-inner">
+      <div class="footer-brand" id="footerBrand">© 2026 ALP — CREATING EVERY DAY</div>
+      <div class="footer-phase" id="footerPhase">☀ PHASE: DAY</div>
+    </div>
+  </footer>
+
+</div>
+</div>
+
+<script>
+"use strict";
+
+/* ════════════════════════════════════════════════════════════════════
+   PORTED LANDSCAPE MATH (skyCurve.ts + celestial.ts) — unchanged.
+   ════════════════════════════════════════════════════════════════════ */
+const SKY_NOON = { r: 135, g: 206, b: 235 };
+const SKY_DUSK = { r: 244, g: 164, b: 96 };
+const SKY_NIGHT = { r: 20, g: 10, b: 50 };
+const NIGHT_UI_THRESHOLD = 0.55;
+const CURVE = { enabled: true, phase1: [0.162, 0.436], phase2: [0.466, 0.787], boost: 0.8 };
+
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const bell = (t) => Math.sin(t * Math.PI);
+const lerpRgb = (a, b, t) => ({
+  r: Math.round(a.r + (b.r - a.r) * t),
+  g: Math.round(a.g + (b.g - a.g) * t),
+  b: Math.round(a.b + (b.b - a.b) * t),
+});
+function rgbToHsl(rgb) {
+  const r = rgb.r/255, g = rgb.g/255, b = rgb.b/255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h = 0, s = 0; const l = (max+min)/2;
+  if (max !== min) {
+    const d = max-min;
+    s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+    if (max === r) h = (g-b)/d + (g<b?6:0);
+    else if (max === g) h = (b-r)/d + 2;
+    else h = (r-g)/d + 4;
+    h /= 6;
+  }
+  return { h, s, l };
+}
+function hslToRgb(hsl) {
+  const { h, s, l } = hsl;
+  if (s === 0) { const v = Math.round(l*255); return { r:v, g:v, b:v }; }
+  const hue2rgb = (p,q,t) => {
+    let tt = t; if (tt<0) tt+=1; if (tt>1) tt-=1;
+    if (tt < 1/6) return p+(q-p)*6*tt;
+    if (tt < 1/2) return q;
+    if (tt < 2/3) return p+(q-p)*(2/3-tt)*6;
+    return p;
+  };
+  const q = l < 0.5 ? l*(1+s) : l+s-l*s;
+  const p = 2*l-q;
+  return {
+    r: Math.round(hue2rgb(p,q,h+1/3)*255),
+    g: Math.round(hue2rgb(p,q,h)*255),
+    b: Math.round(hue2rgb(p,q,h-1/3)*255),
+  };
+}
+function boostSat(rgb, boost, weight) {
+  const hsl = rgbToHsl(rgb);
+  hsl.s = clamp01(hsl.s * (1 + boost*weight));
+  return hslToRgb(hsl);
+}
+const rgbCss = (rgb) => `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+function skyAt(p) {
+  const [s1,e1] = CURVE.phase1, [s2,e2] = CURVE.phase2;
+  if (p <= s1) return rgbCss(SKY_NOON);
+  if (p < e1) { const t = (p-s1)/(e1-s1); return rgbCss(boostSat(lerpRgb(SKY_NOON, SKY_DUSK, t), CURVE.boost, bell(t))); }
+  if (p <= s2) return rgbCss(SKY_DUSK);
+  if (p < e2) { const t = (p-s2)/(e2-s2); return rgbCss(boostSat(lerpRgb(SKY_DUSK, SKY_NIGHT, t), CURVE.boost, bell(t))); }
+  return rgbCss(SKY_NIGHT);
+}
+
+const SUN_WINDOW = { start: 0, end: 0.65 };
+const MOON_WINDOW = { start: 0.45, end: 1.0 };
+const SUN_PARAMS = { startX: 75, startY: 12, endX: 28, endY: 58, arcLift: 8 };
+const MOON_PARAMS = { startX: 27, startY: 45, endX: 16, endY: 13, arcLift: 6 };
+function windowedProgress(p, win) {
+  const range = win.end - win.start;
+  if (range <= 0) return 0;
+  return Math.min(Math.max((p - win.start)/range, 0), 1);
+}
+function celestialPosition(lp, params) {
+  const x = params.startX + (params.endX - params.startX)*lp;
+  const yLin = params.startY + (params.endY - params.startY)*lp;
+  const y = yLin - Math.sin(lp * Math.PI) * params.arcLift;
+  return { x, y };
+}
+const sunOpacityAt = (p) => p < 0.45 ? 1 : Math.max(0, 1 - (p-0.45)/0.2);
+const moonOpacityAt = (p) => p < 0.5 ? 0 : Math.min(1, (p-0.5)/0.2);
+
+/* ── build resting stars + shooting stars (matches PixelBackground counts) ── */
+const starsLayer = document.getElementById("starsLayer");
+const shootLayer = document.getElementById("shootLayer");
+for (let i = 0; i < 150; i++) {
+  const size = Math.random()*2.5 + 0.5;
+  const s = document.createElement("div");
+  s.className = "star";
+  s.style.left = (Math.random()*100) + "%";
+  s.style.top = (Math.random()*100) + "%";
+  s.style.width = size + "px";
+  s.style.height = size + "px";
+  s.style.animationDelay = (Math.random()*5) + "s";
+  s.style.animationDuration = (Math.random()*3 + 2) + "s";
+  s.style.boxShadow = `0 0 ${size*2}px rgba(255,255,255,0.6)`;
+  starsLayer.appendChild(s);
+}
+for (let i = 0; i < 6; i++) {
+  const sh = document.createElement("div");
+  sh.className = "shoot";
+  sh.style.top = (Math.random()*40) + "%";
+  sh.style.animationDelay = (Math.random()*12 + i*4) + "s";
+  shootLayer.appendChild(sh);
+}
+
+const sunEl = document.getElementById("sunEl");
+const moonEl = document.getElementById("moonEl");
+const mountains = document.getElementById("mountains");
+const sky = document.getElementById("sky");
+const clouds = [
+  { el: document.getElementById("cloud0"), x: 100, y: 150, scale: 1.2, speed: 0.05 },
+  { el: document.getElementById("cloud1"), x: 600, y: 100, scale: 0.8, speed: -0.08 },
+  { el: document.getElementById("cloud2"), x: 1000, y: 250, scale: 1, speed: 0.03 },
+];
+
+/* world star field (for the explore overlay night sky) */
+const worldStars = document.getElementById("worldStars");
+for (let i = 0; i < 90; i++) {
+  const size = Math.random()*2.5 + 0.6;
+  const s = document.createElement("div");
+  s.className = "wstar";
+  s.style.left = (Math.random()*100) + "%";
+  s.style.top = (Math.random()*70) + "%";
+  s.style.width = size + "px";
+  s.style.height = size + "px";
+  s.style.boxShadow = `0 0 ${size*2}px rgba(255,255,255,0.7)`;
+  worldStars.appendChild(s);
+}
+
+let scrollProgress = 0;
+function renderBackdrop() {
+  const p = scrollProgress;
+  sky.style.backgroundColor = skyAt(p);
+
+  const sunPos = celestialPosition(windowedProgress(p, SUN_WINDOW), SUN_PARAMS);
+  sunEl.style.left = sunPos.x + "%"; sunEl.style.top = sunPos.y + "%";
+  sunEl.style.opacity = sunOpacityAt(p);
+
+  const moonPos = celestialPosition(windowedProgress(p, MOON_WINDOW), MOON_PARAMS);
+  moonEl.style.left = moonPos.x + "%"; moonEl.style.top = moonPos.y + "%";
+  moonEl.style.opacity = moonOpacityAt(p);
+
+  const s2 = CURVE.phase2[0], e2 = CURVE.phase2[1];
+  const dotsRange = Math.max(e2 - s2, 0.001);
+  starsLayer.style.opacity = Math.min(1, Math.max(0, (p - s2)/dotsRange));
+  const shootingRange = Math.max(1 - e2, 0.001);
+  shootLayer.style.opacity = Math.min(1, Math.max(0, (p - e2)/shootingRange));
+
+  const scrollPos = p * 1000;
+  clouds.forEach((c) => {
+    c.el.style.transform = `translate(${c.x + scrollPos*c.speed}px, ${c.y}px) scale(${c.scale})`;
+  });
+  mountains.style.opacity = Math.max(0.1, 0.4 - p*0.2);
+}
+
+const navLinks = document.querySelector(".nav-links");
+const navBrand = document.querySelector(".nav-brand");
+const footerEl = document.getElementById("footer");
+const footerPhase = document.getElementById("footerPhase");
+function renderUiPhase() {
+  const p = scrollProgress;
+  const isNight = p >= NIGHT_UI_THRESHOLD;
+  const navColor = isNight ? "#ffffff" : "#0f172a";
+  navLinks.style.color = navColor;
+  navBrand.style.color = navColor;
+  footerEl.style.color = navColor;
+  document.body.classList.toggle("is-night", isNight);
+  const phase = p < 0.5 ? "DAY" : p < 0.8 ? "DUSK" : "NIGHT";
+  const glyph = p < 0.5 ? "☀" : "☾";
+  footerPhase.textContent = `${glyph} PHASE: ${phase}`;
+}
+
+let ticking = false;
+function onScroll() {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => {
+    const winH = window.innerHeight;
+    const docH = document.documentElement.scrollHeight;
+    const total = docH - winH;
+    scrollProgress = total > 0 ? clamp01(window.scrollY / total) : 0;
+    renderBackdrop();
+    renderUiPhase();
+    ticking = false;
+  });
+}
+window.addEventListener("scroll", onScroll, { passive: true });
+window.addEventListener("resize", onScroll);
+
+/* ════════════════════════════════════════════════════════════════════
+   CONTENT DATA — verbatim from the repo (topics.ts, *Content.tsx, career.ts).
+   ════════════════════════════════════════════════════════════════════ */
+const TOPIC_ACCENT = {
+  coding: "#a7f3d0", career: "#cbd5e1", ai: "#bfdbfe", "tech-stack": "#e0e7ff",
+  finance: "#d9f99d", "movies-tv": "#fecaca", family: "#fecdd3", travel: "#fde68a",
+  music: "#c7d2fe", games: "#e9d5ff",
+};
+const LAYOUT_BY_TOPIC = {
+  coding: "accent-bar", career: "full-bleed", ai: "stamped", "tech-stack": "accent-bar",
+  finance: "accent-bar", "movies-tv": "full-bleed", family: "accent-bar", travel: "stamped",
+  music: "stamped", games: "stamped",
+};
+const flourish = (id) => `../public/icons/topics/${id}.svg`;
+
+const CAREER_TEASER =
+  "Professionally, I worked both in small startups and tech giants like Cisco. Started as Frontend engineer with strong opinions and a knack for sharing knowledge. Started to lead small to big teams and being responsible for product goals and coordinated execution.\n\nI'm a freelance consultant. Working with fund tax compliance, intelligent traffic start-ups and robotics companies.";
+const CODING_TEASER =
+  "Nowadays I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up Tanstack and self-hosting it on one of my Hetzner VPS.";
+
+const CAREER_TIMELINE = [
+  { year: "Since 2021", role: "Lead Engineer", company: "Genius Sports — London, UK (Remote from DE)", desc: "Dynamic Sports Videos for Programmatic & Social.", stack: ["Python","TypeScript","AWS","Kubernetes"] },
+  { year: "2021", role: "Lead Frontend Engineer", company: "Spirable — London, UK (Remote from DE)", desc: "Dynamic Ads for Social Media.", stack: ["TypeScript","React","Vue.JS","Material UI"] },
+  { year: "2019 — 2021", role: "Lead Frontend Engineer", company: "enercast — Kassel, Germany", desc: "Wind/Solar Energy Forecasts.", stack: ["TypeScript","React","Redux","Highcharts"] },
+  { year: "2013 — 2019", role: "Frontend Engineer", company: "Cisco Systems — Kassel, Germany", desc: "Business SPA for Asset Management.", stack: ["Angular","Vue.js","GraphQL","Highcharts","D3"] },
+  { year: "2012 — 2013", role: "Frontend Engineer", company: "Joulex — Kassel, Germany", desc: "Energy Management Web Application.", stack: ["Qooxdoo","Play","PostgreSQL"] },
+  { year: "2007 — 2012", role: "Founder", company: "Acama Systems", desc: "Web agency building custom solutions.", stack: ["JavaScript","Java","PHP","MySQL"] },
+  { year: "2005 — 2009", role: "Web Engineer", company: "miobambino", desc: "E-commerce for children clothes with individual prints.", stack: ["PHP","MySQL","JavaScript","HTML","CSS"] },
+];
+
+const TOPICS = [
+  { id: "career", heading: "Career" },
+  { id: "coding", heading: "Coding" },
+  { id: "tech-stack", heading: "Tech Stack" },
+  { id: "ai", heading: "AI" },
+  { id: "finance", heading: "Finance" },
+  { id: "family", heading: "Family" },
+  { id: "travel", heading: "Travel" },
+  { id: "movies-tv", heading: "Movies & TV" },
+  { id: "games", heading: "Games" },
+  { id: "music", heading: "Music" },
+];
+
+const TOPIC_TEASER = {
+  finance: "Long-term investing, index funds and a healthy distrust of hype cycles. I track it like a system, not a casino.",
+  family: "The anchor behind everything I build. Time with family is the non-negotiable that keeps the side projects honest.",
+  travel: "I collect places the way I collect side projects — slowly, deliberately, and with a camera in hand.",
+  ai: "Agentic workflows, self-hosted models and tools that actually ship. AI is leverage when you wire it into a real pipeline.",
+  "movies-tv": "I built GoodWatch to find what's actually worth watching across every streaming service.",
+  games: "Manaschmiede is my browser game — a side-project habit that turned into a real build on SpacetimeDB.",
+};
+
+function escapeHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function paras(text) {
+  return text.split("\n\n").map((p) => `<p>${escapeHtml(p)}</p>`).join("");
+}
+
+/* ── rich detail builders (verbatim) ── */
+function techStackDetail() {
+  return `
+    <p>I self-host as much as I can to avoid serverless horrors (<a class="inline-link" href="https://serverlesshorrors.com" target="_blank" rel="noopener noreferrer">serverlesshorrors.com</a>). Hetzner Cloud is the best compromise between cost, performance and value. What's running on it?</p>
+    <ul class="bullets" style="margin-top:16px">
+      <li><span class="marker">›</span><span><span class="primary">Coolify</span><span class="secondary"> to spin up my web apps</span></span></li>
+      <li><span class="marker">›</span><span><span class="primary">Windmill</span><span class="secondary"> to orchestrate data pipelines (for millions of movies and tv shows)</span></span></li>
+      <li><span class="marker">›</span><span><span class="primary">CrateDB</span><span class="secondary"> for big data</span></span></li>
+      <li><span class="marker">›</span><span><span class="primary">Convex</span><span class="secondary"> for realtime data</span></span></li>
+      <li><span class="marker">›</span><span><span class="primary">MongoDB</span><span class="secondary"> for raw data (from scraping)</span></span></li>
+      <li><span class="marker">›</span><span><span class="primary">Redis</span><span class="secondary"> for Pub/Sub and caching</span></span></li>
+      <li><span class="marker">›</span><span><span class="primary">SpacetimeDB</span><span class="secondary"> for my browser game</span></span></li>
+    </ul>
+    <p style="margin-top:16px">For some services I still rely on cloud software:</p>
+    <ul class="bullets" style="margin-top:16px">
+      <li><span class="marker">›</span><span><span class="primary">Posthog</span><span class="secondary"> for analytics</span></span></li>
+      <li><span class="marker">›</span><span><span class="primary">Grafana</span><span class="secondary"> for monitoring</span></span></li>
+      <li><span class="marker">›</span><span><span class="primary">Namecheap</span><span class="secondary"> for Emails</span></span></li>
+    </ul>
+    <p style="margin-top:16px">When I spin up a new web apps, I usually build it with Tanstack Start, Tailwind and Convex.</p>`;
+}
+function musicDetail() {
+  return `
+    <p>I'm into music that radiates infinite energy. From Metalcore, over Progrock to Liquid D'n'B and Tech House. Loudness and high production value spurs me.</p>
+    <p style="margin-top:12px">If it's well produced and expertly played, there are good chances that I'll like it regardless of the genre.</p>
+    <div style="margin-top:16px">
+      <a class="ext-card" href="https://www.last.fm/user/Alper_" target="_blank" rel="noopener noreferrer" style="--btn-tint: color-mix(in srgb, #D51007 30%, white); --btn-tint-hover:#D51007; --btn-text-hover:#fff;">
+        <span class="badge">275k scrobbles since 2006</span>
+        <span class="row"><span class="b-left"><span class="tile" style="background:color-mix(in srgb,#D51007 25%,white);color:#D51007;">♪</span><span class="label">Last.fm</span></span><span>→</span></span>
+      </a>
+      <a class="ext-card" href="https://open.spotify.com/user/1140243663?si=f613e1c43ce74d54" target="_blank" rel="noopener noreferrer" style="--btn-tint: color-mix(in srgb, #1ED760 30%, white); --btn-tint-hover:#1ED760; --btn-text-hover:#fff;">
+        <span class="row"><span class="b-left"><span class="tile" style="background:color-mix(in srgb,#1ED760 25%,white);color:#1ED760;">♫</span><span class="label">Spotify</span></span><span>→</span></span>
+      </a>
+    </div>
+    <div class="cover-grid">
+      <div class="cover-tile"><span>Cover A</span></div>
+      <div class="cover-tile"><span>Cover B</span></div>
+      <div class="cover-tile"><span>Cover C</span></div>
+      <div class="cover-tile"><span>Cover D</span></div>
+    </div>
+    <p class="cover-note">Placeholder cover tiles — demo the format (real album art wired from Last.fm in production).</p>`;
+}
+function codingDetail() {
+  return paras(CODING_TEASER) + `<p style="margin-top:12px;font-weight:700;opacity:.8">Trigger → Early days story.</p>`;
+}
+function careerDetail() {
+  let html = paras(CAREER_TEASER);
+  html += `<ol class="career-list">`;
+  for (const e of CAREER_TIMELINE) {
+    const acc = TOPIC_ACCENT.career;
+    html += `<li style="border-color:color-mix(in srgb, ${acc} 55%, transparent)">
+      <span class="career-dot" style="background:${acc}"></span>
+      <div class="career-year" style="background:${acc}">${escapeHtml(e.year)}</div>
+      <h3 class="career-role">${escapeHtml(e.role)}</h3>
+      <div class="career-co">${escapeHtml(e.company)}</div>
+      <p class="career-desc">${escapeHtml(e.desc)}</p>
+      <ul class="career-stack">${e.stack.map((t)=>`<li>${escapeHtml(t)}</li>`).join("")}</ul>
+    </li>`;
+  }
+  html += `</ol>`;
+  return html;
+}
+
+const RICH = {
+  "tech-stack": techStackDetail,
+  music: musicDetail,
+  career: careerDetail,
+  coding: codingDetail,
+};
+function detailHtml(id) {
+  if (RICH[id]) return RICH[id]();
+  if (TOPIC_TEASER[id]) return `<p>${escapeHtml(TOPIC_TEASER[id])}</p>`;
+  return `<p>More on ${escapeHtml(id)} coming soon.</p>`;
+}
+function restingProse(id) {
+  if (id === "career") return paras(CAREER_TEASER);
+  if (id === "coding") return paras(CODING_TEASER);
+  if (id === "tech-stack") return `<p>I self-host as much as I can to avoid serverless horrors. Hetzner Cloud is the best compromise between cost, performance and value.</p>`;
+  if (id === "music") return `<p>I'm into music that radiates infinite energy. From Metalcore, over Progrock to Liquid D'n'B and Tech House.</p>`;
+  if (TOPIC_TEASER[id]) return `<p>${escapeHtml(TOPIC_TEASER[id])}</p>`;
+  return `<p>${escapeHtml(id)}</p>`;
+}
+
+/* ════════════════ BUILD FIND-ME GROUPS (ported) ════════════════ */
+const SOCIAL_GROUPS = [
+  { title: "Posts", links: [
+    { label: "X (Twitter)", href: "https://x.com/alperortac" },
+    { label: "Threads", href: "https://www.threads.com/@alper.the.ortac" },
+    { label: "Bluesky", href: "https://bsky.app/profile/alperortac.bsky.social" },
+    { label: "Reddit", href: "https://www.reddit.com/user/alp82/" },
+  ]},
+  { title: "Video", links: [
+    { label: "YouTube", href: "https://www.youtube.com/@AlperTheOrtac" },
+    { label: "TikTok", href: "https://www.tiktok.com/@alperortac" },
+    { label: "Instagram", href: "https://www.instagram.com/alper.the.ortac/" },
+  ]},
+  { title: "Pro", links: [
+    { label: "GitHub", href: "https://github.com/alp82" },
+    { label: "LinkedIn", href: "https://www.linkedin.com/in/alper-ortac-b8319549/" },
+  ]},
+];
+const findmeGroups = document.getElementById("findmeGroups");
+findmeGroups.innerHTML = SOCIAL_GROUPS.map((g) => `
+  <div class="findme-group">
+    <div class="findme-group-head">
+      <h3>${g.title}</h3>
+      <div class="findme-rule"></div>
+    </div>
+    ${g.links.map((l) => `
+      <a class="btn-brutalist" href="${l.href}" target="_blank" rel="noopener noreferrer" style="--btn-tint:#fff;--btn-tint-hover:#0f172a;--btn-text-hover:#fff;">
+        <span class="b-left"><span class="b-icon">◆</span><span>${l.label}</span></span>
+        <span class="b-arrow">→</span>
+      </a>`).join("")}
+  </div>`).join("");
+
+/* ════════════════ BUILD CRAFT BAND (faithful plate structure) ════════════════ */
+const craftBand = document.getElementById("craftBand");
+craftBand.innerHTML = TOPICS.map((t) => {
+  const layout = LAYOUT_BY_TOPIC[t.id];
+  const acc = TOPIC_ACCENT[t.id];
+  const stamped = layout === "stamped";
+  const headInner = stamped
+    ? `<h2>${t.heading}</h2>`
+    : `<h2>${t.heading}</h2><img class="topic-flourish" src="${flourish(t.id)}" alt="" aria-hidden="true" />`;
+  return `
+  <article class="topic" id="${t.id}">
+    <div class="topic-stage ${layout}" tabindex="0" role="button"
+         data-topic="${t.id}" aria-label="Travel to ${t.heading}"
+         style="--topic-accent:${acc}">
+      ${stamped ? `<img class="topic-stamp" src="${flourish(t.id)}" alt="" aria-hidden="true" />` : ``}
+      <header class="topic-head">${headInner}</header>
+      <div class="topic-body">
+        <div class="plate topic-plate-inner">${restingProse(t.id)}</div>
+        <span class="topic-trigger-hint">▸ Travel to ${t.heading}</span>
+      </div>
+    </div>
+  </article>`;
+}).join("");
+
+/* ════════════════════════════════════════════════════════════════════
+   CAMERA-EXPLORE ENGINE — the ONLY new behavior.
+
+   A landmark = an x/y point in WORLD percentage space sitting ON existing
+   scenery. A camera move pushes #world so that landmark + character end up
+   framed; then the readable detail fades in at the landmark's PROJECTED
+   screen position. The world stays visible because it genuinely moved.
+   ════════════════════════════════════════════════════════════════════ */
+const body = document.body;
+const stage = document.getElementById("stage");
+const world = document.getElementById("world");
+const character = document.getElementById("character");
+const detailCard = document.getElementById("detailCard");
+const detailLeader = document.getElementById("detailLeader");
+const returnBtn = document.getElementById("return-btn");
+const worldSky = document.getElementById("worldSky");
+
+/* per-topic LANDMARKS, placed on existing scenery, each with a default move.
+   lx/ly are world-percentage coords (0–100). The brief's mapping:
+     tech-stack / coding → ZOOM into a mountain peak
+     music              → ZOOM up into the moon / night sky
+     career             → PAN across to a distant peak
+   Other wired topics get a sensible landmark + default so every plate works. */
+const LANDMARKS = {
+  career:       { lx: 88, ly: 40, move: "pan",      zoom: 1.25, flair: null,       night: false, side: "left"  },
+  coding:       { lx: 50, ly: 44, move: "zoom",     zoom: 2.2,  flair: "flairTech",night: false, side: "right" },
+  "tech-stack": { lx: 65, ly: 43, move: "zoom",     zoom: 2.2,  flair: "flairTech",night: false, side: "left"  },
+  ai:           { lx: 38, ly: 46, move: "zoom",     zoom: 1.9,  flair: null,       night: false, side: "right" },
+  finance:      { lx: 20, ly: 48, move: "pan",      zoom: 1.2,  flair: null,       night: false, side: "right" },
+  family:       { lx: 50, ly: 80, move: "pan-zoom", zoom: 1.7,  flair: null,       night: false, side: "left"  },
+  travel:       { lx: 12, ly: 44, move: "pan",      zoom: 1.3,  flair: null,       night: false, side: "right" },
+  "movies-tv":  { lx: 78, ly: 50, move: "pan-zoom", zoom: 1.8,  flair: null,       night: false, side: "left"  },
+  games:        { lx: 60, ly: 70, move: "zoom",     zoom: 1.9,  flair: null,       night: false, side: "left"  },
+  music:        { lx: 22, ly: 18, move: "zoom",     zoom: 2.2,  flair: "moon",     night: true,  side: "right" },
+};
+
+let durationMs = 900;
+let easing = "cubic-bezier(0.16,1,0.3,1)";
+let depthBlur = true;
+let reducedMotion = false;
+let moveOverride = null;     // null = use topic default; else "pan"|"zoom"|"pan-zoom"
+let activeTopic = null;
+let lastTrigger = null;
+let settleTimer = null;
+
+function prefersReduced() {
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+function rm() { return reducedMotion || prefersReduced(); }
+
+function applyMotionVars() {
+  const d = rm() ? 1 : durationMs;
+  document.documentElement.style.setProperty("--cam-dur", d + "ms");
+  document.documentElement.style.setProperty("--cam-ease", easing);
+  body.classList.toggle("rm", rm());
+  body.classList.toggle("depthblur", depthBlur);
+}
+
+/* effective move for the active topic = override or topic default */
+function effectiveMove(id) {
+  return moveOverride || (LANDMARKS[id] ? LANDMARKS[id].move : "zoom");
+}
+
+/* Compute the camera transform so a world-percent landmark lands at a chosen
+   SCREEN focal point, at scale cz. We scale #world about its top-left origin
+   (origin 0 0) and translate so the landmark maps to the target screen point.
+     screen = origin0 + translate + landmarkPx * cz
+   Solve translate so landmark hits (focusX, focusY). */
+function cameraTo(landmarkPx, cz, focusX, focusY) {
+  const tx = focusX - landmarkPx.x * cz;
+  const ty = focusY - landmarkPx.y * cz;
+  return { tx, ty, cz };
+}
+
+function stageSize() {
+  const r = stage.getBoundingClientRect();
+  return { w: r.width, h: r.height };
+}
+
+function travelTo(topicEl) {
+  const id = topicEl.getAttribute("data-topic");
+  const lm = LANDMARKS[id];
+  if (!lm) return;
+  activeTopic = id;
+  lastTrigger = topicEl;
+  if (settleTimer) { clearTimeout(settleTimer); settleTimer = null; }
+
+  const move = effectiveMove(id);
+  const { w, h } = stageSize();
+
+  /* set the explore world sky to match this topic's time-of-day intent:
+     music is a night reveal; others inherit the current scroll sky. */
+  const worldP = lm.night ? 0.95 : scrollProgress;
+  worldSky.style.backgroundColor = skyAt(worldP);
+  worldStars.style.opacity = lm.night ? 1 : Math.min(1, Math.max(0, (scrollProgress - 0.47)/0.32));
+  document.getElementById("worldMoon").style.opacity = lm.night ? 1 : 0.25;
+  document.getElementById("worldSun").style.opacity  = lm.night ? 0 : 0.9;
+  body.classList.toggle("is-night", lm.night || scrollProgress >= NIGHT_UI_THRESHOLD);
+
+  /* landmark in world-PIXEL space (world box == stage box at scale 1) */
+  const landmarkPx = { x: (lm.lx/100) * w, y: (lm.ly/100) * h };
+
+  /* DETAIL side: place the readable card to one side, character + landmark
+     framed on the other. Focal screen point biases the landmark away from
+     the card so the detail sits beside the place, not on top of it. */
+  const cardOnLeft = lm.side === "left";
+  const focusX = cardOnLeft ? w * 0.68 : w * 0.32;
+  const focusY = h * 0.42;
+
+  /* zoom amount per move */
+  let cz;
+  if (move === "pan") cz = lm.zoom <= 1.3 ? lm.zoom : 1.2;
+  else cz = lm.zoom; // zoom / pan-zoom push in
+  if (rm()) cz = Math.min(cz, 1.0001); // reduced motion: settle without push
+
+  const cam = cameraTo(landmarkPx, cz, focusX, focusY);
+
+  /* move character to stand at the landmark (in world space) */
+  character.style.left = lm.lx + "%";
+  character.style.top  = (lm.ly + 6) + "%";
+
+  /* PAN-then-ZOOM: do a lateral pan first (scale ~1), then push in. */
+  body.classList.add("exploring", "moving");
+  stage.setAttribute("aria-hidden", "false");
+  applyMotionVars();
+
+  function commitCamera(tx, ty, scale) {
+    world.style.transformOrigin = "0px 0px";
+    world.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  }
+
+  if (move === "pan-zoom" && !rm()) {
+    /* phase 1: pan to the landmark at scale ~1.05 */
+    const panCam = cameraTo(landmarkPx, 1.05, focusX, focusY);
+    commitCamera(panCam.tx, panCam.ty, 1.05);
+    /* phase 2: after half the duration, push in */
+    setTimeout(() => {
+      if (activeTopic !== id) return;
+      commitCamera(cam.tx, cam.ty, cam.cz);
+    }, Math.max(60, durationMs * 0.45));
+  } else {
+    commitCamera(cam.tx, cam.ty, cam.cz);
+  }
+
+  /* light the diegetic flourish as the camera arrives */
+  document.querySelectorAll(".landmark-flair.lit").forEach((n) => n.classList.remove("lit"));
+  if (lm.flair === "moon") {
+    document.getElementById("flairMoonL").classList.add("lit");
+    document.getElementById("flairMoonR").classList.add("lit");
+  } else if (lm.flair) {
+    const fl = document.getElementById(lm.flair);
+    if (fl) fl.classList.add("lit");
+  }
+
+  /* after the camera settles, fade the readable detail in at the landmark's
+     PROJECTED screen position. Detail lives in #detail-layer (screen space)
+     so its font is natural regardless of cz. */
+  detailCard.innerHTML = detailCardHtml(id);
+  detailCard.style.setProperty("--topic-accent", TOPIC_ACCENT[id]);
+  detailCard.classList.remove("shown");
+  detailLeader.classList.remove("shown");
+
+  const settleDelay = rm() ? 60 : durationMs + 40;
+  settleTimer = setTimeout(() => {
+    if (activeTopic !== id) return;
+    body.classList.remove("moving");
+    positionDetail(cardOnLeft, focusX, focusY);
+    detailCard.classList.add("shown");
+    detailLeader.classList.add("shown");
+  }, settleDelay);
+
+  returnBtn.focus();
+  refreshSpec();
+}
+
+/* place the screen-space detail card beside the landmark's settled screen
+   point (the landmark ended at focusX/focusY by construction). */
+function positionDetail(cardOnLeft, focusX, focusY) {
+  const { w, h } = stageSize();
+  const cardW = Math.min(440, w * 0.86);
+  let left, leaderX;
+  if (cardOnLeft) {
+    left = Math.max(16, focusX - cardW - 90);
+    leaderX = focusX - 40;
+  } else {
+    left = Math.min(w - cardW - 16, focusX + 90);
+    leaderX = focusX + 40;
+  }
+  detailCard.style.left = left + "px";
+  let top = focusY - 60;
+  top = Math.max(80, Math.min(top, h - 120 - detailCard.offsetHeight * 0.4));
+  detailCard.style.top = top + "px";
+
+  /* leader dot sits on the landmark focal point */
+  detailLeader.style.left = "0px"; detailLeader.style.top = "0px";
+  const dot = detailLeader.querySelector(".dot");
+  dot.style.left = focusX + "px"; dot.style.top = focusY + "px";
+  detailLeader.style.setProperty("--topic-accent", detailCard.style.getPropertyValue("--topic-accent"));
+}
+
+function detailTitle(id) {
+  const t = TOPICS.find((x) => x.id === id);
+  return t ? t.heading : id;
+}
+function detailCardHtml(id) {
+  const acc = TOPIC_ACCENT[id];
+  return `
+    <div class="dc-head">
+      <img src="${flourish(id)}" alt="" aria-hidden="true" />
+      <h2>${detailTitle(id)}</h2>
+    </div>
+    <div class="topic-body" style="--topic-accent:${acc}">${detailHtml(id)}</div>`;
+}
+
+function returnHome() {
+  if (settleTimer) { clearTimeout(settleTimer); settleTimer = null; }
+  const id = activeTopic;
+  activeTopic = null;
+
+  /* reverse the camera to resting state */
+  detailCard.classList.remove("shown");
+  detailLeader.classList.remove("shown");
+  body.classList.add("moving");
+  world.style.transformOrigin = "0px 0px";
+  world.style.transform = "translate(0px, 0px) scale(1)";
+  character.style.left = "50%";
+  character.style.top = "84%";
+  document.querySelectorAll(".landmark-flair.lit").forEach((n) => n.classList.remove("lit"));
+
+  const clearDelay = rm() ? 80 : durationMs + 40;
+  setTimeout(() => {
+    if (activeTopic) return; // a new travel started; abort cleanup
+    body.classList.remove("exploring", "moving");
+    stage.setAttribute("aria-hidden", "true");
+    detailCard.innerHTML = "";
+    body.classList.toggle("is-night", scrollProgress >= NIGHT_UI_THRESHOLD);
+  }, clearDelay);
+
+  if (lastTrigger) lastTrigger.focus();
+  refreshSpec();
+}
+
+/* topic activation (tap-friendly, no hover-only triggers) */
+craftBand.addEventListener("click", (e) => {
+  const st = e.target.closest(".topic-stage");
+  if (!st) return;
+  if (e.target.closest("a")) return; // resting plate links behave normally
+  travelTo(st);
+});
+craftBand.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const st = e.target.closest(".topic-stage");
+  if (!st) return;
+  e.preventDefault();
+  travelTo(st);
+});
+
+returnBtn.addEventListener("click", returnHome);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && body.classList.contains("exploring")) { e.preventDefault(); returnHome(); }
+});
+/* clicking the bare world (not the card) also returns */
+stage.addEventListener("click", (e) => {
+  if (e.target.closest("#detailCard") || e.target.closest("#return-btn")) return;
+  returnHome();
+});
+
+window.addEventListener("resize", () => {
+  if (activeTopic) {
+    const st = document.querySelector(`.topic-stage[data-topic="${activeTopic}"]`);
+    if (st) travelTo(st);
+  }
+});
+
+/* ════════════════ DEV PANEL WIRING ════════════════ */
+const moveSeg = document.getElementById("moveSeg");
+const durRange = document.getElementById("durRange");
+const durVal = document.getElementById("durVal");
+const easeSel = document.getElementById("easeSel");
+const blurChk = document.getElementById("blurChk");
+const rmChk = document.getElementById("rmChk");
+const specEl = document.getElementById("spec");
+const copybtn = document.getElementById("copybtn");
+
+function buildSpec() {
+  const id = activeTopic || "tech-stack";
+  const move = activeTopic ? effectiveMove(activeTopic) : (moveOverride || (LANDMARKS[id] ? LANDMARKS[id].move : "zoom"));
+  const obj = {
+    paradigm: "camera-explore",
+    topic: id,
+    move: move,
+    durationMs: durationMs,
+    easing: easing,
+    depthBlur: depthBlur,
+  };
+  return JSON.stringify(obj);
+}
+function refreshSpec() { specEl.value = buildSpec(); }
+
+moveSeg.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-move]");
+  if (!btn) return;
+  moveOverride = btn.getAttribute("data-move");
+  body.setAttribute("data-move", moveOverride);
+  moveSeg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+  if (activeTopic) {
+    const st = document.querySelector(`.topic-stage[data-topic="${activeTopic}"]`);
+    if (st) travelTo(st);
+  }
+  refreshSpec();
+});
+
+durRange.addEventListener("input", () => {
+  durationMs = parseInt(durRange.value, 10);
+  durVal.textContent = durationMs + "ms";
+  applyMotionVars();
+  refreshSpec();
+});
+easeSel.addEventListener("change", () => {
+  easing = easeSel.value;
+  applyMotionVars();
+  refreshSpec();
+});
+blurChk.addEventListener("change", () => {
+  depthBlur = blurChk.checked;
+  applyMotionVars();
+  refreshSpec();
+});
+rmChk.addEventListener("change", () => {
+  reducedMotion = rmChk.checked;
+  applyMotionVars();
+  refreshSpec();
+});
+
+copybtn.addEventListener("click", async () => {
+  refreshSpec();
+  const text = specEl.value;
+  let ok = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    }
+  } catch (_) { ok = false; }
+  if (!ok) {
+    specEl.focus(); specEl.select();
+    try { ok = document.execCommand("copy"); } catch (_) { ok = false; }
+  }
+  const prev = copybtn.textContent;
+  copybtn.textContent = ok ? "Copied ✓" : "Select + Ctrl-C";
+  setTimeout(() => { copybtn.textContent = prev; }, 1400);
+});
+
+/* mobile: collapsible panel */
+const panelToggle = document.getElementById("panel-toggle");
+const devpanel = document.getElementById("devpanel");
+panelToggle.addEventListener("click", () => {
+  const collapsed = devpanel.classList.toggle("collapsed");
+  panelToggle.textContent = collapsed ? "SHOW" : "HIDE";
+  panelToggle.setAttribute("aria-expanded", String(!collapsed));
+});
+
+/* ════════════════ INIT ════════════════ */
+applyMotionVars();
+renderBackdrop();
+renderUiPhase();
+refreshSpec();
+onScroll();
+</script>
+</body>
+</html>

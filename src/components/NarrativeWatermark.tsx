@@ -8,7 +8,7 @@ import {
 	zoneOpacity,
 } from "./narrativeWatermark";
 
-// Vertical stacked watermark words (BUILD / LIVE) that crossfade and drift
+// Vertical stacked watermark words (BUILD / LIFE) that crossfade and drift
 // behind the page as the user scrolls. The geometry lives in the pure
 // `./narrativeWatermark` module; this is a thin render layer. It consumes the
 // existing `scrollProgress` prop like its siblings (PixelBackground / Minimap).

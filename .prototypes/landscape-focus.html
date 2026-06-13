@@ -1,0 +1,988 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Landscape focus — plate → feature morph</title>
+<style>
+  :root {
+    --ink: #0f172a;
+    --paper: #faf7f1;
+    --line: #0f172a;
+    --accent: #fde047;
+    --shadow: 4px 4px 0 0 #0f172a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--paper); color: var(--ink);
+    font-family: ui-monospace, "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace; }
+
+  .layout { display: grid; grid-template-columns: minmax(300px, 26%) 1fr; min-height: 100vh; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  /* ── LEFT: brutalist control panel (hard edges ONLY here) ── */
+  .panel {
+    border-right: 2px solid var(--line); background: #fff; padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 14px; overflow-y: auto; max-height: 100vh;
+  }
+  @media (max-width: 900px) {
+    .panel { max-height: none; border-right: none; border-bottom: 2px solid var(--line); order: -1; }
+  }
+  .panel h1 { font-size: 13px; margin: 0; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 900; }
+  .panel .subtitle { font-size: 11px; margin: 0; opacity: 0.65; line-height: 1.45; }
+
+  .section {
+    border: 2px solid var(--line); background: #fff; padding: 10px 12px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .section-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.8; }
+  .section-note { font-size: 10px; opacity: 0.6; line-height: 1.45; }
+
+  .control-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .control-value {
+    min-width: 56px; text-align: right; font-size: 11px; font-weight: 700; padding: 3px 6px;
+    background: #f1f5f9; border: 1px solid var(--line); font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] { flex: 1; min-width: 130px; accent-color: var(--ink); }
+  select {
+    font: inherit; font-size: 11px; font-weight: 700; padding: 6px 8px;
+    border: 2px solid var(--line); background: #fff; cursor: pointer; flex: 1; min-width: 130px;
+  }
+  .toggle-row { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; }
+  .toggle-row input { width: 16px; height: 16px; accent-color: var(--ink); }
+
+  .copy-row { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+  .copy-btn {
+    font: inherit; font-size: 12px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 12px 14px; background: var(--accent); border: 2px solid var(--line); cursor: pointer;
+    box-shadow: var(--shadow); color: var(--ink);
+  }
+  .copy-btn:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 0 var(--line); }
+  .copy-hint { font-size: 10px; opacity: 0.7; line-height: 1.45; }
+  .copy-status { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #166534; height: 14px; }
+  .spec-out {
+    width: 100%; font: inherit; font-size: 10px; border: 2px solid var(--line); padding: 6px;
+    background: #f8fafc; resize: vertical; min-height: 96px; display: none;
+  }
+  .spec-out.show { display: block; }
+
+  /* ── RIGHT: preview ── */
+  .preview-col { display: flex; flex-direction: column; min-height: 100vh; background: var(--paper); }
+  .stage-head {
+    padding: 10px 18px; border-bottom: 2px solid var(--line); background: #fff;
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  }
+  .stage-head h2 { font-size: 12px; margin: 0; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 900; }
+  .stage-head .hint { font-size: 10px; opacity: 0.6; }
+
+  /* The stage: one immersive vertical-journey landscape, all clipped */
+  .stage {
+    position: relative; flex: 1; min-height: 600px; overflow: hidden; background: #87ceeb;
+    user-select: none; touch-action: manipulation; image-rendering: pixelated;
+  }
+
+  /* WORLD: the whole pixel-art landscape. This is what the camera zoom-focuses. */
+  .world {
+    position: absolute; inset: 0; z-index: 1; overflow: hidden;
+    will-change: transform; transform-origin: 50% 50%;
+  }
+  .sky-bg { position: absolute; inset: 0; }
+
+  /* celestials — flat pixel sun + moon, matching PixelBackground.tsx */
+  .sun {
+    position: absolute; width: 96px; height: 96px; border-radius: 50%; transform: translate(-50%,-50%);
+    background: #fef08a; /* yellow-200 */ border: 4px solid #fde047; /* yellow-300 */
+    box-shadow: 0 0 40px rgba(253,224,71,0.5);
+  }
+  .moon {
+    position: absolute; width: 80px; height: 80px; border-radius: 50%; transform: translate(-50%,-50%);
+    background: #f1f5f9; /* slate-100 */ border: 4px solid #cbd5e1; /* slate-300 */
+    box-shadow: 0 0 60px rgba(255,255,255,0.2); overflow: hidden;
+  }
+  .moon i { position: absolute; border-radius: 50%; background: #e2e8f0; }
+  .moon i.c1 { width: 24px; height: 24px; top: 8px; right: 16px; opacity: 0.6; }
+  .moon i.c2 { width: 32px; height: 32px; bottom: 16px; left: 8px; opacity: 0.4; }
+  .moon i.c3 { width: 16px; height: 16px; top: 32px; left: 32px; opacity: 0.5; }
+
+  /* stars — twinkling white dots, fade in toward night */
+  .stars { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+  .star { position: absolute; border-radius: 50%; background: #fff; }
+  @keyframes twinkle { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
+  .star { animation: twinkle var(--tw,3s) ease-in-out infinite; animation-delay: var(--td,0s); }
+
+  /* blocky pixel clouds — SVG paths like PixelBackground, opacity 0.4 */
+  .clouds { position: absolute; inset: 0; pointer-events: none; }
+  .cloud { position: absolute; opacity: 0.4; will-change: transform; }
+  .cloud svg { display: block; image-rendering: pixelated; }
+
+  /* mountain silhouette — crisp edges, #4a7a8c */
+  .mountains { position: absolute; left: 0; right: 0; bottom: 0; height: 46%; pointer-events: none; }
+  .mountains svg { display: block; width: 100%; height: 100%; }
+
+  /* ground band at the very bottom */
+  .ground {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 8%;
+    background: #3f5e4a; border-top: 3px solid #2c4233;
+  }
+
+  /* ───────── DIEGETIC FEATURES (zoom targets, in the one landscape) ───────── */
+  .feature { position: absolute; z-index: 2; }
+
+  /* CAVE: dark notch carved into the mountain (upper-mid, day/dusk band) */
+  .cave-mouth {
+    position: absolute; width: 150px; height: 120px;
+    background: radial-gradient(ellipse 70% 80% at 50% 60%, #0a0705 40%, #1a120c 72%, transparent 86%);
+    border-radius: 50% 50% 44% 44% / 64% 64% 36% 36%;
+    box-shadow: inset 0 -10px 26px rgba(0,0,0,0.8);
+  }
+  .cave-rim {
+    position: absolute; inset: -6px; border-radius: inherit;
+    box-shadow: inset 0 0 0 3px rgba(60,46,32,0.5);
+    background: radial-gradient(ellipse 72% 82% at 50% 58%, transparent 60%, rgba(40,30,20,0.55) 80%);
+    pointer-events: none;
+  }
+
+  /* LAKE: pixel water body reflecting sky/stars (lower-mid, dusk/night band) */
+  .lake {
+    position: absolute; width: 320px; height: 130px; border-radius: 50% / 30%;
+    background: linear-gradient(to bottom, rgba(70,110,150,0.7), rgba(20,40,80,0.92));
+    border-top: 2px solid rgba(200,225,255,0.45);
+    box-shadow: inset 0 14px 30px rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+  .lake-shimmer { position: absolute; inset: 0; }
+  .lake-shimmer i {
+    position: absolute; height: 2px; background: rgba(220,235,255,0.5); border-radius: 2px;
+    animation: shimmer var(--sh,4s) ease-in-out infinite alternate;
+  }
+  @keyframes shimmer { from { opacity: 0.2; transform: scaleX(0.7); } to { opacity: 0.8; transform: scaleX(1.1); } }
+
+  /* TREE: blocky pixel tree on a hill (lower band) */
+  .tree { position: absolute; width: 150px; height: 200px; }
+  .tree svg { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+
+  /* FOG bank: soft low mist band (the unmapped 4th target) */
+  .fog {
+    position: absolute; width: 300px; height: 90px;
+    background: radial-gradient(ellipse 60% 70% at 50% 60%, rgba(236,240,245,0.8), rgba(236,240,245,0.32) 58%, transparent 82%);
+    filter: blur(4px); opacity: 0.85; pointer-events: none;
+  }
+  .fog-label {
+    position: absolute; z-index: 3; transform: translate(-50%,-50%);
+    font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(255,255,255,0.85); text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+    padding: 3px 8px; border: 1px dashed rgba(255,255,255,0.5); border-radius: 999px;
+    background: rgba(0,0,0,0.18); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ───────── FROSTED TOPIC PLATES (the real card; the clickable trigger) ───────── */
+  /* Mirrors src primitives.tsx: backdrop-blur, bg-white/40 day, slate-900/55 night,
+     border-l-4, font-black uppercase heading. */
+  .plate {
+    position: absolute; z-index: 5; width: 260px; cursor: pointer; text-align: left;
+    border-left: 4px solid; border-radius: 4px; padding: 12px 14px;
+    backdrop-filter: blur(10px) saturate(1.1); -webkit-backdrop-filter: blur(10px) saturate(1.1);
+    -webkit-tap-highlight-color: transparent;
+    transition: box-shadow 160ms ease-out, transform 120ms ease-out;
+    will-change: transform; backface-visibility: hidden;
+    font: inherit; color: inherit;
+  }
+  .plate.day   { background: rgba(255,255,255,0.40); color: #0f172a; border-color: #0f172a; }
+  .plate.night { background: rgba(15,23,42,0.55); color: #f8fafc; border-color: rgba(255,255,255,0.4); }
+  .plate:hover { box-shadow: 0 14px 40px rgba(15,23,42,0.4); transform: translateY(-2px); }
+  .plate:focus-visible { outline: 3px solid rgba(255,255,255,0.85); outline-offset: 3px; }
+  .plate-head { display: flex; align-items: center; gap: 10px; }
+  .plate-head img { width: 36px; height: 36px; image-rendering: pixelated; pointer-events: none; flex: 0 0 auto; }
+  .plate-head h3 { margin: 0; font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em; line-height: 1; }
+  .plate-teaser { margin: 8px 0 0 0; font-size: 11px; line-height: 1.5; font-weight: 500; opacity: 0.92;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .plate-cue { margin-top: 8px; font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.7; }
+
+  /* The MORPHING plate clone used for the FLIP — positioned/animated by JS */
+  .morph {
+    position: absolute; z-index: 14; border-left: 4px solid; border-radius: 4px; overflow: hidden;
+    backdrop-filter: blur(12px) saturate(1.12); -webkit-backdrop-filter: blur(12px) saturate(1.12);
+    will-change: transform, width, height; backface-visibility: hidden;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.5);
+  }
+  .morph.day   { background: rgba(248,250,252,0.82); color: #0f172a; border-color: #0f172a; }
+  .morph.night { background: rgba(12,12,28,0.82); color: #e6ecff; border-color: rgba(148,163,184,0.4); }
+  .morph.cave  { background: rgba(26,18,12,0.88); color: #ecdcc6; border-color: rgba(120,90,60,0.5);
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.7), 0 30px 90px rgba(0,0,0,0.55); }
+  .morph a { color: #7dd3fc; font-weight: 700; }
+  .morph.cave a { color: #facc15; }
+
+  .morph-inner { position: absolute; inset: 0; overflow-y: auto; padding: 44px 22px 26px 22px; opacity: 0; }
+  .morph-inner.in { opacity: 1; transition: opacity 360ms ease-out; }
+  /* the persistent heading sits pinned top-left through the move */
+  .morph-title { position: absolute; top: 14px; left: 22px; z-index: 2; margin: 0;
+    display: flex; align-items: center; gap: 10px; pointer-events: none; }
+  .morph-title img { width: 30px; height: 30px; image-rendering: pixelated; }
+  .morph-title h3 { margin: 0; font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em; line-height: 1; }
+
+  .morph p { font-size: 12.5px; line-height: 1.6; margin: 0 0 12px 0; }
+  .r-sub { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.6; margin: 0 0 14px 0; }
+  .demo-tag {
+    display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 999px; margin: 0 0 12px 0;
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+  }
+  .morph.day .demo-tag { background: rgba(15,23,42,0.08); border-color: rgba(15,23,42,0.2); }
+
+  /* CAVE strata list */
+  .strata { list-style: none; padding: 0; margin: 0 0 14px 0; display: flex; flex-direction: column; gap: 6px; }
+  .strata li {
+    font-size: 12px; padding: 8px 12px; border-radius: 4px;
+    border-left: 4px solid rgba(180,130,80,0.7);
+    background: linear-gradient(90deg, rgba(160,120,80,0.30), rgba(120,90,60,0.10));
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.18); display: flex; gap: 8px; align-items: baseline;
+  }
+  .strata li .pri { font-weight: 800; color: #fff3df; }
+  .strata li .sec { opacity: 0.78; font-size: 11px; }
+  .strata-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.6; margin: 2px 0 8px 0; }
+
+  /* LAKE lantern wall (reflected lights on night water) */
+  .stat-line { font-size: 13px; font-weight: 800; margin: 0 0 12px 0; }
+  .genres { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px 0; }
+  .genres span { font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); }
+  .r-links { display: flex; gap: 14px; margin: 0 0 14px 0; font-size: 12px; font-weight: 700; }
+  .lantern-wall {
+    position: relative; height: 300px; border-radius: 12px; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 0%, rgba(40,30,80,0.5), rgba(8,12,30,0.9));
+  }
+  .lantern {
+    position: absolute; width: 46px; height: 46px; border-radius: 8px; transform: translate(-50%,-50%);
+    box-shadow: 0 0 16px rgba(255,255,255,0.28), 0 4px 14px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; justify-content: flex-end; padding: 4px;
+  }
+  .lantern .lbl { font-size: 7.5px; font-weight: 800; color: rgba(255,255,255,0.95); text-shadow: 0 1px 2px rgba(0,0,0,0.6); line-height: 1.2; }
+  .lantern .lbl .ar { opacity: 0.8; font-weight: 600; }
+
+  /* TREE branch history (entries along trunk/branches) */
+  .branches { list-style: none; padding: 0; margin: 0; }
+  .branches li {
+    position: relative; padding: 10px 0 14px 22px; font-size: 12.5px; line-height: 1.55;
+    border-left: 3px solid rgba(120,160,90,0.6); margin-left: 6px;
+  }
+  .branches li::before {
+    content: ""; position: absolute; left: -7px; top: 14px; width: 11px; height: 11px; border-radius: 50%;
+    background: #5d9148; box-shadow: 0 0 8px rgba(120,200,100,0.6); border: 2px solid #3a5a28;
+  }
+
+  /* radial vignette overlay — DARKENS periphery but keeps the world visible */
+  .vignette {
+    position: absolute; inset: 0; z-index: 10; pointer-events: none; opacity: 0;
+    background: radial-gradient(ellipse var(--vig-size,55%) var(--vig-size,55%) at var(--vig-x,50%) var(--vig-y,50%),
+      transparent 0%, rgba(0,0,0,var(--vig,0.55)) 78%, rgba(0,0,0,calc(var(--vig,0.55) + 0.12)) 100%);
+    will-change: opacity;
+  }
+  .vignette.show { opacity: 1; }
+
+  /* faint pixel flourish drifting behind the focused feature (zoom-focus language) */
+  .focus-flourish {
+    position: absolute; z-index: 12; transform: translate(-50%,-50%); opacity: 0; pointer-events: none;
+    width: 240px; height: 240px; image-rendering: pixelated;
+    background-size: contain; background-repeat: no-repeat; background-position: center;
+    will-change: opacity, transform;
+  }
+  .focus-flourish.show { opacity: 0.14; animation: flourish-drift 14s ease-in-out infinite alternate; }
+  @keyframes flourish-drift { from { transform: translate(-52%,-52%) scale(1); } to { transform: translate(-48%,-48%) scale(1.12); } }
+
+  /* return / esc edge button */
+  .return-btn {
+    position: absolute; top: 14px; left: 14px; z-index: 20;
+    font: inherit; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 8px 12px; background: rgba(255,255,255,0.92); border: 2px solid var(--line); cursor: pointer;
+    box-shadow: 2px 2px 0 0 var(--line); display: none;
+  }
+  .return-btn.show { display: block; }
+  .return-btn:active { transform: translate(2px,2px); box-shadow: 0 0 0 0 var(--line); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .star, .lake-shimmer i, .focus-flourish.show, .cloud { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <!-- ============ LEFT: CONTROL PANEL ============ -->
+    <aside class="panel">
+      <div>
+        <h1>Landscape focus</h1>
+        <p class="subtitle">One immersive pixel-art journey. Each topic <strong>plate</strong> sits beside its landscape feature. Click a plate and it MORPHS (FLIP + scale) into that feature&rsquo;s detail while the camera zoom-focuses in &mdash; the periphery darkens but the world stays visible. ESC / Return reverses it.</p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Duration</div>
+        <div class="control-row">
+          <input id="duration" type="range" min="300" max="2000" step="10" value="900" />
+          <div class="control-value" id="durationVal">900ms</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Easing</div>
+        <div class="control-row">
+          <select id="easing">
+            <option value="cubic-bezier(0.16,1,0.3,1)" selected>zoom-focus (.16,1,.3,1)</option>
+            <option value="ease-out">ease-out</option>
+            <option value="ease-in-out">ease-in-out</option>
+            <option value="cubic-bezier(0.34,1.56,0.64,1)">spring (.34,1.56,.64,1)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Focus / vignette strength</div>
+        <div class="control-row">
+          <input id="vignette" type="range" min="0" max="90" step="1" value="55" />
+          <div class="control-value" id="vignetteVal">0.55</div>
+        </div>
+        <div class="section-note">How hard the periphery darkens around the focused feature. The sky, mountains and stars stay readable at the frame edges.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Motion</div>
+        <label class="toggle-row">
+          <input type="checkbox" id="reducedMotion" />
+          Simulate reduced-motion
+        </label>
+        <div class="section-note">Collapses the morph to a short gentle scale/fade that still ends framed on the feature. Honors prefers-reduced-motion automatically.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Try it</div>
+        <div class="section-note">Click any plate in the scene (Coding &rarr; cave, Music &rarr; lake, Career &rarr; tree). The fog bank is the visible 4th, unmapped target.</div>
+      </div>
+
+      <div class="copy-row">
+        <button class="copy-btn" id="copyBtn">Copy spec</button>
+        <div class="copy-status" id="copyStatus" aria-live="polite"></div>
+        <textarea class="spec-out" id="specOut" readonly aria-label="Spec JSON fallback"></textarea>
+        <p class="copy-hint">Click Copy spec (reflects the last-opened topic + current settings), then paste the JSON back into chat to lock the morph you like.</p>
+      </div>
+    </aside>
+
+    <!-- ============ RIGHT: PREVIEW STAGE ============ -->
+    <section class="preview-col">
+      <div class="stage-head">
+        <h2 id="stageTitle">The journey &mdash; day to night</h2>
+        <span class="hint" id="stageHint">Click a topic plate to morph into its feature</span>
+      </div>
+
+      <div class="stage" id="stage">
+        <!-- WORLD: the single pixel-art landscape (camera zoom-focuses this) -->
+        <div class="world" id="world">
+          <div class="sky-bg" id="skyBg"></div>
+          <div class="stars" id="stars"></div>
+          <div class="sun" id="sun"></div>
+          <div class="moon" id="moon"><i class="c1"></i><i class="c2"></i><i class="c3"></i></div>
+          <div class="clouds" id="clouds"></div>
+          <div class="mountains" id="mountains"></div>
+
+          <!-- diegetic features placed into the one landscape -->
+          <div class="feature" id="caveFeat"><div class="cave-mouth"></div><div class="cave-rim"></div></div>
+          <div class="feature" id="lakeFeat"><div class="lake"><div class="lake-shimmer" id="lakeShimmer"></div></div></div>
+          <div class="feature" id="treeFeat"><div class="tree" id="treeArt"></div></div>
+          <div class="feature" id="fogFeat"><div class="fog"></div></div>
+          <div class="fog-label" id="fogLabel">Fog &middot; future topic</div>
+
+          <div class="ground"></div>
+
+          <!-- frosted topic plates (the real cards; the clickable triggers) -->
+          <button class="plate" id="plate-coding" data-topic="coding"></button>
+          <button class="plate" id="plate-music"  data-topic="music"></button>
+          <button class="plate" id="plate-career" data-topic="career"></button>
+        </div>
+
+        <!-- focus flourish (pixel icon) drifting behind the focused feature -->
+        <div class="focus-flourish" id="focusFlourish"></div>
+        <!-- radial vignette: darkens periphery, world stays visible -->
+        <div class="vignette" id="vignette"></div>
+        <!-- the morphing plate clone (FLIP target) -->
+        <div class="morph" id="morph" role="dialog" aria-modal="true" aria-label="Feature detail">
+          <div class="morph-title" id="morphTitle"></div>
+          <div class="morph-inner" id="morphInner"></div>
+        </div>
+
+        <button class="return-btn" id="returnBtn">&larr; Return</button>
+      </div>
+    </section>
+  </div>
+
+<script>
+  "use strict";
+
+  /* ============================================================
+   * SKY CURVE — ported from src/data/skyCurve.ts (via landscape-reveals.html)
+   * ============================================================ */
+  const NOON  = { r: 135, g: 206, b: 235 };
+  const DUSK  = { r: 244, g: 164, b:  96 };
+  const NIGHT = { r:  20, g:  10, b:  50 };
+  const CURVE = { phase1: [0.162, 0.436], phase2: [0.466, 0.787], boost: 0.8 };
+
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  const lerp = (a, b, t) => Math.round(a + (b - a) * t);
+  const bell = (t) => Math.sin(t * Math.PI);
+  const lerpRgb = (a, b, t) => ({ r: lerp(a.r,b.r,t), g: lerp(a.g,b.g,t), b: lerp(a.b,b.b,t) });
+
+  function rgbToHsl(rgb) {
+    const r = rgb.r/255, g = rgb.g/255, b = rgb.b/255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h = 0, s = 0; const l = (max+min)/2;
+    if (max !== min) {
+      const d = max-min;
+      s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+      switch (max) {
+        case r: h = (g-b)/d + (g<b?6:0); break;
+        case g: h = (b-r)/d + 2; break;
+        case b: h = (r-g)/d + 4; break;
+      }
+      h /= 6;
+    }
+    return { h, s, l };
+  }
+  function hslToRgb(hsl) {
+    const { h, s, l } = hsl;
+    if (s === 0) { const v = Math.round(l*255); return { r:v, g:v, b:v }; }
+    const hue2rgb = (p,q,t) => {
+      if (t<0) t+=1; if (t>1) t-=1;
+      if (t<1/6) return p+(q-p)*6*t;
+      if (t<1/2) return q;
+      if (t<2/3) return p+(q-p)*(2/3-t)*6;
+      return p;
+    };
+    const q = l<0.5 ? l*(1+s) : l+s-l*s;
+    const p = 2*l-q;
+    return {
+      r: Math.round(hue2rgb(p,q,h+1/3)*255),
+      g: Math.round(hue2rgb(p,q,h)*255),
+      b: Math.round(hue2rgb(p,q,h-1/3)*255),
+    };
+  }
+  function boostSat(rgb, boost, weight) {
+    const hsl = rgbToHsl(rgb);
+    hsl.s = clamp01(hsl.s * (1 + boost*weight));
+    return hslToRgb(hsl);
+  }
+  function skyRgb(p) {
+    const [s1,e1] = CURVE.phase1, [s2,e2] = CURVE.phase2;
+    if (p <= s1) return NOON;
+    if (p < e1) { const t=(p-s1)/(e1-s1); return boostSat(lerpRgb(NOON,DUSK,t), CURVE.boost, bell(t)); }
+    if (p <= s2) return DUSK;
+    if (p < e2) { const t=(p-s2)/(e2-s2); return boostSat(lerpRgb(DUSK,NIGHT,t), CURVE.boost, bell(t)); }
+    return NIGHT;
+  }
+  const rgbCss = (c) => `rgb(${c.r}, ${c.g}, ${c.b})`;
+
+  /* ============================================================
+   * Easing sampler (for the FLIP/morph driven by rAF when needed; CSS
+   * transitions carry the visual move, this is for spec parity)
+   * ============================================================ */
+  function cubicBezier(x1,y1,x2,y2){
+    function bez(t,a,b){ return 3*(1-t)*(1-t)*t*a + 3*(1-t)*t*t*b + t*t*t; }
+    return function(x){
+      let lo=0,hi=1,t=x;
+      for(let i=0;i<20;i++){ t=(lo+hi)/2; const xx=bez(t,x1,x2); if(xx<x) lo=t; else hi=t; }
+      return bez(t,y1,y2);
+    };
+  }
+
+  const $ = (id) => document.getElementById(id);
+  const stage = $("stage"), world = $("world"), skyBg = $("skyBg");
+  const sun = $("sun"), moon = $("moon"), stars = $("stars"), clouds = $("clouds"), mountains = $("mountains");
+  const caveFeat = $("caveFeat"), lakeFeat = $("lakeFeat"), treeFeat = $("treeFeat"), fogFeat = $("fogFeat"), fogLabel = $("fogLabel");
+  const vignette = $("vignette"), focusFlourish = $("focusFlourish");
+  const morph = $("morph"), morphTitle = $("morphTitle"), morphInner = $("morphInner");
+  const returnBtn = $("returnBtn");
+
+  /* ============================================================
+   * Layout: each feature + its plate, in % of the world. The world reads
+   * day at the top -> dusk middle -> night at the bottom. We approximate a
+   * per-row sky progress p so the strip color band matches each feature.
+   * ============================================================ */
+  // Single sky color for the whole frame uses a mid value; per-feature dusk/night
+  // is conveyed by the feature art + the plate day/night skin.
+  const FRAME_P = 0.50; // dusk-ish overall wash so cave(day-ish top) -> lake/tree(night bottom) read
+
+  // feature anchor points (center, % of stage) + plate anchor (% of stage)
+  const FEATURES = {
+    cave: { fx: 30, fy: 30, plate: { x: 8,  y: 12 }, band: "day"   },
+    lake: { fx: 70, fy: 70, plate: { x: 56, y: 52 }, band: "night" },
+    tree: { fx: 24, fy: 74, plate: { x: 6,  y: 56 }, band: "night" },
+    fog:  { fx: 76, fy: 40, band: "dusk" },
+  };
+
+  /* ============================================================
+   * Pixel-art atmosphere (ported / matched to PixelBackground.tsx)
+   * ============================================================ */
+  (function buildStars(){
+    let html = "";
+    for (let i = 0; i < 150; i++) {
+      const x = Math.random()*100, y = Math.random()*100;
+      const s = Math.random()*2.5 + 0.5;
+      const tw = (Math.random()*3 + 2).toFixed(2);
+      const td = (Math.random()*5).toFixed(2);
+      html += `<span class="star" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;--tw:${tw}s;--td:${td}s;box-shadow:0 0 ${s*2}px rgba(255,255,255,0.6)"></span>`;
+    }
+    stars.innerHTML = html;
+  })();
+
+  // blocky pixel cloud, path style lifted from PixelBackground.tsx
+  function cloudSVG(scale) {
+    const w = 120 * scale;
+    return `<svg viewBox="0 0 100 60" width="${w}" height="${w*0.6}" aria-hidden="true">
+      <path fill="white" d="M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z"/></svg>`;
+  }
+  const CLOUD_DEFS = [
+    { x: 10, y: 8,  scale: 1.2, speed: 0.05 },
+    { x: 58, y: 5,  scale: 0.8, speed: -0.08 },
+    { x: 80, y: 16, scale: 1.0, speed: 0.03 },
+  ];
+  (function buildClouds(){
+    let html = "";
+    CLOUD_DEFS.forEach((c, i) => {
+      html += `<div class="cloud" data-i="${i}" data-speed="${c.speed}" data-x="${c.x}" style="left:${c.x}%;top:${c.y}%">${cloudSVG(c.scale)}</div>`;
+    });
+    clouds.innerHTML = html;
+  })();
+
+  // crisp-edges mountain silhouette, #4a7a8c, path from PixelBackground.tsx, with a cave notch
+  (function buildMountains(){
+    mountains.innerHTML = `
+      <svg viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true">
+        <path fill="#4a7a8c" style="shape-rendering:crispEdges"
+          d="M0 400V300l100-50h50l100 100h50l150-150h50l100 80h100l200-180h100v300z"/>
+      </svg>`;
+  })();
+
+  // blocky pixel tree (trunk + stepped foliage blocks), crisp edges
+  (function buildTree(){
+    $("treeArt").innerHTML = `
+      <svg viewBox="0 0 100 130" aria-hidden="true" style="shape-rendering:crispEdges">
+        <rect x="44" y="78" width="12" height="52" fill="#5a3a1e"/>
+        <rect x="40" y="84" width="20" height="6" fill="#5a3a1e"/>
+        <g fill="#3f6b34">
+          <rect x="24" y="40" width="52" height="14"/>
+          <rect x="16" y="54" width="68" height="14"/>
+          <rect x="24" y="68" width="52" height="12"/>
+          <rect x="34" y="28" width="32" height="14"/>
+        </g>
+        <g fill="#5d9148">
+          <rect x="30" y="44" width="14" height="8"/>
+          <rect x="56" y="58" width="14" height="8"/>
+          <rect x="40" y="32" width="12" height="8"/>
+        </g>
+      </svg>`;
+  })();
+
+  // lake shimmer lines
+  (function buildLake(){
+    let html = "";
+    for (let i = 0; i < 7; i++) {
+      const x = 10 + Math.random()*70, y = 18 + i*11 + Math.random()*5, w = 30 + Math.random()*40;
+      const sh = (3 + Math.random()*3).toFixed(2);
+      html += `<i style="left:${x}%;top:${y}%;width:${w}%;--sh:${sh}s"></i>`;
+    }
+    $("lakeShimmer").innerHTML = html;
+  })();
+
+  /* ============================================================
+   * Content (VERBATIM for the three real topics)
+   * ============================================================ */
+  const CODING_TEASER = "Nowadays I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up Tanstack and self-hosting it on one of my Hetzner VPS.";
+  const CAREER_P1 = "Professionally, I worked both in small startups and tech giants like Cisco. Started as Frontend engineer with strong opinions and a knack for sharing knowledge. Started to lead small to big teams and being responsible for product goals and coordinated execution.";
+  const CAREER_P2 = "I'm a freelance consultant. Working with fund tax compliance, intelligent traffic start-ups and robotics companies.";
+
+  // plate definitions: heading, flourish icon, teaser preview, feature, band/skin
+  const TOPICS = {
+    coding: {
+      heading: "Coding", icon: "../public/icons/topics/coding.svg", feature: "cave",
+      teaser: CODING_TEASER, band: "day", skin: "cave",
+      sub: "Cave · tech stack strata",
+    },
+    music: {
+      heading: "Music", icon: "../public/icons/topics/music.svg", feature: "lake",
+      teaser: "275k scrobbles since 2006 — the night water holds the wall.", band: "night", skin: "night",
+      sub: "Lake · reflected lanterns",
+    },
+    career: {
+      heading: "Career", icon: "../public/icons/topics/career.svg", feature: "tree",
+      teaser: CAREER_P1, band: "night", skin: "night",
+      sub: "Tree · career history",
+    },
+  };
+
+  // CAVE detail: Tech Stack (verbatim) as glowing strata on the cave walls
+  function caveDetailHTML() {
+    return `
+      <p class="r-sub">Cave · Tech Stack · self-hosted strata</p>
+      <p>I self-host as much as I can to avoid serverless horrors (<a href="https://serverlesshorrors.com" target="_blank" rel="noopener">serverlesshorrors.com</a>). Hetzner Cloud is the best compromise between cost, performance and value. What's running on it?</p>
+      <ul class="strata">
+        <li><span class="pri">Coolify</span><span class="sec">— to spin up my web apps</span></li>
+        <li><span class="pri">Windmill</span><span class="sec">— to orchestrate data pipelines (for millions of movies and tv shows)</span></li>
+        <li><span class="pri">CrateDB</span><span class="sec">— for big data</span></li>
+        <li><span class="pri">Convex</span><span class="sec">— for realtime data</span></li>
+        <li><span class="pri">MongoDB</span><span class="sec">— for raw data (from scraping)</span></li>
+        <li><span class="pri">Redis</span><span class="sec">— for Pub/Sub and caching</span></li>
+        <li><span class="pri">SpacetimeDB</span><span class="sec">— for my browser game</span></li>
+      </ul>
+      <p class="strata-label">For some services I still rely on cloud software:</p>
+      <ul class="strata">
+        <li><span class="pri">Posthog</span><span class="sec">— for analytics</span></li>
+        <li><span class="pri">Grafana</span><span class="sec">— for monitoring</span></li>
+        <li><span class="pri">Namecheap</span><span class="sec">— for Emails</span></li>
+      </ul>
+      <p>When I spin up a new web apps, I usually build it with Tanstack Start, Tailwind and Convex.</p>
+    `;
+  }
+
+  // LAKE detail: album wall as reflected lanterns on the night water
+  const LANTERN_POS = [
+    {x:12,y:14},{x:30,y:9},{x:48,y:18},{x:66,y:11},{x:84,y:20},{x:22,y:34},
+    {x:42,y:40},{x:60,y:32},{x:78,y:30},{x:14,y:50},{x:34,y:58},{x:52,y:50},
+    {x:72,y:54},{x:88,y:46},{x:8,y:66},{x:28,y:72},{x:46,y:64},{x:64,y:70},
+    {x:82,y:64},{x:20,y:84},{x:40,y:80},{x:58,y:84},{x:76,y:80},{x:90,y:72},
+  ];
+  const GRADS = [
+    "linear-gradient(135deg,#ff6b6b,#5f0a87)","linear-gradient(135deg,#0f2027,#2c5364)",
+    "linear-gradient(135deg,#f7971e,#ffd200)","linear-gradient(135deg,#43cea2,#185a9d)",
+    "linear-gradient(135deg,#c31432,#240b36)","linear-gradient(135deg,#1f4037,#99f2c8)",
+    "linear-gradient(135deg,#ee0979,#ff6a00)","linear-gradient(135deg,#141e30,#243b55)",
+    "linear-gradient(135deg,#8e2de2,#4a00e0)","linear-gradient(135deg,#ff512f,#dd2476)",
+    "linear-gradient(135deg,#00c6ff,#0072ff)","linear-gradient(135deg,#f12711,#f5af19)",
+  ];
+  function lakeDetailHTML() {
+    let tiles = "";
+    for (let i = 1; i <= 24; i++) {
+      const g = GRADS[(i-1) % GRADS.length];
+      const n = String(i).padStart(2,"0");
+      const pos = LANTERN_POS[i-1];
+      tiles += `<div class="lantern" style="background:${g};left:${pos.x}%;top:${pos.y}%"><div class="lbl">LP ${n}<br><span class="ar">ARTIST ${n}</span></div></div>`;
+    }
+    return `
+      <p class="r-sub">Lake · Music · reflected on night water</p>
+      <p class="stat-line">275k scrobbles since 2006</p>
+      <div class="genres"><span>Metalcore</span><span>Progrock</span><span>Liquid D'n'B</span><span>Tech House</span></div>
+      <div class="r-links">
+        <a href="https://www.last.fm/user/Alper_" target="_blank" rel="noopener">Last.fm</a>
+        <a href="https://open.spotify.com/user/1140243663" target="_blank" rel="noopener">Spotify</a>
+      </div>
+      <span class="demo-tag">Covers demo the format</span>
+      <div class="lantern-wall">${tiles}</div>
+    `;
+  }
+
+  // TREE detail: career history (verbatim) along the trunk / branches
+  function treeDetailHTML() {
+    return `
+      <p class="r-sub">Tree · Career · along the branches</p>
+      <ul class="branches">
+        <li>${CAREER_P1}</li>
+        <li>${CAREER_P2}</li>
+      </ul>
+    `;
+  }
+
+  const DETAIL = { coding: caveDetailHTML, music: lakeDetailHTML, career: treeDetailHTML };
+
+  /* ============================================================
+   * State
+   * ============================================================ */
+  const state = {
+    paradigm: "morph-focus",
+    topic: "coding",
+    feature: "cave",
+    durationMs: 900,
+    easing: "cubic-bezier(0.16,1,0.3,1)",
+    vignette: 0.55,
+    reducedMotion: false,
+  };
+  const rmMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const motionReduced = () => state.reducedMotion || rmMedia.matches;
+
+  /* ============================================================
+   * Render the resting world: place features + plates, paint atmosphere
+   * ============================================================ */
+  function pct(v, total) { return (v / 100) * total; }
+
+  function placeFeatures() {
+    const r = stage.getBoundingClientRect();
+    // CAVE — sized + centered on its anchor, sitting in the mountains
+    setCenter(caveFeat, FEATURES.cave.fx, FEATURES.cave.fy - 4, r);
+    // LAKE — lower-right
+    setCenter(lakeFeat, FEATURES.lake.fx, FEATURES.lake.fy, r);
+    // TREE — lower-left hill
+    setCenter(treeFeat, FEATURES.tree.fx, FEATURES.tree.fy, r);
+    // FOG — mid-right, the unmapped target
+    setCenter(fogFeat, FEATURES.fog.fx, FEATURES.fog.fy, r);
+    fogLabel.style.left = FEATURES.fog.fx + "%";
+    fogLabel.style.top  = (FEATURES.fog.fy + 9) + "%";
+
+    // celestials: flat sun upper-right (day band), moon also present for night-lower read
+    sun.style.left = "82%"; sun.style.top = "12%";
+    moon.style.left = "60%"; moon.style.top = "20%";
+  }
+  // center a feature wrapper on a % point by offsetting half its own size
+  function setCenter(el, xPct, yPct, r) {
+    el.style.left = xPct + "%";
+    el.style.top  = yPct + "%";
+    el.style.transform = "translate(-50%,-50%)";
+  }
+
+  function placePlates() {
+    for (const id of Object.keys(TOPICS)) {
+      const t = TOPICS[id];
+      const fp = FEATURES[t.feature].plate;
+      const el = $("plate-" + id);
+      el.className = "plate " + (t.band === "night" ? "night" : "day");
+      el.style.left = fp.x + "%";
+      el.style.top  = fp.y + "%";
+      el.innerHTML = `
+        <div class="plate-head"><img src="${t.icon}" alt="" aria-hidden="true"/><h3>${t.heading}</h3></div>
+        <p class="plate-teaser">${t.teaser}</p>
+        <p class="plate-cue">Tap to focus &rarr; ${t.feature}</p>`;
+    }
+  }
+
+  function paintAtmosphere() {
+    const col = rgbCss(skyRgb(FRAME_P));
+    skyBg.style.background = col;
+    stage.style.background = col;
+    // sun fades as it goes to dusk; show partly. moon + stars fade in toward night.
+    sun.style.opacity = "0.85";
+    moon.style.opacity = "0.85";
+    stars.style.opacity = "0.7";
+  }
+
+  /* cloud parallax drift on a gentle idle loop (rAF-throttled) */
+  let cloudT = 0, rafId = null;
+  function tickClouds() {
+    cloudT += 0.4;
+    clouds.querySelectorAll(".cloud").forEach((c) => {
+      const sp = parseFloat(c.dataset.speed);
+      c.style.transform = `translateX(${cloudT * sp}px)`;
+    });
+    rafId = requestAnimationFrame(tickClouds);
+  }
+
+  /* ============================================================
+   * MORPH + ZOOM-FOCUS engine (FLIP shared-element move)
+   * ============================================================ */
+  let isOpen = false, busy = false, openTopic = null;
+  let timers = [];
+  const after = (ms, fn) => { const t = setTimeout(fn, ms); timers.push(t); return t; };
+  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+
+  function stageRect() { return stage.getBoundingClientRect(); }
+  function featurePoint(feature) {
+    const f = FEATURES[feature], r = stageRect();
+    return { x: pct(f.fx, r.width), y: pct(f.fy, r.height), w: r.width, h: r.height };
+  }
+
+  function openTopicFocus(topicId) {
+    if (busy || isOpen) return;
+    const t = TOPICS[topicId];
+    if (!t) return;
+    busy = true; isOpen = true; openTopic = topicId;
+    state.topic = topicId; state.feature = t.feature;
+
+    const plate = $("plate-" + topicId);
+    const sr = stageRect();
+    const pr = plate.getBoundingClientRect();
+    // FLIP source frame (plate, in stage-local px)
+    const from = { x: pr.left - sr.left, y: pr.top - sr.top, w: pr.width, h: pr.height };
+
+    const dur = motionReduced() ? 260 : state.durationMs;
+    const ease = motionReduced() ? "ease-out" : state.easing;
+    const fp = featurePoint(t.feature);
+
+    // TARGET frame: a panel that FRAMES the feature — inset so the world stays
+    // visible at the edges, biased toward the feature so it reads as "inside" it.
+    const pad = 36;
+    const tw = Math.min(440, sr.width - pad*2);
+    const th = Math.min(sr.height - pad*2, sr.height * 0.82);
+    // bias the panel toward the feature point (so cave/lake/tree feels framed, not centered)
+    let tx = fp.x - tw/2; let ty = fp.y - th/2;
+    tx = Math.max(pad, Math.min(tx, sr.width - tw - pad));
+    ty = Math.max(pad, Math.min(ty, sr.height - th - pad));
+    const to = { x: tx, y: ty, w: tw, h: th };
+
+    // dress the morph clone with the plate's skin + persistent heading
+    morph.className = "morph " + (t.skin || (t.band === "night" ? "night" : "day"));
+    morphTitle.innerHTML = `<img src="${t.icon}" alt=""/><h3>${t.heading}</h3>`;
+    morphInner.innerHTML = DETAIL[topicId]();
+    morphInner.classList.remove("in");
+    morphInner.scrollTop = 0;
+
+    // start the morph exactly ON the plate (FLIP: first = plate frame)
+    setFrame(morph, from);
+    morph.style.display = "block";
+    plate.style.visibility = "hidden"; // the clone takes its place
+    morph.style.transition = "none";
+    void morph.offsetWidth;
+
+    // CAMERA zoom-focus: scale the world IN toward the feature point; vignette darkens periphery
+    const originX = (fp.x / sr.width) * 100;
+    const originY = (fp.y / sr.height) * 100;
+    world.style.transformOrigin = `${originX}% ${originY}%`;
+
+    // place the radial vignette centered on the feature; periphery stays visible
+    vignette.style.setProperty("--vig", state.vignette.toFixed(2));
+    vignette.style.setProperty("--vig-x", originX.toFixed(1) + "%");
+    vignette.style.setProperty("--vig-y", originY.toFixed(1) + "%");
+    vignette.style.setProperty("--vig-size", motionReduced() ? "70%" : "48%");
+
+    // focus flourish (pixel icon) behind the feature
+    focusFlourish.style.left = originX + "%";
+    focusFlourish.style.top = originY + "%";
+    focusFlourish.style.backgroundImage = `url("${t.icon}")`;
+
+    returnBtn.classList.add("show");
+
+    if (motionReduced()) {
+      // gentle scale/fade that still ENDS framed on the feature
+      world.style.transition = `transform ${dur}ms ${ease}`;
+      morph.style.transition = `transform ${dur}ms ${ease}, opacity ${dur}ms ${ease}`;
+      world.style.transform = "scale(1.08)";
+      vignette.classList.add("show");
+      focusFlourish.classList.add("show");
+      // jump the morph to target frame with a soft fade
+      setFrame(morph, to);
+      morphInner.classList.add("in");
+      finishOpen(dur); return;
+    }
+
+    // FLIP play: animate the morph frame from plate -> feature panel.
+    // Use width/height/left/top transitions (the frame morph) + world camera zoom.
+    requestAnimationFrame(() => {
+      morph.style.transition =
+        `left ${dur}ms ${ease}, top ${dur}ms ${ease}, width ${dur}ms ${ease}, height ${dur}ms ${ease}`;
+      world.style.transition = `transform ${dur}ms ${ease}`;
+      vignette.style.transition = `opacity ${dur}ms ${ease}`;
+
+      setFrame(morph, to);                 // plate frame morphs to feature panel
+      world.style.transform = "scale(1.32)"; // camera pushes toward the feature
+      vignette.classList.add("show");       // periphery darkens, world still visible
+      focusFlourish.classList.add("show");
+
+      // the teaser reflows/expands into the feature's detailed content midway
+      after(Math.round(dur*0.45), () => morphInner.classList.add("in"));
+    });
+
+    finishOpen(dur);
+  }
+  function finishOpen(dur) { after(dur + 40, () => { busy = false; }); }
+
+  function setFrame(el, f) {
+    el.style.left = f.x + "px";
+    el.style.top  = f.y + "px";
+    el.style.width = f.w + "px";
+    el.style.height = f.h + "px";
+  }
+
+  function closeFocus(immediate) {
+    if (!isOpen) return;
+    const topicId = openTopic;
+    const plate = $("plate-" + topicId);
+    const sr = stageRect();
+    const pr = plate.getBoundingClientRect();
+    const back = { x: pr.left - sr.left, y: pr.top - sr.top, w: pr.width, h: pr.height };
+
+    const dur = immediate ? 0 : (motionReduced() ? 220 : state.durationMs);
+    const ease = motionReduced() ? "ease-out" : state.easing;
+    clearTimers();
+    isOpen = false;
+    returnBtn.classList.remove("show");
+    busy = !immediate;
+
+    morphInner.classList.remove("in");
+
+    if (immediate) {
+      morph.style.transition = "none";
+      morph.style.display = "none";
+      world.style.transition = "none"; world.style.transform = "";
+      vignette.classList.remove("show"); focusFlourish.classList.remove("show");
+      plate.style.visibility = "";
+      busy = false; openTopic = null;
+      return;
+    }
+
+    morph.style.transition =
+      `left ${dur}ms ${ease}, top ${dur}ms ${ease}, width ${dur}ms ${ease}, height ${dur}ms ${ease}`;
+    world.style.transition = `transform ${dur}ms ${ease}`;
+    vignette.style.transition = `opacity ${dur}ms ${ease}`;
+
+    // collapse the panel back into the plate, zoom the camera back out
+    setFrame(morph, back);
+    world.style.transform = "";
+    vignette.classList.remove("show");
+    focusFlourish.classList.remove("show");
+
+    after(dur + 30, () => {
+      morph.style.display = "none";
+      plate.style.visibility = "";
+      busy = false; openTopic = null;
+    });
+  }
+
+  /* ============================================================
+   * Wiring
+   * ============================================================ */
+  document.querySelectorAll(".plate").forEach((p) => {
+    p.addEventListener("click", () => openTopicFocus(p.dataset.topic));
+  });
+  returnBtn.addEventListener("click", () => closeFocus(false));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && isOpen) closeFocus(false); });
+
+  $("duration").addEventListener("input", (e) => {
+    state.durationMs = parseInt(e.target.value, 10);
+    $("durationVal").textContent = state.durationMs + "ms";
+  });
+  $("easing").addEventListener("change", (e) => { state.easing = e.target.value; });
+  $("vignette").addEventListener("input", (e) => {
+    state.vignette = parseInt(e.target.value, 10) / 100;
+    $("vignetteVal").textContent = state.vignette.toFixed(2);
+    vignette.style.setProperty("--vig", state.vignette.toFixed(2));
+  });
+  $("reducedMotion").addEventListener("change", (e) => { state.reducedMotion = e.target.checked; });
+
+  /* ============================================================
+   * Copy spec — JSON per the contract, textarea fallback
+   * ============================================================ */
+  $("copyBtn").addEventListener("click", () => {
+    const spec = {
+      paradigm: "morph-focus",
+      topic: state.topic,
+      feature: state.feature,
+      durationMs: state.durationMs,
+      easing: state.easing,
+      vignette: state.vignette,
+    };
+    const text = JSON.stringify(spec, null, 2);
+    const status = $("copyStatus"), out = $("specOut");
+    out.value = text;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => { status.textContent = "Copied ✓"; setTimeout(()=>status.textContent="",2500); },
+        () => { out.classList.add("show"); out.select(); status.textContent = "Select + copy below"; }
+      );
+    } else {
+      out.classList.add("show"); out.select(); status.textContent = "Select + copy below";
+    }
+  });
+
+  /* ============================================================
+   * Boot
+   * ============================================================ */
+  function layout() {
+    placeFeatures();
+    placePlates();
+    paintAtmosphere();
+  }
+  layout();
+  tickClouds();
+  window.addEventListener("resize", () => { if (!isOpen) layout(); });
+</script>
+</body>
+</html>
