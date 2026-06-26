@@ -1,7 +1,7 @@
 import { SiGithub } from "@icons-pack/react-simple-icons";
 import { ExternalCard, Paragraph, type TopicContentProps } from "./primitives";
 
-export function FinanceContent(_: TopicContentProps) {
+export function FinanceContent({ isNight }: TopicContentProps) {
 	return (
 		<div className="space-y-5">
 			<Paragraph>
@@ -20,6 +20,7 @@ export function FinanceContent(_: TopicContentProps) {
 				label="Trading-Strategien und Psychologie"
 				Icon={SiGithub}
 				brand="#181717"
+				isNight={isNight}
 			/>
 		</div>
 	);

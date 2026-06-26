@@ -18,13 +18,7 @@ import { type ResolvedTrigger, useTriggerNav } from "./useTriggerNav";
  * rhythm — those belong to the frame (or, in production, to `SectionBody`).
  */
 
-function SidedCard({
-	resolved,
-	tint,
-}: {
-	resolved: ResolvedTrigger;
-	tint: string;
-}) {
+function SidedCard({ resolved }: { resolved: ResolvedTrigger }) {
 	const { Icon, title, subtitle, side, navigate, tileClass } = resolved;
 	const isRight = side === "right";
 
@@ -32,7 +26,7 @@ function SidedCard({
 		<div
 			className={`w-14 h-14 ${tileClass} flex items-center justify-center border-2 border-slate-900 shrink-0`}
 		>
-			<Icon size={24} />
+			<Icon size={26} />
 		</div>
 	);
 	const contentEl = (
@@ -41,7 +35,7 @@ function SidedCard({
 				{title}
 			</h3>
 			{subtitle && (
-				<p className="text-sm text-slate-600 font-medium line-clamp-1">
+				<p className="text-xs md:text-sm mt-1 opacity-75 font-medium line-clamp-1">
 					{subtitle}
 				</p>
 			)}
@@ -63,8 +57,7 @@ function SidedCard({
 		<button
 			type="button"
 			onClick={(e) => navigate(e.currentTarget)}
-			style={{ "--btn-tint": tint } as React.CSSProperties}
-			className={`btn-brutalist group block w-full md:w-1/2 text-left p-6 md:p-8 ${isRight ? "ml-auto" : "ml-0"}`}
+			className="btn-brutalist btn-brutalist--ghost group block w-full text-left p-6 md:p-7"
 		>
 			<div className="flex items-center justify-between gap-6">
 				{isRight ? (
@@ -141,16 +134,14 @@ export function TopicBody({
 									key={resolved.key}
 									type="button"
 									onClick={(e) => resolved.navigate(e.currentTarget)}
-									className="btn-brutalist btn-brutalist--dark w-full md:w-1/2 flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl"
+									className="btn-brutalist btn-brutalist--ghost w-full flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl p-6"
 								>
 									<ArrowLeft size={32} className="shrink-0" />
 									<span>{resolved.title}</span>
 								</button>
 							);
 						}
-						return (
-							<SidedCard key={resolved.key} resolved={resolved} tint={accent} />
-						);
+						return <SidedCard key={resolved.key} resolved={resolved} />;
 					})}
 				</div>
 			)}

@@ -7,7 +7,10 @@ import {
 	TriggerCard,
 } from "./primitives";
 
-export function MoviesTvContent({ lastTriggerRef }: TopicContentProps) {
+export function MoviesTvContent({
+	lastTriggerRef,
+	isNight,
+}: TopicContentProps) {
 	return (
 		<div className="space-y-5">
 			<Paragraph>
@@ -21,11 +24,12 @@ export function MoviesTvContent({ lastTriggerRef }: TopicContentProps) {
 			</Paragraph>
 
 			<Paragraph>
-				My all time favorites are The Matrix (too bad they never made any
-				sequels -{" "}
-				<InlineLink href="https://xkcd.com/566/">xkcd.com/566</InlineLink>),
-				Fight Club and Breaking Bad. I like dark humor, epicness and unexpected
-				twists.
+				My all time favorites are The Matrix (
+				<InlineLink href="https://xkcd.com/566/" isNight={isNight}>
+					too bad they never made any sequels
+				</InlineLink>
+				), Fight Club and Breaking Bad. I like dark humor, epicness and
+				unexpected twists.
 			</Paragraph>
 
 			<Paragraph>
@@ -41,6 +45,7 @@ export function MoviesTvContent({ lastTriggerRef }: TopicContentProps) {
 					label="goodwatch.app"
 					Icon={Film}
 					brand="#7f1d1d"
+					isNight={isNight}
 				/>
 				<TriggerCard
 					trigger={{ kind: "project", slug: "goodwatch" }}

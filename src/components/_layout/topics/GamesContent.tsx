@@ -7,7 +7,7 @@ import {
 	TriggerCard,
 } from "./primitives";
 
-export function GamesContent({ lastTriggerRef }: TopicContentProps) {
+export function GamesContent({ lastTriggerRef, isNight }: TopicContentProps) {
 	return (
 		<div className="space-y-5">
 			<Paragraph>
@@ -19,7 +19,7 @@ export function GamesContent({ lastTriggerRef }: TopicContentProps) {
 
 			<Paragraph>
 				The THPS 2 soundtrack is still on{" "}
-				<InlineLink href="https://open.spotify.com/user/1140243663?si=8d9cec95a0f5450a">
+				<InlineLink href="#music">
 					<em>my rotation</em>
 				</InlineLink>
 				.
@@ -31,6 +31,7 @@ export function GamesContent({ lastTriggerRef }: TopicContentProps) {
 					label="manaschmiede"
 					Icon={SiGithub}
 					brand="#181717"
+					isNight={isNight}
 				/>
 				<TriggerCard
 					trigger={{ kind: "project", slug: "manaschmiede" }}

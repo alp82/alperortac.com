@@ -1,34 +1,65 @@
 @import "tailwindcss";
 
 html, body { overflow-x: clip; }
+/* Always reserve the vertical scrollbar gutter so locking scroll on subpage open
+   (overflow:hidden below) doesn't remove the scrollbar lane and shift the page. */
+html { scrollbar-gutter: stable; }
 
-.panel-dialog {
+/* Non-modal frosted detail surface. Renders in normal flow (dialog.show()), NOT
+   the browser top layer, so it composites in the same stacking context as the
+   -z-10 dived scene and the translucent fill reveals the live zoomed landscape
+   behind it — not a UA ::backdrop. */
+.panel-surface {
+	/* Full-viewport SCROLL CONTAINER (NOT a card): the page itself scrolls here,
+	   not the window, so window.scrollY — and thus the day/night scrollProgress —
+	   stays frozen while the subpage scrolls. The container is transparent so the
+	   dived -z-10 landscape shows through around the centered frosted column; the
+	   scrim that used to live here moved to .subpage-column. */
+	position: fixed;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
 	padding: 0;
-	max-width: 100vw;
-	max-height: 100vh;
-	width: 100vw;
-	height: 100vh;
+	overflow-y: auto;
+	overflow-x: hidden;
+	overscroll-behavior: contain;
+	background: transparent;
 	border: none;
-	background: var(--panel-bg, #0f172a);
+	border-radius: 0;
+	box-shadow: none;
 	color: var(--panel-fg, #fff);
-	overflow: hidden;
+	/* Above the nav (z-50) so the dialog's fixed Back/X header controls paint over
+	   the nav band instead of behind its frosted glass. The surface is transparent
+	   except the centered column, so the nav logo still shows through. */
+	z-index: 60;
+	opacity: 1;
 	transition:
-		translate 800ms cubic-bezier(0.22, 1, 0.36, 1),
-		display 800ms allow-discrete,
-		overlay 800ms allow-discrete;
+		opacity 450ms cubic-bezier(0.22, 1, 0.36, 1),
+		display 450ms allow-discrete,
+		overlay 450ms allow-discrete;
 }
 
-.panel-dialog.slide-right:not([open]) { translate: 100% 0; }
-.panel-dialog.slide-left:not([open])  { translate: -100% 0; }
-.panel-dialog[open] { translate: 0 0; }
+.panel-surface:not([open]) {
+	opacity: 0;
+}
 
 @starting-style {
-	.panel-dialog.slide-right[open] { translate: 100% 0; }
-	.panel-dialog.slide-left[open] { translate: -100% 0; }
+	.panel-surface[open] {
+		opacity: 0;
+	}
 }
 
-.panel-dialog::backdrop {
-	background: transparent;
+/* Frosted readability backing: a centered content-length column matching the
+   main content's max-w-3xl measure. The vertical margin leaves the landscape
+   visible above the first screen and below the last as you scroll to the ends.
+   The flat 0.82 scrim + blur carry the same day+night legibility the old
+   full-card scrim verified at 8:1; backdrop-filter is safe here because the
+   column is small and the dive has settled by the time it scrolls. */
+.subpage-column {
+	background: rgba(15, 23, 42, 0.7);
+	backdrop-filter: blur(10px) saturate(120%);
+	-webkit-backdrop-filter: blur(10px) saturate(120%);
 }
 
 .panel-dialog-modal {
@@ -86,29 +117,188 @@ html, body { overflow-x: clip; }
 	background: transparent;
 }
 
+/* The scrolling content (which hosts the clicked trigger card) recedes during a
+   dive: a fast opacity fade plus a slight push-back. The fade (320ms) is
+   intentionally quicker than the 760ms zoom so the clicked card vanishes before
+   the camera visibly chases it. Content stays mounted (focus/scroll survive) —
+   only opacity/transform change. At rest opacity:1 with no transform, so the
+   transition is defined both ways and rest is identity. */
 .main-shell {
-	transition: translate 800ms cubic-bezier(0.22, 1, 0.36, 1);
+	transition:
+		opacity 450ms cubic-bezier(0.22, 1, 0.36, 1),
+		transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-body.panel-from-right .main-shell { translate: -100% 0; }
-body.panel-from-left .main-shell { translate: 100% 0; }
+body.panel-open .main-shell {
+	opacity: 0;
+	transform: translateY(8px) scale(0.985);
+}
+
+.dive-viewport {
+	/* no perspective here at rest; the 3D context is gated on body.dive-active */
+}
+.dive-scene {
+	/* --dive-u defaults to 0 so the per-layer calc() below is defined at rest. */
+	--dive-u: 0;
+	/* glide zoom multiplier (DIVE_ZK=4.6, DIVE_PARALLAX=0.8 baked into the calc). */
+	--dive-zoom-mul: 0.85;
+	/* Subtle subpage-scroll parallax. --subpage-scroll is the panel-surface's
+	   scrollTop in px, set on :root by JS on scroll (0 at rest) and inherited
+	   here. The drift is a slow fraction of that scroll on the `translate`
+	   longhand, which composes with each technique's `transform` instead of
+	   replacing it — so the held scene drifts a few px without touching
+	   --dive-u, the technique, or the sky. */
+	translate: 0 calc(var(--subpage-scroll, 0) * -0.02px);
+	transition: transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
+	transform-origin: var(--dive-origin, 50% 50%);
+}
+.dive-layer {
+	transform-origin: var(--dive-origin, 50% 50%);
+	/* Continuous-depth zoom: --z grows with layer depth, scaled by per-layer gain
+	   (ported from the prototype). Blur grows with distance from the focal depth.
+	   At rest --dive-u is 0, so --z is 1 and --blur is 0 — identity. */
+	--z: calc(
+		1 + var(--layer-depth) * 4.6 * var(--dive-u, 0) * var(--dive-zoom-mul, 0.85)
+	);
+	--gain: calc(0.8 * (0.25 + 1.5 * var(--layer-depth)));
+	--layer-scale: calc(1 + (var(--z) - 1) * var(--gain));
+	--blur: calc(
+		var(--dive-blur-strength, 0) *
+		max(
+			var(--layer-depth) - var(--dive-focal-depth, 0.5),
+			var(--dive-focal-depth, 0.5) - var(--layer-depth)
+		) *
+		var(--dive-u, 0) * 1px
+	);
+}
+
+body.dive-active .dive-viewport {
+	perspective: 1400px;
+	perspective-origin: var(--dive-origin, 50% 50%);
+}
+body.dive-active .dive-scene {
+	transform-style: preserve-3d;
+	will-change: transform;
+}
+/* Per-technique scene transforms, all keyed off --dive-u (0->1) so the existing
+   .dive-scene transition interpolates them. Magnitudes are HALVED from the
+   prototype for subtlety. data-technique is only present during a dive, so at
+   rest there is no transform here — the scene stays identity.
+   - glide: no scene transform (zoom lives in the per-layer scale).
+   - swoop: arrives pitched, entering from the left.
+   - bank-hold: slight persistent roll.
+   - handheld: gentle jitter from the rAF vars (zoom is per-layer already).
+   - lens-warp: opt-in fisheye; never auto-selected by techniqueFor. */
+/* Scene overscan: the swoop translate and bank-hold roll can shift/rotate the
+   fixed scene enough to expose its edge (the production landscape has no
+   oversized backdrop). A scale that grows with --dive-u covers that gap — at
+   --dive-u=0 the factor is 1 (identity, rest preserved). It leads each
+   technique's transform so it composes uniformly. bank-hold's rotated corners
+   need more cover than swoop's translate, so it gets a larger factor. */
+body.dive-active .dive-scene[data-technique="swoop"] {
+	/* Pitch-dive only. The earlier lateral translate was keyed `(1 - u)`, so it
+	   was -10%/4.5% at u=0 — NOT identity. It never showed on open (rest has no
+	   transform, u jumps to 1 where it's 0), but on close the scene eased to that
+	   off-position then snapped back when the technique dropped: the "pan at the
+	   end". Dropping it makes swoop identity at u=0, so open and close are clean. */
+	transform: scale(calc(1 + 0.08 * var(--dive-u)))
+		rotateX(calc(6.5deg * var(--dive-u)));
+}
+body.dive-active .dive-scene[data-technique="bank-hold"] {
+	transform: scale(calc(1 + 0.14 * var(--dive-u)))
+		rotateZ(calc(-6deg * var(--dive-u)));
+}
+body.dive-active .dive-scene[data-technique="handheld"] {
+	transform: scale(calc(1 + 0.08 * var(--dive-u)))
+		translate(
+			var(--dive-jitter-x, 0px),
+			var(--dive-jitter-y, 0px)
+		);
+}
+body.dive-active .dive-scene[data-technique="lens-warp"] {
+	filter: url(#diveLensWarp);
+}
+/* transform + filter are gated on body.dive-active so that at rest the layers
+   carry NO transform and NO filter at all — no compositing layer, identical
+   paint to pre-dive. The transition lives here too so the entrance/return ease. */
+body.dive-active .dive-layer {
+	transition:
+		transform 760ms cubic-bezier(0.22, 1, 0.36, 1),
+		filter 760ms cubic-bezier(0.22, 1, 0.36, 1);
+	transform: scale(var(--layer-scale));
+	filter: blur(var(--blur));
+}
+/* Stars + shooting stars are tiny box-shadow dots. ANY transform on this layer
+   — even the small per-layer dive scale — drops them entirely in the compositor
+   (the large moon survives), and the depth-blur would smear them too. Hold the
+   layer fully static: no transform, no blur. Depth 0.05 barely zooms anyway, so
+   the stars just stay put and crisp through the dive. */
+body.dive-active .dive-layer--crisp {
+	transform: none;
+	filter: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
-	.panel-dialog,
-	.main-shell {
+	.panel-surface {
 		transition: opacity 150ms;
-		translate: 0 0 !important;
 	}
 	@starting-style {
-		.panel-dialog[open] { opacity: 0; }
+		.panel-surface[open] { opacity: 0; }
 	}
 	.panel-dialog-modal {
 		transition: opacity 150ms;
 		scale: 1 !important;
 	}
+	/* Under reduced-motion the dive is a calm cross-fade: the frosted detail
+	   fades in, the content fades out, and the LANDSCAPE DOES NOT MOVE. Pin the
+	   dive scene + every per-technique transform + per-layer zoom/blur to none
+	   so --dive-u drives no visual motion (no zoom, rotation, blur, or jitter). */
+	body.dive-active .dive-scene {
+		transform: none !important;
+		filter: none !important;
+		/* No scroll-parallax drift under reduced-motion: the landscape holds still
+		   while the subpage scrolls. */
+		translate: none !important;
+	}
+	body.dive-active .dive-scene[data-technique="swoop"],
+	body.dive-active .dive-scene[data-technique="bank-hold"],
+	body.dive-active .dive-scene[data-technique="handheld"],
+	body.dive-active .dive-scene[data-technique="lens-warp"] {
+		transform: none !important;
+		filter: none !important;
+	}
+	body.dive-active .dive-layer {
+		transform: none !important;
+		filter: none !important;
+	}
+	/* Content still recedes by opacity (not motion); drop only its push-back. */
+	body.panel-open .main-shell {
+		transform: none;
+	}
+}
+
+html:has(body.panel-open) {
+	overflow: hidden;
 }
 
 body.panel-open {
 	overflow: hidden;
+}
+
+/* While a subpage is open, hide the nav's center items and Follow Me actions
+   (the two <div> children), leaving only the logo <a>. The Back/X controls are
+   rendered inside the dialog (in its focus trap) instead. */
+body.panel-open nav > div {
+	display: none;
+}
+
+/* Drop the nav's frosted glass bar while a subpage is open so the header Back/X
+   controls sit cleanly over the live landscape instead of a glass strip. Only
+   the logo <a> remains; the center items + Follow Me are already hidden above. */
+body.panel-open nav {
+	background: transparent;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	border-bottom-color: transparent;
 }
 
 .panel-sticky-title {
@@ -244,6 +434,44 @@ body.panel-open {
 	outline: 3px solid #f8fafc;
 	outline-offset: 3px;
 }
+/* Ghost trigger cards: outline-only, no fill or shadow, so an in-site panel
+   trigger reads as distinct from the solid, brand-filled external-link cards.
+   Border + text inherit currentColor, so the card adapts to the day/night
+   surface it sits on without needing the phase passed in. */
+.btn-brutalist--ghost {
+	background: transparent;
+	color: inherit;
+	border-color: currentColor;
+	box-shadow: none;
+}
+.btn-brutalist--ghost:hover {
+	background: color-mix(in srgb, currentColor 8%, transparent);
+	color: inherit;
+	transform: none;
+	box-shadow: none;
+}
+.btn-brutalist--ghost:active {
+	background: color-mix(in srgb, currentColor 14%, transparent);
+	transform: none;
+	box-shadow: none;
+}
+.btn-brutalist--ghost:focus-visible {
+	outline-color: currentColor;
+}
+.btn-brutalist--night {
+	color: #f8fafc;
+	border-color: #f8fafc;
+	box-shadow: 6px 6px 0 0 #475569;
+}
+.btn-brutalist--night:hover {
+	box-shadow: 4px 4px 0 0 #475569;
+}
+.btn-brutalist--night:active {
+	box-shadow: 0 0 0 0 #475569;
+}
+.btn-brutalist--night:focus-visible {
+	outline-color: #f8fafc;
+}
 .btn-brutalist:disabled,
 .btn-brutalist[aria-disabled="true"] {
 	box-shadow: 0 0 0 0 #0f172a;
@@ -308,5 +536,39 @@ body.panel-open {
 @media (prefers-reduced-motion: reduce) {
 	.plate {
 		transition: none;
+	}
+}
+
+@keyframes hero-blink {
+	0%, 49% { opacity: 1; }
+	50%, 100% { opacity: 0; }
+}
+.hero-cursor {
+	display: inline-block;
+	margin-bottom: 4px;
+	width: 4px;
+	height: 0.90em;
+	margin-left: 2px;
+	background: #222;
+	vertical-align: middle;
+	animation: hero-blink 1.05s step-end infinite;
+}
+@keyframes hero-role-in {
+	from {
+		transform: translateY(-0.6em);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+.hero-role-in {
+	animation: hero-role-in 420ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+	.hero-cursor,
+	.hero-role-in {
+		animation: none;
 	}
 }

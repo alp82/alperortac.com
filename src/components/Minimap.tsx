@@ -137,16 +137,16 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 		return `linear-gradient(to bottom, ${parts.join(", ")})`;
 	}, [celestial.curve]);
 
-	const sunSkyY = celestialPosition(
+	const sunPos = celestialPosition(
 		windowedProgress(scrollProgress, SUN_WINDOW),
 		celestial.sun,
-	).y;
-	const moonSkyY = celestialPosition(
+	);
+	const moonPos = celestialPosition(
 		windowedProgress(scrollProgress, MOON_WINDOW),
 		celestial.moon,
-	).y;
-	const sunY = viewportTopPct + (sunSkyY / 100) * viewportHeightPct;
-	const moonY = viewportTopPct + (moonSkyY / 100) * viewportHeightPct;
+	);
+	const sunY = viewportTopPct + (sunPos.y / 100) * viewportHeightPct;
+	const moonY = viewportTopPct + (moonPos.y / 100) * viewportHeightPct;
 	const sunOpacity = sunOpacityAt(scrollProgress);
 	const moonOpacity = moonOpacityAt(scrollProgress);
 
@@ -180,7 +180,7 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 			<div
 				className="absolute -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-yellow-200 border border-yellow-400 shadow-[0_0_6px_rgba(253,224,71,0.7)] pointer-events-none"
 				style={{
-					left: "50%",
+					left: `${sunPos.x}%`,
 					top: `${sunY}%`,
 					opacity: sunOpacity,
 				}}
@@ -188,7 +188,7 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 			<div
 				className="absolute -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-100 border border-slate-300 pointer-events-none"
 				style={{
-					left: "50%",
+					left: `${moonPos.x}%`,
 					top: `${moonY}%`,
 					opacity: moonOpacity,
 				}}

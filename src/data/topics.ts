@@ -116,3 +116,26 @@ export const TOPICS: Topic[] = [
 		triggers: [{ kind: "personal", slug: "music" }],
 	},
 ];
+
+/**
+ * Resolve a trigger to its PanelKey — the key `deriveUrlPanel` (PanelHost)
+ * produces from the URL. Career resolves to the literal "career"; every other
+ * trigger resolves to its `slug`. Kept in lockstep with `useTriggerNav` (which
+ * navigates by the same key) and `deriveUrlPanel` (which reads it back).
+ */
+function triggerPanelKey(trigger: Trigger): PanelKey {
+	return trigger.kind === "career" ? "career" : trigger.slug;
+}
+
+/**
+ * Reverse lookup PanelKey -> the topic id whose triggers include that key.
+ * Used on a direct subpage load to park the journey scroll at the subpage's
+ * place in the scroll journey (so the sky/time-of-day is correct and closing
+ * returns there).
+ */
+export const PANEL_KEY_TO_TOPIC_ID: Partial<Record<PanelKey, TopicId>> =
+	Object.fromEntries(
+		TOPICS.flatMap((topic) =>
+			topic.triggers.map((trigger) => [triggerPanelKey(trigger), topic.id]),
+		),
+	);

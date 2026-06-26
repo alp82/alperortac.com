@@ -238,12 +238,15 @@ function SocialLink({
 	tint,
 	brand,
 	hoverBg,
-}: SocialLinkData) {
+	isNight,
+}: SocialLinkData & { isNight: boolean }) {
 	const body = (
 		<>
 			<span className="flex items-center gap-3 min-w-0">
 				<span
-					style={{ "--icon-c": brand } as React.CSSProperties}
+					style={
+						{ "--icon-c": isNight ? "#f8fafc" : brand } as React.CSSProperties
+					}
 					className="flex items-center justify-center shrink-0 transition-colors duration-200 text-[var(--icon-c)] group-hover:text-white"
 				>
 					<Icon size={28} color="currentColor" />
@@ -259,10 +262,12 @@ function SocialLink({
 	);
 
 	const style = {
-		"--btn-tint": tint,
+		"--btn-tint": isNight ? `color-mix(in srgb, ${brand} 22%, #0f172a)` : tint,
 		"--btn-tint-hover": hoverBg ?? brand,
 		"--btn-text-hover": "#ffffff",
 	} as React.CSSProperties;
+
+	const className = `${SOCIAL_LINK_CLASS}${isNight ? " btn-brutalist--night" : ""}`;
 
 	if (href) {
 		return (
@@ -271,7 +276,7 @@ function SocialLink({
 				target="_blank"
 				rel="noopener noreferrer"
 				style={style}
-				className={SOCIAL_LINK_CLASS}
+				className={className}
 			>
 				{body}
 			</a>
@@ -285,14 +290,14 @@ function SocialLink({
 			aria-disabled="true"
 			title="Coming soon"
 			style={style}
-			className={SOCIAL_LINK_CLASS}
+			className={className}
 		>
 			{body}
 		</button>
 	);
 }
 
-export function FindMeSection() {
+export function FindMeSection({ isNight }: { isNight: boolean }) {
 	return (
 		<section
 			id={SECTION_IDS.findMe}
@@ -320,7 +325,7 @@ export function FindMeSection() {
 							</div>
 							<div className="space-y-3">
 								{group.links.map((link) => (
-									<SocialLink key={link.label} {...link} />
+									<SocialLink key={link.label} {...link} isNight={isNight} />
 								))}
 							</div>
 						</div>

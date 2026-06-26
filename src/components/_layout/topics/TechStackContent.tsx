@@ -5,12 +5,12 @@ import {
 	type TopicContentProps,
 } from "./primitives";
 
-export function TechStackContent(_: TopicContentProps) {
+export function TechStackContent({ isNight }: TopicContentProps) {
 	return (
 		<div className="space-y-5">
 			<Paragraph>
 				I self-host as much as I can to avoid serverless horrors (
-				<InlineLink href="https://serverlesshorrors.com">
+				<InlineLink href="https://serverlesshorrors.com" isNight={isNight}>
 					serverlesshorrors.com
 				</InlineLink>
 				). Hetzner Cloud is the best compromise between cost, performance and

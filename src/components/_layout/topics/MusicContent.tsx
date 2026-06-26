@@ -6,7 +6,7 @@ import {
 	TriggerCard,
 } from "./primitives";
 
-export function MusicContent({ lastTriggerRef }: TopicContentProps) {
+export function MusicContent({ lastTriggerRef, isNight }: TopicContentProps) {
 	return (
 		<div className="space-y-5">
 			<Paragraph>
@@ -25,12 +25,14 @@ export function MusicContent({ lastTriggerRef }: TopicContentProps) {
 					Icon={SiLastdotfm}
 					brand="#D51007"
 					badge="275k scrobbles since 2006"
+					isNight={isNight}
 				/>
 				<ExternalCard
 					href="https://open.spotify.com/user/1140243663?si=f613e1c43ce74d54"
 					label="Spotify"
 					Icon={SiSpotify}
 					brand="#1ED760"
+					isNight={isNight}
 				/>
 				<TriggerCard
 					trigger={{ kind: "personal", slug: "music" }}

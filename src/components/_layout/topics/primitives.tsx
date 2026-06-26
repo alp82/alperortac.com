@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { TRIGGERS_ENABLED } from "../../../data/flags";
 import { PERSONAL_BY_SLUG } from "../../../data/personal";
@@ -70,21 +70,42 @@ export function Paragraph({ children }: { children: ReactNode }) {
 export function InlineLink({
 	href,
 	children,
+	isNight = false,
 }: {
 	href: string;
 	children: ReactNode;
+	isNight?: boolean;
 }) {
-	// Anchors (#foo) scroll within the page; everything else opens in a
-	// new tab.
+	// Anchors (#foo) scroll within the page; everything else opens in a new
+	// tab. The split also drives styling: internal links read as italic +
+	// wavy underline (no icon, phase-agnostic), while external links keep a
+	// straight underline, a phase-aware tint (warm amber by day, cold sky by
+	// night), and a trailing ArrowUpRight that signals "leaves the site".
 	const isAnchor = href.startsWith("#");
+	if (isAnchor) {
+		return (
+			<a
+				href={href}
+				className="italic font-bold underline decoration-wavy underline-offset-2 hover:opacity-70 transition-opacity"
+			>
+				{children}
+			</a>
+		);
+	}
+	const tint = isNight ? "text-sky-300" : "text-amber-700";
 	return (
 		<a
 			href={href}
-			target={isAnchor ? undefined : "_blank"}
-			rel={isAnchor ? undefined : "noopener noreferrer"}
-			className="font-bold underline decoration-2 underline-offset-2 hover:opacity-70 transition-opacity"
+			target="_blank"
+			rel="noopener noreferrer"
+			className={`font-bold underline decoration-2 underline-offset-2 hover:opacity-70 transition-opacity ${tint}`}
 		>
 			{children}
+			<ArrowUpRight
+				size={14}
+				aria-hidden="true"
+				className="inline-block align-baseline ml-0.5"
+			/>
 		</a>
 	);
 }
@@ -128,9 +149,11 @@ export function BulletList({
  * Default state uses a muted 30% mix of `brand` against white; on hover the
  * button flips to the full-saturation `brand` color with white text + icon.
  */
-function brandTintStyle(brand: string): React.CSSProperties {
+function brandTintStyle(brand: string, isNight: boolean): React.CSSProperties {
 	return {
-		"--btn-tint": `color-mix(in srgb, ${brand} 30%, white)`,
+		"--btn-tint": isNight
+			? `color-mix(in srgb, ${brand} 22%, #0f172a)`
+			: `color-mix(in srgb, ${brand} 30%, white)`,
 		"--btn-tint-hover": brand,
 		"--btn-text-hover": "#ffffff",
 		"--icon-c": brand,
@@ -141,7 +164,7 @@ const EXTERNAL_CARD_CLASS =
 	"btn-brutalist group block w-full text-left p-6 md:p-7 font-black uppercase tracking-wider";
 
 const TRIGGER_CARD_CLASS =
-	"btn-brutalist group block w-full md:w-1/2 text-left p-6 md:p-7 font-black uppercase tracking-wider";
+	"btn-brutalist btn-brutalist--ghost group block w-full text-left p-6 md:p-7 font-black uppercase tracking-wider";
 
 export function ExternalCard({
 	href,
@@ -149,20 +172,22 @@ export function ExternalCard({
 	Icon,
 	brand,
 	badge,
+	isNight,
 }: {
 	href: string;
 	label: string;
 	Icon: ComponentType<{ size?: number; color?: string; className?: string }>;
 	brand: string;
 	badge?: string;
+	isNight: boolean;
 }) {
 	return (
 		<a
 			href={href}
 			target="_blank"
 			rel="noopener noreferrer"
-			style={brandTintStyle(brand)}
-			className={EXTERNAL_CARD_CLASS}
+			style={brandTintStyle(brand, isNight)}
+			className={`${EXTERNAL_CARD_CLASS}${isNight ? " btn-brutalist--night" : ""}`}
 		>
 			{badge && (
 				<span className="absolute -top-2 right-4 z-10 pointer-events-none font-mono text-xs md:text-sm font-bold leading-tight uppercase tracking-[0.15em] -rotate-3 border-2 border-slate-900 bg-[#D51007] text-white px-2.5 py-1 shadow-[3px_3px_0_0_#0f172a] transition-colors duration-200 group-hover:bg-white group-hover:text-slate-900">
@@ -257,7 +282,7 @@ export function TriggerCard({
 			<button
 				type="button"
 				onClick={(e) => go(e.currentTarget)}
-				className="btn-brutalist btn-brutalist--dark w-full flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl p-6"
+				className="btn-brutalist btn-brutalist--ghost w-full flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl p-6"
 			>
 				<ArrowLeft size={32} className="shrink-0" />
 				<span>See the work history</span>
@@ -281,7 +306,6 @@ export function TriggerCard({
 			<button
 				type="button"
 				onClick={(e) => go(e.currentTarget)}
-				style={brandTintStyle(project.panelColor)}
 				className={TRIGGER_CARD_CLASS}
 			>
 				<TriggerCardBody
@@ -305,7 +329,6 @@ export function TriggerCard({
 			<button
 				type="button"
 				onClick={(e) => go(e.currentTarget)}
-				style={brandTintStyle(item.panelBg)}
 				className={TRIGGER_CARD_CLASS}
 			>
 				<TriggerCardBody
@@ -328,7 +351,6 @@ export function TriggerCard({
 		<button
 			type="button"
 			onClick={(e) => go(e.currentTarget)}
-			style={brandTintStyle(story.panelBg)}
 			className={TRIGGER_CARD_CLASS}
 		>
 			<TriggerCardBody

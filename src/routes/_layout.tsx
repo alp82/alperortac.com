@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { ChevronDown, Moon, Sun } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CraftSection } from "../components/_layout/CraftSection";
 import { CTASection } from "../components/_layout/CTASection";
 import {
@@ -8,20 +8,32 @@ import {
 	defaultState,
 } from "../components/_layout/composer/useComposerControls";
 import { DesignModeHost } from "../components/_layout/DesignModeHost";
+import {
+	BASE_DIVE_BLUR,
+	DIVE_DURATION_MS,
+	type DiveRenderState,
+	TRUE_NIGHT_DIVE_THRESHOLD,
+} from "../components/_layout/dive/diveConstants";
+import {
+	blurStrengthFor,
+	techniqueFor,
+} from "../components/_layout/dive/techniqueFor";
 import { FindMeSection } from "../components/_layout/FindMeSection";
 import { HeroSection } from "../components/_layout/HeroSection";
 import { PanelHost } from "../components/_layout/PanelHost";
 import { Minimap } from "../components/Minimap";
 import { NarrativeWatermark } from "../components/NarrativeWatermark";
+import { SUBPAGE_WORDS } from "../components/narrativeWatermark";
 import { PixelBackground } from "../components/PixelBackground";
 import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
-import { SECTION_IDS } from "../data/sections";
+import { type PanelKey, SECTION_IDS } from "../data/sections";
 import {
 	DEFAULT_SKY_CURVE,
 	NIGHT_UI_THRESHOLD,
+	skyAt,
 	type SkyCurve,
 } from "../data/skyCurve";
-import { TOPICS } from "../data/topics";
+import { PANEL_KEY_TO_TOPIC_ID, TOPICS } from "../data/topics";
 
 export const Route = createFileRoute("/_layout")({ component: LayoutHost });
 
@@ -98,6 +110,120 @@ function LayoutHost() {
 	const [aboutOpen, setAboutOpen] = useState(false);
 	const aboutMenuRef = useRef<HTMLDivElement | null>(null);
 	const lastTriggerRef = useRef<HTMLElement | null>(null);
+	const navRef = useRef<HTMLElement | null>(null);
+	const mainShellRef = useRef<HTMLDivElement | null>(null);
+	const [dive, setDive] = useState<DiveRenderState | undefined>(undefined);
+	const [subpageKey, setSubpageKey] = useState<PanelKey | null>(null);
+	const diveExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Ref-tracked scroll progress so onPanelChange does not change identity on
+	// every scroll tick (avoids the stuck-dive-active bug from re-firing close).
+	const scrollProgressRef = useRef(0);
+	// Guards the exit teardown: prevents close-branch from rescheduling the exit
+	// timer when no dive is actually live (e.g. scroll during the 760ms exit window).
+	const diveActiveRef = useRef(false);
+	// Frozen while a detail subpage is open: the day/night driver must not advance
+	// from scroll while in a subpage. The html scroller is also locked (CSS), but
+	// this gate is the guaranteed freeze.
+	const panelOpenRef = useRef(false);
+
+	// Drive the live-landscape dive from the panel host. On open, aim the zoom at
+	// the trigger's on-screen center and push --dive-u to 1 (CSS transitions the
+	// per-layer zoom/blur). On close, ease --dive-u back to 0, then — after the
+	// return transition — drop body.dive-active (which holds the 3D context) and
+	// clear the dive vars. M2 ships glide only; other techniques land in M3.
+	const onPanelChange = useCallback(
+		(info: {
+			key: PanelKey | null;
+			side: "left" | "right" | null;
+			rect: DOMRect | null;
+		}) => {
+			panelOpenRef.current = info.key !== null;
+			setSubpageKey(info.key);
+			if (info.key !== null) {
+				// Open branch: arm a fresh dive.
+				if (diveExitTimerRef.current) {
+					clearTimeout(diveExitTimerRef.current);
+					diveExitTimerRef.current = null;
+				}
+				const rect = info.rect;
+				// Direct URL load (no trigger rect): the window is at scroll 0 (day, top),
+				// so the backdrop and close/return target are wrong. Park the journey at
+				// the subpage's topic section so the sky reflects the right time-of-day and
+				// closing returns to that spot. The day/night driver is gated while a panel
+				// is open (panelOpenRef short-circuits handleScroll), so after the
+				// programmatic scroll we update scrollProgress/scrollY ourselves.
+				if (rect == null) {
+					const topicId = PANEL_KEY_TO_TOPIC_ID[info.key];
+					const el = topicId ? document.getElementById(topicId) : null;
+					if (el) {
+						// Compute progress from the TARGET offset, not the post-scroll
+						// window.scrollY: with scroll-behavior:smooth the programmatic
+						// scroll is async, so reading scrollY here is stale (0) and the
+						// sky would stay day while the scroll animates to the right spot.
+						const targetY = el.offsetTop;
+						window.scrollTo(0, targetY);
+						const totalScroll =
+							document.documentElement.scrollHeight - window.innerHeight;
+						const progress =
+							totalScroll > 0
+								? Math.min(Math.max(targetY / totalScroll, 0), 1)
+								: 0;
+						scrollProgressRef.current = progress;
+						setScrollProgress(progress);
+						setScrollY(targetY);
+					}
+				}
+				const origin = rect
+					? `${((rect.left + rect.width / 2) / window.innerWidth) * 100}% ${
+							((rect.top + rect.height / 2) / window.innerHeight) * 100
+						}%`
+					: "50% 50%";
+				document.body.classList.add("dive-active");
+				diveActiveRef.current = true;
+				const isTrueNight =
+					scrollProgressRef.current >= TRUE_NIGHT_DIVE_THRESHOLD;
+				setDive({
+					u: 1,
+					origin,
+					// When opened via direct URL (no trigger rect), use glide so no
+					// side-pitched swoop arrives from a side that was never clicked.
+					technique: rect
+						? techniqueFor({ isTrueNight, side: info.side })
+						: "glide",
+					focalDepth: 0.5,
+					blurStrength: blurStrengthFor(isTrueNight, BASE_DIVE_BLUR),
+				});
+			} else {
+				// Close branch: only teardown if a dive is actually live. Scrolling
+				// during the 760ms exit window must NOT restart this path.
+				if (!diveActiveRef.current) return;
+				if (diveExitTimerRef.current) {
+					clearTimeout(diveExitTimerRef.current);
+					diveExitTimerRef.current = null;
+				}
+				// Keep the OPEN-time origin: the return must zoom out around the same
+				// focal point it zoomed into. Re-reading the trigger rect here caught
+				// the mid-recede main-shell (transformed/offscreen) and jumped
+				// --dive-origin, flashing the void edge before settling. Window scroll
+				// is frozen while a subpage is open, so the open origin stays valid.
+				setDive((prev) => (prev ? { ...prev, u: 0 } : prev));
+				diveActiveRef.current = false;
+				diveExitTimerRef.current = setTimeout(() => {
+					document.body.classList.remove("dive-active");
+					setDive(undefined);
+					diveExitTimerRef.current = null;
+				}, DIVE_DURATION_MS);
+			}
+		},
+		[],
+	);
+
+	useEffect(() => {
+		return () => {
+			if (diveExitTimerRef.current) clearTimeout(diveExitTimerRef.current);
+			document.body.classList.remove("dive-active");
+		};
+	}, []);
 
 	// DEV-only design composition, pushed up from <DesignModeHost>. Seeded to the
 	// deterministic defaults in DEV so the server and the first client paint
@@ -110,8 +236,21 @@ function LayoutHost() {
 		ComposerState | undefined
 	>(() => (import.meta.env.DEV ? defaultState() : undefined));
 
+	// Paint the body background with the current sky color so the dive's 3D
+	// transform never reveals a white void at the landscape edges — any exposed
+	// edge matches the sky/time-of-day (frozen while a subpage is open).
+	useEffect(() => {
+		document.body.style.backgroundColor = skyAt(
+			scrollProgress,
+			celestial.curve,
+		);
+	}, [scrollProgress, celestial]);
+
 	useEffect(() => {
 		const handleScroll = () => {
+			// Freeze the day/night driver while a detail subpage is open — the
+			// subpage's own scroll must not advance the time of day.
+			if (panelOpenRef.current) return;
 			const winHeight = window.innerHeight;
 			const docHeight = document.documentElement.scrollHeight;
 			const totalScroll = docHeight - winHeight;
@@ -120,6 +259,7 @@ function LayoutHost() {
 				totalScroll > 0
 					? Math.min(Math.max(currentScroll / totalScroll, 0), 1)
 					: 0;
+			scrollProgressRef.current = progress;
 			setScrollProgress(progress);
 			setScrollY(currentScroll);
 		};
@@ -160,9 +300,20 @@ function LayoutHost() {
 
 	return (
 		<div className="font-sans text-slate-900 selection:bg-yellow-200">
-			<PixelBackground scrollProgress={scrollProgress} celestial={celestial} />
-			<NarrativeWatermark scrollProgress={scrollProgress} scrollY={scrollY} />
-			<Minimap scrollProgress={scrollProgress} celestial={celestial} />
+			<PixelBackground
+				scrollProgress={scrollProgress}
+				celestial={celestial}
+				dive={dive}
+			/>
+			<NarrativeWatermark
+				scrollProgress={scrollProgress}
+				scrollY={scrollY}
+				override={subpageKey ? SUBPAGE_WORDS[subpageKey] : undefined}
+				isNight={isNight}
+			/>
+			{subpageKey === null && (
+				<Minimap scrollProgress={scrollProgress} celestial={celestial} />
+			)}
 
 			<button
 				type="button"
@@ -183,7 +334,10 @@ function LayoutHost() {
 				/>
 			)}
 
-			<nav className="fixed top-0 left-0 right-0 md:right-20 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-sm bg-white/10 border-b border-white/20">
+			<nav
+				ref={navRef}
+				className="fixed top-0 left-0 right-0 md:right-20 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-sm bg-white/10 border-b border-white/20"
+			>
 				<a
 					href={`#${SECTION_IDS.start}`}
 					className="text-xl font-black tracking-tighter uppercase flex items-center gap-2 drop-shadow-md transition-colors duration-100 hover:opacity-70"
@@ -269,9 +423,9 @@ function LayoutHost() {
 				</div>
 			</nav>
 
-			<div className="main-shell min-h-screen md:pr-20">
+			<div ref={mainShellRef} className="main-shell min-h-screen md:pr-20">
 				<HeroSection />
-				<FindMeSection />
+				<FindMeSection isNight={isNight} />
 				<CraftSection
 					lastTriggerRef={lastTriggerRef}
 					isNight={isNight}
@@ -311,6 +465,9 @@ function LayoutHost() {
 				celestial={celestial}
 				setCelestial={setCelestial}
 				lastTriggerRef={lastTriggerRef}
+				onPanelChange={onPanelChange}
+				navRef={navRef}
+				mainShellRef={mainShellRef}
 			/>
 
 			{/* Outlet must be rendered so child routes are matched by useMatches; children render null */}

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hero subtitle — bolder treatment picker</title>
+<style>
+  /* ---- Tokens mirrored from the real site ---- */
+  :root {
+    --slate-900: #0f172a;
+    --slate-800: #1e293b;
+    --slate-500: #64748b;
+    --term-green: #34d399;
+    --accent: #2563eb; /* accent-tinted emphasis option */
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f8fafc;
+    color: var(--slate-900);
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    min-height: 100vh;
+  }
+
+  /* ---- Stage (left, the real hero context) ---- */
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 96px 24px 8px;
+    /* light/airy day background hint */
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #ffffff 0%, #f1f5f9 60%, #f8fafc 100%);
+  }
+  .avatar {
+    width: 128px; height: 128px;
+    border-radius: 9999px;
+    border: 4px solid var(--slate-900);
+    box-shadow: 6px 6px 0px 0px rgba(0,0,0,1);
+    margin-bottom: 32px;
+    background:
+      linear-gradient(135deg, #cbd5e1, #94a3b8);
+    display: grid; place-items: center;
+    font-weight: 900; font-size: 40px; color: var(--slate-900);
+  }
+  h1.hero {
+    font-size: clamp(56px, 9vw, 112px);
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    margin: 0 0 24px;
+    color: var(--slate-900);
+    text-shadow: 0 1px 1px rgba(0,0,0,0.05);
+  }
+
+  /* ---- The animated two-part line ---- */
+  .subline-wrap { max-width: 56rem; }
+
+  .subline {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    flex-wrap: wrap;
+    color: var(--slate-800);
+    line-height: 1.4;
+    /* scale + weight applied via data attrs below */
+  }
+
+  /* type scale */
+  .subline[data-scale="2xl"] { font-size: 24px; }
+  .subline[data-scale="3xl"] { font-size: 30px; }
+  .subline[data-scale="4xl"] { font-size: 36px; }
+  @media (min-width: 768px) {
+    .subline[data-scale="2xl"] { font-size: 30px; }
+    .subline[data-scale="3xl"] { font-size: 40px; }
+    .subline[data-scale="4xl"] { font-size: 56px; }
+  }
+
+  /* weight */
+  .subline[data-weight="medium"] { font-weight: 500; }
+  .subline[data-weight="bold"]   { font-weight: 700; }
+  .subline[data-weight="black"]  { font-weight: 900; letter-spacing: -0.02em; }
+
+  /* container: plate */
+  .subline[data-container="plate"] {
+    background: rgba(255,255,255,0.40);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 16px;
+    border-left: 4px solid var(--slate-900);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  /* container: bare -> no box */
+  .subline[data-container="bare"] {
+    background: none;
+    backdrop-filter: none;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  /* word emphasis (applies to the toggling words = both sides) */
+  .subline[data-emphasis="inherit"] .left,
+  .subline[data-emphasis="inherit"] .right { font-weight: inherit; color: inherit; }
+  .subline[data-emphasis="bold"] .left,
+  .subline[data-emphasis="bold"] .right { font-weight: 800; }
+  .subline[data-emphasis="accent"] .left,
+  .subline[data-emphasis="accent"] .right { color: var(--accent); }
+
+  /* left fade animation (top/bottom fade) */
+  .left { display: inline-block; }
+  .left.fading {
+    animation: fadeRole 360ms ease both;
+  }
+  @keyframes fadeRole {
+    0%   { opacity: 0; transform: translateY(0.18em); clip-path: inset(40% 0 40% 0); }
+    100% { opacity: 1; transform: translateY(0);     clip-path: inset(0 0 0 0); }
+  }
+
+  /* the single literal space */
+  .gap { white-space: pre; }
+
+  /* right typewriter + cursor */
+  .right { display: inline-block; }
+
+  .cursor { display: inline-block; }
+  /* green terminal block (mirrors composer.css .terminal-cursor) */
+  .cursor[data-cursor="green-block"] {
+    width: 9px; height: 1.05em;
+    vertical-align: text-bottom;
+    background: var(--term-green);
+    animation: blink 1.05s step-end infinite;
+  }
+  /* slate caret (thin vertical bar) */
+  .cursor[data-cursor="slate-caret"] {
+    width: 2px; height: 1.1em;
+    vertical-align: text-bottom;
+    background: var(--slate-900);
+    animation: blink 1.05s step-end infinite;
+  }
+  /* underscore */
+  .cursor[data-cursor="underscore"] {
+    width: 0.6em; height: 0.12em;
+    vertical-align: baseline;
+    background: var(--slate-900);
+    margin-bottom: 0.05em;
+    animation: blink 1.05s step-end infinite;
+  }
+  /* color override for caret/underscore */
+  .cursor.tint-green { background: var(--term-green) !important; }
+  .cursor.tint-slate { background: var(--slate-900) !important; }
+  @keyframes blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+  /* when reduced-motion is active, cursor is hidden entirely (static first pair) */
+  .reduced .cursor { display: none; }
+
+  /* ---- Controls panel (right) ---- */
+  .panel {
+    border-left: 1px solid #e2e8f0;
+    background: #ffffff;
+    padding: 20px;
+    overflow-y: auto;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+  }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-500); margin: 0 0 4px; }
+  .panel .sub { font-size: 12px; color: var(--slate-500); margin: 0 0 16px; }
+  .field { margin-bottom: 18px; }
+  .field > label.title { display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--slate-800); }
+  .seg { display: inline-flex; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+  .seg button {
+    appearance: none; border: none; background: #fff; cursor: pointer;
+    padding: 6px 10px; font-size: 12px; color: var(--slate-800);
+    border-right: 1px solid #e2e8f0;
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button.active { background: var(--slate-900); color: #fff; }
+  .range-row { display: flex; align-items: center; gap: 10px; }
+  .range-row input[type=range] { flex: 1; }
+  .range-row .val { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--slate-500); min-width: 56px; text-align: right; }
+  .toggle-row { display: flex; align-items: center; gap: 8px; }
+
+  .spec-box {
+    margin-top: 8px;
+    background: #0f172a; color: #e2e8f0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; line-height: 1.5;
+    padding: 12px; border-radius: 8px;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .copy-btn {
+    margin-top: 10px; width: 100%;
+    appearance: none; border: 2px solid var(--slate-900);
+    background: var(--slate-900); color: #fff;
+    font-weight: 700; font-size: 13px;
+    padding: 10px; border-radius: 8px; cursor: pointer;
+    box-shadow: 3px 3px 0 0 rgba(0,0,0,1);
+  }
+  .copy-btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 0 rgba(0,0,0,1); }
+  .copy-hint { font-size: 11px; color: var(--slate-500); margin-top: 8px; }
+  .copied { color: #16a34a; font-weight: 700; }
+</style>
+</head>
+<body>
+  <main class="stage">
+    <div class="avatar">A</div>
+    <h1 class="hero">HEY, I'M ALPER.</h1>
+    <div class="subline-wrap">
+      <div class="subline"
+           id="subline"
+           data-container="plate"
+           data-scale="3xl"
+           data-weight="bold"
+           data-emphasis="inherit"
+           data-cursor="green-block">
+        <span class="left" id="left"></span><span class="gap"> </span><span class="right" id="right"></span><span class="cursor" id="cursor" data-cursor="green-block"></span>
+      </div>
+    </div>
+  </main>
+
+  <aside class="panel">
+    <h2>Hero subtitle — bolder treatment</h2>
+    <p class="sub">Behavior is locked (sequential beats, fade-left, type-delete-retype right, blinking cursor). Tune the look, then copy the spec.</p>
+
+    <div class="field">
+      <label class="title">Container</label>
+      <div class="seg" data-key="container">
+        <button data-val="plate">frosted plate</button>
+        <button data-val="bare">bare line</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="title">Type scale</label>
+      <div class="seg" data-key="scale">
+        <button data-val="2xl">2xl (current)</button>
+        <button data-val="3xl">3xl</button>
+        <button data-val="4xl">4xl</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="title">Font weight</label>
+      <div class="seg" data-key="weight">
+        <button data-val="medium">medium</button>
+        <button data-val="bold">bold</button>
+        <button data-val="black">black</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="title">Word emphasis (toggling words)</label>
+      <div class="seg" data-key="emphasis">
+        <button data-val="inherit">inherit</button>
+        <button data-val="bold">bold</button>
+        <button data-val="accent">accent</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="title">Cursor style</label>
+      <div class="seg" data-key="cursor">
+        <button data-val="green-block">green block</button>
+        <button data-val="slate-caret">slate caret</button>
+        <button data-val="underscore">underscore</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="title">Cursor color</label>
+      <div class="seg" data-key="cursorColor">
+        <button data-val="green">terminal green</button>
+        <button data-val="slate">slate-900</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="title">Type speed</label>
+      <div class="range-row">
+        <input type="range" id="typeSpeed" min="20" max="120" step="5" value="55" />
+        <span class="val"><span id="typeSpeedVal">55</span>ms/char</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="title">Dwell (hold full phrase)</label>
+      <div class="range-row">
+        <input type="range" id="dwell" min="600" max="3000" step="100" value="1500" />
+        <span class="val"><span id="dwellVal">1500</span>ms</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="title toggle-row"><input type="checkbox" id="reducedMotion" /> Simulate reduced motion (static first pair)</label>
+    </div>
+
+    <div class="field">
+      <label class="title">Chosen spec</label>
+      <div class="spec-box" id="specBox"></div>
+      <button class="copy-btn" id="copyBtn">Copy spec</button>
+      <p class="copy-hint" id="copyHint">Paste this single line back into chat to lock the design.</p>
+    </div>
+  </aside>
+
+<script>
+  // ---- Locked content: 5 matched pairs (left role | right phrase) ----
+  const PAIRS = [
+    ["web enthusiast", "with a side project habit"],
+    ["agentic coach", "contributing to open source"],
+    ["engineering consultant", "with a camera in hand"],
+    ["solutions architect", "always stepping outside his comfort zone"],
+    ["relentless tinkerer", "shipping things on the side"],
+  ];
+
+  const state = {
+    container: "plate",
+    scale: "3xl",
+    weight: "bold",
+    emphasis: "inherit",
+    cursor: "green-block",
+    cursorColor: "green",
+    typeSpeed: 55,
+    dwell: 1500,
+    reduced: false,
+  };
+
+  const subline = document.getElementById("subline");
+  const leftEl = document.getElementById("left");
+  const rightEl = document.getElementById("right");
+  const cursorEl = document.getElementById("cursor");
+
+  // OS-level reduced motion: honored at load by defaulting the toggle on.
+  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---- Apply visual state to DOM ----
+  function applyVisual() {
+    subline.dataset.container = state.container;
+    subline.dataset.scale = state.scale;
+    subline.dataset.weight = state.weight;
+    subline.dataset.emphasis = state.emphasis;
+    subline.dataset.cursor = state.cursor;
+    cursorEl.dataset.cursor = state.cursor;
+
+    cursorEl.classList.remove("tint-green", "tint-slate");
+    if (state.cursor === "green-block") {
+      // green block keeps its built-in green unless overridden
+      cursorEl.classList.add(state.cursorColor === "slate" ? "tint-slate" : "tint-green");
+    } else {
+      cursorEl.classList.add(state.cursorColor === "slate" ? "tint-slate" : "tint-green");
+    }
+
+    subline.classList.toggle("reduced", state.reduced);
+    updateSpec();
+  }
+
+  // ---- Spec emission (fixed format, stable order) ----
+  function specString() {
+    return [
+      "container: " + state.container,
+      "scale: " + state.scale,
+      "weight: " + state.weight,
+      "emphasis: " + state.emphasis,
+      "cursor: " + state.cursor,
+      "cursor_color: " + state.cursorColor,
+      "type_speed: " + state.typeSpeed + "ms",
+      "dwell: " + state.dwell + "ms",
+    ].join(" | ");
+  }
+  function updateSpec() {
+    document.getElementById("specBox").textContent = specString();
+  }
+
+  // ---- Animation engine: sequential beats, type-delete-retype ----
+  let timer = null;
+  const sleep = (ms) => new Promise((r) => { timer = setTimeout(r, ms); });
+
+  async function typeOut(el, text) {
+    el.textContent = "";
+    for (let i = 0; i < text.length; i++) {
+      if (state.reduced) return;
+      el.textContent += text[i];
+      await sleep(state.typeSpeed);
+    }
+  }
+  async function deleteOut(el) {
+    let t = el.textContent;
+    while (t.length > 0) {
+      if (state.reduced) return;
+      t = t.slice(0, -1);
+      el.textContent = t;
+      await sleep(Math.max(18, state.typeSpeed * 0.5));
+    }
+  }
+
+  async function runLoop() {
+    let i = 0;
+    // first paint
+    leftEl.textContent = PAIRS[0][0];
+    rightEl.textContent = "";
+
+    while (true) {
+      if (state.reduced) {
+        // static first pair, no cursor, no motion
+        leftEl.textContent = PAIRS[0][0];
+        rightEl.textContent = PAIRS[0][1];
+        await sleep(250);
+        continue;
+      }
+      const [role, phrase] = PAIRS[i];
+      // left fades the role in (top/bottom fade)
+      leftEl.textContent = role;
+      leftEl.classList.remove("fading");
+      void leftEl.offsetWidth; // reflow to restart animation
+      leftEl.classList.add("fading");
+      // right types the phrase out
+      await typeOut(rightEl, phrase);
+      if (state.reduced) continue;
+      // hold
+      await sleep(state.dwell);
+      if (state.reduced) continue;
+      // backspace-delete the phrase, then advance to next pair
+      await deleteOut(rightEl);
+      if (state.reduced) continue;
+      i = (i + 1) % PAIRS.length;
+    }
+  }
+
+  // ---- Wire up segmented controls ----
+  document.querySelectorAll(".seg").forEach((seg) => {
+    const key = seg.dataset.key;
+    const buttons = seg.querySelectorAll("button");
+    buttons.forEach((b) => {
+      if (b.dataset.val === state[key]) b.classList.add("active");
+      b.addEventListener("click", () => {
+        buttons.forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        state[key] = b.dataset.val;
+        applyVisual();
+      });
+    });
+  });
+
+  const typeSpeedEl = document.getElementById("typeSpeed");
+  const dwellEl = document.getElementById("dwell");
+  typeSpeedEl.addEventListener("input", () => {
+    state.typeSpeed = +typeSpeedEl.value;
+    document.getElementById("typeSpeedVal").textContent = typeSpeedEl.value;
+    updateSpec();
+  });
+  dwellEl.addEventListener("input", () => {
+    state.dwell = +dwellEl.value;
+    document.getElementById("dwellVal").textContent = dwellEl.value;
+    updateSpec();
+  });
+
+  const reducedEl = document.getElementById("reducedMotion");
+  reducedEl.checked = prefersReduced;
+  state.reduced = prefersReduced;
+  reducedEl.addEventListener("change", () => {
+    state.reduced = reducedEl.checked;
+    applyVisual();
+  });
+
+  // ---- Copy spec ----
+  document.getElementById("copyBtn").addEventListener("click", async () => {
+    const s = specString();
+    try {
+      await navigator.clipboard.writeText(s);
+    } catch (e) {
+      const ta = document.createElement("textarea");
+      ta.value = s; document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); ta.remove();
+    }
+    const hint = document.getElementById("copyHint");
+    hint.innerHTML = '<span class="copied">Copied.</span> Paste this single line back into chat to lock the design.';
+    setTimeout(() => {
+      hint.textContent = "Paste this single line back into chat to lock the design.";
+    }, 2000);
+  });
+
+  // ---- Go ----
+  applyVisual();
+  runLoop();
+</script>
+</body>
+</html>

@@ -1,3 +1,4 @@
+import type { PanelKey } from "../data/sections";
 import { clamp01 } from "../data/skyCurve";
 
 // Pure geometry for the narrative vertical-words watermark - a line-for-line
@@ -28,6 +29,23 @@ export const WORDS: readonly WatermarkWord[] = [
 	},
 	{ text: "LIFE", color: "#fff", zone: { c: 0.7, w: 0.36, edge: "right" } },
 ];
+
+// While a detail subpage is open, the BUILD / LIFE pair is replaced by the
+// open subpage's own two words (left anchored toward the top, right toward the
+// bottom, behind the frosted column). Every entry is a real left+right pair;
+// short titles take a complementary second word (music -> Music / Audio).
+// Keyed by PanelKey; `sky` (the dev tuning panel) has no entry.
+export const SUBPAGE_WORDS: Partial<
+	Record<PanelKey, readonly [string, string]>
+> = {
+	career: ["WORK", "HISTORY"],
+	"early-days": ["EARLY", "DAYS"],
+	goodwatch: ["GOOD", "WATCH"],
+	aistack: ["AI", "STACK"],
+	alpriver: ["ALP", "RIVER"],
+	manaschmiede: ["MANA", "SCHMIEDE"],
+	music: ["MUSIC", "AUDIO"],
+};
 
 // Longest word drives the auto-fit so the full column always fits the viewport.
 export const LONGEST = WORDS.reduce((m, w) => Math.max(m, w.text.length), 0); // 5

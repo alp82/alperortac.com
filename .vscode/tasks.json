@@ -3,14 +3,17 @@
 	"tasks": [
 		{
 			"label": "alperortac.com dev",
-			"type": "npm",
-			"script": "dev",
-			"path": ".",
+			"type": "shell",
+			"options": {
+				"shell": { "executable": "bash", "args": ["-c"] }
+			},
+			"command": "trap : INT; bun run dev; exec fish",
 			"isBackground": true,
 			"runOptions": { "runOn": "folderOpen" },
 			"presentation": {
 				"group": "services",
-				"panel": "dedicated"
+				"panel": "dedicated",
+				"showReuseMessage": false
 			},
 			"problemMatcher": []
 		}

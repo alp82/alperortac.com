@@ -8,7 +8,7 @@ import {
 	TriggerCard,
 } from "./primitives";
 
-export function AIContent({ lastTriggerRef }: TopicContentProps) {
+export function AIContent({ lastTriggerRef, isNight }: TopicContentProps) {
 	return (
 		<div className="space-y-5">
 			<Paragraph>
@@ -33,6 +33,7 @@ export function AIContent({ lastTriggerRef }: TopicContentProps) {
 					label="alp-river"
 					Icon={SiGithub}
 					brand="#181717"
+					isNight={isNight}
 				/>
 				<TriggerCard
 					trigger={{ kind: "project", slug: "alpriver" }}
@@ -51,8 +52,10 @@ export function AIContent({ lastTriggerRef }: TopicContentProps) {
 				Claude Code is my main driver and it costs me $200 per month. It's well
 				worth it because it gets so much done for me. I created a page to share
 				more details about their AI stack (
-				<InlineLink href="https://aistack.to">aistack.to</InlineLink>). It grows
-				into a nice community of like-minded builders.
+				<InlineLink href="https://aistack.to" isNight={isNight}>
+					aistack.to
+				</InlineLink>
+				). It grows into a nice community of like-minded builders.
 			</Paragraph>
 
 			<div className="space-y-3">
@@ -61,12 +64,14 @@ export function AIContent({ lastTriggerRef }: TopicContentProps) {
 					label="Discord"
 					Icon={SiDiscord}
 					brand="#5865F2"
+					isNight={isNight}
 				/>
 				<ExternalCard
 					href="https://aistack.to"
 					label="aistack.to"
 					Icon={Cpu}
 					brand="#1e3a8a"
+					isNight={isNight}
 				/>
 				<TriggerCard
 					trigger={{ kind: "project", slug: "aistack" }}
