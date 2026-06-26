@@ -553,6 +553,16 @@ body.panel-open nav {
 	vertical-align: middle;
 	animation: hero-blink 1.05s step-end infinite;
 }
+.footer-cursor {
+	display: inline-block;
+	margin-bottom: 4px;
+	width: 4px;
+	height: 0.90em;
+	margin-left: 2px;
+	background: currentColor;
+	vertical-align: middle;
+	animation: hero-blink 1.05s step-end infinite;
+}
 @keyframes hero-role-in {
 	from {
 		transform: translateY(-0.6em);
@@ -568,6 +578,7 @@ body.panel-open nav {
 }
 @media (prefers-reduced-motion: reduce) {
 	.hero-cursor,
+	.footer-cursor,
 	.hero-role-in {
 		animation: none;
 	}

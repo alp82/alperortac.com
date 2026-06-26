@@ -1,15 +1,17 @@
 export const HERO_ROLES: readonly string[] = [
-	"Web enthusiast",
-	"Agentic coach",
-	"Consultant",
-	"Solutions architect",
+	"web enthusiast",
+	"agentic coach",
+	"engineering consultant",
+	"solutions architect",
+	"relentless tinkerer",
 ];
 
 export const HERO_PHRASES: readonly string[] = [
-	"with a camera",
-	"crafting side projects",
-	"building in public",
-	"shipping open source",
+	"with a side project habit",
+	"contributing to open source",
+	"with a camera in hand",
+	"always stepping outside his comfort zone",
+	"shipping things on the side",
 ];
 
 export const HERO_TIMING = {

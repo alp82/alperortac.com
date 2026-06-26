@@ -1,16 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { INITIAL, delayFor, heroNext } from "../HeroSubtitle";
-import { HERO_ROLES, HERO_PHRASES, HERO_TIMING } from "../../../data/hero";
+import { HERO_PHRASES, HERO_ROLES, HERO_TIMING } from "../../../data/hero";
+import {
+	type CycleConfig,
+	type CycleState,
+	cycleNext,
+	delayFor,
+	makeInitial,
+} from "../typewriterCycle";
+
+const HERO_CONFIG: CycleConfig = {
+	roles: HERO_ROLES,
+	phrases: HERO_PHRASES,
+	timing: HERO_TIMING,
+};
+
+const INITIAL = makeInitial(HERO_CONFIG);
+const next = (s: CycleState) => cycleNext(s, HERO_CONFIG);
 
 // ---------------------------------------------------------------------------
-// Helper: drive heroNext until predicate(state) is true.
+// Helper: drive cycleNext until predicate(state) is true.
 // Fails the test (throws) if the safety cap is exceeded.
 // ---------------------------------------------------------------------------
 function advanceUntil(
-	state: ReturnType<typeof heroNext>,
-	predicate: (s: ReturnType<typeof heroNext>) => boolean,
+	state: CycleState,
+	predicate: (s: CycleState) => boolean,
 	cap = 2000,
-): ReturnType<typeof heroNext> {
+): CycleState {
 	let s = state;
 	let iterations = 0;
 	while (!predicate(s)) {
@@ -19,19 +34,19 @@ function advanceUntil(
 				`advanceUntil: safety cap of ${cap} iterations exceeded (last phase: ${s.phase})`,
 			);
 		}
-		s = heroNext(s);
+		s = next(s);
 		iterations++;
 	}
 	return s;
 }
 
 // ---------------------------------------------------------------------------
-describe("HeroSubtitle pure state machine (v3 two-index model)", () => {
+describe("typewriterCycle pure state machine (v3 two-index model)", () => {
 	const phrase0 = HERO_PHRASES[0]!;
 	const phrase1 = HERO_PHRASES[1]!;
 
 	// TC-PURE-01: INITIAL shape
-	it("TC-PURE-01: INITIAL deep-equals { leftIndex:0, rightIndex:0, turn:'right', phase:'dwell', typed: HERO_PHRASES[0] }", () => {
+	it("TC-PURE-01: makeInitial deep-equals { leftIndex:0, rightIndex:0, turn:'right', phase:'dwell', typed: HERO_PHRASES[0] }", () => {
 		expect(INITIAL).toEqual({
 			leftIndex: 0,
 			rightIndex: 0,
@@ -42,31 +57,31 @@ describe("HeroSubtitle pure state machine (v3 two-index model)", () => {
 	});
 
 	// TC-PURE-02: dwell + turn=right -> backspacing, indices/typed unchanged
-	it("TC-PURE-02: heroNext(INITIAL dwell+turn:right) -> phase 'backspacing'; leftIndex/rightIndex/typed unchanged", () => {
-		const next = heroNext(INITIAL);
-		expect(next.phase).toBe("backspacing");
-		expect(next.leftIndex).toBe(INITIAL.leftIndex);
-		expect(next.rightIndex).toBe(INITIAL.rightIndex);
-		expect(next.typed).toBe(INITIAL.typed);
+	it("TC-PURE-02: cycleNext(INITIAL dwell+turn:right) -> phase 'backspacing'; leftIndex/rightIndex/typed unchanged", () => {
+		const nextState = next(INITIAL);
+		expect(nextState.phase).toBe("backspacing");
+		expect(nextState.leftIndex).toBe(INITIAL.leftIndex);
+		expect(nextState.rightIndex).toBe(INITIAL.rightIndex);
+		expect(nextState.typed).toBe(INITIAL.typed);
 	});
 
 	// TC-PURE-03: backspacing drops exactly one char per tick
 	it("TC-PURE-03: backspacing drops exactly one char per tick", () => {
-		const backspacing = heroNext(INITIAL); // enters backspacing with full phrase0
+		const backspacing = next(INITIAL); // enters backspacing with full phrase0
 		expect(backspacing.phase).toBe("backspacing");
-		const next = heroNext(backspacing);
-		expect(next.typed).toBe(phrase0.slice(0, -1));
-		expect(next.phase).toBe("backspacing");
+		const nextState = next(backspacing);
+		expect(nextState.typed).toBe(phrase0.slice(0, -1));
+		expect(nextState.phase).toBe("backspacing");
 	});
 
 	// TC-PURE-04: after phrase0.length backspacing ticks, typed==="" and phase still "backspacing"
 	it("TC-PURE-04: after exactly phrase0.length backspacing ticks, typed==='' and phase still 'backspacing'", () => {
-		let state = heroNext(INITIAL); // phase "backspacing", typed === phrase0
+		let state = next(INITIAL); // phase "backspacing", typed === phrase0
 		expect(state.phase).toBe("backspacing");
 
 		// We need phrase0.length ticks to empty the string (each drops one char)
 		for (let i = 0; i < phrase0.length; i++) {
-			state = heroNext(state);
+			state = next(state);
 		}
 		expect(state.typed).toBe("");
 		expect(state.phase).toBe("backspacing");
@@ -74,25 +89,25 @@ describe("HeroSubtitle pure state machine (v3 two-index model)", () => {
 
 	// TC-PURE-05: the NEXT tick after backspacing+typed="" sets rightIndex===1 and phase==="typing"
 	it("TC-PURE-05: tick after backspacing+typed='' -> rightIndex===1 and phase==='typing'", () => {
-		let state = heroNext(INITIAL); // backspacing
+		let state = next(INITIAL); // backspacing
 		for (let i = 0; i < phrase0.length; i++) {
-			state = heroNext(state);
+			state = next(state);
 		}
 		// Now typed==="" and phase==="backspacing"
 		expect(state.typed).toBe("");
 		expect(state.phase).toBe("backspacing");
 
-		const next = heroNext(state);
-		expect(next.rightIndex).toBe(1);
-		expect(next.phase).toBe("typing");
+		const nextState = next(state);
+		expect(nextState.rightIndex).toBe(1);
+		expect(nextState.phase).toBe("typing");
 	});
 
 	// TC-PURE-06: typing appends exactly one char per tick; after HERO_PHRASES[1].length ticks typed===phrase1 and phase==="dwell" and turn==="left"
 	it("TC-PURE-06: typing appends one char per tick; completing phrase sets turn:'left' and phase:'dwell'", () => {
 		// Get to typing state with rightIndex=1, typed=""
-		let state = heroNext(INITIAL); // backspacing
+		let state = next(INITIAL); // backspacing
 		for (let i = 0; i <= phrase0.length; i++) {
-			state = heroNext(state);
+			state = next(state);
 		}
 		// Now at rightIndex=1, phase="typing", typed=""
 		expect(state.phase).toBe("typing");
@@ -100,7 +115,7 @@ describe("HeroSubtitle pure state machine (v3 two-index model)", () => {
 		expect(state.typed).toBe("");
 
 		// First tick appends one char
-		const firstType = heroNext(state);
+		const firstType = next(state);
 		expect(firstType.typed).toBe(phrase1.slice(0, 1));
 		expect(firstType.phase).toBe("typing");
 
@@ -108,7 +123,7 @@ describe("HeroSubtitle pure state machine (v3 two-index model)", () => {
 		let typingState = state;
 		let ticks = 0;
 		while (typingState.phase === "typing") {
-			typingState = heroNext(typingState);
+			typingState = next(typingState);
 			ticks++;
 			if (ticks > 2000) throw new Error("TC-PURE-06: typing never ended");
 		}
@@ -119,28 +134,28 @@ describe("HeroSubtitle pure state machine (v3 two-index model)", () => {
 	});
 
 	// TC-PURE-07: dwell + turn=left -> phase "pushing", leftIndex+1, turn="right"
-	it("TC-PURE-07: heroNext(dwell+turn:left) -> phase 'pushing', leftIndex===1, turn==='right'", () => {
+	it("TC-PURE-07: cycleNext(dwell+turn:left) -> phase 'pushing', leftIndex===1, turn==='right'", () => {
 		// Get to a dwell+turn:left state
-		let state = heroNext(INITIAL); // backspacing
+		let state = next(INITIAL); // backspacing
 		state = advanceUntil(
 			state,
 			(s) => s.phase === "dwell" && s.turn === "left",
 		);
 		expect(state.turn).toBe("left");
-		const next = heroNext(state);
-		expect(next.phase).toBe("pushing");
-		expect(next.leftIndex).toBe(1);
-		expect(next.turn).toBe("right");
+		const nextState = next(state);
+		expect(nextState.phase).toBe("pushing");
+		expect(nextState.leftIndex).toBe(1);
+		expect(nextState.turn).toBe("right");
 	});
 
 	// TC-PURE-08: pushing -> phase "dwell", leftIndex unchanged
-	it("TC-PURE-08: heroNext(pushing) -> phase 'dwell', leftIndex unchanged", () => {
-		let state = heroNext(INITIAL);
+	it("TC-PURE-08: cycleNext(pushing) -> phase 'dwell', leftIndex unchanged", () => {
+		let state = next(INITIAL);
 		state = advanceUntil(state, (s) => s.phase === "pushing");
 		const pushingLeftIndex = state.leftIndex;
-		const next = heroNext(state);
-		expect(next.phase).toBe("dwell");
-		expect(next.leftIndex).toBe(pushingLeftIndex);
+		const nextState = next(state);
+		expect(nextState.phase).toBe("dwell");
+		expect(nextState.leftIndex).toBe(pushingLeftIndex);
 	});
 
 	// TC-PURE-09: SEQUENCE — first 5 dwell beats have (leftIndex,rightIndex) [[0,0],[0,1],[1,1],[1,2],[2,2]]
@@ -157,7 +172,7 @@ describe("HeroSubtitle pure state machine (v3 two-index model)", () => {
 		let lastSample: [number, number] = [state.leftIndex, state.rightIndex];
 
 		while (samples.length < 5) {
-			state = heroNext(state);
+			state = next(state);
 			ticks++;
 			if (ticks > cap) throw new Error("TC-PURE-09: cap exceeded");
 
@@ -199,7 +214,7 @@ describe("HeroSubtitle pure state machine (v3 two-index model)", () => {
 
 		while (!(leftWrapped && rightWrapped)) {
 			const prev = state;
-			state = heroNext(state);
+			state = next(state);
 			ticks++;
 			if (ticks > cap) break; // Use break so we can still run assertions on collected data
 
@@ -236,78 +251,90 @@ describe("HeroSubtitle pure state machine (v3 two-index model)", () => {
 	// TC-PURE-11: WRAP — leftIndex wraps from 4 to 0 through a pushing beat
 	it("TC-PURE-11: leftIndex wraps 4->0 on a dwell+turn:left -> pushing tick", () => {
 		// Construct a state with leftIndex=4 and advance through dwell+turn:left
-		const state = {
+		const state: CycleState = {
 			leftIndex: 4,
 			rightIndex: 4,
-			turn: "left" as const,
-			phase: "dwell" as const,
+			turn: "left",
+			phase: "dwell",
 			typed: HERO_PHRASES[4]!,
 		};
-		const pushing = heroNext(state);
+		const pushing = next(state);
 		expect(pushing.phase).toBe("pushing");
 		expect(pushing.leftIndex).toBe(0);
 	});
 
 	// TC-PURE-12: WRAP — rightIndex wraps from 4 to 0 through backspacing-empty
 	it("TC-PURE-12: rightIndex wraps 4->0 on backspacing+typed='' -> typing tick", () => {
-		const state = {
+		const state: CycleState = {
 			leftIndex: 4,
 			rightIndex: 4,
-			turn: "right" as const,
-			phase: "backspacing" as const,
+			turn: "right",
+			phase: "backspacing",
 			typed: "",
 		};
-		const next = heroNext(state);
-		expect(next.phase).toBe("typing");
-		expect(next.rightIndex).toBe(0);
+		const nextState = next(state);
+		expect(nextState.phase).toBe("typing");
+		expect(nextState.rightIndex).toBe(0);
 	});
 
 	// TC-PURE-13: delayFor returns correct ms for each phase
 	it("TC-PURE-13: delayFor dwell -> HERO_TIMING.dwell", () => {
 		expect(
-			delayFor({
-				leftIndex: 0,
-				rightIndex: 0,
-				turn: "right",
-				phase: "dwell",
-				typed: phrase0,
-			}),
+			delayFor(
+				{
+					leftIndex: 0,
+					rightIndex: 0,
+					turn: "right",
+					phase: "dwell",
+					typed: phrase0,
+				},
+				HERO_CONFIG,
+			),
 		).toBe(HERO_TIMING.dwell);
 	});
 
 	it("TC-PURE-14: delayFor backspacing -> HERO_TIMING.backspace", () => {
 		expect(
-			delayFor({
-				leftIndex: 0,
-				rightIndex: 0,
-				turn: "right",
-				phase: "backspacing",
-				typed: phrase0,
-			}),
+			delayFor(
+				{
+					leftIndex: 0,
+					rightIndex: 0,
+					turn: "right",
+					phase: "backspacing",
+					typed: phrase0,
+				},
+				HERO_CONFIG,
+			),
 		).toBe(HERO_TIMING.backspace);
 	});
 
 	it("TC-PURE-15: delayFor typing -> HERO_TIMING.type", () => {
 		expect(
-			delayFor({
-				leftIndex: 0,
-				rightIndex: 1,
-				turn: "right",
-				phase: "typing",
-				typed: "",
-			}),
+			delayFor(
+				{
+					leftIndex: 0,
+					rightIndex: 1,
+					turn: "right",
+					phase: "typing",
+					typed: "",
+				},
+				HERO_CONFIG,
+			),
 		).toBe(HERO_TIMING.type);
 	});
 
 	it("TC-PURE-16: delayFor pushing -> HERO_TIMING.push", () => {
 		expect(
-			delayFor({
-				leftIndex: 1,
-				rightIndex: 1,
-				turn: "right",
-				phase: "pushing",
-				typed: phrase1,
-			}),
+			delayFor(
+				{
+					leftIndex: 1,
+					rightIndex: 1,
+					turn: "right",
+					phase: "pushing",
+					typed: phrase1,
+				},
+				HERO_CONFIG,
+			),
 		).toBe(HERO_TIMING.push);
 	});
 

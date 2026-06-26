@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { ChevronDown, Moon, Sun } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CraftSection } from "../components/_layout/CraftSection";
 import { CTASection } from "../components/_layout/CTASection";
@@ -19,6 +19,7 @@ import {
 	techniqueFor,
 } from "../components/_layout/dive/techniqueFor";
 import { FindMeSection } from "../components/_layout/FindMeSection";
+import { FooterSection } from "../components/_layout/footer/FooterSection";
 import { HeroSection } from "../components/_layout/HeroSection";
 import { PanelHost } from "../components/_layout/PanelHost";
 import { Minimap } from "../components/Minimap";
@@ -295,7 +296,6 @@ function LayoutHost() {
 
 	const isNight = scrollProgress >= NIGHT_UI_THRESHOLD;
 	const navColor = isNight ? "white" : "#0f172a";
-	const currentYear = new Date().getFullYear();
 	const aboutItemClass = `block px-4 py-2 text-sm font-black uppercase tracking-widest transition-colors ${isNight ? "hover:bg-white hover:text-slate-900" : "hover:bg-slate-900 hover:text-white"}`;
 
 	return (
@@ -433,30 +433,7 @@ function LayoutHost() {
 				/>
 				<CTASection />
 
-				<footer
-					id={SECTION_IDS.footer}
-					className="py-12 px-6 border-t border-white/20 bg-slate-900/40 backdrop-blur-md transition-colors duration-100"
-					style={{ color: isNight ? "white" : "#0f172a" }}
-				>
-					<div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-						<div className="font-black uppercase tracking-tighter drop-shadow-sm">
-							© {currentYear} ALP — CREATING EVERY DAY
-						</div>
-						<div className="flex items-center gap-2 text-sm font-bold drop-shadow-sm">
-							{scrollProgress < 0.5 ? (
-								<Sun size={16} aria-hidden="true" />
-							) : (
-								<Moon size={16} aria-hidden="true" />
-							)}
-							PHASE:{" "}
-							{scrollProgress < 0.5
-								? "DAY"
-								: scrollProgress < 0.8
-									? "DUSK"
-									: "NIGHT"}
-						</div>
-					</div>
-				</footer>
+				<FooterSection scrollProgress={scrollProgress} />
 			</div>
 
 			<PanelHost
