@@ -60,8 +60,7 @@ export function InstagramIcon({
 			height={size}
 			className={className}
 			xmlns="http://www.w3.org/2000/svg"
-			role="img"
-			aria-label="Instagram"
+			aria-hidden="true"
 		>
 			<defs>
 				<linearGradient id="instagram-gradient" x1="0" y1="1" x2="1" y2="0">
@@ -103,8 +102,7 @@ export function TiktokIcon({
 			height={size}
 			className={className}
 			xmlns="http://www.w3.org/2000/svg"
-			role="img"
-			aria-label="TikTok"
+			aria-hidden="true"
 		>
 			<path
 				transform="translate(-1.3 -1.3)"

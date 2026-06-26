@@ -23,7 +23,7 @@ export function FooterHeadline() {
 		>
 			<span
 				aria-hidden="true"
-				className="font-black uppercase tracking-tighter bg-gradient-to-b from-white to-slate-300 bg-clip-text text-transparent"
+				className="pr-2 font-black uppercase tracking-tighter bg-gradient-to-b from-white to-slate-300 bg-clip-text text-transparent"
 			>
 				{role}
 			</span>

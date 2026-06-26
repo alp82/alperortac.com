@@ -18,14 +18,14 @@ function monoIcon(Icon: BrandIcon): BrandIcon {
 
 export function FollowMeRow() {
 	return (
-		<div className="flex items-center gap-6" style={{ color: "#f8fafc" }}>
-			<div className="flex flex-col items-center gap-2 shrink-0">
-				<span className="[writing-mode:vertical-rl] uppercase tracking-[0.3em] text-xs font-black opacity-70">
+		<div className="flex items-center gap-4">
+			<div className="flex items-stretch gap-2 shrink-0">
+				<span className="[writing-mode:vertical-rl] rotate-180 uppercase tracking-[0.25em] text-[10px] font-black opacity-70 leading-none">
 					Follow Me
 				</span>
-				<span className="w-px h-6 bg-current opacity-40" />
+				<span className="w-px bg-current opacity-30" />
 			</div>
-			<div className="flex flex-wrap items-center gap-3">
+			<div className="flex flex-wrap items-center gap-6">
 				{SOCIAL_LINKS.map((link) => {
 					const Icon = monoIcon(link.Icon);
 					return (
@@ -37,7 +37,7 @@ export function FollowMeRow() {
 							rel="noopener noreferrer"
 							className="opacity-70 hover:opacity-100 transition-opacity p-2 -m-2 rounded-sm focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-current"
 						>
-							<Icon size={20} color="currentColor" />
+							<Icon size={40} color="currentColor" />
 						</a>
 					);
 				})}

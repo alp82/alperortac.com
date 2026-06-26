@@ -1,4 +1,4 @@
-import { ExternalLink, Moon, Sun } from "lucide-react";
+import { ExternalLink, Sun } from "lucide-react";
 import { Fragment } from "react";
 import { FOOTER_PROJECTS_INTRO } from "../../../data/footer";
 import { PROJECTS } from "../../../data/projects";
@@ -6,7 +6,7 @@ import { SECTION_IDS } from "../../../data/sections";
 import { FollowMeRow } from "./FollowMeRow";
 import { FooterHeadline } from "./FooterHeadline";
 
-export function FooterSection({ scrollProgress }: { scrollProgress: number }) {
+export function FooterSection() {
 	const currentYear = new Date().getFullYear();
 
 	return (
@@ -42,21 +42,15 @@ export function FooterSection({ scrollProgress }: { scrollProgress: number }) {
 
 				<div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-current/15">
 					<div className="font-black uppercase tracking-tighter drop-shadow-sm">
-						© {currentYear} ALP · CREATING EVERY DAY
+						© {currentYear} ALPER ORTAC
 					</div>
-					<div className="flex items-center gap-2 text-sm font-bold drop-shadow-sm">
-						{scrollProgress < 0.5 ? (
-							<Sun size={16} aria-hidden="true" />
-						) : (
-							<Moon size={16} aria-hidden="true" />
-						)}
-						PHASE:{" "}
-						{scrollProgress < 0.5
-							? "DAY"
-							: scrollProgress < 0.8
-								? "DUSK"
-								: "NIGHT"}
-					</div>
+					<a
+						href={`#${SECTION_IDS.start}`}
+						className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest drop-shadow-sm rounded-sm hover:opacity-70 transition-opacity focus-visible:ring-2 focus-visible:ring-current"
+					>
+						<Sun size={16} aria-hidden="true" />
+						To the top
+					</a>
 				</div>
 			</div>
 		</footer>

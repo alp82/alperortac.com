@@ -7,7 +7,9 @@
         * what is the one thing you own? - passion
         * what is your enemy? - ai slop
         * rallying cry - what protects your clients from your enemy? - authentic experience
+* button two much inside (colorful logos)
 * carousel of videos and posts
+* video game char with big head - drag around - according to day of time
 * README with shieldcn
 * react-bits
 * https://loadout.hellomilo.app

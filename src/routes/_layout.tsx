@@ -433,7 +433,7 @@ function LayoutHost() {
 				/>
 				<CTASection />
 
-				<FooterSection scrollProgress={scrollProgress} />
+				<FooterSection />
 			</div>
 
 			<PanelHost
