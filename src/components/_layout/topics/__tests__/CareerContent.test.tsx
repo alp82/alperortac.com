@@ -19,8 +19,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CAREER_TIMELINE } from "../../../../data/career";
 
-vi.mock("../../../../data/flags", () => ({ TRIGGERS_ENABLED: true }));
-
 vi.mock("@tanstack/react-router", () => ({
 	useNavigate: () => vi.fn(),
 }));

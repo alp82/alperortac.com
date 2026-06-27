@@ -26,8 +26,7 @@ export const VBOX_H = 300;
  * scrolls into view (when `enabled`). Connectors feed it into a top→bottom
  * reveal — stroke-dash along the vertical path, or a clip-path that wipes down
  * (revealStyle below). Respects prefers-reduced-motion (jumps straight to
- * shown). DEV-only — lives under composer/, dead-stripped from prod (see
- * types.ts).
+ * shown). Ships as part of the composer subsystem (see types.ts).
  *
  * Reveal trigger: rails are now 90–150vh — TALLER than the viewport — so a
  * "40% of the rail visible" threshold could never be met and the observer would
@@ -89,7 +88,7 @@ export function useDrawIn(enabled: boolean) {
  * Returns the fixed fallback (`fallback`, default VBOX_H) until the first
  * measurement lands, so the very first paint is sane. Takes the SAME svg ref
  * the connector already holds (e.g. from useDrawIn) so both observers share one
- * element. DEV-only.
+ * element.
  */
 export function useAspectViewBox(
 	ref: React.RefObject<SVGSVGElement | null>,

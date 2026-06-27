@@ -45,17 +45,10 @@ import type {
 } from "./types";
 
 /*
- * DEV-ONLY composer registries — the single source of truth for the three
- * layers (section / inner / link). The panel reads these to build its radio
- * lists + per-item param controls; the dispatcher reads them to render the
- * selected composition.
- *
- * Production never imports this module (every importer is gated behind a folded
- * import.meta.env.DEV literal), so Rollup tree-shakes the whole registry + all
- * section/inner/link modules out of the prod client bundle. Verified by dist
- * grep — see CLEANUP_NEEDED.
- *
- * Planner: removed wholesale once a composition is locked.
+ * Composer registries — the single source of truth for the three layers
+ * (section / inner / link). The panel reads these to build its radio lists +
+ * per-item param controls; the dispatcher reads them to render the selected
+ * composition.
  */
 
 export type {

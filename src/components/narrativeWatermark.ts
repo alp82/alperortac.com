@@ -16,7 +16,7 @@ export type WatermarkWord = {
 };
 
 // Two data-driven words tiled across the page. Color is fixed per word
-// (independent of scroll - no night flip): BUILD dark on the left, LIFE light
+// (independent of scroll - no night flip): BUILD dark on the left, EXPLORE light
 // on the right. Zones are re-aimed so the triangular falloff tails overlap
 // across the page center; the crossover lands at p=0.5 so there's no dead gap
 // at the seam. Positional placeholders pending the deferred content restructure.
@@ -27,10 +27,10 @@ export const WORDS: readonly WatermarkWord[] = [
 		zone: { c: 0.3, w: 0.36, edge: "left" },
 		revealAfterVh: 0,
 	},
-	{ text: "LIFE", color: "#fff", zone: { c: 0.7, w: 0.36, edge: "right" } },
+	{ text: "EXPLORE", color: "#fff", zone: { c: 0.7, w: 0.36, edge: "right" } },
 ];
 
-// While a detail subpage is open, the BUILD / LIFE pair is replaced by the
+// While a detail subpage is open, the BUILD / EXPLORE pair is replaced by the
 // open subpage's own two words (left anchored toward the top, right toward the
 // bottom, behind the frosted column). Every entry is a real left+right pair;
 // short titles take a complementary second word (music -> Music / Audio).
@@ -48,7 +48,7 @@ export const SUBPAGE_WORDS: Partial<
 };
 
 // Longest word drives the auto-fit so the full column always fits the viewport.
-export const LONGEST = WORDS.reduce((m, w) => Math.max(m, w.text.length), 0); // 5
+export const LONGEST = WORDS.reduce((m, w) => Math.max(m, w.text.length), 0); // 7
 
 export const WM = {
 	opacity: 0.2,

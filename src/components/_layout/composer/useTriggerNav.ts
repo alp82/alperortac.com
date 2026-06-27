@@ -17,11 +17,6 @@ import type { Trigger } from "../../../data/topics";
  * resolveTrigger() flattens a Trigger union into the display fields an inner
  * style needs (title / subtitle / icon / side / accent tile class), so inner
  * styles don't re-implement the project/personal/career lookup.
- *
- * This + the `current` baseline are the only composer files that legitimately
- * ship — they're imported by the production TopicArticle path. Planner: when a
- * composition is locked, the chosen inner style's trigger rendering folds into
- * the real component and this helper stays (it already mirrors the shipped nav).
  */
 
 export type ResolvedTrigger = {

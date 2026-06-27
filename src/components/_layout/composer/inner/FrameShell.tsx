@@ -10,7 +10,7 @@
  * ANCHOR-LESS by design — the Layer-1 Stage owns the `<article id>`. No `py-24`
  * and no accent layout: those belong to production's `SectionBody`, not here.
  *
- * DEV-only — lives under composer/, dead-stripped from prod (see types.ts).
+ * Ships as part of the composer subsystem (see types.ts).
  */
 
 export function FrameShell({

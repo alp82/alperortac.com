@@ -1,7 +1,7 @@
 import type { Topic, TopicId } from "../../../data/topics";
 
 /*
- * DEV-ONLY 3-layer composer contract.
+ * 3-layer composer contract.
  *
  * A composition stacks three independent axes over a single topic:
  *   Layer 1 — SECTION STYLE   the full-bleed cinematic STAGE the topic sits on
@@ -10,16 +10,8 @@ import type { Topic, TopicId } from "../../../data/topics";
  *
  * Each layer has its own registry (sections/, inner/, links/) keyed by id, and
  * each item carries a small set of FOCUSED params the panel exposes as controls.
- *
- * Production never imports any of this: the composer host/panel/state + every
- * section/inner/link module are gated behind a folded `import.meta.env.DEV`
- * literal at the call sites, so Rollup tree-shakes the whole composer/ tree
- * (minus the `current` baseline + the two shared helpers below) out of the prod
- * client bundle. Verified with a dist grep — see CLEANUP_NEEDED.
- *
- * Planner: once a composition is locked, fold the chosen section+inner+link
- * render bodies into the real TopicArticle/CraftSection and delete the rest of
- * composer/ (see CLEANUP_NEEDED).
+ * The dispatcher reads the selected ids + params to render the composition; the
+ * shared tokens/helpers below are also used by the `current` baseline path.
  */
 
 /* ── Layer 1: SECTION STYLE ─────────────────────────────────────────────── */

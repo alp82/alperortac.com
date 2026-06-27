@@ -8,27 +8,22 @@ import type { ComposerState } from "./composer/useComposerControls";
  *
  * Two render paths:
  *
- *   1. Production / "Shipped baseline" toggle → CurrentBlock. The baseline
- *      handles every topic via the shared SectionBody (teaser + trigger cards
- *      for un-promoted topics, the dedicated component inside the frosted plate
- *      for promoted ones).
+ *   1. "Shipped baseline" toggle → CurrentBlock. The baseline handles every
+ *      topic via the shared SectionBody (teaser + trigger cards for un-promoted
+ *      topics, the dedicated component inside the frosted plate for promoted
+ *      ones).
  *
- *   2. DEV composer active → full TopicComposition (Section + Inner from the
- *      registries), which restyles each topic's stage + cluster.
- *
- *   Both paths gate behind a folded `import.meta.env.DEV` literal, so Rollup
- *   dead-strips TopicComposition + the section/inner registries from production.
+ *   2. Composed look (the default) → full TopicComposition (Section + Inner from
+ *      the registries), which restyles each topic's stage + cluster.
  */
-
-const DESIGN_MODE = import.meta.env.DEV;
 
 type TopicArticleProps = {
 	topic: Topic;
 	index: number;
 	lastTriggerRef: React.RefObject<HTMLElement | null>;
 	isNight: boolean;
-	// DEV-only composition; undefined in production (baseline look).
-	composer?: ComposerState | undefined;
+	// The active composition (composed look by default; panel can switch to baseline).
+	composer: ComposerState;
 };
 
 export function TopicArticle({
@@ -38,7 +33,7 @@ export function TopicArticle({
 	isNight,
 	composer,
 }: TopicArticleProps) {
-	if (DESIGN_MODE && composer && !composer.baseline) {
+	if (!composer.baseline) {
 		return (
 			<TopicComposition
 				state={composer}
@@ -50,7 +45,7 @@ export function TopicArticle({
 		);
 	}
 
-	// Production, "Shipped baseline" toggle, OR composer disabled.
+	// "Shipped baseline" toggle.
 	return (
 		<CurrentBlock
 			topic={topic}

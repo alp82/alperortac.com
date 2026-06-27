@@ -1,15 +1,22 @@
 /* ════════════════════════════════════════════════════════════════════
-   3-LAYER COMPOSER CSS  ·  DEV-ONLY  ·  planner: see CLEANUP_NEEDED
+   3-LAYER COMPOSER CSS
    --------------------------------------------------------------------
-   Presentation CSS for the section (L1) / inner (L2) / link (L3) layers.
-   Imported ONLY by the DEV composer host as a raw string (Vite `?raw`)
-   and injected at runtime — never as a CSS side-effect — so it stays out
-   of every production CSS asset. With the DEV host dead-stripped in prod,
-   this whole string goes with it. None of these classes are emitted by
-   the `current` baseline (it uses inline Tailwind).
+   Presentation CSS for the composer's section (L1) / inner (L2) / link
+   (L3) layers. Imported as a stylesheet side-effect by the composer host;
+   Vite emits it into the SSR `_layout` stylesheet so the composed look is
+   styled at first paint.
 
-   Once a composition is locked, fold the chosen section/inner/link rules
-   into the real component styles and delete this file.
+   Ships two kinds of rules:
+     • Global design tokens — `:root { --paper; --ink }` — available
+       site-wide.
+     • Bespoke component classes — `.cmp-*` (composer layers) plus named
+       utility classes such as `.signpost`, `.fossil`, `.specimen`,
+       `.museum-plate`, `.strata-band`, `.polaroid`, `.star-glow`,
+       `.journal-page`, etc.
+
+   Currently collision-free with Tailwind and the baseline stylesheet, but
+   that is not enforced by tooling. Renaming/namespacing selectors is a
+   deferred task.
    ════════════════════════════════════════════════════════════════════ */
 :root {
 	--paper: #faf7f1;

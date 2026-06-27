@@ -9,21 +9,16 @@ import { TopicArticle } from "./TopicArticle";
 /*
  * Interests band.
  *
- * Production maps TOPICS → TopicArticle (baseline look), no connectors.
- *
- * In DEV, when the composer is active, the Layer-3 connector renders at each
- * seam BETWEEN consecutive topics (after every topic but the last). The
- * connector block is gated behind a folded import.meta.env.DEV literal, so
- * Rollup dead-strips it + the LINKS registry from production.
+ * Maps TOPICS → TopicArticle, with the Layer-3 connector rendered at each seam
+ * BETWEEN consecutive topics (after every topic but the last) whenever the
+ * composition is non-baseline and a connector is picked.
  */
-
-const DESIGN_MODE = import.meta.env.DEV;
 
 type CraftSectionProps = {
 	lastTriggerRef: React.RefObject<HTMLElement | null>;
 	isNight: boolean;
-	// DEV-only composition; undefined in production (baseline look).
-	composer?: ComposerState | undefined;
+	// The active composition (composed look by default; panel can switch to baseline).
+	composer: ComposerState;
 };
 
 export function CraftSection({
@@ -31,8 +26,7 @@ export function CraftSection({
 	isNight,
 	composer,
 }: CraftSectionProps) {
-	const showLinks =
-		DESIGN_MODE && composer && !composer.baseline && composer.link !== "none";
+	const showLinks = !composer.baseline && composer.link !== "none";
 	// Widening cast (same as Stage/Inside): the registry erases the id↔params
 	// link; setLink keeps link + linkParams in lockstep, so it's sound.
 	const LinkComponent = showLinks
@@ -52,7 +46,7 @@ export function CraftSection({
 							isNight={isNight}
 							composer={composer}
 						/>
-						{LinkComponent && composer && index < TOPICS.length - 1 && (
+						{LinkComponent && index < TOPICS.length - 1 && (
 							<LinkComponent
 								index={index}
 								isNight={isNight}

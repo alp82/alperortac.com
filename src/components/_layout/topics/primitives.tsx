@@ -1,7 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
-import { TRIGGERS_ENABLED } from "../../../data/flags";
 import { PERSONAL_BY_SLUG } from "../../../data/personal";
 import { PROJECT_ICONS, PROJECTS } from "../../../data/projects";
 import { PANEL_SIDES } from "../../../data/sections";
@@ -271,7 +270,6 @@ export function TriggerCard({
 	lastTriggerRef: React.RefObject<HTMLElement | null>;
 }) {
 	const navigate = useNavigate();
-	if (!TRIGGERS_ENABLED) return null;
 
 	if (trigger.kind === "career") {
 		const go = (el: HTMLElement | null) => {

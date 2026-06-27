@@ -18,8 +18,6 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../../../data/flags", () => ({ TRIGGERS_ENABLED: true }));
-
 vi.mock("@tanstack/react-router", () => ({
 	useNavigate: () => vi.fn(),
 }));

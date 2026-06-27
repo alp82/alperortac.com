@@ -1,3 +1,45 @@
+A — Recycle + embed (recommended). Keeps the old line's DNA, lands all three pillars (build-for-love = passion, bad taste = enemy, authentic experience = cry):
+▎ I'm a ⟨web enthusiast / agentic coach / relentless tinkerer⟩ with ⟨a side-project habit / a camera in hand / a soft spot for open source⟩. I build because I love it, sweat the details because bad taste is the enemy, and leave behind an authentic experience.
+
+B — Fresh manifesto. Punchiest, most screenshot-able, fewest words:
+▎ I run on ⟨passion / curiosity / spite for bad taste⟩, and I'd rather make something ⟨authentic / honest / a little strange⟩ than something safe.
+
+C — Old tagline as a quote. Lowest motion, closest to recycling your previous line verbatim:
+▎ Web enthusiast and agentic coach with a ⟨side-project habit / camera in hand / GitHub problem⟩. Powered by passion, allergic to bad taste.
+
+---
+
+Short / high punch
+1. I run on ⟨passion / curiosity / good taste⟩ and build things that feel ⟨authentic / honest / alive⟩.
+2. Powered by passion, ⟨allergic to / impatient with / done with⟩ bad taste.
+3. Driven by ⟨passion / curiosity / craft⟩, allergic to bad taste, here for an authentic experience.
+4. Equal parts ⟨builder / tinkerer / enthusiast⟩ and taste police.
+
+Medium / balanced
+5. I make ⟨web things / agentic tools / side projects⟩ for the love of it, and sweat every detail until the experience feels authentic.
+6. I build because I love it, not because it's safe. Give me ⟨passion / craft / a blank canvas⟩ over polish without a pulse.
+7. I'd rather build something ⟨authentic / honest / a little strange⟩ than something safe. Passion is the point; bad taste is the only enemy.
+8. ⟨Building web things / Coaching agents / Shipping side projects / Carrying a camera⟩, always for the love of the craft and never for ⟨the easy default / the safe bet⟩.
+
+Longer / manifesto (folds A's bio flavor)
+9. I'm a ⟨web enthusiast / agentic coach / relentless tinkerer⟩ who builds for the love of it, ⟨one side project / one camera roll / one repo⟩ at a time, chasing an experience that actually feels authentic.
+10. Passion is the one thing I own; bad taste is the one thing I won't ship. So I build ⟨web things / agentic tools / quiet little experiments⟩ that earn an authentic ⟨experience / reaction / moment⟩.
+
+---
+
+1. I run on ⟨passion / curiosity / good taste⟩ and build things that feel ⟨authentic / alive / hard to fake⟩. Passion is the point, bad taste is the only enemy, and an authentic experience is the reward.
+2. I run on ⟨passion / curiosity / craft⟩ and pour it into ⟨web things / agentic tools / side projects⟩ until they feel ⟨authentic / alive⟩. Passion is the point; bad taste is the only enemy.
+3. I'm a ⟨web enthusiast / agentic coach / relentless tinkerer⟩ who runs on ⟨passion / curiosity / good taste⟩ and builds things that feel ⟨authentic / alive⟩. Bad taste is the only enemy I take personally.
+4. I run on ⟨passion / curiosity / good taste⟩, sweat the details ⟨nobody asked for / no one notices / most people skip⟩, and build things that feel authentic. That's the whole job.
+5. I run on ⟨passion / curiosity / good taste⟩ and build ⟨web things / agentic tools / quiet experiments⟩ that feel ⟨authentic / alive⟩. Passion is the point, and bad taste is the only thing I won't ship.
+6. Everything I make starts with ⟨passion / curiosity / good taste⟩ and ends as something that feels ⟨authentic / alive⟩. I sweat the details, chase the real thing, and treat bad taste as the only enemy.
+7. I run on ⟨passion / curiosity / good taste⟩, ⟨one side project / one camera roll / one repo⟩ at a time, building things that feel ⟨authentic / alive⟩. Passion is the point; bad taste is the only enemy.
+8. I build for the love of it, fueled by ⟨passion / curiosity / good taste⟩, until the experience feels ⟨authentic / alive⟩. Bad taste is the only enemy; everything else is just detail.
+9. Part ⟨web enthusiast / agentic coach / relentless tinkerer⟩, part ⟨side-project addict / camera carrier / open-source regular⟩, all powered by passion and a low tolerance for bad taste. What I'm really after is an authentic experience.
+10. I run on ⟨passion / curiosity / good taste⟩ and won't ship anything that feels ⟨fake / forgettable / off⟩. Passion is the point, bad taste is the only enemy, and an authentic experience is the reward.
+
+---
+
 * hero redesign
     * quote according to personal brand, e.g. I'm a passionate builder looking for authentic experiences
     * previous one was "Web enthusiast and agentic coach, with a side project habit and a camera." - maybe we can recycle that or parts of it somehow to

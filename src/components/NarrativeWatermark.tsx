@@ -8,7 +8,7 @@ import {
 	zoneOpacity,
 } from "./narrativeWatermark";
 
-// Vertical stacked watermark words (BUILD / LIFE) that crossfade and drift
+// Vertical stacked watermark words (BUILD / EXPLORE) that crossfade and drift
 // behind the page as the user scrolls. The geometry lives in the pure
 // `./narrativeWatermark` module; this is a thin render layer. It consumes the
 // existing `scrollProgress` prop like its siblings (PixelBackground / Minimap).
@@ -62,7 +62,7 @@ export function NarrativeWatermark({
 	const scrolledVh = dims.h > 0 ? scrollY / dims.h : 0;
 
 	// While a subpage is open, render its two words STATICALLY in place of
-	// BUILD / LIFE: left edge + dark color from WORDS[0], right edge + light
+	// BUILD / EXPLORE: left edge + dark color from WORDS[0], right edge + light
 	// from WORDS[1]. The left word is always anchored toward the TOP and the
 	// right toward the BOTTOM (length-independent, so the pair never drifts off
 	// between subpages), at the steady WM.opacity. Each word div is keyed by edge
@@ -106,7 +106,7 @@ export function NarrativeWatermark({
 								letterSpacing: "-0.04em",
 								lineHeight: WM.lineHeight,
 								fontSize: `${fontPx}px`,
-								// Subpage words must contrast the frozen sky, not BUILD/LIFE's
+								// Subpage words must contrast the frozen sky, not BUILD/EXPLORE's
 								// fixed dark/light: light over a night sky, dark over day —
 								// otherwise the dark left word vanishes on a night subpage.
 								color: isNight ? "#f8fafc" : "#0f172a",

@@ -31,19 +31,19 @@ function approxEq(actual: number, expected: number, places = 6) {
 // ---------------------------------------------------------------------------
 
 describe("Constants", () => {
-	it("TC-C-01: LONGEST equals max word length and is 5", () => {
+	it("TC-C-01: LONGEST equals max word length and is 7", () => {
 		expect(LONGEST).toBe(Math.max(...WORDS.map((w) => w.text.length)));
-		expect(LONGEST).toBe(5);
+		expect(LONGEST).toBe(7);
 	});
 
-	it("TC-C-02: edges — BUILD=left, LIFE=right; two words; every word has an edge", () => {
+	it("TC-C-02: edges — BUILD=left, EXPLORE=right; two words; every word has an edge", () => {
 		const byText = (t: string): WatermarkWord => {
 			const found = WORDS.find((w) => w.text === t);
 			if (!found) throw new Error(`Word "${t}" not in WORDS`);
 			return found;
 		};
 		expect(byText("BUILD").zone.edge).toBe("left");
-		expect(byText("LIFE").zone.edge).toBe("right");
+		expect(byText("EXPLORE").zone.edge).toBe("right");
 		expect(WORDS.length).toBe(2);
 		for (const w of WORDS) {
 			expect(["left", "right"]).toContain(w.zone.edge);
@@ -59,14 +59,14 @@ describe("Constants", () => {
 		expect(WM.lineHeight).toBe(0.92);
 	});
 
-	it("TC-C-04: per-word colors — BUILD dark, LIFE light", () => {
+	it("TC-C-04: per-word colors — BUILD dark, EXPLORE light", () => {
 		const byText = (t: string): WatermarkWord => {
 			const found = WORDS.find((w) => w.text === t);
 			if (!found) throw new Error(`Word "${t}" not in WORDS`);
 			return found;
 		};
 		expect(byText("BUILD").color).toBe("#0f172a");
-		expect(byText("LIFE").color).toBe("#fff");
+		expect(byText("EXPLORE").color).toBe("#fff");
 	});
 });
 
@@ -75,18 +75,18 @@ describe("Constants", () => {
 // ---------------------------------------------------------------------------
 
 describe("letterSizePx", () => {
-	it("TC-L-01: desktop 800×1024 → avail=560, size=560/(5*0.92)", () => {
-		approxEq(letterSizePx(800, 1024), 560 / (5 * 0.92));
+	it("TC-L-01: desktop 800×1024 → avail=560, size=560/(7*0.92)", () => {
+		approxEq(letterSizePx(800, 1024), 560 / (7 * 0.92));
 	});
 
 	it("TC-L-02: floor engages — tiny winH clamps avail to 40", () => {
 		// padPx=(8+8)/100*50=8; travelPx=14/100*50=7; avail=50-8-7=35 → clamped to 40
-		approxEq(letterSizePx(50, 1024), 40 / (5 * 0.92));
+		approxEq(letterSizePx(50, 1024), 40 / (7 * 0.92));
 	});
 
 	it("TC-L-03: floor inactive — winH=600, avail=600-96-84=420", () => {
 		// padPx=(8+8)/100*600=96; travelPx=14/100*600=84; avail=600-96-84=420
-		approxEq(letterSizePx(600, 1024), 420 / (5 * 0.92));
+		approxEq(letterSizePx(600, 1024), 420 / (7 * 0.92));
 	});
 
 	it("TC-L-04: mobile boundary inclusive (winW=560) applies 0.78 scale", () => {
@@ -117,8 +117,8 @@ describe("letterSizePx", () => {
 		);
 	});
 
-	it("TC-L-09: custom lh=1.0 → size=560/(5*1.0)=112", () => {
-		expect(letterSizePx(800, 1024, 1.0)).toBe(560 / (5 * 1.0));
+	it("TC-L-09: custom lh=1.0 → size=560/(7*1.0)=80", () => {
+		expect(letterSizePx(800, 1024, 1.0)).toBe(560 / (7 * 1.0));
 	});
 });
 

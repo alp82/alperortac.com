@@ -2,7 +2,8 @@ import type { Topic } from "../../../data/topics";
 import { SectionBody } from "./SectionBody";
 
 /*
- * Baseline shell — the PRODUCTION default for every topic on the Craft band.
+ * Baseline shell — the baseline look, reachable via the panel's Shipped-baseline
+ * toggle.
  *
  * Owns the topic's `<article>` shell (id anchor + vertical rhythm) and renders
  * the shared `SectionBody` (heading, accent layout, plate/bespoke-else-teaser)

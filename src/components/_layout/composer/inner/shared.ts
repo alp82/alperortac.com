@@ -7,7 +7,7 @@ import type { InnerBase } from "../types";
  * concrete max-width / vertical-gap / heading-scale values so every style reads
  * it the same way and the panel's control behaves predictably across styles.
  *
- * DEV-only — lives under composer/, dead-stripped from prod (see types.ts).
+ * Ships as part of the composer subsystem (see types.ts).
  */
 
 /** Density → cluster vertical gap rhythm. */

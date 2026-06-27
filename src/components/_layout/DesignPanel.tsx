@@ -44,17 +44,14 @@ import {
 } from "./composer/useComposerControls";
 
 /*
- * DEV-ONLY composer panel.
+ * Composer panel — shipped to prod inside the `panel-dialog-modal` <dialog>.
  *
- * Renders inside the existing `panel-dialog-modal` <dialog> so the live
- * landscape stays visible. A top "Shipped baseline" toggle bypasses the
- * composer to A/B against production. Below it, three tabbed layers — a GLOBAL
- * Stage and Connector (one pick each) plus a per-topic Cluster (chosen per topic
- * via the topic selector) — each exposing the selected item's focused params.
- * Spec readout + Copy spec + Reset at the bottom.
- *
- * Planner: removed with the rest of the composer host once a composition is
- * locked (see CLEANUP_NEEDED).
+ * Renders so the live landscape stays visible. A top "Shipped baseline" toggle
+ * bypasses the composer to A/B against the baseline. Below it, three tabbed
+ * layers — a GLOBAL Stage and Connector (one pick each) plus a per-topic
+ * Cluster (chosen per topic via the topic selector) — each exposing the
+ * selected item's focused params. Spec readout + Copy spec + Reset at the
+ * bottom.
  */
 
 export const DESIGN_PANEL_TITLE_ID = "design-panel-title";
@@ -1352,9 +1349,9 @@ export function DesignPanel({
 					Composer
 				</h2>
 				<p className="text-xs opacity-70 mb-4 font-sans leading-snug">
-					DEV-only. A global stage × a per-topic inside style × a global
-					connector. Tune each layer's params, then scroll the page to judge it
-					against the live landscape, day → night.
+					A global stage × a per-topic inside style × a global connector. Tune
+					each layer's params, then scroll the page to judge it against the live
+					landscape, day → night.
 				</p>
 
 				{/* Shipped baseline bypass */}

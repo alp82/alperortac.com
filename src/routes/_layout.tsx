@@ -5,7 +5,7 @@ import { CraftSection } from "../components/_layout/CraftSection";
 import { CTASection } from "../components/_layout/CTASection";
 import {
 	type ComposerState,
-	defaultState,
+	DEFAULT_STATE,
 } from "../components/_layout/composer/useComposerControls";
 import { DesignModeHost } from "../components/_layout/DesignModeHost";
 import {
@@ -95,13 +95,6 @@ function useCelestialState(): [CelestialState, (s: CelestialState) => void] {
 
 	return [state, update];
 }
-
-// DEV-only design-exploration host. import.meta.env.DEV is a compile-time
-// constant, so in production this folds to `false`, the <DesignModeHost> render
-// site below becomes dead code, and Rollup tree-shakes the host + its
-// transitive imports (panel, hook, approach registry) out of the client
-// bundle. Remove once a design is locked (see CLEANUP_NEEDED).
-const DESIGN_MODE = import.meta.env.DEV;
 
 function LayoutHost() {
 	const [scrollProgress, setScrollProgress] = useState(0);
@@ -226,16 +219,14 @@ function LayoutHost() {
 		};
 	}, []);
 
-	// DEV-only design composition, pushed up from <DesignModeHost>. Seeded to the
-	// deterministic defaults in DEV so the server and the first client paint
-	// render the SAME composition — no hydration mismatch, and the band is at its
-	// settled height from first paint (no baseline-then-swap growth after scroll
-	// restoration). `import.meta.env.DEV` folds to false in production, so this is
-	// `undefined`, the host never mounts, and the band renders the baseline.
-	// LayoutHost imports neither the panel nor the hook, keeping them strippable.
-	const [designComposer, setDesignComposer] = useState<
-		ComposerState | undefined
-	>(() => (import.meta.env.DEV ? defaultState() : undefined));
+	// The design composition, pushed up from <DesignModeHost>. Seeded to the
+	// deterministic defaults so the server and the first client paint render the
+	// SAME composition — no hydration mismatch, and the band is at its settled
+	// height from first paint (no baseline-then-swap growth after scroll
+	// restoration). This composed look is the default that ships to production;
+	// the panel stays mounted for live A/B tweaking.
+	const [designComposer, setDesignComposer] =
+		useState<ComposerState>(DEFAULT_STATE);
 
 	// Paint the body background with the current sky color so the dive's 3D
 	// transform never reveals a white void at the landscape edges — any exposed
@@ -327,12 +318,10 @@ function LayoutHost() {
 				Tune ☀ ☾
 			</button>
 
-			{DESIGN_MODE && (
-				<DesignModeHost
-					lastTriggerRef={lastTriggerRef}
-					onComposer={setDesignComposer}
-				/>
-			)}
+			<DesignModeHost
+				lastTriggerRef={lastTriggerRef}
+				onComposer={setDesignComposer}
+			/>
 
 			<nav
 				ref={navRef}
@@ -383,6 +372,7 @@ function LayoutHost() {
 						{aboutOpen && (
 							<div
 								id="about-menu"
+								role="menu"
 								aria-labelledby="about-menu-trigger"
 								className={`absolute top-full right-0 mt-2 min-w-[220px] border-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.25)] py-2 ${isNight ? "bg-slate-900 border-white text-white" : "bg-white border-slate-900 text-slate-900"}`}
 							>

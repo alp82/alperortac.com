@@ -1,12 +1,10 @@
 /*
- * DEV-ONLY shared control primitives for the composer panel.
+ * Shared control primitives for the composer panel.
  *
  * Small, dependency-free controls whose type matches the parameter semantics:
  * a segmented control for enumerated choices, a slider for numeric ranges, a
  * toggle for booleans, and color swatches for the accent/color sources. Styled
  * in the brutalist panel idiom (heavy borders, mono labels).
- *
- * Planner: removed with the rest of the composer panel.
  */
 
 export function ControlLabel({ children }: { children: React.ReactNode }) {

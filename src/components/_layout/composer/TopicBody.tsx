@@ -1,5 +1,4 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { TRIGGERS_ENABLED } from "../../../data/flags";
 import type { Topic } from "../../../data/topics";
 import { TopicPlate } from "../topics/primitives";
 import { TOPIC_CONTENTS } from "../topics/registry";
@@ -30,16 +29,16 @@ function SidedCard({ resolved }: { resolved: ResolvedTrigger }) {
 		</div>
 	);
 	const contentEl = (
-		<div className="min-w-0">
-			<h3 className="text-2xl md:text-3xl font-black uppercase leading-none mb-1 truncate">
+		<span className="min-w-0">
+			<span className="block text-2xl md:text-3xl font-black uppercase leading-none truncate">
 				{title}
-			</h3>
+			</span>
 			{subtitle && (
-				<p className="text-xs md:text-sm mt-1 opacity-75 font-medium line-clamp-1">
+				<span className="block mt-1 text-xs md:text-sm font-medium normal-case opacity-75 line-clamp-1">
 					{subtitle}
-				</p>
+				</span>
 			)}
-		</div>
+		</span>
 	);
 	const arrowEl = isRight ? (
 		<ArrowRight
@@ -123,28 +122,26 @@ export function TopicBody({
 					))}
 				</TopicPlate>
 			)}
-			{TRIGGERS_ENABLED && (
-				<div className="space-y-6 mt-6">
-					{topic.triggers.map((trigger) => {
-						const resolved = resolveTrigger(trigger, topic.teaser ?? "");
-						if (!resolved) return null;
-						if (resolved.isCareer) {
-							return (
-								<button
-									key={resolved.key}
-									type="button"
-									onClick={(e) => resolved.navigate(e.currentTarget)}
-									className="btn-brutalist btn-brutalist--ghost w-full flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl p-6"
-								>
-									<ArrowLeft size={32} className="shrink-0" />
-									<span>{resolved.title}</span>
-								</button>
-							);
-						}
-						return <SidedCard key={resolved.key} resolved={resolved} />;
-					})}
-				</div>
-			)}
+			<div className="space-y-6 mt-6">
+				{topic.triggers.map((trigger) => {
+					const resolved = resolveTrigger(trigger, topic.teaser ?? "");
+					if (!resolved) return null;
+					if (resolved.isCareer) {
+						return (
+							<button
+								key={resolved.key}
+								type="button"
+								onClick={(e) => resolved.navigate(e.currentTarget)}
+								className="btn-brutalist btn-brutalist--ghost w-full flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl p-6"
+							>
+								<ArrowLeft size={32} className="shrink-0" />
+								<span>{resolved.title}</span>
+							</button>
+						);
+					}
+					return <SidedCard key={resolved.key} resolved={resolved} />;
+				})}
+			</div>
 		</>
 	);
 }
