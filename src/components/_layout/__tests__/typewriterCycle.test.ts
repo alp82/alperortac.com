@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { HERO_PHRASES, HERO_ROLES, HERO_TIMING } from "../../../data/hero";
 import {
 	type CycleConfig,
 	type CycleState,
@@ -8,14 +7,43 @@ import {
 	makeInitial,
 } from "../typewriterCycle";
 
-const HERO_CONFIG: CycleConfig = {
-	roles: HERO_ROLES,
-	phrases: HERO_PHRASES,
-	timing: HERO_TIMING,
+// ---------------------------------------------------------------------------
+// Inline fixtures — no dependency on src/data/hero so this suite stays green
+// even as hero.ts evolves (HERO_TIMING / HERO_ROLES / HERO_PHRASES relocated).
+// 5 roles and 5 phrases with DISTINCT LENGTHS so wrap tests (TC-PURE-11/12)
+// remain meaningful.
+// ---------------------------------------------------------------------------
+const TEST_ROLES: readonly string[] = [
+	"web enthusiast",
+	"agentic coach",
+	"engineering consultant",
+	"solutions architect",
+	"relentless tinkerer",
+];
+
+const TEST_PHRASES: readonly string[] = [
+	"with a side project habit", // 25 chars
+	"contributing to open source", // 28 chars
+	"with a camera in hand", // 21 chars
+	"always stepping outside his comfort zone", // 40 chars
+	"shipping things on the side", // 27 chars
+];
+
+const TEST_TIMING = {
+	type: 40,
+	backspace: 14,
+	dwell: 1100,
+	push: 420,
+} as const;
+
+const TEST_CONFIG: CycleConfig = {
+	roles: TEST_ROLES,
+	phrases: TEST_PHRASES,
+	timing: TEST_TIMING,
 };
 
-const INITIAL = makeInitial(HERO_CONFIG);
-const next = (s: CycleState) => cycleNext(s, HERO_CONFIG);
+const INITIAL = makeInitial(TEST_CONFIG);
+const next = (s: CycleState) => cycleNext(s, TEST_CONFIG);
 
 // ---------------------------------------------------------------------------
 // Helper: drive cycleNext until predicate(state) is true.
@@ -42,17 +70,17 @@ function advanceUntil(
 
 // ---------------------------------------------------------------------------
 describe("typewriterCycle pure state machine (v3 two-index model)", () => {
-	const phrase0 = HERO_PHRASES[0]!;
-	const phrase1 = HERO_PHRASES[1]!;
+	const phrase0 = TEST_PHRASES[0]!;
+	const phrase1 = TEST_PHRASES[1]!;
 
 	// TC-PURE-01: INITIAL shape
-	it("TC-PURE-01: makeInitial deep-equals { leftIndex:0, rightIndex:0, turn:'right', phase:'dwell', typed: HERO_PHRASES[0] }", () => {
+	it("TC-PURE-01: makeInitial deep-equals { leftIndex:0, rightIndex:0, turn:'right', phase:'dwell', typed: TEST_PHRASES[0] }", () => {
 		expect(INITIAL).toEqual({
 			leftIndex: 0,
 			rightIndex: 0,
 			turn: "right",
 			phase: "dwell",
-			typed: HERO_PHRASES[0],
+			typed: TEST_PHRASES[0],
 		});
 	});
 
@@ -102,7 +130,7 @@ describe("typewriterCycle pure state machine (v3 two-index model)", () => {
 		expect(nextState.phase).toBe("typing");
 	});
 
-	// TC-PURE-06: typing appends exactly one char per tick; after HERO_PHRASES[1].length ticks typed===phrase1 and phase==="dwell" and turn==="left"
+	// TC-PURE-06: typing appends exactly one char per tick; after TEST_PHRASES[1].length ticks typed===phrase1 and phase==="dwell" and turn==="left"
 	it("TC-PURE-06: typing appends one char per tick; completing phrase sets turn:'left' and phase:'dwell'", () => {
 		// Get to typing state with rightIndex=1, typed=""
 		let state = next(INITIAL); // backspacing
@@ -256,7 +284,7 @@ describe("typewriterCycle pure state machine (v3 two-index model)", () => {
 			rightIndex: 4,
 			turn: "left",
 			phase: "dwell",
-			typed: HERO_PHRASES[4]!,
+			typed: TEST_PHRASES[4]!,
 		};
 		const pushing = next(state);
 		expect(pushing.phase).toBe("pushing");
@@ -278,7 +306,7 @@ describe("typewriterCycle pure state machine (v3 two-index model)", () => {
 	});
 
 	// TC-PURE-13: delayFor returns correct ms for each phase
-	it("TC-PURE-13: delayFor dwell -> HERO_TIMING.dwell", () => {
+	it("TC-PURE-13: delayFor dwell -> TEST_TIMING.dwell", () => {
 		expect(
 			delayFor(
 				{
@@ -288,12 +316,12 @@ describe("typewriterCycle pure state machine (v3 two-index model)", () => {
 					phase: "dwell",
 					typed: phrase0,
 				},
-				HERO_CONFIG,
+				TEST_CONFIG,
 			),
-		).toBe(HERO_TIMING.dwell);
+		).toBe(TEST_TIMING.dwell);
 	});
 
-	it("TC-PURE-14: delayFor backspacing -> HERO_TIMING.backspace", () => {
+	it("TC-PURE-14: delayFor backspacing -> TEST_TIMING.backspace", () => {
 		expect(
 			delayFor(
 				{
@@ -303,12 +331,12 @@ describe("typewriterCycle pure state machine (v3 two-index model)", () => {
 					phase: "backspacing",
 					typed: phrase0,
 				},
-				HERO_CONFIG,
+				TEST_CONFIG,
 			),
-		).toBe(HERO_TIMING.backspace);
+		).toBe(TEST_TIMING.backspace);
 	});
 
-	it("TC-PURE-15: delayFor typing -> HERO_TIMING.type", () => {
+	it("TC-PURE-15: delayFor typing -> TEST_TIMING.type", () => {
 		expect(
 			delayFor(
 				{
@@ -318,12 +346,12 @@ describe("typewriterCycle pure state machine (v3 two-index model)", () => {
 					phase: "typing",
 					typed: "",
 				},
-				HERO_CONFIG,
+				TEST_CONFIG,
 			),
-		).toBe(HERO_TIMING.type);
+		).toBe(TEST_TIMING.type);
 	});
 
-	it("TC-PURE-16: delayFor pushing -> HERO_TIMING.push", () => {
+	it("TC-PURE-16: delayFor pushing -> TEST_TIMING.push", () => {
 		expect(
 			delayFor(
 				{
@@ -333,42 +361,8 @@ describe("typewriterCycle pure state machine (v3 two-index model)", () => {
 					phase: "pushing",
 					typed: phrase1,
 				},
-				HERO_CONFIG,
+				TEST_CONFIG,
 			),
-		).toBe(HERO_TIMING.push);
-	});
-
-	// TC-PURE-17: HERO_TIMING exact values
-	it("TC-PURE-17: HERO_TIMING deep-equals { type:40, backspace:14, dwell:1100, push:420 }", () => {
-		expect(HERO_TIMING).toEqual({
-			type: 40,
-			backspace: 14,
-			dwell: 1100,
-			push: 420,
-		});
-	});
-
-	// TC-PURE-18: HERO_ROLES exact array
-	it("TC-PURE-18: HERO_ROLES.length===5 and equals the exact array", () => {
-		expect(HERO_ROLES.length).toBe(5);
-		expect(Array.from(HERO_ROLES)).toEqual([
-			"web enthusiast",
-			"agentic coach",
-			"engineering consultant",
-			"solutions architect",
-			"relentless tinkerer",
-		]);
-	});
-
-	// TC-PURE-19: HERO_PHRASES exact array
-	it("TC-PURE-19: HERO_PHRASES.length===5 and equals the exact array", () => {
-		expect(HERO_PHRASES.length).toBe(5);
-		expect(Array.from(HERO_PHRASES)).toEqual([
-			"with a side project habit",
-			"contributing to open source",
-			"with a camera in hand",
-			"always stepping outside his comfort zone",
-			"shipping things on the side",
-		]);
+		).toBe(TEST_TIMING.push);
 	});
 });

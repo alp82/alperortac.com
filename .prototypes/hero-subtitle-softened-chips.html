@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hero subtitle — softened chips, fill comparison on the real sky</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+  /* =============================================================
+     LOCKED DIRECTION: "soften both boxes".
+     Symmetric two-row layout (one chip per row), rounded corners,
+     LIGHTER fill so the chips stop reading as thick slabs.
+     Typeface still differentiates the two slots:
+       - curious  -> Inter font-black (900)
+       - outcome  -> Instrument Serif italic, semibold (synthesized), 1.12em
+     The ONLY thing that varies card-to-card is the fill / contrast
+     strategy (and the text color the fill forces).
+
+     Background is the real top-of-scroll daytime sky:
+       SKY_NOON = rgb(135,206,235) = #87CEEB.  Every chip is judged ON it.
+     Ink = #0a0a0a.
+     ============================================================= */
+  :root{
+    --sky:#87CEEB;          /* the one true background */
+    --ink:#0a0a0a;          /* shipped subtitle ink */
+    --chrome:#1e293b;       /* card label/prose chrome, readable on sky */
+    --muted:#334155;
+    --hair:rgba(10,10,10,.16);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Inter",system-ui,sans-serif;
+    color:var(--chrome);
+    background:var(--sky);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  /* barely-there grain to echo the real scene's faint noise over the sky */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:48px 28px 80px}
+  header.page{margin-bottom:6px}
+  .kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  h1.page{font-size:clamp(22px,3.6vw,30px);font-weight:800;letter-spacing:-.02em;margin:.35em 0 .25em;color:var(--ink)}
+  .lede{color:var(--muted);max-width:70ch;font-size:14.5px}
+  .lede b{color:var(--ink);font-weight:700}
+  .lede code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;background:rgba(10,10,10,.10);padding:1px 5px;border-radius:4px}
+
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;margin-top:34px}
+  @media(max-width:760px){ .grid{grid-template-columns:1fr} .wrap{padding:34px 16px 64px} }
+
+  /* card shell — transparent so the real sky shows straight through behind the chips */
+  .card{
+    position:relative;
+    border-radius:14px;
+    border:1px solid rgba(10,10,10,.14);
+    background:transparent;
+    box-shadow:0 1px 2px rgba(10,10,10,.06), inset 0 0 0 1px rgba(255,255,255,.10);
+    display:flex;flex-direction:column;
+    overflow:hidden;
+  }
+  .meta{display:flex;align-items:baseline;gap:8px;padding:14px 18px 0}
+  .num{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ink);opacity:.55}
+  .name{font-size:13.5px;font-weight:800;color:var(--ink)}
+  .desc{padding:3px 18px 0;font-size:11.5px;color:var(--muted);line-height:1.45}
+  .textnote{padding:5px 18px 0;font-size:11px;font-weight:700;color:var(--ink);opacity:.7}
+
+  /* the live subtitle stage — mirrors the real hero scale + centering */
+  .stage{
+    margin:14px 0 6px;
+    padding:24px 22px 26px;
+    flex:1;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    min-height:160px;
+    font-size:22px;            /* ~ the real hero text-2xl/3xl midpoint */
+    text-align:center;
+  }
+  .row{display:flex;align-items:center;justify-content:center;gap:8px;max-width:100%}
+  /* prose prefix = PROSE_PREFIX: font-semibold text-[#0a0a0a] text-[0.9em] */
+  .prefix{font-weight:600;color:var(--ink);font-size:.9em;letter-spacing:.01em}
+
+  /* cycling word: inline-grid stack -> ghost reserves longest-word width, live overlays */
+  .cyc{display:inline-grid;max-width:100%;vertical-align:baseline}
+  .cyc>*{grid-area:1/1}
+  .cyc .ghost{visibility:hidden;white-space:nowrap;pointer-events:none}
+  .cyc .lw{white-space:nowrap;display:inline-flex;align-items:center;min-width:0}
+  .cyc .live{display:inline-flex;align-items:center;white-space:nowrap}
+  .caret{display:inline-block;width:2px;height:1em;align-self:center;margin-left:2px;background:currentColor;opacity:0}
+  .caret.on{animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}0%,49%{opacity:1}}
+
+  /* ---- the chip itself ---------------------------------------------------
+     Shared geometry across all four (so ONLY the fill/contrast varies):
+       px-2.5 py-0.5  -> padding: 2px 10px
+       rounded-lg     -> border-radius: 8px
+     Per-slot typeface differentiation lives in .slot-curious / .slot-outcome.
+     The fill + forced text color lives in .v1 .. .v4. */
+  .chip{
+    display:inline-flex;align-items:center;
+    padding:2px 10px;border-radius:8px;
+  }
+  .slot-curious{font-weight:900;}                                   /* Inter black */
+  .slot-outcome{font-family:"Instrument Serif",serif;font-style:italic;font-weight:600;font-size:1.12em;}
+
+  /* V1 — Faint ink tint, dark ink text (the "inline-code" delicate read) */
+  .v1{background:rgba(10,10,10,.09);color:var(--ink);}
+  /* V2 — Faint tint + hairline ring so the chip shape survives the busy sky */
+  .v2{background:rgba(10,10,10,.09);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(10,10,10,.15);}
+  /* V3 — Soft charcoal, white text, rounded (keeps the dark chip, softens it) */
+  .v3{background:rgba(10,10,10,.85);color:#fff;}
+  /* V4 — Hairline-bordered, near-zero fill, dark ink text (lightest "barely-there") */
+  .v4{background:rgba(10,10,10,.03);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(10,10,10,.30);}
+
+  /* copy bar */
+  .cta{display:flex;align-items:center;gap:10px;padding:0 18px 16px;flex-wrap:wrap}
+  .copy{
+    font:inherit;font-size:12px;font-weight:700;cursor:pointer;
+    border:1px solid rgba(10,10,10,.28);background:rgba(255,255,255,.30);color:var(--ink);
+    border-radius:8px;padding:7px 12px;transition:.18s;
+  }
+  .copy:hover{background:rgba(255,255,255,.6)}
+  .copy.done{border-color:#15803d;color:#15803d;background:rgba(21,128,61,.12)}
+  .classpeek{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--muted);word-break:break-all}
+
+  .foot{margin-top:46px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--hair);padding-top:16px;max-width:78ch}
+  .foot b{color:var(--ink)}
+  .foot code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;background:rgba(10,10,10,.10);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page">
+    <div class="kicker">Design pick — softened chips</div>
+    <h1 class="page">Hero subtitle: pick the chip fill by eye, on the real sky</h1>
+    <p class="lede">Direction is locked: <b>soften both boxes</b> — same symmetric two-row layout, rounded corners, lighter fill so they stop reading as thick slabs. Typeface still differentiates the slots (Inter black vs. Instrument Serif italic). The only thing varying below is the <b>fill / contrast strategy</b>. Both chips cycle live with the real timing on the true background <code>#87CEEB</code>. <b>Pick the one that reads best, click its “Copy spec”, and paste the line back into chat.</b></p>
+  </header>
+
+  <main class="grid" id="gallery"></main>
+
+  <p class="foot"><b>Constraint:</b> the locked intent is <b>softened boxes, not no boxes</b>. Whichever you pick must still read as a deliberate chip on the saturated sky — it should not visually dissolve. V4 is the floor of "barely-there"; if it vanishes for you, it has gone too far. Background is fixed to <code>rgb(135,206,235)</code> = <code>#87CEEB</code>; ink is <code>#0a0a0a</code>.</p>
+</div>
+
+<script>
+/* =====================================================================
+   REAL cycle logic — lifted from .prototypes/design-hero-subtitle-typography.html
+   (a verbatim JS port of sequentialCycle.ts), repointed at the REAL pools,
+   timing, and prose prefixes from src/data/hero.ts + useSequentialCycle.ts.
+   ===================================================================== */
+const CURIOUS = ["user experience","clever architecture","understanding clients","agentic coding","wellbeing","how things work","productivity","respectful communication","AI and automation"];
+const OUTCOME = ["memorable","tasteful","original","authentic","unorthodox","genuinely useful"];
+const TIMING  = { type:80, backspace:25, dwell:4000 };
+const GHOST   = { curious:"respectful communication", outcome:"genuinely useful" }; // longest per pool -> width reservation
+const PROSE   = { p1:"I'm a web enthusiast and I care about", p3:"and I create projects that come out" };
+const NEXT    = { curious:"outcome", outcome:"curious" };
+const poolFor = s => s==="curious"?CURIOUS:OUTCOME;
+
+function makeInitial(){ return { active:"outcome", phase:"dwell", indices:{curious:0,outcome:0}, typed:"" }; }
+function seqNext(s){
+  if(s.phase==="dwell"){
+    const next=NEXT[s.active], pool=poolFor(next);
+    return {...s, active:next, phase:"backspacing", typed:pool[s.indices[next]]??""};
+  }
+  if(s.phase==="backspacing"){
+    if(s.typed===""){
+      const pool=poolFor(s.active);
+      return {...s, indices:{...s.indices,[s.active]:(s.indices[s.active]+1)%pool.length}, phase:"typing"};
+    }
+    return {...s, typed:s.typed.slice(0,-1)};
+  }
+  const target=poolFor(s.active)[s.indices[s.active]]??"";
+  if(s.typed.length>=target.length) return {...s, phase:"dwell"};
+  const nt=target.slice(0,s.typed.length+1);
+  return nt===target ? {...s, typed:nt, phase:"dwell"} : {...s, typed:nt};
+}
+function delayFor(s){ return s.phase==="dwell"?TIMING.dwell : s.phase==="backspacing"?TIMING.backspace : TIMING.type; }
+const cursorActive = s => s.phase==="backspacing"||s.phase==="typing";
+function slotText(s,slot){
+  if(s.active===slot && cursorActive(s)) return s.typed;
+  return poolFor(slot)[s.indices[slot]]??"";
+}
+
+/* =====================================================================
+   The four softened-fill variants. `block` is the exact Tailwind class
+   string to drop into BLOCK_BASE in HeroSubtitle.tsx. The chip text color
+   is part of BLOCK_BASE (the fill forces it), so the per-slot classes stay
+   font-only (curious: font-black, outcome: Instrument Serif italic).
+   ===================================================================== */
+const VARIANTS = [
+  { n:"V1", cls:"v1", name:"Faint ink tint", text:"dark ink (#0a0a0a)",
+    desc:"~9% ink fill, dark ink text, rounded-lg, roomier padding. The delicate inline-code read.",
+    block:"inline-flex items-center px-2.5 py-0.5 rounded-lg text-[#0a0a0a] bg-[#0a0a0a]/[0.09]" },
+  { n:"V2", cls:"v2", name:"Faint tint + hairline ring", text:"dark ink (#0a0a0a)",
+    desc:"Same ~9% tint, plus a 1px ink/15 ring so the chip shape stays legible against the busy sky.",
+    block:"inline-flex items-center px-2.5 py-0.5 rounded-lg text-[#0a0a0a] bg-[#0a0a0a]/[0.09] ring-1 ring-[#0a0a0a]/15" },
+  { n:"V3", cls:"v3", name:"Soft charcoal", text:"white",
+    desc:"~85% ink fill, white text, rounded-lg. Keeps the dark chip but softens the harshness and the corners.",
+    block:"inline-flex items-center px-2.5 py-0.5 rounded-lg text-white bg-[#0a0a0a]/[0.85]" },
+  { n:"V4", cls:"v4", name:"Barely-there outline", text:"dark ink (#0a0a0a)",
+    desc:"Near-zero ~3% fill carried by a 1px ink/30 ring, dark ink text, rounded-lg. The lightest chip.",
+    block:"inline-flex items-center px-2.5 py-0.5 rounded-lg text-[#0a0a0a] bg-[#0a0a0a]/[0.03] ring-1 ring-[#0a0a0a]/30" },
+];
+
+/* ---------- build DOM ---------- */
+const gallery = document.getElementById("gallery");
+const cyclers = [];
+
+function cycHTML(slot, vcls){
+  const slotCls = slot==="curious" ? "slot-curious" : "slot-outcome";
+  return `<span class="cyc">`
+       +   `<span class="ghost"><span class="chip ${vcls} ${slotCls}">${GHOST[slot]}</span></span>`
+       +   `<span class="lw"><span class="chip ${vcls} ${slotCls}"><span class="live" data-slot="${slot}"></span><i class="caret" data-caret="${slot}"></i></span></span>`
+       + `</span>`;
+}
+
+let cardIndex = 0;
+for(const v of VARIANTS){
+  const card = document.createElement("article");
+  card.className = "card";
+  card.innerHTML = `
+    <div class="meta"><span class="num">${v.n}</span><span class="name">${v.name}</span></div>
+    <div class="desc">${v.desc}</div>
+    <div class="textnote">Text color: ${v.text}</div>
+    <div class="stage">
+      <div class="row"><span class="prefix">${PROSE.p1}</span> ${cycHTML("curious", v.cls)}</div>
+      <div class="row"><span class="prefix">${PROSE.p3}</span> ${cycHTML("outcome", v.cls)}</div>
+    </div>
+    <div class="cta">
+      <button class="copy" type="button">Copy spec</button>
+      <span class="classpeek">${v.block}</span>
+    </div>`;
+  gallery.appendChild(card);
+
+  const cyc = {
+    state: makeInitial(),
+    nextAt: 0,
+    curious: card.querySelector('.live[data-slot="curious"]'),
+    outcome: card.querySelector('.live[data-slot="outcome"]'),
+    cCaret: card.querySelector('.caret[data-caret="curious"]'),
+    oCaret: card.querySelector('.caret[data-caret="outcome"]'),
+    startOffset: 500 + cardIndex * 220, // staggered so the four don't pulse in unison
+  };
+  cyclers.push(cyc);
+  render(cyc);
+
+  const spec = `variant: ${v.name} | BLOCK_BASE: ${v.block}`;
+  const btn = card.querySelector(".copy");
+  btn.addEventListener("click", () => {
+    navigator.clipboard.writeText(spec).then(() => {
+      btn.textContent = "Copied ✓"; btn.classList.add("done");
+      setTimeout(() => { btn.textContent = "Copy spec"; btn.classList.remove("done"); }, 1600);
+    }).catch(() => {
+      btn.textContent = "Copy failed";
+      setTimeout(() => { btn.textContent = "Copy spec"; }, 1600);
+    });
+  });
+  cardIndex++;
+}
+
+function render(c){
+  c.curious.textContent = slotText(c.state,"curious");
+  c.outcome.textContent = slotText(c.state,"outcome");
+  c.cCaret.classList.toggle("on", c.state.active==="curious" && cursorActive(c.state));
+  c.oCaret.classList.toggle("on", c.state.active==="outcome" && cursorActive(c.state));
+}
+
+/* shared rAF clock; each card advances on its own staggered schedule */
+let started = false;
+function frame(now){
+  if(!started){ started = true; for(const c of cyclers) c.nextAt = now + c.startOffset; }
+  for(const c of cyclers){
+    if(now >= c.nextAt){
+      c.state = seqNext(c.state);
+      c.nextAt = now + delayFor(c.state);
+      render(c);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+if(!reduce) requestAnimationFrame(frame);
+else for(const c of cyclers) render(c); // reduced-motion: show settled words, no animation
+</script>
+</body>
+</html>

@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hero subtitle typography — on the real sky-blue background</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Space+Mono:wght@400;700&family=Archivo+Black&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,500;1,600&family=Instrument+Serif:ital@0;1&family=Bricolage+Grotesque:wght@400;600;700;800&family=Lora:ital,wght@0,500;1,500&family=Caveat:wght@500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* =============================================================
+     FIXED BACKGROUND — the real top-of-scroll daytime sky.
+     Verified in src/data/skyCurve.ts: SKY_NOON = rgb(135,206,235)
+     = #87CEEB, returned by skyAt(0). Every card sits on this.
+     ============================================================= */
+  :root{
+    --sky:#87CEEB;          /* the one true background */
+    --ink:#0f172a;          /* slate-900 — the real shipped subtitle ink */
+    --slate:#1e293b;
+    --muted:#334155;        /* slate-700 — still strong on sky */
+    --faint:#475569;
+    --hair:rgba(15,23,42,.14);
+    --cardgap:22px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Inter",system-ui,sans-serif;
+    color:var(--ink);
+    background:var(--sky);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  /* barely-there grain to echo the real scene's ~3% noise over the sky */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:48px 28px 96px}
+  header.page{margin-bottom:8px}
+  .kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  h1.page{font-size:clamp(24px,4vw,34px);font-weight:800;letter-spacing:-.02em;margin:.35em 0 .25em;color:var(--ink)}
+  .lede{color:var(--muted);max-width:66ch;font-size:15px}
+  .lede b{color:var(--ink);font-weight:700}
+  .lede code{font-family:"JetBrains Mono",monospace;font-size:.9em;background:rgba(15,23,42,.12);padding:1px 5px;border-radius:4px}
+
+  section.group{margin-top:54px}
+  .group-head{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--hair);padding-bottom:10px;margin-bottom:22px}
+  .group-head h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;margin:0;color:var(--ink)}
+  .group-head span{font-size:13px;color:var(--muted)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:var(--cardgap)}
+  @media(max-width:520px){ .grid{grid-template-columns:1fr} .wrap{padding:34px 16px 70px} }
+
+  /* ---------- card shell — bg == page sky; chrome stays quiet ---------- */
+  .card{
+    position:relative;
+    border-radius:14px;
+    overflow:hidden;                       /* SAFETY NET against any bleed */
+    border:1px solid rgba(15,23,42,.13);
+    background:transparent;                 /* the sky shows straight through */
+    box-shadow:0 1px 2px rgba(15,23,42,.06), inset 0 0 0 1px rgba(255,255,255,.06);
+    display:flex;flex-direction:column;
+  }
+  .card .meta{display:flex;align-items:baseline;gap:8px;padding:14px 18px 0}
+  .card .num{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ink);opacity:.5}
+  .card .name{font-size:13px;font-weight:700;color:var(--ink)}
+  .card .desc{padding:2px 18px 0;font-size:11.5px;color:var(--muted);line-height:1.4}
+
+  /* the live subtitle stage — bounded width + comfortable padding */
+  .stage{
+    margin:14px 0 4px;
+    padding:22px 26px 26px;
+    flex:1;
+    display:flex;flex-direction:column;justify-content:center;gap:6px;
+    min-height:170px;
+  }
+  .part{max-width:100%;overflow-wrap:anywhere}
+
+  /* cycling word: inline-grid stack -> ghost reserves longest-word width, live overlays.
+     Longest pool words: P2 "clever architecture" (19ch), P4 "genuinely useful" (16ch).
+     Font sizes below are capped via clamp() so the GHOST (longest, nowrap) fits the
+     narrowest grid column (min 420px, single column <=520px) on one line. */
+  .cyc{display:inline-grid;max-width:100%;vertical-align:baseline}
+  .cyc>*{grid-area:1/1}
+  .cyc .ghost{visibility:hidden;white-space:nowrap;pointer-events:none}
+  .cyc .lw{white-space:nowrap;display:inline-flex;align-items:baseline;min-width:0}
+  .cyc .live{display:inline-block}
+  .caret{display:inline-block;width:2px;align-self:stretch;margin-left:2px;background:currentColor;opacity:0}
+  .caret.on{animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}0%,49%{opacity:1}}
+
+  /* copy bar — dark elements, readable on sky */
+  .cta{display:flex;align-items:center;gap:10px;padding:0 18px 16px}
+  .copy{
+    font:inherit;font-size:12px;font-weight:700;cursor:pointer;
+    border:1px solid rgba(15,23,42,.28);background:rgba(255,255,255,.28);color:var(--ink);
+    border-radius:8px;padding:7px 12px;transition:.18s;
+  }
+  .copy:hover{background:rgba(255,255,255,.55)}
+  .copy.done{border-color:#15803d;color:#15803d;background:rgba(21,128,61,.12)}
+
+  /* =============================================================
+     TERMINAL  (dark text / contained dark windows on the sky)
+     ============================================================= */
+  .term .stage{font-family:"JetBrains Mono",monospace}
+  .term .cyc{font-size:clamp(15px,3.2vw,22px);font-weight:500}
+  .term .p1,.term .p3{font-size:13px;line-height:1.7;color:var(--slate)}
+  .term .caret{width:.55em;height:1.05em;margin-left:3px;background:var(--ink)}
+
+  /* T1 Sky terminal — slate mono line, words as dark code-pills floating on sky */
+  .term-sky .p1::before,.term-sky .p3::before{content:"~ $ ";color:#0f766e;font-weight:700}
+  .term-sky .live{background:#0f172a;color:#7ee787;border-radius:6px;padding:1px 8px}
+  .term-sky .ghost{padding:1px 8px}
+
+  /* T2 Terminal window — a contained dark window block floating on the sky */
+  .term-window .stage{
+    background:#0d1117;border-radius:10px;margin:14px 18px 6px;padding:36px 20px 22px;
+    box-shadow:0 12px 30px rgba(15,23,42,.28);position:relative;
+  }
+  .term-window .stage::before{
+    content:"";position:absolute;top:13px;left:16px;width:10px;height:10px;border-radius:50%;
+    background:#ff5f56;box-shadow:18px 0 #ffbd2e,36px 0 #27c93f;
+  }
+  .term-window .p1,.term-window .p3{color:#8b949e}
+  .term-window .p1::before,.term-window .p3::before{content:"$ ";color:#58a6ff}
+  .term-window .live{color:#7ee787}
+  .term-window .caret{background:#7ee787}
+
+  /* T3 Comment-first — dim // comments, words in deep syntax colors on sky */
+  .term-comment .p1,.term-comment .p3{color:#475569}
+  .term-comment .p1::before,.term-comment .p3::before{content:"// ";color:#64748b}
+  .term-comment .p1 .live{color:#0f766e}   /* teal */
+  .term-comment .p3 .live{color:#4338ca}   /* indigo */
+
+  /* T4 Inline-code — words wrapped with a subtle dark translucent backing */
+  .term-inline .p1,.term-inline .p3{color:var(--slate)}
+  .term-inline .live{background:rgba(15,23,42,.16);color:#0f172a;border-radius:5px;padding:1px 7px}
+  .term-inline .ghost{padding:1px 7px}
+
+  /* T5 Git diff (light) — neutral prose, +added / -removed words in dark green/red */
+  .term-diff .p1,.term-diff .p3{color:#334155}
+  .term-diff .p1 .live::before,.term-diff .p1 .ghost::before{content:"+ ";color:#15803d;font-weight:700}
+  .term-diff .p3 .live::before,.term-diff .p3 .ghost::before{content:"\2212 ";color:#b91c1c;font-weight:700}
+  .term-diff .p1 .live{color:#15803d;background:rgba(21,128,61,.14);border-radius:3px;padding:0 5px}
+  .term-diff .p1 .ghost{padding:0 5px}
+  .term-diff .p3 .live{color:#b91c1c;background:rgba(185,28,28,.14);border-radius:3px;padding:0 5px}
+  .term-diff .p3 .ghost{padding:0 5px}
+
+  /* T6 Prompt label — all mono dark, words in a thin dark-bordered box */
+  .term-prompt .p1,.term-prompt .p3{color:var(--slate)}
+  .term-prompt .p1::before,.term-prompt .p3::before{content:"> ";color:#0f172a;font-weight:700}
+  .term-prompt .live{border:1px solid #0f172a;border-radius:4px;padding:0 7px;color:#0f172a}
+  .term-prompt .ghost{padding:0 7px;border:1px solid transparent}
+
+  /* =============================================================
+     BRUTALIST SOLID  (black is the hero — max contrast on sky)
+     ============================================================= */
+  .brut .stage{gap:10px}
+  .brut .p1,.brut .p3{font-family:"Inter",sans-serif;text-transform:uppercase;font-weight:800;font-size:12px;letter-spacing:.04em;line-height:1.5;color:#0a0a0a}
+  .brut .cyc{font-size:clamp(15px,3vw,21px);text-transform:uppercase;font-weight:900;letter-spacing:-.01em;line-height:1.05}
+  .brut .caret{display:none}
+
+  /* B1 Knockout slab — solid black block, letters punched out to the SKY color */
+  .brut-knockout .live{background:#0a0a0a;color:#87CEEB;padding:2px 8px}
+  .brut-knockout .ghost{padding:2px 8px}
+
+  /* B2 Black bar — full black bar behind the word, white text */
+  .brut-bar .live{background:#0a0a0a;color:#fff;padding:2px 10px}
+  .brut-bar .ghost{padding:2px 10px}
+
+  /* B3 Mixed weight — hairline black prose vs ultra-heavy Archivo Black words */
+  .brut-mixed .p1,.brut-mixed .p3{font-weight:300;text-transform:none;font-size:13px;letter-spacing:0;color:#1e293b}
+  .brut-mixed .cyc{font-family:"Archivo Black",sans-serif;font-weight:400;font-size:clamp(15px,2.9vw,21px);letter-spacing:-.02em}
+  .brut-mixed .live{color:#0a0a0a}
+
+  /* B4 Accent block — black prose; words in bold accent blocks that pop on sky */
+  .brut-accent .p1 .live{background:#e8552d;color:#fff;padding:2px 9px}   /* deep coral */
+  .brut-accent .p3 .live{background:#1e3a8a;color:#fff;padding:2px 9px}   /* ink navy */
+  .brut-accent .ghost{padding:2px 9px}
+
+  /* B5 Outline slab — hollow black stroke words on the sky */
+  .brut-outline .p1,.brut-outline .p3{color:#0a0a0a}
+  .brut-outline .live{color:transparent;-webkit-text-stroke:1.5px #0a0a0a}
+
+  /* B6 Thick underline — words underscored by a heavy black bar */
+  .brut-underline .live{border-bottom:6px solid #0a0a0a;color:#0a0a0a;padding-bottom:1px}
+
+  /* =============================================================
+     EDITORIAL  (refined serif, dark, on the sky)
+     ============================================================= */
+  .edit .stage{gap:8px}
+  .edit .p1,.edit .p3{font-family:"Lora",serif;font-size:14px;color:var(--muted);line-height:1.6}
+  .edit .cyc{font-size:clamp(18px,4.2vw,30px);line-height:1.12}
+  .edit .caret{display:none}
+
+  /* E1 Marker on sky — slate serif prose, italic words on a cream marker swipe */
+  .edit-marker .cyc{font-family:"Fraunces",serif;font-style:italic;font-weight:600;color:#0f172a}
+  .edit-marker .live{
+    background:linear-gradient(120deg,rgba(255,253,245,0) 4%,rgba(255,253,245,.92) 4%,rgba(255,253,245,.92) 96%,rgba(255,253,245,0) 96%);
+    padding:0 .12em;color:#0f172a;box-decoration-break:clone;-webkit-box-decoration-break:clone;
+  }
+  .edit-marker .ghost{padding:0 .12em}
+
+  /* E2 Fine rule — small-caps prose, words on a thin dark baseline rule */
+  .edit-rule .p1,.edit-rule .p3{font-variant:small-caps;letter-spacing:.06em;font-family:"Inter",sans-serif;font-size:12.5px;color:var(--faint)}
+  .edit-rule .cyc{font-family:"Playfair Display",serif;font-style:italic;font-weight:500;color:#0f172a}
+  .edit-rule .live{border-bottom:1.5px solid #0f172a;padding-bottom:2px}
+
+  /* E3 Two-tone ink — muted prose, deep-maroon Playfair italic words */
+  .edit-twotone .cyc{font-family:"Playfair Display",serif;font-style:italic;font-weight:600;color:#7f1d1d}
+  .edit-twotone .live{color:#7f1d1d}
+
+  /* E4 Display serif — big Instrument Serif italic words, tiny tracked prose */
+  .edit-display .p1,.edit-display .p3{font-family:"Inter",sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:11px;color:var(--faint);font-weight:600}
+  .edit-display .cyc{font-family:"Instrument Serif",serif;font-style:italic;font-weight:400;font-size:clamp(20px,4.6vw,32px);color:#0f172a}
+
+  /* E5 Drop contrast — large Fraunces words against small-caps prose */
+  .edit-drop .p1,.edit-drop .p3{font-family:"Inter",sans-serif;font-variant:small-caps;letter-spacing:.05em;font-size:13px;color:var(--faint)}
+  .edit-drop .cyc{font-family:"Fraunces",serif;font-weight:600;font-size:clamp(20px,4.8vw,32px);color:#0f172a}
+
+  /* E6 Dateline — italic serif dateline prose, bold caps serif words */
+  .edit-dateline .p1,.edit-dateline .p3{font-family:"Lora",serif;font-style:italic;font-size:14px;color:var(--faint)}
+  .edit-dateline .cyc{font-family:"Playfair Display",serif;font-weight:600;text-transform:uppercase;letter-spacing:.02em;font-size:clamp(16px,3.6vw,24px);color:#0f172a}
+
+  /* =============================================================
+     STICKER  (bright chips — already light-friendly, re-based on sky)
+     ============================================================= */
+  .stick .stage{gap:12px}
+  .stick .p1,.stick .p3{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:13px;color:var(--muted)}
+  .stick .cyc{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(16px,3.6vw,24px);line-height:1.25}
+  .stick .caret{display:none}
+
+  /* S1 Bubbly — rounded orange chips, soft drop shadow */
+  .stick-bubbly .live{background:#ff8a3d;color:#fff;border-radius:999px;padding:3px 14px;box-shadow:0 6px 14px rgba(234,88,12,.35)}
+  .stick-bubbly .ghost{padding:3px 14px}
+
+  /* S2 Pills — rotated tag pills, multi-color, hard offset shadow */
+  .stick-pills .p1 .live{background:#2563eb;color:#fff;border-radius:8px;padding:3px 12px;transform:rotate(-2deg);box-shadow:0 4px 0 #1e3a8a}
+  .stick-pills .p3 .live{background:#db2777;color:#fff;border-radius:8px;padding:3px 12px;transform:rotate(2deg);box-shadow:0 4px 0 #9d174d}
+  .stick-pills .ghost{padding:3px 12px}
+
+  /* S3 Outline — dashed green chips on a soft white fill */
+  .stick-outline .live{border:2px dashed #15803d;color:#14532d;border-radius:12px;padding:3px 12px;background:rgba(255,255,255,.45)}
+  .stick-outline .ghost{padding:3px 12px;border:2px dashed transparent}
+
+  /* =============================================================
+     ALL FOUR DISTINCT  (each part its own block; P1 != P3)
+     light-compatible cards re-based onto sky + new sky-native ones
+     ============================================================= */
+  .fourd .stage{gap:12px}
+  .fourd .part{line-height:1.45}
+  .fourd .caret{display:none}
+
+  /* FD1 Mixed media — Inter eyebrow / Fraunces marker / Caveat aside / mono tag */
+  .fourd-mixed .p1{font-family:"Inter",sans-serif;text-transform:uppercase;letter-spacing:.16em;font-weight:600;font-size:11px;color:var(--faint)}
+  .fourd-mixed .p1 .cyc{font-family:"Fraunces",serif;font-style:italic;font-weight:600;text-transform:none;letter-spacing:0;font-size:clamp(18px,4vw,28px);color:#0f172a}
+  .fourd-mixed .p1 .live{background:linear-gradient(120deg,rgba(255,253,245,0) 4%,rgba(255,253,245,.92) 4%,rgba(255,253,245,.92) 96%,rgba(255,253,245,0) 96%);padding:0 .12em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+  .fourd-mixed .p1 .ghost{padding:0 .12em}
+  .fourd-mixed .p3{font-family:"Caveat",cursive;font-weight:500;font-size:clamp(16px,3.2vw,20px);color:var(--muted)}
+  .fourd-mixed .p3 .cyc{font-family:"JetBrains Mono",monospace;font-weight:500;font-size:clamp(12px,2.6vw,15px);color:#0f172a}
+  .fourd-mixed .p3 .live{border:1px solid rgba(15,23,42,.4);border-radius:4px;padding:1px 6px;background:rgba(255,255,255,.4)}
+  .fourd-mixed .p3 .ghost{padding:1px 6px;border:1px solid transparent}
+
+  /* FD2 Type specimen — Space Grotesk / Playfair italic / Space Mono / Caveat script */
+  .fourd-specimen .p1{font-family:"Space Grotesk",sans-serif;font-weight:500;font-size:14px;color:var(--muted)}
+  .fourd-specimen .p1 .cyc{font-family:"Playfair Display",serif;font-style:italic;font-weight:600;font-size:clamp(18px,4vw,28px);color:#0f172a}
+  .fourd-specimen .p3{font-family:"Space Mono",monospace;font-size:12.5px;letter-spacing:-.01em;color:var(--muted)}
+  .fourd-specimen .p3 .cyc{font-family:"Caveat",cursive;font-weight:700;font-size:clamp(20px,4.6vw,30px);color:#7f1d1d}
+  .fourd-specimen .caret{display:inline-block;width:2px;background:#0f172a}
+
+  /* FD3 Contrast scale — tiny label / huge display / serif italic / small-caps box */
+  .fourd-scale .p1{font-family:"Inter",sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .fourd-scale .p1 .cyc{font-family:"Inter",sans-serif;font-weight:800;letter-spacing:-.02em;text-transform:none;font-size:clamp(18px,4.6vw,30px);color:#0a0a0a}
+  .fourd-scale .p1 .caret{display:inline-block;width:2px;background:#0a0a0a}
+  .fourd-scale .p3{font-family:"Lora",serif;font-style:italic;font-size:15px;color:var(--muted)}
+  .fourd-scale .p3 .cyc{font-family:"Inter",sans-serif;font-style:normal;font-variant:small-caps;font-weight:700;letter-spacing:.05em;font-size:clamp(13px,2.8vw,17px);color:#0a0a0a}
+  .fourd-scale .p3 .live{border:1.5px solid #0a0a0a;border-radius:3px;padding:1px 7px}
+  .fourd-scale .p3 .ghost{padding:1px 7px;border:1.5px solid transparent}
+
+  /* FD4 Annotated collage — plain sans / marker serif / underlined serif / outline mono */
+  .fourd-annotated .p1{font-family:"Inter",sans-serif;font-weight:400;font-size:13.5px;color:var(--muted)}
+  .fourd-annotated .p1 .cyc{font-family:"Fraunces",serif;font-style:italic;font-weight:600;font-size:clamp(17px,3.6vw,26px);color:#0f172a}
+  .fourd-annotated .p1 .live{background:linear-gradient(120deg,rgba(255,253,245,0) 4%,rgba(255,253,245,.9) 4%,rgba(255,253,245,.9) 96%,rgba(255,253,245,0) 96%);padding:0 .12em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+  .fourd-annotated .p1 .ghost{padding:0 .12em}
+  .fourd-annotated .p3{font-family:"Lora",serif;font-style:italic;font-size:14.5px;color:var(--muted);text-decoration:underline;text-decoration-color:rgba(15,23,42,.3);text-decoration-thickness:1px;text-underline-offset:3px}
+  .fourd-annotated .p3 .cyc{font-family:"JetBrains Mono",monospace;font-style:normal;font-weight:700;font-size:clamp(14px,3vw,20px);text-decoration:none}
+  .fourd-annotated .p3 .live{-webkit-text-stroke:1px #0f172a;color:transparent}
+
+  /* FD5 Field notes (new on sky) — mono label / Instrument serif / Lora italic / black-bar caps */
+  .fourd-field .p1{font-family:"Space Mono",monospace;text-transform:uppercase;letter-spacing:.12em;font-size:11px;color:var(--faint)}
+  .fourd-field .p1 .cyc{font-family:"Instrument Serif",serif;font-style:italic;font-weight:400;text-transform:none;letter-spacing:0;font-size:clamp(20px,4.6vw,32px);color:#0f172a}
+  .fourd-field .p1 .caret{display:inline-block;width:2px;background:#0f172a}
+  .fourd-field .p3{font-family:"Lora",serif;font-style:italic;font-size:14px;color:var(--muted)}
+  .fourd-field .p3 .cyc{font-family:"Archivo Black",sans-serif;font-style:normal;text-transform:uppercase;letter-spacing:-.01em;font-size:clamp(14px,3vw,20px);color:#fff}
+  .fourd-field .p3 .live{background:#0a0a0a;padding:1px 8px}
+  .fourd-field .p3 .ghost{padding:1px 8px}
+
+  /* FD6 Syntax collage (new on sky) — mono prompt / dark code-pill / mono comment / accent sticker */
+  .fourd-syntax .p1{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:#334155}
+  .fourd-syntax .p1::before{content:"~ $ ";color:#0f766e;font-weight:700}
+  .fourd-syntax .p1 .cyc{font-family:"JetBrains Mono",monospace;font-size:clamp(13px,2.8vw,16px)}
+  .fourd-syntax .p1 .live{background:#0f172a;color:#7ee787;border-radius:6px;padding:1px 8px}
+  .fourd-syntax .p1 .ghost{padding:1px 8px}
+  .fourd-syntax .p3{font-family:"JetBrains Mono",monospace;font-style:italic;font-size:12.5px;color:#64748b}
+  .fourd-syntax .p3::before{content:"// ";color:#94a3b8;font-style:normal}
+  .fourd-syntax .p3 .cyc{font-family:"Bricolage Grotesque",sans-serif;font-style:normal;font-weight:800;font-size:clamp(15px,3.2vw,22px)}
+  .fourd-syntax .p3 .live{background:#e8552d;color:#fff;border-radius:999px;padding:2px 12px}
+  .fourd-syntax .p3 .ghost{padding:2px 12px}
+  .fourd-syntax .caret{display:inline-block;width:2px;background:#0f172a}
+
+  .foot{margin-top:60px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--hair);padding-top:16px}
+  .foot code{font-family:"JetBrains Mono",monospace;font-size:.92em;background:rgba(15,23,42,.12);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page">
+    <div class="kicker">Design exploration</div>
+    <h1 class="page">Hero subtitle typography — on the real sky-blue background</h1>
+    <p class="lede">Every card sits on the site's real top-of-scroll background, the daytime sky <code>#87CEEB</code> (<code>SKY_NOON</code>, the exact color the shipped subtitle renders on at scroll 0). No switcher — this is the one true background. Both cycling words animate live with the real <code>sequentialCycle</code> logic. <b>Find a favorite, click its “Copy spec”, and paste the line back into chat.</b></p>
+  </header>
+
+  <main id="gallery"></main>
+
+  <p class="foot">Background is locked to <code>rgb(135,206,235)</code> = <code>#87CEEB</code>. Designs read as dark elements for contrast; any light text sits on its own dark block (code-pills, the terminal window, knockout/bar slabs). Overflow is controlled by sizing: each cycling word's font-size is capped via <code>clamp()</code> so the longest pool phrases — “clever architecture” (Part 2) and “genuinely useful” (Part 4) — fit on one line in the narrowest column, with <code>overflow:hidden</code> on each card as a net.</p>
+</div>
+
+<script>
+/* ---------- real cycle logic ported from sequentialCycle.ts ---------- */
+const CURIOUS = ["user experience","clever architecture","agentic coding","team dynamics","how things work"];
+const OUTCOME = ["memorable","original","authentic","a little weird","genuinely useful"];
+const TIMING  = { type:60, backspace:14, dwell:2500 };
+const GHOST = { curious:"clever architecture", outcome:"genuinely useful" }; // longest per pool
+const PROSE = { p1:"I'm a web enthusiast and I care about", p3:"creating projects with taste that come out" };
+const NEXT = { curious:"outcome", outcome:"curious" };
+const poolFor = s => s==="curious"?CURIOUS:OUTCOME;
+
+function makeInitial(){ return { active:"outcome", phase:"dwell", indices:{curious:0,outcome:0}, typed:"" }; }
+function seqNext(s){
+  if(s.phase==="dwell"){
+    const next=NEXT[s.active], pool=poolFor(next);
+    return {...s, active:next, phase:"backspacing", typed:pool[s.indices[next]]??""};
+  }
+  if(s.phase==="backspacing"){
+    if(s.typed===""){
+      const pool=poolFor(s.active);
+      return {...s, indices:{...s.indices,[s.active]:(s.indices[s.active]+1)%pool.length}, phase:"typing"};
+    }
+    return {...s, typed:s.typed.slice(0,-1)};
+  }
+  // typing
+  const target=poolFor(s.active)[s.indices[s.active]]??"";
+  if(s.typed.length>=target.length) return {...s, phase:"dwell"};
+  const nt=target.slice(0,s.typed.length+1);
+  return nt===target ? {...s, typed:nt, phase:"dwell"} : {...s, typed:nt};
+}
+function delayFor(s){ return s.phase==="dwell"?TIMING.dwell : s.phase==="backspacing"?TIMING.backspace : TIMING.type; }
+const cursorActive = s => s.phase==="backspacing"||s.phase==="typing";
+function slotText(s,slot){
+  if(s.active===slot && cursorActive(s)) return s.typed;
+  return poolFor(slot)[s.indices[slot]]??"";
+}
+
+/* ---------- variation registry (all on sky-blue #87CEEB) ---------- */
+const BG = "bg: sky-blue-87CEEB";
+const GROUPS = [
+  { id:"term", title:"Terminal", note:"monospace · dark text & contained dark windows on the sky",
+    items:[
+      {n:"T1",cls:"term-sky", name:"Sky terminal", desc:"slate mono line with a ~ $ prompt; cycling words as dark rounded code-pills floating on the sky",
+        spec:`variation: Sky terminal | ${BG} | p1: mono-slate-prompt-jetbrains | p2: dark-code-pill-green-mono | p3: mono-slate-prompt-jetbrains | p4: dark-code-pill-green-mono`},
+      {n:"T2",cls:"term-window", name:"Terminal window", desc:"a contained dark terminal window (title-bar dots) holding the whole subtitle, floating on the sky",
+        spec:`variation: Terminal window | ${BG} | p1: window-dim-prompt-mono | p2: window-string-green-blockcursor | p3: window-dim-prompt-mono | p4: window-string-green-blockcursor`},
+      {n:"T3",cls:"term-comment", name:"Comment-first", desc:"dim slate // comments; cycling words in deep syntax colors (teal / indigo) directly on the sky",
+        spec:`variation: Comment-first | ${BG} | p1: mono-comment-dim | p2: syntax-teal-word | p3: mono-comment-dim | p4: syntax-indigo-word`},
+      {n:"T4",cls:"term-inline", name:"Inline-code", desc:"plain dark mono prose; cycling words wrapped like `code` with a subtle dark translucent backing",
+        spec:`variation: Inline-code | ${BG} | p1: mono-dark-prose | p2: inline-code-translucent-backing | p3: mono-dark-prose | p4: inline-code-translucent-backing`},
+      {n:"T5",cls:"term-diff", name:"Git diff (light)", desc:"neutral dark mono prose; cycling words prefixed + / − in dark green / red with a faint tint chip",
+        spec:`variation: Git diff light | ${BG} | p1: mono-diff-context | p2: diff-added-green-plus | p3: mono-diff-context | p4: diff-removed-red-minus`},
+      {n:"T6",cls:"term-prompt", name:"Prompt label", desc:"all mono, dark, with a > prompt; cycling words framed in a thin dark-bordered box",
+        spec:`variation: Prompt label | ${BG} | p1: mono-dark-prompt | p2: dark-bordered-box-word | p3: mono-dark-prompt | p4: dark-bordered-box-word`},
+    ]},
+  { id:"brut", title:"Brutalist solid", note:"black is the hero · maximum contrast on the sky",
+    items:[
+      {n:"B1",cls:"brut-knockout", name:"Knockout slab", desc:"uppercase heavy black prose; words as solid BLACK blocks with the letters knocked out to the sky color",
+        spec:`variation: Knockout slab | ${BG} | p1: uppercase-heavy-black | p2: black-block-knockout-sky | p3: uppercase-heavy-black | p4: black-block-knockout-sky`},
+      {n:"B2",cls:"brut-bar", name:"Black bar", desc:"uppercase heavy black prose; a full solid black bar behind each cycling word with white text",
+        spec:`variation: Black bar | ${BG} | p1: uppercase-heavy-black | p2: black-bar-white-text | p3: uppercase-heavy-black | p4: black-bar-white-text`},
+      {n:"B3",cls:"brut-mixed", name:"Mixed weight", desc:"hairline thin black prose vs ultra-heavy Archivo Black cycling words",
+        spec:`variation: Mixed weight | ${BG} | p1: hairline-thin-prose | p2: archivo-black-ultraheavy | p3: hairline-thin-prose | p4: archivo-black-ultraheavy`},
+      {n:"B4",cls:"brut-accent", name:"Accent block", desc:"black prose; cycling words in bold accent blocks that pop on sky (coral / ink navy)",
+        spec:`variation: Accent block | ${BG} | p1: uppercase-heavy-black | p2: accent-block-coral | p3: uppercase-heavy-black | p4: accent-block-ink-navy`},
+      {n:"B5",cls:"brut-outline", name:"Outline slab", desc:"black prose; hollow black outline-stroke cycling words on the sky",
+        spec:`variation: Outline slab | ${BG} | p1: uppercase-heavy-black | p2: black-outline-stroke-hollow | p3: uppercase-heavy-black | p4: black-outline-stroke-hollow`},
+      {n:"B6",cls:"brut-underline", name:"Thick underline", desc:"black prose; cycling words underscored by a heavy black bar",
+        spec:`variation: Thick underline | ${BG} | p1: uppercase-heavy-black | p2: heavy-black-underline-bar | p3: uppercase-heavy-black | p4: heavy-black-underline-bar`},
+    ]},
+  { id:"edit", title:"Editorial", note:"refined serif, dark, on the sky",
+    items:[
+      {n:"E1",cls:"edit-marker", name:"Marker on sky", desc:"slate serif prose; italic serif cycling words on a soft cream marker-highlight swipe",
+        spec:`variation: Marker on sky | ${BG} | p1: serif-slate-prose-lora | p2: fraunces-italic-cream-marker | p3: serif-slate-prose-lora | p4: fraunces-italic-cream-marker`},
+      {n:"E2",cls:"edit-rule", name:"Fine rule", desc:"small-caps slate prose; Playfair italic cycling words on a thin dark baseline rule",
+        spec:`variation: Fine rule | ${BG} | p1: smallcaps-slate-prose | p2: playfair-italic-baseline-rule | p3: smallcaps-slate-prose | p4: playfair-italic-baseline-rule`},
+      {n:"E3",cls:"edit-twotone", name:"Two-tone ink", desc:"muted slate prose; deep-maroon Playfair italic cycling words",
+        spec:`variation: Two-tone ink | ${BG} | p1: serif-muted-prose | p2: playfair-italic-maroon | p3: serif-muted-prose | p4: playfair-italic-maroon`},
+      {n:"E4",cls:"edit-display", name:"Display serif", desc:"big Instrument Serif italic cycling words in slate; tiny tracked uppercase prose",
+        spec:`variation: Display serif | ${BG} | p1: tiny-tracked-uppercase-prose | p2: instrument-serif-italic-display | p3: tiny-tracked-uppercase-prose | p4: instrument-serif-italic-display`},
+      {n:"E5",cls:"edit-drop", name:"Drop contrast", desc:"large Fraunces serif cycling words against small-caps prose",
+        spec:`variation: Drop contrast | ${BG} | p1: smallcaps-prose | p2: fraunces-large-serif | p3: smallcaps-prose | p4: fraunces-large-serif`},
+      {n:"E6",cls:"edit-dateline", name:"Dateline", desc:"italic serif dateline prose; bold caps Playfair serif cycling words",
+        spec:`variation: Dateline | ${BG} | p1: italic-serif-dateline | p2: playfair-bold-caps | p3: italic-serif-dateline | p4: playfair-bold-caps`},
+    ]},
+  { id:"stick", title:"Sticker", note:"bright chips — already light-friendly, re-based on the sky",
+    items:[
+      {n:"S1",cls:"stick-bubbly", name:"Sticker bubbly", desc:"Bricolage prose; rounded orange chips with a soft drop shadow",
+        spec:`variation: Sticker bubbly | ${BG} | p1: bricolage-prose | p2: rounded-orange-chip-shadow | p3: bricolage-prose | p4: rounded-orange-chip-shadow`},
+      {n:"S2",cls:"stick-pills", name:"Sticker pills", desc:"rotated tag pills, multi-color per slot (blue / pink), hard offset shadow",
+        spec:`variation: Sticker pills | ${BG} | p1: bricolage-prose | p2: pill-tag-rotate-blue | p3: bricolage-prose | p4: pill-tag-rotate-pink`},
+      {n:"S3",cls:"stick-outline", name:"Sticker outline", desc:"dashed-outline green chips on a soft white fill",
+        spec:`variation: Sticker outline | ${BG} | p1: bricolage-prose | p2: dashed-green-chip | p3: bricolage-prose | p4: dashed-green-chip`},
+    ]},
+  { id:"fourd", title:"All four distinct", note:"each of the 4 parts its own block — P1≠P3, both cycling words distinct too",
+    items:[
+      {n:"FD1",cls:"fourd-mixed", name:"Mixed media", desc:"Inter uppercase eyebrow · Fraunces italic marker · Caveat handwriting aside · JetBrains mono boxed tag",
+        spec:`variation: Mixed media | ${BG} | p1: eyebrow-uppercase-tracked-inter | p2: fraunces-italic-cream-marker | p3: caveat-handwriting | p4: mono-boxed-tag-jetbrains`},
+      {n:"FD2",cls:"fourd-specimen", name:"Type specimen", desc:"Space Grotesk · Playfair Display italic · Space Mono · Caveat script accent",
+        spec:`variation: Type specimen | ${BG} | p1: space-grotesk | p2: playfair-display-italic | p3: space-mono | p4: caveat-script-maroon`},
+      {n:"FD3",cls:"fourd-scale", name:"Contrast scale", desc:"tiny label · huge bold display · medium serif italic · small-caps boxed",
+        spec:`variation: Contrast scale | ${BG} | p1: tiny-uppercase-label-inter | p2: huge-bold-display-inter | p3: medium-serif-italic-lora | p4: smallcaps-boxed-inter`},
+      {n:"FD4",cls:"fourd-annotated", name:"Annotated collage", desc:"plain sans · marker-highlight serif · underlined serif italic · outline-stroke mono",
+        spec:`variation: Annotated collage | ${BG} | p1: plain-sans-inter | p2: marker-highlight-fraunces | p3: serif-italic-underline-lora | p4: outline-stroke-mono`},
+      {n:"FD5",cls:"fourd-field", name:"Field notes", desc:"mono uppercase label · Instrument Serif italic · Lora italic · black-bar caps Archivo",
+        spec:`variation: Field notes | ${BG} | p1: mono-uppercase-label-spacemono | p2: instrument-serif-italic | p3: lora-italic-soft | p4: black-bar-caps-archivo`},
+      {n:"FD6",cls:"fourd-syntax", name:"Syntax collage", desc:"mono ~ $ prompt · dark code-pill · mono // comment · accent sticker pill",
+        spec:`variation: Syntax collage | ${BG} | p1: mono-prompt-prose | p2: dark-code-pill-green | p3: mono-comment-italic | p4: accent-sticker-pill-coral`},
+    ]},
+];
+
+/* ---------- build DOM ---------- */
+const gallery = document.getElementById("gallery");
+const cyclers = [];
+
+function cycHTML(slot){
+  return `<span class="cyc"><span class="ghost">${GHOST[slot]}</span><span class="lw"><span class="live" data-slot="${slot}"></span><i class="caret" data-caret="${slot}"></i></span></span>`;
+}
+
+let cardIndex = 0;
+for(const g of GROUPS){
+  const sec = document.createElement("section");
+  sec.className = "group";
+  sec.innerHTML = `<div class="group-head"><h2>${g.title}</h2><span>${g.note}</span></div><div class="grid"></div>`;
+  const grid = sec.querySelector(".grid");
+
+  for(const it of g.items){
+    const card = document.createElement("article");
+    card.className = `card ${g.id} ${it.cls}`;
+    card.innerHTML = `
+      <div class="meta"><span class="num">${it.n}</span><span class="name">${it.name}</span></div>
+      <div class="desc">${it.desc}</div>
+      <div class="stage">
+        <div class="part p1">${PROSE.p1} ${cycHTML("curious")}</div>
+        <div class="part p3">${PROSE.p3} ${cycHTML("outcome")}</div>
+      </div>
+      <div class="cta">
+        <button class="copy" type="button">Copy spec</button>
+      </div>`;
+    grid.appendChild(card);
+
+    const cyc = {
+      state: makeInitial(),
+      nextAt: 0,
+      curious: card.querySelector('.live[data-slot="curious"]'),
+      outcome: card.querySelector('.live[data-slot="outcome"]'),
+      cCaret: card.querySelector('.caret[data-caret="curious"]'),
+      oCaret: card.querySelector('.caret[data-caret="outcome"]'),
+      startOffset: 500 + cardIndex * 150, // staggered so the gallery doesn't pulse in unison
+    };
+    cyclers.push(cyc);
+    render(cyc);
+
+    const btn = card.querySelector(".copy");
+    btn.addEventListener("click", () => {
+      navigator.clipboard.writeText(it.spec).then(() => {
+        btn.textContent = "Copied ✓";
+        btn.classList.add("done");
+        setTimeout(() => { btn.textContent = "Copy spec"; btn.classList.remove("done"); }, 1600);
+      }).catch(() => {
+        btn.textContent = "Copy failed";
+        setTimeout(() => { btn.textContent = "Copy spec"; }, 1600);
+      });
+    });
+    cardIndex++;
+  }
+  gallery.appendChild(sec);
+}
+
+function render(c){
+  c.curious.textContent = slotText(c.state,"curious");
+  c.outcome.textContent = slotText(c.state,"outcome");
+  c.cCaret.classList.toggle("on", c.state.active==="curious" && cursorActive(c.state));
+  c.oCaret.classList.toggle("on", c.state.active==="outcome" && cursorActive(c.state));
+}
+
+/* shared rAF clock; each card advances on its own schedule */
+let started = false;
+function frame(now){
+  if(!started){
+    started = true;
+    for(const c of cyclers) c.nextAt = now + c.startOffset;
+  }
+  for(const c of cyclers){
+    if(now >= c.nextAt){
+      c.state = seqNext(c.state);
+      c.nextAt = now + delayFor(c.state);
+      render(c);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+if(!reduce) requestAnimationFrame(frame);
+</script>
+</body>
+</html>

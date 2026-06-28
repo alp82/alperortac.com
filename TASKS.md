@@ -40,6 +40,76 @@ Longer / manifesto (folds A's bio flavor)
 
 ---
 
+1. (role · fuel · quality)
+I'm a [relentless tinkerer]
+who runs on [passion]
+building things that feel [authentic]
+2. (role · fuel · enemy)
+I'm a [relentless tinkerer]
+powered by [passion]
+allergic to [bad taste]
+3. (fuel · craft · enemy) — three "I" declaratives
+I run on [passion]
+I obsess over [craft]
+I won't ship [bad taste]
+4. (role · fuel · enemy) — staccato
+Part [relentless tinkerer],
+all [passion],
+zero [bad taste]
+5. (make · quality · enemy-adj)
+I build [side projects]
+that come out [authentic]
+and never [forgettable]
+6. (fuel · quality · enemy)
+Driven by [curiosity],
+chasing something [authentic],
+done with [mediocrity]
+7. (role · habit · quality)
+A [web enthusiast]
+with [a camera in hand]
+making things that feel [alive]
+8. (fuel · make · enemy)
+I lead with [good taste],
+I ship [side projects],
+I delete [bad taste]
+9. (fuel · detail · enemy)
+Fueled by [curiosity],
+sweating the [details],
+at war with [bad taste]
+10. (fuel · quality · enemy)
+Made of [passion],
+aiming for [authentic],
+done with [filler]
+
+---
+
+1. (make · quality · enemy-adj)
+I build [side projects]
+that come out [authentic]
+and never [forgettable]
+2. (role · fuel · enemy-adj)
+I'm a [relentless tinkerer]
+running on [passion]
+allergic to anything [soulless]
+3. (fuel · quality · enemy-adj)
+Driven by [curiosity],
+making things that feel [alive],
+but never [mediocre]
+4. (role · make · enemy-adj)
+A [relentless tinkerer]
+shipping [side projects]
+that refuse to be [forgettable]
+5. (fuel · detail · enemy-adj) — three "I" declaratives
+I run on [passion]
+I sweat every [detail]
+I ship nothing [soulless]
+6. (role · fuel · enemy-adj) — staccato
+Part [relentless tinkerer],
+all [passion],
+never [safe]
+
+---
+
 * hero redesign
     * quote according to personal brand, e.g. I'm a passionate builder looking for authentic experiences
     * previous one was "Web enthusiast and agentic coach, with a side project habit and a camera." - maybe we can recycle that or parts of it somehow to
@@ -49,7 +119,9 @@ Longer / manifesto (folds A's bio flavor)
         * what is the one thing you own? - passion
         * what is your enemy? - ai slop
         * rallying cry - what protects your clients from your enemy? - authentic experience
-* button two much inside (colorful logos)
+* 
+* footer + contact merge
+* button too much going on inside (colorful logos)
 * carousel of videos and posts
 * video game char with big head - drag around - according to day of time
 * README with shieldcn

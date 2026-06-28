@@ -66,6 +66,16 @@ For each domain term, give the definition and the aliases to avoid. Aliases shou
 
 **Avoid:** "innerOverride" / "inner bypass" (the removed mechanic this replaces, not the inner itself), "baseline" (the composer's shipped-look toggle is a separate control), "default inner" (too generic - say "rich card" for this specific style).
 
+### sequential cycle
+
+**Definition:** The hero subtitle's state machine (`src/components/_layout/sequentialCycle.ts` + `useSequentialCycle.ts`) driving three inline slots that animate ONE AT A TIME, left-to-right, on a single shared loop: the role slot uses a vertical roll, while fuel and quality use a typewriter effect. Deliberately distinct from the footer's pre-existing `typewriterCycle`, which advances two indices in PARALLEL.
+
+**Avoid:** Do not merge or generalize the two machines into one - the fork is intentional; the footer's `typewriterCycle` stays untouched.
+
+### manifesto subtitle
+
+**Definition:** The hero's static sentence "I'm a/an [role] who runs on [fuel] and builds things that feel [quality]. Bad taste is the only enemy I take personally." It combines three sequential-cycle slots (role, fuel, quality) with a fixed tail clause. The cycling slots are driven by the sequential cycle machine; the tail is static prose.
+
 ## Relationships
 
 - Branches contains the eight Topics. Topics are not Branches; they live inside it.

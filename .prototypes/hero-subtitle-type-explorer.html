@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hero subtitle — interactive typography explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  font-size:14px;
+  color:#1e293b;
+  background:#f8fafc;
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* ---- layout ---- */
+.app{display:flex;width:100%;height:100%}
+
+.preview-pane{
+  position:relative;
+  width:50%;
+  height:100vh;
+  background:#87CEEB;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:48px 32px;
+  overflow:hidden;
+  flex-shrink:0;
+}
+.preview-pane::before{
+  content:'';position:absolute;inset:0;pointer-events:none;opacity:.04;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.preview-inner{
+  position:relative;z-index:1;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.preview-heading{
+  font-family:'Inter',system-ui,sans-serif;
+  font-size:clamp(28px,4vw,48px);
+  font-weight:900;
+  letter-spacing:-0.03em;
+  color:#0a0a0a;
+  margin:0 0 28px 0;
+  line-height:1;
+  text-align:center;
+}
+
+#subtitle-wrapper{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  width:100%;
+}
+
+#prev-lead{
+  margin:0;
+  padding:0;
+}
+
+.subtitle-rows{
+  display:flex;
+  flex-direction:column;
+  width:100%;
+}
+
+.subtitle-row{
+  display:flex;
+  align-items:baseline;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+/* ---- controls pane ---- */
+.controls-pane{
+  width:50%;
+  height:100vh;
+  overflow-y:auto;
+  background:#f8fafc;
+  border-left:1px solid #e2e8f0;
+  display:flex;
+  flex-direction:column;
+}
+
+.presets-bar{
+  padding:14px 18px 12px;
+  border-bottom:1px solid #e2e8f0;
+  background:#fff;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+.presets-label{
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:#94a3b8;
+  margin-bottom:8px;
+}
+.presets-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+}
+.preset-btn{
+  padding:4px 11px;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  color:#334155;
+  font-size:12px;
+  font-weight:600;
+  font-family:'Inter',system-ui,sans-serif;
+  cursor:pointer;
+  border-radius:2px;
+  line-height:1.5;
+  transition:all .1s;
+}
+.preset-btn:hover{border-color:#0f172a;background:#0f172a;color:#fff}
+.preset-btn.is-active{border-color:#0f172a;background:#0f172a;color:#fff}
+
+.controls-content{padding:16px 18px;flex:1}
+
+.control-group{margin-bottom:20px}
+
+.group-title{
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  color:#94a3b8;
+  padding-bottom:7px;
+  margin-bottom:10px;
+  border-bottom:1px solid #e2e8f0;
+}
+
+.control-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:8px;
+  min-height:28px;
+}
+
+.ctrl-label{
+  font-size:11.5px;
+  font-weight:500;
+  color:#64748b;
+  width:148px;
+  flex-shrink:0;
+  line-height:1.3;
+}
+
+.ctrl-input{
+  flex:1;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-width:0;
+}
+
+input[type="range"]{
+  flex:1;
+  height:3px;
+  accent-color:#0f172a;
+  cursor:pointer;
+  min-width:0;
+}
+
+select{
+  flex:1;
+  padding:4px 6px;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  color:#1e293b;
+  font-size:12px;
+  font-family:'Inter',system-ui,sans-serif;
+  border-radius:2px;
+  cursor:pointer;
+  min-width:0;
+}
+
+input[type="color"]{
+  width:32px;
+  height:26px;
+  border:1px solid #cbd5e1;
+  border-radius:2px;
+  cursor:pointer;
+  padding:1px 2px;
+  background:#fff;
+}
+
+.val{
+  font-size:10.5px;
+  font-weight:600;
+  color:#94a3b8;
+  width:40px;
+  text-align:right;
+  flex-shrink:0;
+  font-variant-numeric:tabular-nums;
+}
+
+.color-hex{
+  font-size:10.5px;
+  color:#94a3b8;
+  font-family:'Courier New',monospace;
+}
+
+/* radio group */
+.radio-group{display:flex;gap:4px;flex:1}
+.radio-opt{
+  display:flex;align-items:center;
+  padding:4px 9px;
+  border:1px solid #cbd5e1;
+  border-radius:2px;
+  font-size:11.5px;font-weight:500;color:#64748b;
+  background:#fff;cursor:pointer;
+  transition:all .1s;user-select:none;
+}
+.radio-opt input{display:none}
+.radio-opt.is-checked{background:#0f172a;color:#fff;border-color:#0f172a}
+
+/* spec */
+.spec-section{
+  padding:16px 18px 20px;
+  border-top:1px solid #e2e8f0;
+  background:#fff;
+  flex-shrink:0;
+}
+.spec-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;
+}
+.spec-title{
+  font-size:10px;font-weight:800;letter-spacing:.15em;
+  text-transform:uppercase;color:#94a3b8;
+}
+.copy-btn{
+  padding:4px 13px;
+  border:1px solid #0f172a;background:#0f172a;color:#fff;
+  font-size:11.5px;font-weight:600;
+  font-family:'Inter',system-ui,sans-serif;
+  cursor:pointer;border-radius:2px;transition:all .1s;
+}
+.copy-btn:hover{background:#1e293b}
+.copy-btn.is-copied{background:#16a34a;border-color:#16a34a}
+
+#spec-output{
+  width:100%;height:130px;
+  padding:9px 11px;
+  border:1px solid #e2e8f0;
+  background:#f8fafc;
+  font-family:'Courier New',monospace;
+  font-size:10.5px;color:#334155;
+  line-height:1.65;resize:none;
+  border-radius:2px;outline:none;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== PREVIEW ===== -->
+  <div class="preview-pane">
+    <div class="preview-inner" id="preview-inner">
+      <h1 class="preview-heading">HEY, I'M ALPER.</h1>
+      <div id="subtitle-wrapper">
+        <p id="prev-lead">I work with teams to unlock their full potential.</p>
+        <div class="subtitle-rows" id="subtitle-rows">
+          <div class="subtitle-row" id="row-curious">
+            <span id="prev-curious-prefix">I'm a web enthusiast and I care about</span>
+            <span id="prev-curious-word">user experience</span>
+          </div>
+          <div class="subtitle-row" id="row-outcome">
+            <span id="prev-outcome-prefix">and I create projects that come out</span>
+            <span id="prev-outcome-word">tasteful</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CONTROLS ===== -->
+  <div class="controls-pane">
+
+    <div class="presets-bar">
+      <div class="presets-label">Presets — hover for rationale, click to snap</div>
+      <div class="presets-grid" id="presets-grid"></div>
+    </div>
+
+    <div class="controls-content">
+
+      <!-- Group 1: Scale & Hierarchy -->
+      <div class="control-group">
+        <div class="group-title">Scale &amp; Hierarchy</div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Lead size</div>
+          <div class="ctrl-input">
+            <input type="range" id="ctrl-lead-size" min="16" max="44" step="1" value="24" />
+            <span class="val" id="val-lead-size">24px</span>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Lead weight</div>
+          <div class="ctrl-input">
+            <select id="ctrl-lead-weight">
+              <option value="300">300 Light</option>
+              <option value="400">400 Regular</option>
+              <option value="500">500 Medium</option>
+              <option value="600" selected>600 Semibold</option>
+              <option value="700">700 Bold</option>
+              <option value="800">800 Extrabold</option>
+              <option value="900">900 Black</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Lead style</div>
+          <div class="ctrl-input">
+            <div class="radio-group" id="rg-lead-style">
+              <label class="radio-opt is-checked"><input type="radio" name="lead-style" value="normal" checked />normal</label>
+              <label class="radio-opt"><input type="radio" name="lead-style" value="italic" />italic</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Body size</div>
+          <div class="ctrl-input">
+            <input type="range" id="ctrl-body-size" min="13" max="34" step="1" value="21" />
+            <span class="val" id="val-body-size">21px</span>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Body weight</div>
+          <div class="ctrl-input">
+            <select id="ctrl-body-weight">
+              <option value="300">300 Light</option>
+              <option value="400">400 Regular</option>
+              <option value="500">500 Medium</option>
+              <option value="600" selected>600 Semibold</option>
+              <option value="700">700 Bold</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Group 2: Font Families -->
+      <div class="control-group">
+        <div class="group-title">Font Families</div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Lead font</div>
+          <div class="ctrl-input">
+            <select id="ctrl-lead-font">
+              <option value="Inter" selected>Inter</option>
+              <option value="Space Grotesk">Space Grotesk</option>
+              <option value="Fraunces">Fraunces (serif)</option>
+              <option value="Instrument Serif">Instrument Serif</option>
+              <option value="Playfair Display">Playfair Display</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Body / prose font</div>
+          <div class="ctrl-input">
+            <select id="ctrl-body-font">
+              <option value="Inter" selected>Inter</option>
+              <option value="Space Grotesk">Space Grotesk</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Curious slot font</div>
+          <div class="ctrl-input">
+            <select id="ctrl-curious-font">
+              <option value="Inter" selected>Inter (black)</option>
+              <option value="Space Grotesk">Space Grotesk</option>
+              <option value="match-body">Match body</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Outcome slot font</div>
+          <div class="ctrl-input">
+            <select id="ctrl-outcome-font">
+              <option value="Instrument Serif" selected>Instrument Serif italic</option>
+              <option value="Fraunces">Fraunces italic</option>
+              <option value="Playfair Display">Playfair Display italic</option>
+              <option value="match-body">Match body</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Group 3: Emphasis Treatment -->
+      <div class="control-group">
+        <div class="group-title">Emphasis Treatment</div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Style</div>
+          <div class="ctrl-input">
+            <select id="ctrl-emphasis-style">
+              <option value="solid-box" selected>Solid box</option>
+              <option value="soft-box">Soft rounded box</option>
+              <option value="underline">Underline</option>
+              <option value="marker">Marker highlight</option>
+              <option value="color-only">Color only</option>
+              <option value="italic-serif-only">Italic serif only</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Box / marker bg</div>
+          <div class="ctrl-input">
+            <input type="color" id="ctrl-emphasis-bg" value="#0a0a0a" />
+            <span class="color-hex" id="val-emphasis-bg">#0a0a0a</span>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Box / marker fg</div>
+          <div class="ctrl-input">
+            <input type="color" id="ctrl-emphasis-fg" value="#ffffff" />
+            <span class="color-hex" id="val-emphasis-fg">#ffffff</span>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Accent / underline</div>
+          <div class="ctrl-input">
+            <input type="color" id="ctrl-emphasis-accent" value="#0a0a0a" />
+            <span class="color-hex" id="val-emphasis-accent">#0a0a0a</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Group 4: Colors -->
+      <div class="control-group">
+        <div class="group-title">Colors</div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Lead color</div>
+          <div class="ctrl-input">
+            <input type="color" id="ctrl-text-color" value="#0a0a0a" />
+            <span class="color-hex" id="val-text-color">#0a0a0a</span>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Body / prose color</div>
+          <div class="ctrl-input">
+            <input type="color" id="ctrl-body-color" value="#0a0a0a" />
+            <span class="color-hex" id="val-body-color">#0a0a0a</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Group 5: Spacing -->
+      <div class="control-group">
+        <div class="group-title">Spacing</div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Line height</div>
+          <div class="ctrl-input">
+            <input type="range" id="ctrl-line-height" min="1.2" max="2.4" step="0.05" value="1.7" />
+            <span class="val" id="val-line-height">1.70</span>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Letter spacing</div>
+          <div class="ctrl-input">
+            <input type="range" id="ctrl-letter-spacing" min="-0.02" max="0.12" step="0.005" value="0.04" />
+            <span class="val" id="val-letter-spacing">0.040</span>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Row gap</div>
+          <div class="ctrl-input">
+            <input type="range" id="ctrl-row-gap" min="0" max="40" step="2" value="12" />
+            <span class="val" id="val-row-gap">12px</span>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Max width</div>
+          <div class="ctrl-input">
+            <input type="range" id="ctrl-max-width" min="300" max="800" step="10" value="560" />
+            <span class="val" id="val-max-width">560</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Group 6: Layout -->
+      <div class="control-group">
+        <div class="group-title">Layout</div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Alignment</div>
+          <div class="ctrl-input">
+            <div class="radio-group" id="rg-alignment">
+              <label class="radio-opt is-checked"><input type="radio" name="alignment" value="center" checked />centered</label>
+              <label class="radio-opt"><input type="radio" name="alignment" value="left" />left</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="ctrl-label">Lead case</div>
+          <div class="ctrl-input">
+            <div class="radio-group" id="rg-lead-case">
+              <label class="radio-opt is-checked"><input type="radio" name="lead-case" value="none" checked />normal</label>
+              <label class="radio-opt"><input type="radio" name="lead-case" value="small-caps" />small-caps</label>
+              <label class="radio-opt"><input type="radio" name="lead-case" value="uppercase" />upper</label>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /controls-content -->
+
+    <div class="spec-section">
+      <div class="spec-header">
+        <div class="spec-title">Current Spec</div>
+        <button class="copy-btn" id="copy-btn">Copy spec</button>
+      </div>
+      <textarea id="spec-output" readonly></textarea>
+    </div>
+
+  </div><!-- /controls-pane -->
+</div><!-- /app -->
+
+<script>
+// ---- radio helpers ----
+function setRadio(name, value, silent) {
+  document.querySelectorAll('input[name="' + name + '"]').forEach(function(inp) {
+    inp.checked = inp.value === value;
+    var lbl = inp.closest('.radio-opt');
+    if (lbl) lbl.classList.toggle('is-checked', inp.checked);
+  });
+  if (!silent) update();
+}
+
+function getRadio(name) {
+  var checked = document.querySelector('input[name="' + name + '"]:checked');
+  return checked ? checked.value : '';
+}
+
+// wire radio groups to update
+document.querySelectorAll('.radio-opt').forEach(function(lbl) {
+  lbl.addEventListener('click', function() {
+    var inp = lbl.querySelector('input[type="radio"]');
+    if (!inp) return;
+    setRadio(inp.name, inp.value, false);
+  });
+});
+
+// ---- ctrl value helpers ----
+function g(id) { return document.getElementById(id); }
+
+function setCtrl(id, value) {
+  var el = g(id);
+  if (el) el.value = String(value);
+}
+
+function readState() {
+  return {
+    leadSize:         +g('ctrl-lead-size').value,
+    leadWeight:       g('ctrl-lead-weight').value,
+    leadStyle:        getRadio('lead-style'),
+    leadFont:         g('ctrl-lead-font').value,
+    leadCase:         getRadio('lead-case'),
+
+    bodySize:         +g('ctrl-body-size').value,
+    bodyWeight:       g('ctrl-body-weight').value,
+    bodyFont:         g('ctrl-body-font').value,
+
+    curiousFont:      g('ctrl-curious-font').value,
+    outcomeFont:      g('ctrl-outcome-font').value,
+
+    emphasisStyle:    g('ctrl-emphasis-style').value,
+    emphasisBg:       g('ctrl-emphasis-bg').value,
+    emphasisFg:       g('ctrl-emphasis-fg').value,
+    emphasisAccent:   g('ctrl-emphasis-accent').value,
+
+    textColor:        g('ctrl-text-color').value,
+    bodyColor:        g('ctrl-body-color').value,
+
+    lineHeight:       +g('ctrl-line-height').value,
+    letterSpacing:    +g('ctrl-letter-spacing').value,
+    rowGap:           +g('ctrl-row-gap').value,
+    maxWidth:         +g('ctrl-max-width').value,
+
+    alignment:        getRadio('alignment'),
+  };
+}
+
+// ---- emphasis application ----
+var SERIFS = ['Instrument Serif', 'Fraunces', 'Playfair Display'];
+
+function applyEmphasis(el, s, isOutcome) {
+  // Wipe inline styles cleanly
+  el.style.cssText = '';
+  el.style.display = 'inline-flex';
+  el.style.alignItems = 'center';
+
+  // Resolve font for this slot
+  var slotFont = isOutcome
+    ? (s.outcomeFont === 'match-body' ? s.bodyFont : s.outcomeFont)
+    : (s.curiousFont === 'match-body' ? s.bodyFont : s.curiousFont);
+
+  var isSerif = SERIFS.indexOf(slotFont) !== -1;
+
+  el.style.fontFamily = "'" + slotFont + "', " + (isSerif ? 'serif' : 'sans-serif');
+
+  if (isOutcome) {
+    if (s.outcomeFont === 'match-body') {
+      el.style.fontWeight = s.bodyWeight;
+      el.style.fontStyle = 'normal';
+    } else {
+      el.style.fontWeight = '400';
+      el.style.fontStyle = 'italic';
+    }
+  } else {
+    if (s.curiousFont === 'match-body') {
+      el.style.fontWeight = s.bodyWeight;
+      el.style.fontStyle = 'normal';
+    } else if (s.curiousFont === 'Inter') {
+      el.style.fontWeight = '900';
+      el.style.fontStyle = 'normal';
+    } else {
+      el.style.fontWeight = '700';
+      el.style.fontStyle = 'normal';
+    }
+  }
+
+  // Size: serif outcome gets slight optical bump
+  var sz = s.bodySize;
+  if (isOutcome && isSerif) sz = Math.round(sz * 1.1);
+  el.style.fontSize = sz + 'px';
+
+  var style   = s.emphasisStyle;
+  var bg      = s.emphasisBg;
+  var fg      = s.emphasisFg;
+  var accent  = s.emphasisAccent;
+
+  if (style === 'solid-box') {
+    el.style.background   = bg;
+    el.style.color        = fg;
+    el.style.padding      = '2px 8px 3px';
+    el.style.borderRadius = '0';
+  } else if (style === 'soft-box') {
+    el.style.background   = bg;
+    el.style.color        = fg;
+    el.style.padding      = '3px 10px 4px';
+    el.style.borderRadius = '6px';
+  } else if (style === 'underline') {
+    el.style.borderBottom = '2px solid ' + accent;
+    el.style.paddingBottom = '2px';
+  } else if (style === 'marker') {
+    el.style.background = 'linear-gradient(transparent 52%, ' + bg + ' 52%)';
+    el.style.color = accent;
+    el.style.padding = '0 3px';
+  } else if (style === 'color-only') {
+    el.style.color = accent;
+  } else if (style === 'italic-serif-only') {
+    el.style.fontFamily  = "'Instrument Serif', serif";
+    el.style.fontStyle   = 'italic';
+    el.style.fontWeight  = '400';
+  }
+  // 'none': inherits, nothing to add
+}
+
+// ---- main update ----
+function update() {
+  var s = readState();
+
+  // badges
+  g('val-lead-size').textContent     = s.leadSize + 'px';
+  g('val-body-size').textContent     = s.bodySize + 'px';
+  g('val-line-height').textContent   = s.lineHeight.toFixed(2);
+  g('val-letter-spacing').textContent = s.letterSpacing.toFixed(3);
+  g('val-row-gap').textContent       = s.rowGap + 'px';
+  g('val-max-width').textContent     = s.maxWidth + 'px';
+
+  ['emphasis-bg','emphasis-fg','emphasis-accent','text-color','body-color'].forEach(function(key) {
+    var inp = g('ctrl-' + key);
+    var badge = g('val-' + key);
+    if (inp && badge) badge.textContent = inp.value;
+  });
+
+  // wrapper
+  var wrap = g('subtitle-wrapper');
+  wrap.style.fontFamily     = "'" + s.bodyFont + "', system-ui, sans-serif";
+  wrap.style.letterSpacing  = s.letterSpacing + 'em';
+  wrap.style.lineHeight     = s.lineHeight;
+  wrap.style.maxWidth       = s.maxWidth + 'px';
+  wrap.style.alignItems     = s.alignment === 'center' ? 'center' : 'flex-start';
+  wrap.style.margin         = '0 auto';
+
+  // lead
+  var lead = g('prev-lead');
+  lead.style.fontSize      = s.leadSize + 'px';
+  lead.style.fontWeight    = s.leadWeight;
+  lead.style.fontFamily    = "'" + s.leadFont + "', serif";
+  lead.style.fontStyle     = s.leadStyle;
+  lead.style.color         = s.textColor;
+  lead.style.textTransform = s.leadCase === 'uppercase' ? 'uppercase' : 'none';
+  lead.style.fontVariant   = s.leadCase === 'small-caps' ? 'small-caps' : 'normal';
+  lead.style.marginBottom  = s.rowGap + 'px';
+  lead.style.textAlign     = s.alignment;
+
+  // rows container
+  var rows = g('subtitle-rows');
+  rows.style.gap = s.rowGap + 'px';
+
+  // prose connectors
+  ['prev-curious-prefix','prev-outcome-prefix'].forEach(function(id) {
+    var el = g(id);
+    el.style.fontSize   = s.bodySize + 'px';
+    el.style.fontWeight = s.bodyWeight;
+    el.style.color      = s.bodyColor;
+    el.style.fontFamily = "'" + s.bodyFont + "', system-ui, sans-serif";
+  });
+
+  // row alignment
+  ['row-curious','row-outcome'].forEach(function(id) {
+    g(id).style.justifyContent = s.alignment === 'center' ? 'center' : 'flex-start';
+  });
+
+  // emphasis words
+  applyEmphasis(g('prev-curious-word'), s, false);
+  applyEmphasis(g('prev-outcome-word'), s, true);
+
+  updateSpec(s);
+}
+
+// ---- spec ----
+function updateSpec(s) {
+  var lines = [
+    '// Hero Subtitle Typography Spec',
+    '//',
+    '// Scale & Hierarchy',
+    'leadSize:        ' + s.leadSize + 'px',
+    'leadWeight:      ' + s.leadWeight,
+    'leadStyle:       ' + s.leadStyle,
+    'leadCase:        ' + s.leadCase,
+    'bodySize:        ' + s.bodySize + 'px',
+    'bodyWeight:      ' + s.bodyWeight,
+    '',
+    '// Fonts',
+    'leadFont:        "' + s.leadFont + '"',
+    'bodyFont:        "' + s.bodyFont + '"',
+    'curiousFont:     "' + s.curiousFont + '"',
+    'outcomeFont:     "' + s.outcomeFont + '"',
+    '',
+    '// Emphasis',
+    'emphasisStyle:   ' + s.emphasisStyle,
+    'emphasisBg:      ' + s.emphasisBg,
+    'emphasisFg:      ' + s.emphasisFg,
+    'emphasisAccent:  ' + s.emphasisAccent,
+    '',
+    '// Colors',
+    'textColor:       ' + s.textColor,
+    'bodyColor:       ' + s.bodyColor,
+    '',
+    '// Spacing',
+    'lineHeight:      ' + s.lineHeight,
+    'letterSpacing:   ' + s.letterSpacing + 'em',
+    'rowGap:          ' + s.rowGap + 'px',
+    'maxWidth:        ' + s.maxWidth + 'px',
+    '',
+    '// Layout',
+    'alignment:       ' + s.alignment,
+  ];
+  g('spec-output').value = lines.join('\n');
+}
+
+g('copy-btn').addEventListener('click', function() {
+  var ta = g('spec-output');
+  navigator.clipboard.writeText(ta.value).then(function() {
+    var btn = g('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('is-copied');
+    setTimeout(function() {
+      btn.textContent = 'Copy spec';
+      btn.classList.remove('is-copied');
+    }, 2200);
+  }).catch(function() {
+    ta.select();
+    document.execCommand('copy');
+  });
+});
+
+// ---- wire all range + select inputs ----
+document.querySelectorAll('input[type="range"], select').forEach(function(el) {
+  el.addEventListener('input', update);
+  el.addEventListener('change', update);
+});
+document.querySelectorAll('input[type="color"]').forEach(function(el) {
+  el.addEventListener('input', update);
+});
+
+// ---- presets ----
+var PRESETS = [
+  {
+    id: 'current',
+    name: 'Current',
+    rationale: 'Shipped state: flat hierarchy, dual black boxes, Inter throughout — the problem to solve',
+    state: {
+      leadSize:24, leadWeight:'600', leadStyle:'normal', leadFont:'Inter', leadCase:'none',
+      bodySize:21, bodyWeight:'600', bodyFont:'Inter',
+      curiousFont:'Inter', outcomeFont:'Instrument Serif',
+      emphasisStyle:'solid-box', emphasisBg:'#0a0a0a', emphasisFg:'#ffffff', emphasisAccent:'#0a0a0a',
+      textColor:'#0a0a0a', bodyColor:'#0a0a0a',
+      lineHeight:1.7, letterSpacing:0.04, rowGap:12, maxWidth:560, alignment:'center',
+    }
+  },
+  {
+    id: 'editorial',
+    name: 'Editorial',
+    rationale: 'Fraunces italic lead (large), quiet Inter 400 body, no boxes — hierarchy by weight contrast and typeface alone',
+    state: {
+      leadSize:30, leadWeight:'400', leadStyle:'italic', leadFont:'Fraunces', leadCase:'none',
+      bodySize:17, bodyWeight:'400', bodyFont:'Inter',
+      curiousFont:'match-body', outcomeFont:'Fraunces',
+      emphasisStyle:'italic-serif-only', emphasisBg:'#e8f4e8', emphasisFg:'#0a0a0a', emphasisAccent:'#1e3a5f',
+      textColor:'#0a0a0a', bodyColor:'#334155',
+      lineHeight:1.9, letterSpacing:0.01, rowGap:18, maxWidth:600, alignment:'center',
+    }
+  },
+  {
+    id: 'confident',
+    name: 'Confident Sans',
+    rationale: 'Large bold Inter lead (size does the work), small quiet body, clean underline accent only',
+    state: {
+      leadSize:34, leadWeight:'700', leadStyle:'normal', leadFont:'Inter', leadCase:'none',
+      bodySize:16, bodyWeight:'400', bodyFont:'Inter',
+      curiousFont:'Inter', outcomeFont:'match-body',
+      emphasisStyle:'underline', emphasisBg:'#0a0a0a', emphasisFg:'#ffffff', emphasisAccent:'#0a0a0a',
+      textColor:'#0a0a0a', bodyColor:'#1e293b',
+      lineHeight:1.65, letterSpacing:0.01, rowGap:14, maxWidth:620, alignment:'center',
+    }
+  },
+  {
+    id: 'minimal',
+    name: 'Minimal',
+    rationale: 'Lead vs body size contrast + muted prose color — zero boxes, zero weight drama, atmosphere from restraint',
+    state: {
+      leadSize:26, leadWeight:'500', leadStyle:'normal', leadFont:'Inter', leadCase:'none',
+      bodySize:16, bodyWeight:'400', bodyFont:'Inter',
+      curiousFont:'Inter', outcomeFont:'Instrument Serif',
+      emphasisStyle:'color-only', emphasisBg:'#f0f4f8', emphasisFg:'#0a0a0a', emphasisAccent:'#0a0a0a',
+      textColor:'#0a0a0a', bodyColor:'#475569',
+      lineHeight:1.85, letterSpacing:0.015, rowGap:10, maxWidth:540, alignment:'center',
+    }
+  },
+  {
+    id: 'warm-serif',
+    name: 'Warm Serif',
+    rationale: 'Instrument Serif italic lead, soft amber marker highlight, generous open leading — delicate and warm',
+    state: {
+      leadSize:27, leadWeight:'400', leadStyle:'italic', leadFont:'Instrument Serif', leadCase:'none',
+      bodySize:18, bodyWeight:'400', bodyFont:'Inter',
+      curiousFont:'Inter', outcomeFont:'Instrument Serif',
+      emphasisStyle:'marker', emphasisBg:'#fde68a', emphasisFg:'#0a0a0a', emphasisAccent:'#92400e',
+      textColor:'#1c1917', bodyColor:'#44403c',
+      lineHeight:2.0, letterSpacing:0.02, rowGap:20, maxWidth:580, alignment:'center',
+    }
+  },
+  {
+    id: 'ghost',
+    name: 'Ghost',
+    rationale: 'Light 300 weights, wide tracking, small-caps lead, color-only emphasis — airy and atmospheric',
+    state: {
+      leadSize:22, leadWeight:'300', leadStyle:'normal', leadFont:'Inter', leadCase:'small-caps',
+      bodySize:15, bodyWeight:'300', bodyFont:'Inter',
+      curiousFont:'Inter', outcomeFont:'Instrument Serif',
+      emphasisStyle:'color-only', emphasisBg:'#dbeafe', emphasisFg:'#1e3a8a', emphasisAccent:'#1d4ed8',
+      textColor:'#1e293b', bodyColor:'#64748b',
+      lineHeight:2.1, letterSpacing:0.085, rowGap:10, maxWidth:510, alignment:'center',
+    }
+  },
+];
+
+function applyPreset(preset) {
+  var s = preset.state;
+  setCtrl('ctrl-lead-size',       s.leadSize);
+  setCtrl('ctrl-lead-weight',     s.leadWeight);
+  setCtrl('ctrl-lead-font',       s.leadFont);
+  setCtrl('ctrl-body-size',       s.bodySize);
+  setCtrl('ctrl-body-weight',     s.bodyWeight);
+  setCtrl('ctrl-body-font',       s.bodyFont);
+  setCtrl('ctrl-curious-font',    s.curiousFont);
+  setCtrl('ctrl-outcome-font',    s.outcomeFont);
+  setCtrl('ctrl-emphasis-style',  s.emphasisStyle);
+  setCtrl('ctrl-emphasis-bg',     s.emphasisBg);
+  setCtrl('ctrl-emphasis-fg',     s.emphasisFg);
+  setCtrl('ctrl-emphasis-accent', s.emphasisAccent);
+  setCtrl('ctrl-text-color',      s.textColor);
+  setCtrl('ctrl-body-color',      s.bodyColor);
+  setCtrl('ctrl-line-height',     s.lineHeight);
+  setCtrl('ctrl-letter-spacing',  s.letterSpacing);
+  setCtrl('ctrl-row-gap',         s.rowGap);
+  setCtrl('ctrl-max-width',       s.maxWidth);
+
+  setRadio('lead-style', s.leadStyle, true);
+  setRadio('lead-case',  s.leadCase,  true);
+  setRadio('alignment',  s.alignment, true);
+
+  document.querySelectorAll('.preset-btn').forEach(function(btn) {
+    btn.classList.toggle('is-active', btn.dataset.id === preset.id);
+  });
+
+  update();
+}
+
+// build preset buttons
+var grid = g('presets-grid');
+PRESETS.forEach(function(preset) {
+  var btn = document.createElement('button');
+  btn.className   = 'preset-btn';
+  btn.dataset.id  = preset.id;
+  btn.textContent = preset.name;
+  btn.title       = preset.rationale;
+  btn.addEventListener('click', function() { applyPreset(preset); });
+  grid.appendChild(btn);
+});
+
+// boot with Current
+applyPreset(PRESETS[0]);
+</script>
+</body>
+</html>

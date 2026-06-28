@@ -1,22 +1,30 @@
-export const HERO_ROLES: readonly string[] = [
-	"web enthusiast",
-	"agentic coach",
-	"engineering consultant",
-	"solutions architect",
-	"relentless tinkerer",
+export const HERO_CURIOUS: readonly string[] = [
+	"user experience",
+	"clever architecture",
+	"understanding clients",
+	"agentic coding",
+	"wellbeing",
+	"how things work",
+	"productivity",
+	"respectful communication",
+	"AI and automation",
 ];
 
-export const HERO_PHRASES: readonly string[] = [
-	"with a side project habit",
-	"contributing to open source",
-	"with a camera in hand",
-	"always stepping outside his comfort zone",
-	"shipping things on the side",
+export const HERO_OUTCOME: readonly string[] = [
+	"memorable",
+	"tasteful",
+	"original",
+	"authentic",
+	"unorthodox",
+	"genuinely useful",
 ];
 
 export const HERO_TIMING = {
-	type: 40,
-	backspace: 14,
-	dwell: 1100,
+	type: 80,
+	backspace: 25,
+	dwell: 4000,
 	push: 420,
 } as const;
+
+export const HERO_LEAD = "Working to unlock everyone's full potential.";
+export const HERO_CTA = "Find out more about my work";

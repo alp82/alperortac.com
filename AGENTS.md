@@ -16,7 +16,7 @@ A vertical scroll journey on the main path:
 - **Freelance / Collab CTA** — one dedicated block.
 - **Footer (ground/night)** — minimal, ambient.
 
-**Sidetracks (left and right overlay panels)** are the primary depth surface:
+**Sidetracks (deep dive subpages)** are the primary depth surface:
 
 - Career history lives in a panel triggered from The Craft.
 - Each of the four flagship projects (GoodWatch, AIStack, Alp-River, Manaschmiede) gets its own panel.
