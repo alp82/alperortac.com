@@ -48,7 +48,7 @@ export function HeroSubtitle() {
 
 	return (
 		<div className="hero-type mx-auto mt-8 flex w-fit flex-col items-center gap-y-4 sm:gap-y-5 tracking-[0.04em] text-[#0a0a0a] text-xl sm:text-2xl md:text-3xl text-center">
-			<p className="font-semibold">{HERO_LEAD}</p>
+			{/* <p className="font-semibold">{HERO_LEAD}</p> */}
 
 			<div
 				role="img"
