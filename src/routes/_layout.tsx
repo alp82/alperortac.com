@@ -2,7 +2,6 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CraftSection } from "../components/_layout/CraftSection";
-import { CTASection } from "../components/_layout/CTASection";
 import {
 	type ComposerState,
 	DEFAULT_STATE,
@@ -421,8 +420,6 @@ function LayoutHost() {
 					isNight={isNight}
 					composer={designComposer}
 				/>
-				<CTASection />
-
 				<FooterSection />
 			</div>
 

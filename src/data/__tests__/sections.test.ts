@@ -45,4 +45,9 @@ describe("sections topology", () => {
 			).toHaveProperty(t.id);
 		}
 	});
+
+	// TC-11 — SECTION_IDS must not carry a "footer" key after the footer refactor
+	it('SECTION_IDS does not carry a "footer" key', () => {
+		expect("footer" in SECTION_IDS).toBe(false);
+	});
 });

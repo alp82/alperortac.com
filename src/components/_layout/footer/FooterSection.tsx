@@ -4,6 +4,7 @@ import { FOOTER_PROJECTS_INTRO } from "../../../data/footer";
 import { PROJECTS } from "../../../data/projects";
 import { SECTION_IDS } from "../../../data/sections";
 import { FollowMeRow } from "./FollowMeRow";
+import { FooterContact } from "./FooterContact";
 import { FooterHeadline } from "./FooterHeadline";
 
 export function FooterSection() {
@@ -11,12 +12,15 @@ export function FooterSection() {
 
 	return (
 		<footer
-			id={SECTION_IDS.footer}
+			id={SECTION_IDS.contact}
 			className="py-16 px-6 border-t border-current/20 bg-slate-900/40 backdrop-blur-md transition-colors duration-100"
 			style={{ color: "#f8fafc" }}
 		>
-			<div className="max-w-6xl mx-auto flex flex-col gap-12">
-				<FooterHeadline />
+			<div className="max-w-6xl mx-auto flex flex-col gap-24">
+				<div className="flex flex-col gap-6">
+					<FooterHeadline />
+					<FooterContact />
+				</div>
 
 				<div className="text-sm font-bold drop-shadow-sm">
 					<span className="uppercase tracking-widest opacity-70 mr-2">

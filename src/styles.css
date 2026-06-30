@@ -546,7 +546,6 @@ body.panel-open nav {
 	0%, 49% { opacity: 1; }
 	50%, 100% { opacity: 0; }
 }
-.hero-cursor,
 .footer-cursor {
 	display: inline-block;
 	margin-bottom: 4px;
@@ -557,7 +556,6 @@ body.panel-open nav {
 	animation: hero-blink 1.05s step-end infinite;
 }
 .hero-type { font-family: 'Inter Variable', 'Inter', system-ui, sans-serif; }
-.hero-cursor { background: currentColor; }
 .footer-cursor { background: currentColor; }
 @keyframes hero-scroll-hint {
 	0%, 100% { transform: translateY(0); }
@@ -565,7 +563,6 @@ body.panel-open nav {
 }
 .hero-scroll-arrow { animation: hero-scroll-hint 1.8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-	.hero-cursor,
 	.footer-cursor,
 	.hero-scroll-arrow {
 		animation: none;

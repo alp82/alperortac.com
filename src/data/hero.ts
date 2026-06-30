@@ -1,30 +1,6 @@
-export const HERO_CURIOUS: readonly string[] = [
-	"user experience",
-	"clever architecture",
-	"understanding clients",
-	"agentic coding",
-	"wellbeing",
-	"how things work",
-	"productivity",
-	"respectful communication",
-	"AI and automation",
+export const HERO_SUMMARY: readonly string[] = [
+	"Web enthusiast and agentic coach with a side-project habit and a camera.",
+	"Powered by passion and here to build genuinely authentic experiences.",
 ];
 
-export const HERO_OUTCOME: readonly string[] = [
-	"memorable",
-	"tasteful",
-	"original",
-	"authentic",
-	"unorthodox",
-	"genuinely useful",
-];
-
-export const HERO_TIMING = {
-	type: 80,
-	backspace: 25,
-	dwell: 4000,
-	push: 420,
-} as const;
-
-export const HERO_LEAD = "Working to unlock everyone's full potential.";
-export const HERO_CTA = "Find out more about my work";
+export const HERO_CTA = "Scroll to learn more about me";

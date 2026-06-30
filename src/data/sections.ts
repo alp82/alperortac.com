@@ -29,5 +29,4 @@ export const SECTION_IDS = {
 	findMe: "find-me",
 	craft: "craft",
 	contact: "contact",
-	footer: "footer",
 } as const;

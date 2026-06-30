@@ -120,8 +120,10 @@ never [safe]
         * what is your enemy? - ai slop
         * rallying cry - what protects your clients from your enemy? - authentic experience
 * 
-* footer + contact merge
-* button too much going on inside (colorful logos)
+* [x] footer + contact merge
+* coding: https://reactbits.dev/text-animations/decrypted-text
+* context switching: https://reactbits.dev/text-animations/true-focus
+* button too much going on inside (colorful logos): https://reactbits.dev/components/border-glow
 * carousel of videos and posts
 * video game char with big head - drag around - according to day of time
 * README with shieldcn
