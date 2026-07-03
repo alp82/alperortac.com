@@ -3,11 +3,49 @@ import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { PostHogProvider } from "@posthog/react";
 
+import { SOCIAL_LINKS } from "../components/_layout/social/socialLinks";
+import { CONTACT_EMAIL } from "../data/footer";
+import { HERO_SUMMARY } from "../data/hero";
 import appCss from "../styles.css?url";
 
+const SITE_URL = "https://alperortac.com";
+const SITE_NAME = "Alper Ortac";
+const SITE_DESCRIPTION = HERO_SUMMARY.join(" ");
+const OG_IMAGE_URL = `${SITE_URL}/og/landing.webp`;
+const OG_IMAGE_ALT =
+	"Hey, I'm Alper. Web enthusiast and agentic coach with a side-project habit and a camera.";
+const TWITTER_HANDLE = "@alperortac";
+
+const JSON_LD = JSON.stringify({
+	"@context": "https://schema.org",
+	"@graph": [
+		{
+			"@type": "Person",
+			"@id": `${SITE_URL}/#person`,
+			name: SITE_NAME,
+			url: SITE_URL,
+			image: `${SITE_URL}/alper-avatar.webp`,
+			description: SITE_DESCRIPTION,
+			email: `mailto:${CONTACT_EMAIL}`,
+			sameAs: SOCIAL_LINKS.map((l) => l.href).filter((h): h is string =>
+				Boolean(h),
+			),
+		},
+		{
+			"@type": "WebSite",
+			"@id": `${SITE_URL}/#website`,
+			name: SITE_NAME,
+			url: SITE_URL,
+			publisher: { "@id": `${SITE_URL}/#person` },
+		},
+	],
+});
+
 export const Route = createRootRoute({
-	head: () => ({
-		meta: [
+	head: ({ matches }) => {
+		const pathname = matches.at(-1)?.pathname ?? "/";
+		const pageUrl = new URL(pathname, SITE_URL).href;
+		const meta = [
 			{
 				charSet: "utf-8",
 			},
@@ -18,8 +56,29 @@ export const Route = createRootRoute({
 			{
 				title: "Alper Ortac",
 			},
-		],
-		links: [
+			{ name: "description", content: SITE_DESCRIPTION },
+			{ name: "author", content: SITE_NAME },
+			{ name: "robots", content: "index, follow, max-image-preview:large" },
+			{ property: "og:type", content: "website" },
+			{ property: "og:site_name", content: SITE_NAME },
+			{ property: "og:locale", content: "en_US" },
+			{ property: "og:title", content: SITE_NAME },
+			{ property: "og:description", content: SITE_DESCRIPTION },
+			{ property: "og:url", content: pageUrl },
+			{ property: "og:image", content: OG_IMAGE_URL },
+			{ property: "og:image:type", content: "image/webp" },
+			{ property: "og:image:width", content: "1200" },
+			{ property: "og:image:height", content: "630" },
+			{ property: "og:image:alt", content: OG_IMAGE_ALT },
+			{ name: "twitter:card", content: "summary_large_image" },
+			{ name: "twitter:site", content: TWITTER_HANDLE },
+			{ name: "twitter:creator", content: TWITTER_HANDLE },
+			{ name: "twitter:title", content: SITE_NAME },
+			{ name: "twitter:description", content: SITE_DESCRIPTION },
+			{ name: "twitter:image", content: OG_IMAGE_URL },
+			{ name: "twitter:image:alt", content: OG_IMAGE_ALT },
+		];
+		const links = [
 			{
 				rel: "stylesheet",
 				href: appCss,
@@ -46,8 +105,11 @@ export const Route = createRootRoute({
 				href: "/favicon.ico",
 				sizes: "any",
 			},
-		],
-	}),
+			{ rel: "canonical", href: pageUrl },
+		];
+		const scripts = [{ type: "application/ld+json", children: JSON_LD }];
+		return { meta, links, scripts };
+	},
 	shellComponent: RootDocument,
 });
 
