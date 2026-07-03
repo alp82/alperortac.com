@@ -6,6 +6,7 @@ import { PROJECT_ICONS, PROJECTS } from "../../../data/projects";
 import { PANEL_SIDES } from "../../../data/sections";
 import { STORY_BY_SLUG } from "../../../data/stories";
 import type { Trigger } from "../../../data/topics";
+import { BorderGlow } from "../BorderGlow";
 
 /*
  * Reusable building blocks for per-topic content components.
@@ -163,7 +164,49 @@ const EXTERNAL_CARD_CLASS =
 	"btn-brutalist group block w-full text-left p-6 md:p-7 font-black uppercase tracking-wider";
 
 const TRIGGER_CARD_CLASS =
-	"btn-brutalist btn-brutalist--ghost group block w-full text-left p-6 md:p-7 font-black uppercase tracking-wider";
+	"group w-full text-left px-6 md:px-7 py-16 md:py-20 font-black uppercase tracking-wider text-amber-50 cursor-pointer select-none";
+
+const TRIGGER_GLOW_COLORS = ["#fbbf24", "#f59e0b", "#fb923c"]; // gold -> amber -> soft orange
+const TRIGGER_GLOW_COLOR = "40 95 55"; // warm molten-ember edge light (H S L)
+const TRIGGER_GLOW_BG = "#160F0A"; // warm near-black card so amber pops; tunable
+
+function GlowTrigger({
+	onActivate,
+	className,
+	children,
+	"aria-label": ariaLabel,
+}: {
+	onActivate: (el: HTMLElement) => void;
+	className: string;
+	children: ReactNode;
+	"aria-label"?: string;
+}) {
+	return (
+		<BorderGlow
+			as="button"
+			type="button"
+			aria-label={ariaLabel}
+			onClick={(e) => onActivate(e.currentTarget)}
+			borderRadius={0}
+			edgeSensitivity={24}
+			edgeFloor={70}
+			glowIntensity={1.8}
+			glowRadius={64}
+			coneSpread={34}
+			fillOpacity={0.8}
+			colors={TRIGGER_GLOW_COLORS}
+			glowColor={TRIGGER_GLOW_COLOR}
+			backgroundColor={TRIGGER_GLOW_BG}
+			className={className}
+			style={{
+				border: "4px solid rgba(251, 191, 36, 0.35)",
+				boxShadow: "6px 6px 0 0 #0f172a",
+			}}
+		>
+			{children}
+		</BorderGlow>
+	);
+}
 
 export function ExternalCard({
 	href,
@@ -277,14 +320,16 @@ export function TriggerCard({
 			navigate({ to: "/career", resetScroll: false });
 		};
 		return (
-			<button
-				type="button"
-				onClick={(e) => go(e.currentTarget)}
-				className="btn-brutalist btn-brutalist--ghost w-full flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl p-6"
+			<GlowTrigger
+				onActivate={go}
+				aria-label="See the work history"
+				className="group w-full text-left px-6 py-16 font-black uppercase tracking-tighter text-amber-50 cursor-pointer select-none"
 			>
-				<ArrowLeft size={32} className="shrink-0" />
-				<span>See the work history</span>
-			</button>
+				<div className="flex items-center justify-between gap-6 text-xl md:text-3xl">
+					<ArrowLeft size={32} className="shrink-0" />
+					<span>See the work history</span>
+				</div>
+			</GlowTrigger>
 		);
 	}
 
@@ -301,11 +346,7 @@ export function TriggerCard({
 			});
 		};
 		return (
-			<button
-				type="button"
-				onClick={(e) => go(e.currentTarget)}
-				className={TRIGGER_CARD_CLASS}
-			>
+			<GlowTrigger onActivate={go} className={TRIGGER_CARD_CLASS}>
 				<TriggerCardBody
 					Icon={Icon}
 					title={project.title}
@@ -313,50 +354,28 @@ export function TriggerCard({
 					tileClass={project.panelLight}
 					arrowSide={PANEL_SIDES[project.slug]}
 				/>
-			</button>
+			</GlowTrigger>
 		);
 	}
 
-	if (trigger.kind === "personal") {
-		const item = PERSONAL_BY_SLUG[trigger.slug];
+	if (trigger.kind === "personal" || trigger.kind === "story") {
+		const item =
+			trigger.kind === "personal"
+				? PERSONAL_BY_SLUG[trigger.slug]
+				: STORY_BY_SLUG[trigger.slug];
 		const go = (el: HTMLElement | null) => {
 			lastTriggerRef.current = el;
 			navigate({ to: `/${item.slug}`, resetScroll: false });
 		};
 		return (
-			<button
-				type="button"
-				onClick={(e) => go(e.currentTarget)}
-				className={TRIGGER_CARD_CLASS}
-			>
+			<GlowTrigger onActivate={go} className={TRIGGER_CARD_CLASS}>
 				<TriggerCardBody
 					Icon={item.Icon}
 					title={item.title}
 					tileClass={`${item.tileBg} ${item.tileFg}`}
 					arrowSide={PANEL_SIDES[item.slug]}
 				/>
-			</button>
+			</GlowTrigger>
 		);
 	}
-
-	// kind === "story"
-	const story = STORY_BY_SLUG[trigger.slug];
-	const go = (el: HTMLElement | null) => {
-		lastTriggerRef.current = el;
-		navigate({ to: `/${story.slug}`, resetScroll: false });
-	};
-	return (
-		<button
-			type="button"
-			onClick={(e) => go(e.currentTarget)}
-			className={TRIGGER_CARD_CLASS}
-		>
-			<TriggerCardBody
-				Icon={story.Icon}
-				title={story.title}
-				tileClass={`${story.tileBg} ${story.tileFg}`}
-				arrowSide={PANEL_SIDES[story.slug]}
-			/>
-		</button>
-	);
 }

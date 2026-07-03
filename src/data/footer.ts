@@ -1,11 +1,14 @@
 export const FOOTER_ROLES: readonly string[] = ["Let's"];
 
 export const FOOTER_PHRASES: readonly string[] = [
-	"make it memorable.",
+	"make something memorable.",
 	"explore ideas together.",
 	"optimize your agentic setup.",
+	"connect.",
 	"automate your everyday tasks.",
+	"optimize your business.",
 	"create genuinely useful experiences.",
+	"collaborate.",
 	"build something original.",
 ];
 
@@ -22,4 +25,4 @@ export const CONTACT_EMAIL = "hello@alperortac.com";
 
 export const CONTACT_SUBJECT = "Hello";
 
-export const CONTACT_PLACEHOLDER = "tell me about yourself...";
+export const CONTACT_PLACEHOLDER = "tell me about it...";

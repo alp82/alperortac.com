@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hero passion word + layout explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  font-size:13px;
+  color:#1e293b;
+  background:#f8fafc;
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  height:100vh;
+  overflow:hidden;
+}
+
+.app{display:flex;width:100%;height:100%}
+
+/* ---------------- preview pane ---------------- */
+.preview-pane{
+  width:62%;
+  height:100vh;
+  background:#87CEEB;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:32px;
+  overflow:auto;
+  flex-shrink:0;
+}
+
+.viewport-frame{
+  background:#87CEEB;
+  transition:width 220ms ease;
+  width:1000px;
+  max-width:100%;
+  border:1px dashed rgba(0,0,0,0.15);
+  overflow:hidden;
+  flex-shrink:0;
+}
+.viewport-frame.mobile{ width:400px; }
+
+.hero-mock{
+  min-height:70vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:96px 24px 8px;
+  text-align:center;
+}
+
+.avatar-placeholder{
+  width:112px;height:112px;border-radius:9999px;
+  border:4px solid #0f172a;
+  box-shadow:6px 6px 0 0 rgba(0,0,0,1);
+  margin-bottom:32px;
+  background:linear-gradient(135deg,#cbd5e1,#94a3b8);
+  flex-shrink:0;
+}
+
+.headline{
+  font-family:'Inter',system-ui,sans-serif;
+  font-weight:900;
+  line-height:0.9;
+  letter-spacing:-0.04em;
+  color:#0f172a;
+  margin:0 0 24px 0;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,0.05));
+  font-size:96px;
+  transition:font-size 160ms ease;
+}
+.headline .hl-small{ display:block; }
+.headline .hl-big{ display:block; }
+
+.subtitle-block{
+  margin:48px auto 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:20px;
+  width:fit-content;
+  letter-spacing:0.04em;
+  color:#0a0a0a;
+}
+
+.line1{
+  font-weight:700;
+  font-size:36px;
+  margin:0;
+  transition:max-width 160ms ease, font-size 160ms ease;
+}
+.line2{
+  font-weight:500;
+  font-size:30px;
+  margin:0;
+  transition:max-width 160ms ease, font-size 160ms ease;
+}
+
+.passion{
+  font-family:'Instrument Serif', serif;
+  font-style:italic;
+  font-weight:800;
+  display:inline-block;
+  letter-spacing:0.08em;
+  font-size:1.1em;
+  position:relative;
+  transition:font-size 140ms ease;
+}
+.passion.tr-grad{
+  background-clip:text;
+  -webkit-background-clip:text;
+  color:transparent;
+}
+.passion.tr-underline{
+  padding-bottom:0.08em;
+}
+.underline-svg{
+  position:absolute;
+  left:-2%;
+  bottom:-0.14em;
+  width:104%;
+  height:0.3em;
+  overflow:visible;
+  pointer-events:none;
+}
+.underline-svg path{
+  fill:none;
+  stroke-width:5;
+  stroke-linecap:round;
+  stroke:var(--accent, #F4A460);
+}
+
+.cta{
+  margin-top:48px;
+  display:inline-flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  font-size:15px;
+  font-weight:500;
+  color:#334155;
+  opacity:0.9;
+  text-decoration:none;
+}
+
+/* ---------------- controls pane ---------------- */
+.controls-pane{
+  width:38%;
+  height:100vh;
+  overflow-y:auto;
+  background:#f8fafc;
+  border-left:1px solid #e2e8f0;
+  padding:18px 20px 40px;
+}
+.controls-pane h1.page-title{
+  font-size:16px;
+  font-weight:800;
+  margin:0 0 4px;
+  color:#0f172a;
+}
+.controls-pane .page-sub{
+  font-size:12px;
+  color:#64748b;
+  margin:0 0 18px;
+}
+
+fieldset{
+  border:1px solid #e2e8f0;
+  border-radius:10px;
+  margin:0 0 16px;
+  padding:12px 14px 14px;
+  background:#fff;
+}
+legend{
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  color:#475569;
+  padding:0 6px;
+}
+.opt-row{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  padding:6px 4px;
+  border-radius:6px;
+  cursor:pointer;
+}
+.opt-row:hover{ background:#f1f5f9; }
+.opt-row input{ margin-top:3px; flex-shrink:0; }
+.opt-row .opt-label{ font-weight:600; font-size:12.5px; color:#0f172a; }
+.opt-row .opt-desc{ font-size:11px; color:#64748b; margin-top:1px; }
+
+.viewport-toggle{ display:flex; gap:8px; margin-bottom:16px; }
+.viewport-toggle button{
+  flex:1;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  color:#334155;
+}
+.viewport-toggle button.active{
+  background:#0f172a;
+  color:#fff;
+  border-color:#0f172a;
+}
+
+.replay-btn{
+  margin-top:8px;
+  font-size:11px;
+  font-weight:600;
+  padding:6px 10px;
+  border-radius:6px;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  cursor:pointer;
+  color:#334155;
+}
+.replay-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+.copy-btn{
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  background:#0f172a;
+  color:#fff;
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  margin-top:6px;
+}
+.copy-btn:active{ transform:translateY(1px); }
+.copy-status{
+  font-size:11px;
+  color:#16a34a;
+  margin-top:6px;
+  min-height:14px;
+  font-weight:600;
+}
+
+pre#specOutput{
+  margin-top:10px;
+  background:#0f172a;
+  color:#e2e8f0;
+  padding:12px;
+  border-radius:10px;
+  font-size:10.5px;
+  line-height:1.5;
+  overflow-x:auto;
+  white-space:pre-wrap;
+  word-break:break-word;
+  max-height:280px;
+  overflow-y:auto;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="preview-pane">
+    <div class="viewport-frame" id="viewportFrame">
+      <section class="hero-mock">
+        <div class="avatar-placeholder"></div>
+        <h1 class="headline" id="headline">HEY, I'M ALPER.</h1>
+        <div class="subtitle-block">
+          <p class="line1" id="line1">Web enthusiast and agentic coach with a side-project habit and a camera.</p>
+          <p class="line2" id="line2">
+            <span id="beforeWord">Powered by </span><span class="passion" id="passionWord">passion</span><span id="afterWord"> and here to build genuinely authentic experiences.</span>
+          </p>
+        </div>
+        <a class="cta" href="#">Scroll to learn more about me ↓</a>
+      </section>
+    </div>
+  </div>
+
+  <div class="controls-pane">
+    <h1 class="page-title">Hero passion / layout explorer</h1>
+    <p class="page-sub">Pick a treatment, judge it live, copy the spec back into chat.</p>
+
+    <div class="viewport-toggle">
+      <button data-vp="desktop" class="active" id="vpDesktop">Desktop</button>
+      <button data-vp="mobile" id="vpMobile">Mobile (400px)</button>
+    </div>
+
+    <fieldset>
+      <legend>A · Passion word treatment</legend>
+      <label class="opt-row"><input type="radio" name="treatment" value="baseline-rainbow" checked>
+        <span><span class="opt-label">Baseline (current)</span><br><span class="opt-desc">6-stop rainbow gradient, judged as the reality check</span></span></label>
+      <label class="opt-row"><input type="radio" name="treatment" value="sky-literal">
+        <span><span class="opt-label">Sky gradient — literal</span><br><span class="opt-desc">noon #87CEEB → dusk #F4A460 → night #140A32 (noon stop risks vanishing on the sky bg)</span></span></label>
+      <label class="opt-row"><input type="radio" name="treatment" value="sky-compensated">
+        <span><span class="opt-label">Sky gradient — compensated</span><br><span class="opt-desc">noon stop darkened/saturated (#2f7ea6) so it reads against the sky bg</span></span></label>
+      <label class="opt-row"><input type="radio" name="treatment" value="underline-amber">
+        <span><span class="opt-label">Accent + underline — amber</span><br><span class="opt-desc">dusk amber #F4A460, hand-drawn SVG underline</span></span></label>
+      <label class="opt-row"><input type="radio" name="treatment" value="underline-sunset">
+        <span><span class="opt-label">Accent + underline — sunset</span><br><span class="opt-desc">deep sunset red-orange #C2410C alternate</span></span></label>
+      <button class="replay-btn" id="replayBtn" disabled>Replay draw-in (~600ms)</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>A2 · Passion word size</legend>
+      <label class="opt-row"><input type="radio" name="size" value="1.1em" checked><span class="opt-label">1.1em (current)</span></label>
+      <label class="opt-row"><input type="radio" name="size" value="1.25em"><span class="opt-label">1.25em</span></label>
+      <label class="opt-row"><input type="radio" name="size" value="1.4em"><span class="opt-label">1.4em</span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>B · Type-block layout</legend>
+      <label class="opt-row"><input type="radio" name="layout" value="baseline" checked>
+        <span><span class="opt-label">Baseline (current)</span><br><span class="opt-desc">headline at current size, sentences at natural wide measure</span></span></label>
+      <label class="opt-row"><input type="radio" name="layout" value="headline-led">
+        <span><span class="opt-label">Headline-led</span><br><span class="opt-desc">headline scaled up to match the sentence block's measure — one poster block</span></span></label>
+      <label class="opt-row"><input type="radio" name="layout" value="measure-led">
+        <span><span class="opt-label">Measure-led</span><br><span class="opt-desc">sentences capped to the headline's width, controlled wraps</span></span></label>
+    </fieldset>
+
+    <fieldset id="mobileFieldset" style="display:none">
+      <legend>B2 · Mobile headline break (mobile viewport only)</legend>
+      <label class="opt-row"><input type="radio" name="mobileBreak" value="wrap" checked>
+        <span><span class="opt-label">Accidental wrap (current)</span><br><span class="opt-desc">headline wraps wherever it fits at 400px</span></span></label>
+      <label class="opt-row"><input type="radio" name="mobileBreak" value="controlled">
+        <span><span class="opt-label">Controlled break</span><br><span class="opt-desc">"HEY," / "I'M ALPER." — deliberate two-line break</span></span></label>
+      <label class="opt-row"><input type="radio" name="mobileBreak" value="stacked">
+        <span><span class="opt-label">Stacked, per-line sizing</span><br><span class="opt-desc">small "HEY," / huge "I'M ALPER."</span></span></label>
+    </fieldset>
+
+    <button class="copy-btn" id="copyBtn">Copy spec to clipboard</button>
+    <div class="copy-status" id="copyStatus"></div>
+    <pre id="specOutput">// spec will appear here after you click "Copy spec"</pre>
+  </div>
+
+</div>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+const passionWord = $('#passionWord');
+const headline = $('#headline');
+const line1 = $('#line1');
+const line2 = $('#line2');
+const viewportFrame = $('#viewportFrame');
+const mobileFieldset = $('#mobileFieldset');
+const replayBtn = $('#replayBtn');
+
+const TREATMENTS = {
+  'baseline-rainbow': {
+    kind: 'grad',
+    css: 'linear-gradient(100deg,#dc2626,#ea580c,#d97706,#16a34a,#2563eb,#7c3aed)',
+    label: 'baseline rainbow (current)'
+  },
+  'sky-literal': {
+    kind: 'grad',
+    css: 'linear-gradient(100deg, #87CEEB 0%, #F4A460 50%, #140A32 100%)',
+    label: 'sky gradient — literal stops'
+  },
+  'sky-compensated': {
+    kind: 'grad',
+    css: 'linear-gradient(100deg, #2f7ea6 0%, #F4A460 50%, #140A32 100%)',
+    label: 'sky gradient — compensated noon stop'
+  },
+  'underline-amber': {
+    kind: 'underline',
+    color: '#F4A460',
+    label: 'accent + underline — amber'
+  },
+  'underline-sunset': {
+    kind: 'underline',
+    color: '#C2410C',
+    label: 'accent + underline — sunset red-orange'
+  }
+};
+
+const UNDERLINE_PATH_D = 'M3,7 C40,2 75,11 110,5 C140,0.5 170,10 197,6';
+
+let state = {
+  treatment: 'baseline-rainbow',
+  size: '1.1em',
+  layout: 'baseline',
+  mobileBreak: 'wrap',
+  viewport: 'desktop'
+};
+
+function applyTreatment(){
+  const t = TREATMENTS[state.treatment];
+  passionWord.classList.remove('tr-grad','tr-underline');
+  passionWord.style.background = '';
+  passionWord.style.backgroundImage = '';
+  passionWord.style.color = '';
+  const existingSvg = passionWord.querySelector('.underline-svg');
+  if (existingSvg) existingSvg.remove();
+
+  if (t.kind === 'grad') {
+    passionWord.classList.add('tr-grad');
+    passionWord.style.backgroundImage = t.css;
+    replayBtn.disabled = true;
+  } else {
+    passionWord.classList.add('tr-underline');
+    passionWord.style.color = t.color;
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('class','underline-svg');
+    svg.setAttribute('viewBox','0 0 200 12');
+    svg.setAttribute('preserveAspectRatio','none');
+    svg.style.setProperty('--accent', t.color);
+    const path = document.createElementNS(svgNS,'path');
+    path.setAttribute('d', UNDERLINE_PATH_D);
+    path.setAttribute('stroke', t.color);
+    svg.appendChild(path);
+    passionWord.appendChild(svg);
+    replayBtn.disabled = false;
+    requestAnimationFrame(() => drawIn(path));
+  }
+}
+
+function drawIn(path){
+  const len = path.getTotalLength();
+  path.style.transition = 'none';
+  path.style.strokeDasharray = len;
+  path.style.strokeDashoffset = len;
+  path.getBoundingClientRect(); // force reflow
+  path.style.transition = 'stroke-dashoffset 600ms ease-out';
+  path.style.strokeDashoffset = '0';
+}
+
+replayBtn.addEventListener('click', () => {
+  const path = passionWord.querySelector('.underline-svg path');
+  if (path) drawIn(path);
+});
+
+function applySize(){
+  passionWord.style.fontSize = state.size;
+}
+
+function baselineSizes(){
+  const mobile = state.viewport === 'mobile';
+  return {
+    headline: mobile ? 60 : 96,
+    line1: mobile ? 24 : 36,
+    line2: mobile ? 20 : 30
+  };
+}
+
+function measureNaturalWidth(el){
+  const clone = el.cloneNode(true);
+  clone.style.position = 'absolute';
+  clone.style.visibility = 'hidden';
+  clone.style.whiteSpace = 'nowrap';
+  clone.style.maxWidth = 'none';
+  clone.style.width = 'auto';
+  document.body.appendChild(clone);
+  const w = clone.scrollWidth;
+  document.body.removeChild(clone);
+  return w;
+}
+
+function applyLayout(){
+  const b = baselineSizes();
+  headline.style.fontSize = b.headline + 'px';
+  line1.style.fontSize = b.line1 + 'px';
+  line2.style.fontSize = b.line2 + 'px';
+  line1.style.maxWidth = 'none';
+  line2.style.maxWidth = 'none';
+  line1.style.textWrap = '';
+  line2.style.textWrap = '';
+
+  if (state.layout === 'baseline') {
+    return;
+  }
+
+  if (state.layout === 'headline-led') {
+    // measure natural sentence widths at baseline sizes, take the max
+    const w1 = measureNaturalWidth(line1);
+    const w2 = measureNaturalWidth(line2);
+    const targetWidth = Math.max(w1, w2);
+    // use the headline's natural one-line width, not scrollWidth, which is
+    // clamped by the container when the headline is currently wrapped
+    const headlineWidth = measureNaturalWidth(headline);
+    const scale = targetWidth / headlineWidth;
+    const newSize = Math.round(b.headline * scale);
+    headline.style.fontSize = newSize + 'px';
+    return;
+  }
+
+  if (state.layout === 'measure-led') {
+    headline.style.transition = 'none';
+    const headlineWidth = headline.scrollWidth;
+    headline.style.transition = '';
+    line1.style.maxWidth = headlineWidth + 'px';
+    line2.style.maxWidth = headlineWidth + 'px';
+    line1.style.textWrap = 'balance';
+    line2.style.textWrap = 'balance';
+    return;
+  }
+}
+
+function applyMobileBreak(){
+  mobileFieldset.style.display = state.viewport === 'mobile' ? 'block' : 'none';
+
+  if (state.viewport !== 'mobile') {
+    headline.innerHTML = "HEY, I'M ALPER.";
+    applyLayout();
+    return;
+  }
+
+  if (state.mobileBreak === 'wrap') {
+    headline.innerHTML = "HEY, I'M ALPER.";
+  } else if (state.mobileBreak === 'controlled') {
+    headline.innerHTML = "<span class='hl-small'>HEY,</span><span class='hl-big'>I'M ALPER.</span>";
+  } else if (state.mobileBreak === 'stacked') {
+    headline.innerHTML = "<span class='hl-small' style='font-size:28px'>HEY,</span><span class='hl-big' style='font-size:72px'>I'M ALPER.</span>";
+  }
+
+  // re-apply layout after DOM swap since layout variants read headline.scrollWidth
+  applyLayout();
+}
+
+function renderAll(){
+  applyTreatment();
+  applySize();
+  applyLayout();
+  applyMobileBreak();
+}
+
+document.querySelectorAll('input[name="treatment"]').forEach(r =>
+  r.addEventListener('change', e => { state.treatment = e.target.value; renderAll(); }));
+document.querySelectorAll('input[name="size"]').forEach(r =>
+  r.addEventListener('change', e => { state.size = e.target.value; applySize(); applyLayout(); }));
+document.querySelectorAll('input[name="layout"]').forEach(r =>
+  r.addEventListener('change', e => { state.layout = e.target.value; applyLayout(); }));
+document.querySelectorAll('input[name="mobileBreak"]').forEach(r =>
+  r.addEventListener('change', e => { state.mobileBreak = e.target.value; applyMobileBreak(); }));
+
+$('#vpDesktop').addEventListener('click', () => {
+  state.viewport = 'desktop';
+  viewportFrame.classList.remove('mobile');
+  $('#vpDesktop').classList.add('active');
+  $('#vpMobile').classList.remove('active');
+  applyLayout();
+  applyMobileBreak();
+});
+$('#vpMobile').addEventListener('click', () => {
+  state.viewport = 'mobile';
+  viewportFrame.classList.add('mobile');
+  $('#vpMobile').classList.add('active');
+  $('#vpDesktop').classList.remove('active');
+  applyLayout();
+  applyMobileBreak();
+});
+
+function buildSpec(){
+  const t = TREATMENTS[state.treatment];
+  const b = baselineSizes();
+  const spec = {
+    passionTreatment: state.treatment,
+    passionSize: state.size,
+    accentColor: t.kind === 'underline' ? t.color : null,
+    layoutVariant: state.layout,
+    mobileBreak: state.viewport === 'mobile' ? state.mobileBreak : null,
+    viewportJudgedIn: state.viewport,
+    css: {
+      passionBackgroundImage: t.kind === 'grad' ? t.css : null,
+      passionColor: t.kind === 'underline' ? t.color : null,
+      passionUnderlinePathD: t.kind === 'underline' ? UNDERLINE_PATH_D : null,
+      passionFontSize: state.size,
+      headlineFontSizePx: parseFloat(getComputedStyle(headline).fontSize),
+      line1FontSizePx: parseFloat(getComputedStyle(line1).fontSize),
+      line2FontSizePx: parseFloat(getComputedStyle(line2).fontSize),
+      line1MaxWidthPx: line1.style.maxWidth === 'none' || !line1.style.maxWidth ? null : parseFloat(line1.style.maxWidth),
+      line2MaxWidthPx: line2.style.maxWidth === 'none' || !line2.style.maxWidth ? null : parseFloat(line2.style.maxWidth)
+    }
+  };
+  return JSON.stringify(spec, null, 2);
+}
+
+$('#copyBtn').addEventListener('click', async () => {
+  const text = buildSpec();
+  $('#specOutput').textContent = text;
+  const status = $('#copyStatus');
+  try {
+    await navigator.clipboard.writeText(text);
+    status.textContent = 'Copied to clipboard.';
+  } catch (err) {
+    // file:// often blocks the async clipboard API — fall back to execCommand
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      status.textContent = ok ? 'Copied to clipboard (fallback).' : 'Clipboard blocked — copy the text below manually.';
+    } catch (err2) {
+      status.textContent = 'Clipboard blocked — copy the text below manually.';
+    }
+  }
+  setTimeout(() => { status.textContent = ''; }, 4000);
+});
+
+renderAll();
+</script>
+</body>
+</html>

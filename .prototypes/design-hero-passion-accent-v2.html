@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hero "passion" accent — v2 explorer (anti-slop pass)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  font-size:13px;
+  color:#1e293b;
+  background:#f8fafc;
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  height:100vh;
+  overflow:hidden;
+}
+
+.app{display:flex;width:100%;height:100%}
+
+/* ---------------- preview pane ---------------- */
+.preview-pane{
+  width:60%;
+  height:100vh;
+  background:#87CEEB;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:32px;
+  overflow:auto;
+  flex-shrink:0;
+}
+
+.viewport-frame{
+  background:#87CEEB;
+  transition:width 220ms ease;
+  width:1000px;
+  max-width:100%;
+  border:1px dashed rgba(0,0,0,0.15);
+  overflow:hidden;
+  flex-shrink:0;
+}
+.viewport-frame.mobile{ width:400px; }
+
+.hero-mock{
+  min-height:60vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:72px 24px 8px;
+  text-align:center;
+}
+
+.avatar-placeholder{
+  width:96px;height:96px;border-radius:9999px;
+  border:4px solid #0f172a;
+  box-shadow:5px 5px 0 0 rgba(0,0,0,1);
+  margin-bottom:28px;
+  background:linear-gradient(135deg,#cbd5e1,#94a3b8);
+  flex-shrink:0;
+}
+
+.headline{
+  font-family:'Inter',system-ui,sans-serif;
+  font-weight:900;
+  line-height:0.9;
+  letter-spacing:-0.04em;
+  color:#0f172a;
+  margin:0 0 20px 0;
+  font-size:72px;
+}
+
+.subtitle-block{
+  margin:36px auto 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:18px;
+  width:fit-content;
+  letter-spacing:0.04em;
+  color:#0a0a0a;
+}
+
+.line1{
+  font-weight:700;
+  font-size:28px;
+  margin:0;
+  max-width:600px;
+}
+.line2{
+  font-weight:500;
+  font-size:24px;
+  margin:0;
+  max-width:660px;
+}
+
+.cta{
+  margin-top:36px;
+  display:inline-flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  font-size:14px;
+  font-weight:500;
+  color:#334155;
+  opacity:0.9;
+  text-decoration:none;
+}
+
+/* ---------------- shared word primitives ---------------- */
+.word{
+  font-family:'Instrument Serif', serif;
+  font-style:italic;
+  font-weight:800;
+  font-size:1.25em;
+  letter-spacing:0.08em;
+  display:inline-block;
+  position:relative;
+  isolation:isolate;
+}
+.word--pad{ padding-bottom:0.1em; }
+.word-fill{
+  background-clip:text;
+  -webkit-background-clip:text;
+  color:transparent;
+}
+.word-solid{ display:inline-block; }
+
+.underline-svg{
+  position:absolute;
+  left:-3%;
+  bottom:-0.16em;
+  width:106%;
+  height:0.32em;
+  overflow:visible;
+  pointer-events:none;
+}
+.underline-svg path.draw{
+  stroke-dasharray:1;
+  stroke-dashoffset:1;
+  transition:stroke-dashoffset 700ms cubic-bezier(.2,.7,.2,1);
+}
+.underline-svg path.draw.drawn{ stroke-dashoffset:0; }
+
+.brush-svg{
+  position:absolute;
+  left:-4%;
+  bottom:-0.2em;
+  width:108%;
+  height:0.42em;
+  overflow:visible;
+  pointer-events:none;
+  transform-origin:0% 50%;
+  transform:scaleX(0);
+  transition:transform 750ms cubic-bezier(.16,1,.3,1);
+}
+.brush-svg.drawn{ transform:scaleX(1); }
+
+@media (prefers-reduced-motion: reduce){
+  .underline-svg path.draw{ transition:none; stroke-dashoffset:0; }
+  .brush-svg{ transition:none; transform:scaleX(1); }
+}
+
+.wash-blob{
+  position:absolute;
+  left:-16%;right:-16%;top:-30%;bottom:-16%;
+  z-index:-1;
+  filter:blur(2px);
+  pointer-events:none;
+}
+.wash-stripe{
+  position:absolute;
+  left:-5%;right:-7%;
+  bottom:0.03em;
+  height:0.52em;
+  z-index:-1;
+  border-radius:3px;
+  pointer-events:none;
+}
+.ember-dot{
+  position:absolute;
+  right:-0.42em;
+  top:0.08em;
+  width:6px;height:6px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(217,83,14,0.9), rgba(217,83,14,0) 70%);
+  pointer-events:none;
+}
+
+/* ---------------- per-treatment CSS ---------------- */
+
+/* 1. baseline (shipped) */
+.tr-baseline .word-fill{
+  background-image:linear-gradient(100deg,#D9530E,#C2410C,#A8380A);
+}
+
+/* 2. ember-depth ramp */
+.tr-ember-depth .word-fill{
+  background-image:linear-gradient(100deg, #F2994A 0%, #D9530E 38%, #9A2F0B 70%, #5C1607 100%);
+  text-shadow:0 1px 0 rgba(60,20,5,0.12);
+}
+
+/* 3. ink-slant ramp */
+.tr-ink-slant .word-fill{
+  background-image:linear-gradient(115deg, #6B1029 0%, #9A3412 32%, #C2650C 62%, #E0A458 100%);
+}
+
+/* 4. ember-drift (slow hue drift) */
+.tr-ember-drift .word-fill{
+  background-image:linear-gradient(100deg, #D9530E 0%, #A8380A 25%, #C2410C 50%, #D9530E 75%, #A8380A 100%);
+  background-size:250% 100%;
+  animation:emberDrift 12s ease-in-out infinite alternate;
+}
+@keyframes emberDrift{
+  0%{ background-position:0% 50%; }
+  100%{ background-position:100% 50%; }
+}
+@media (prefers-reduced-motion: reduce){
+  .tr-ember-drift .word-fill{ animation:none; background-position:35% 50%; }
+}
+
+/* 5. crossfade-dusk */
+.tr-crossfade .cf-layer{ display:block; }
+.tr-crossfade .cf-b{
+  position:absolute; inset:0;
+  animation:duskFade 10s ease-in-out infinite;
+}
+@keyframes duskFade{ 0%,100%{ opacity:0; } 50%{ opacity:1; } }
+@media (prefers-reduced-motion: reduce){
+  .tr-crossfade .cf-b{ animation:none; opacity:0; }
+}
+
+/* 6. double-stroke underline */
+.tr-double-stroke .word-fill{
+  background-image:linear-gradient(100deg,#D9530E,#C2410C,#A8380A);
+}
+.tr-double-stroke .stroke-under{ transition-delay:0ms; }
+.tr-double-stroke .stroke-over{ transition-delay:160ms; }
+
+/* 7. brush-swash underline */
+.tr-brush .word-fill{
+  background-image:linear-gradient(100deg,#D9530E,#C2410C,#A8380A);
+}
+
+/* 8. breathing taper underline */
+.tr-breathing .word-fill{
+  background-image:linear-gradient(100deg,#D9530E,#C2410C,#A8380A);
+}
+.tr-breathing path.breathe{
+  animation:breatheWidth 8s ease-in-out 800ms infinite;
+}
+@keyframes breatheWidth{
+  0%,100%{ stroke-width:4.4; }
+  50%{ stroke-width:5.6; }
+}
+@media (prefers-reduced-motion: reduce){
+  .tr-breathing path.breathe{ animation:none; stroke-width:5; }
+}
+
+/* 9. watercolor wash */
+.tr-watercolor .word-solid{ color:#7A2E12; }
+.tr-watercolor .wash-blob{
+  background:radial-gradient(ellipse at 42% 40%, rgba(217,83,14,0.34), rgba(217,83,14,0) 70%);
+  border-radius:42% 58% 63% 37% / 47% 42% 58% 53%;
+  transform:rotate(-3deg);
+}
+
+/* 10. highlighter stripe */
+.tr-highlighter .word-solid{ color:#2b1206; }
+.tr-highlighter .wash-stripe{
+  /* rgba(244,164,96,a) multiplied over #87CEEB sky, baked into solid stops (no mix-blend-mode) */
+  background:linear-gradient(90deg, #84a396 0%, #84aeab 55%, #85bbc5 100%);
+  transform:rotate(-1.4deg);
+}
+
+/* 11. ink-bleed + brush swash (combined) */
+.tr-combo-ink-brush .word-fill{
+  background-image:linear-gradient(115deg, #6B1029 0%, #9A3412 32%, #C2650C 62%, #E0A458 100%);
+}
+
+/* 12. full combo — wash + drift + double stroke + ember dot */
+.tr-combo-full .word-fill{
+  background-image:linear-gradient(100deg, #D9530E 0%, #A8380A 25%, #C2410C 50%, #D9530E 75%, #A8380A 100%);
+  background-size:250% 100%;
+  animation:emberDrift 12s ease-in-out infinite alternate;
+}
+.tr-combo-full .wash-blob{
+  background:radial-gradient(ellipse at 42% 40%, rgba(217,83,14,0.18), rgba(217,83,14,0) 72%);
+  border-radius:42% 58% 63% 37% / 47% 42% 58% 53%;
+  transform:rotate(-3deg);
+}
+.tr-combo-full .ember-dot{
+  animation:emberPulse 10s ease-in-out infinite;
+}
+@keyframes emberPulse{
+  0%,100%{ opacity:0.35; }
+  50%{ opacity:0.6; }
+}
+@media (prefers-reduced-motion: reduce){
+  .tr-combo-full .word-fill{ animation:none; background-position:35% 50%; }
+  .tr-combo-full .ember-dot{ animation:none; opacity:0.5; }
+}
+
+/* ---------------- controls pane ---------------- */
+.controls-pane{
+  width:40%;
+  height:100vh;
+  overflow-y:auto;
+  background:#f8fafc;
+  border-left:1px solid #e2e8f0;
+  padding:18px 20px 40px;
+}
+.controls-pane h1.page-title{
+  font-size:16px;
+  font-weight:800;
+  margin:0 0 4px;
+  color:#0f172a;
+}
+.controls-pane .page-sub{
+  font-size:12px;
+  color:#64748b;
+  margin:0 0 16px;
+}
+
+fieldset{
+  border:1px solid #e2e8f0;
+  border-radius:10px;
+  margin:0 0 14px;
+  padding:10px 12px 12px;
+  background:#fff;
+}
+legend{
+  font-size:10.5px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  color:#475569;
+  padding:0 6px;
+}
+.opt-row{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  padding:6px 4px;
+  border-radius:6px;
+  cursor:pointer;
+}
+.opt-row:hover{ background:#f1f5f9; }
+.opt-row input{ margin-top:3px; flex-shrink:0; }
+.opt-row .opt-label{ font-weight:600; font-size:12px; color:#0f172a; }
+.opt-row .opt-desc{ font-size:10.5px; color:#64748b; margin-top:1px; }
+
+.viewport-toggle{ display:flex; gap:8px; margin-bottom:14px; }
+.viewport-toggle button{
+  flex:1;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  color:#334155;
+}
+.viewport-toggle button.active{
+  background:#0f172a;
+  color:#fff;
+  border-color:#0f172a;
+}
+
+.replay-btn{
+  margin-top:4px;
+  font-size:11px;
+  font-weight:600;
+  padding:6px 10px;
+  border-radius:6px;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  cursor:pointer;
+  color:#334155;
+}
+.replay-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+.copy-btn{
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  background:#0f172a;
+  color:#fff;
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  margin-top:6px;
+}
+.copy-btn:active{ transform:translateY(1px); }
+.copy-status{
+  font-size:11px;
+  color:#16a34a;
+  margin-top:6px;
+  min-height:14px;
+  font-weight:600;
+}
+
+pre#specOutput{
+  margin-top:10px;
+  background:#0f172a;
+  color:#e2e8f0;
+  padding:12px;
+  border-radius:10px;
+  font-size:10.5px;
+  line-height:1.5;
+  overflow-x:auto;
+  white-space:pre-wrap;
+  word-break:break-word;
+  max-height:340px;
+  overflow-y:auto;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="preview-pane">
+    <div class="viewport-frame" id="viewportFrame">
+      <section class="hero-mock">
+        <div class="avatar-placeholder"></div>
+        <h1 class="headline">HEY, I'M ALPER.</h1>
+        <div class="subtitle-block">
+          <p class="line1">Web enthusiast and agentic coach with a side-project habit and a camera.</p>
+          <p class="line2">Powered by <span id="wordSlot"></span> and here to build genuinely authentic experiences.</p>
+        </div>
+        <a class="cta" href="#">Scroll to learn more about me &darr;</a>
+      </section>
+    </div>
+  </div>
+
+  <div class="controls-pane">
+    <h1 class="page-title">"Passion" accent — v2 explorer</h1>
+    <p class="page-sub">12 treatments across 5 families. Real hero sentence, sky background. Pick one, copy the spec.</p>
+
+    <div class="viewport-toggle">
+      <button data-vp="desktop" class="active" id="vpDesktop">Desktop</button>
+      <button data-vp="mobile" id="vpMobile">Mobile (400px)</button>
+    </div>
+
+    <fieldset>
+      <legend>Gradient (static)</legend>
+      <label class="opt-row"><input type="radio" name="treatment" autocomplete="off" value="baseline" checked>
+        <span><span class="opt-label">Baseline (shipped)</span><br><span class="opt-desc">3-stop sunset ramp + hand-drawn squiggle underline — reality check</span></span></label>
+      <label class="opt-row"><input type="radio" name="treatment" autocomplete="off" value="ember-depth">
+        <span><span class="opt-label">Ember depth ramp</span><br><span class="opt-desc">4-stop deep-to-dark ramp, more tonal weight, no underline</span></span></label>
+      <label class="opt-row"><input type="radio" name="treatment" autocomplete="off" value="ink-slant">
+        <span><span class="opt-label">Ink-slant ramp</span><br><span class="opt-desc">gradient angle tuned to italic slant, maroon&rarr;sienna&rarr;ochre letterpress ink</span></span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Animation (ambient, ~10-12s)</legend>
+      <label class="opt-row"><input type="radio" name="treatment" autocomplete="off" value="ember-drift">
+        <span><span class="opt-label">Ember drift</span><br><span class="opt-desc">oversized ramp, background-position drifts 12s ease-in-out alternate — barely perceptible</span></span></label>
+      <label class="opt-row"><input type="radio" name="treatment" autocomplete="off" value="crossfade-dusk">
+        <span><span class="opt-label">Crossfade dusk</span><br><span class="opt-desc">two overlaid ramps cross-fade opacity over 10s — hue drifts without motion</span></span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Underline (hand-drawn)</legend>
+      <label class="opt-row"><input type="radio" name="treatment" autocomplete="off" value="double-stroke">
+        <span><span class="opt-label">Double stroke</span><br><span class="opt-desc">two offset hand-drawn passes, thick amber under + thin sunset over, staggered draw-in</span></span></label>
+      <label class="opt-row"><input type="radio" name="treatment" autocomplete="off" value="brush">
+        <span><span class="opt-label">Brush swash</span><br><span class="opt-desc">filled tapered swash (not a stroke), scales in like a single brush pass</span></span></label>
+      <label class="opt-row"><input type="radio" name="treatment" autocomplete="off" value="breathing">
+        <span><span class="opt-label">Breathing taper</span><br><span class="opt-desc">squiggle draws in once, then width breathes &plusmn;0.6px over 8s — ink settling</span></span></label>
+      <button class="replay-btn" id="replayBtn" disabled>Replay draw-in</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Background wash</legend>
+      <label class="opt-row"><input type="radio" name="treatment" autocomplete="off" value="watercolor">
+        <span><span class="opt-label">Watercolor wash</span><br><span class="opt-desc">organic rotated blob behind solid-ink word, blurred edge, low opacity</span></span></label>
+      <label class="opt-row"><input type="radio" name="treatment" autocomplete="off" value="highlighter">
+        <span><span class="opt-label">Highlighter stripe</span><br><span class="opt-desc">marker-stripe behind lower half, rotated, sky-multiplied solid gradient, solid-ink word on top</span></span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Combined</legend>
+      <label class="opt-row"><input type="radio" name="treatment" autocomplete="off" value="combo-ink-brush">
+        <span><span class="opt-label">Ink-slant + brush swash</span><br><span class="opt-desc">letterpress ramp paired with the brush-swash underline</span></span></label>
+      <label class="opt-row"><input type="radio" name="treatment" autocomplete="off" value="combo-full">
+        <span><span class="opt-label">Full combo</span><br><span class="opt-desc">ember drift + faint watercolor wash + double stroke + tiny pulsing ember-dot terminal</span></span></label>
+    </fieldset>
+
+    <button class="copy-btn" id="copyBtn">Copy spec to clipboard</button>
+    <div class="copy-status" id="copyStatus"></div>
+    <pre id="specOutput">// spec will appear here after you click "Copy spec"</pre>
+  </div>
+
+</div>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+const wordSlot = $('#wordSlot');
+const viewportFrame = $('#viewportFrame');
+const replayBtn = $('#replayBtn');
+
+const SQUIGGLE_D = 'M3,7 C40,2 75,11 110,5 C140,0.5 170,10 197,6';
+const BRUSH_D = 'M4,10 C30,2 70,1 100,4 C140,7 170,3 196,9 C170,13 140,15 100,13 C60,11 30,14 4,10 Z';
+
+function squiggleUnderline({ stroke = '#C2410C', width = 5, extraClass = '', breathe = false } = {}){
+  return `<svg class="underline-svg" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true">
+    <path class="draw ${breathe ? 'breathe' : ''}" d="${SQUIGGLE_D}" fill="none" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" pathLength="1"/>
+  </svg>`;
+}
+
+function doubleStrokeUnderline(){
+  return `<svg class="underline-svg" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true">
+    <path class="draw stroke-under" d="${SQUIGGLE_D}" fill="none" stroke="#F4A460" stroke-width="7" stroke-linecap="round" pathLength="1" opacity="0.55" transform="translate(0,1.6)"/>
+    <path class="draw stroke-over" d="${SQUIGGLE_D}" fill="none" stroke="#C2410C" stroke-width="3" stroke-linecap="round" pathLength="1"/>
+  </svg>`;
+}
+
+function brushSwash(){
+  return `<svg class="brush-svg" viewBox="0 0 200 16" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="brushGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#D9530E"/>
+        <stop offset="55%" stop-color="#C2410C"/>
+        <stop offset="100%" stop-color="#A8380A"/>
+      </linearGradient>
+    </defs>
+    <path d="${BRUSH_D}" fill="url(#brushGrad)"/>
+  </svg>`;
+}
+
+const TREATMENTS = {
+  'baseline': {
+    family: 'gradient',
+    html: () => `<span class="word word--pad tr-baseline">
+      <span class="word-fill">passion</span>
+      ${squiggleUnderline({ stroke:'#C2410C', width:5 })}
+    </span>`,
+    spec: `/* passion word — baseline (shipped) */
+font: italic 800 1.25em 'Instrument Serif', serif;
+letter-spacing: 0.08em;
+background-image: linear-gradient(100deg, #D9530E, #C2410C, #A8380A);
+background-clip: text; -webkit-background-clip: text; color: transparent;
+underline: hand-drawn SVG path "M3,7 C40,2 75,11 110,5 C140,0.5 170,10 197,6"
+  viewBox 0 0 200 12, stroke #C2410C, stroke-width 5, draw-in 600-700ms ease-out
+  @media (prefers-reduced-motion: reduce) { skip transition, render fully drawn }`
+  },
+  'ember-depth': {
+    family: 'gradient',
+    html: () => `<span class="word tr-ember-depth">
+      <span class="word-fill">passion</span>
+    </span>`,
+    spec: `/* passion word — ember depth ramp */
+font: italic 800 1.25em 'Instrument Serif', serif;
+letter-spacing: 0.08em;
+background-image: linear-gradient(100deg, #F2994A 0%, #D9530E 38%, #9A2F0B 70%, #5C1607 100%);
+background-clip: text; -webkit-background-clip: text; color: transparent;
+text-shadow: 0 1px 0 rgba(60,20,5,0.12); /* faint ink weight */
+underline: none`
+  },
+  'ink-slant': {
+    family: 'gradient',
+    html: () => `<span class="word tr-ink-slant">
+      <span class="word-fill">passion</span>
+    </span>`,
+    spec: `/* passion word — ink-slant ramp (angle follows italic lean) */
+font: italic 800 1.25em 'Instrument Serif', serif;
+letter-spacing: 0.08em;
+background-image: linear-gradient(115deg, #6B1029 0%, #9A3412 32%, #C2650C 62%, #E0A458 100%);
+background-clip: text; -webkit-background-clip: text; color: transparent;
+underline: none`
+  },
+  'ember-drift': {
+    family: 'animation',
+    html: () => `<span class="word tr-ember-drift">
+      <span class="word-fill">passion</span>
+    </span>`,
+    spec: `/* passion word — ember drift (slow hue drift) */
+font: italic 800 1.25em 'Instrument Serif', serif;
+letter-spacing: 0.08em;
+background-image: linear-gradient(100deg, #D9530E 0%, #A8380A 25%, #C2410C 50%, #D9530E 75%, #A8380A 100%);
+background-size: 250% 100%;
+background-clip: text; -webkit-background-clip: text; color: transparent;
+animation: emberDrift 12s ease-in-out infinite alternate;
+@keyframes emberDrift { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+@media (prefers-reduced-motion: reduce) { animation: none; background-position: 35% 50%; }`
+  },
+  'crossfade-dusk': {
+    family: 'animation',
+    html: () => `<span class="word tr-crossfade">
+      <span class="word-fill cf-layer cf-a" style="background-image:linear-gradient(100deg,#D9530E,#C2410C,#A8380A)">passion</span>
+      <span class="word-fill cf-layer cf-b" aria-hidden="true" style="background-image:linear-gradient(100deg,#B4441C,#8B2E12,#5C1607)">passion</span>
+    </span>`,
+    spec: `/* passion word — crossfade dusk (dual-layer hue shift, no motion) */
+font: italic 800 1.25em 'Instrument Serif', serif;
+letter-spacing: 0.08em;
+/* layer A (base, in flow) */
+background-image: linear-gradient(100deg, #D9530E, #C2410C, #A8380A);
+/* layer B (absolute overlay, aria-hidden, same text) */
+background-image: linear-gradient(100deg, #B4441C, #8B2E12, #5C1607);
+position: absolute; inset: 0;
+animation: duskFade 10s ease-in-out infinite; /* 0%,100% opacity:0 · 50% opacity:1 */
+@media (prefers-reduced-motion: reduce) { animation: none; opacity: 0; }
+underline: none`
+  },
+  'double-stroke': {
+    family: 'underline',
+    html: () => `<span class="word word--pad tr-double-stroke">
+      <span class="word-fill">passion</span>
+      ${doubleStrokeUnderline()}
+    </span>`,
+    spec: `/* passion word — double stroke underline */
+font: italic 800 1.25em 'Instrument Serif', serif;
+letter-spacing: 0.08em;
+background-image: linear-gradient(100deg, #D9530E, #C2410C, #A8380A);
+background-clip: text; -webkit-background-clip: text; color: transparent;
+underline: two SVG paths, same d "M3,7 C40,2 75,11 110,5 C140,0.5 170,10 197,6" (viewBox 0 0 200 12)
+  - under: stroke #F4A460, stroke-width 7, opacity 0.55, translate(0,1.6), draws first
+  - over:  stroke #C2410C, stroke-width 3, draws with 160ms delay
+  both draw-in 700ms cubic-bezier(.2,.7,.2,1)
+  @media (prefers-reduced-motion: reduce) { skip transitions, render fully drawn }`
+  },
+  'brush': {
+    family: 'underline',
+    html: () => `<span class="word word--pad tr-brush">
+      <span class="word-fill">passion</span>
+      ${brushSwash()}
+    </span>`,
+    spec: `/* passion word — brush swash underline */
+font: italic 800 1.25em 'Instrument Serif', serif;
+letter-spacing: 0.08em;
+background-image: linear-gradient(100deg, #D9530E, #C2410C, #A8380A);
+background-clip: text; -webkit-background-clip: text; color: transparent;
+underline: filled SVG path (not a stroke) d "M4,10 C30,2 70,1 100,4 C140,7 170,3 196,9 C170,13 140,15 100,13 C60,11 30,14 4,10 Z"
+  viewBox 0 0 200 16, fill linearGradient(#D9530E -> #C2410C -> #A8380A)
+  reveal: transform:scaleX(0)->scaleX(1), transform-origin 0% 50%, 750ms cubic-bezier(.16,1,.3,1)
+  @media (prefers-reduced-motion: reduce) { skip transition, render fully revealed (scaleX(1)) }`
+  },
+  'breathing': {
+    family: 'underline',
+    html: () => `<span class="word word--pad tr-breathing">
+      <span class="word-fill">passion</span>
+      ${squiggleUnderline({ stroke:'#C2410C', width:5, breathe:true })}
+    </span>`,
+    spec: `/* passion word — breathing taper underline */
+font: italic 800 1.25em 'Instrument Serif', serif;
+letter-spacing: 0.08em;
+background-image: linear-gradient(100deg, #D9530E, #C2410C, #A8380A);
+background-clip: text; -webkit-background-clip: text; color: transparent;
+underline: hand-drawn squiggle, draw-in 700ms ease-out (as baseline), then
+  animation: breatheWidth 8s ease-in-out 800ms infinite;
+  @keyframes breatheWidth { 0%,100% { stroke-width:4.4; } 50% { stroke-width:5.6; } }
+  @media (prefers-reduced-motion: reduce) { animation: none; stroke-width:5; draw-in transition: none, render fully drawn }`
+  },
+  'watercolor': {
+    family: 'background',
+    html: () => `<span class="word word--pad tr-watercolor">
+      <span class="wash-blob"></span>
+      <span class="word-solid">passion</span>
+    </span>`,
+    spec: `/* passion word — watercolor wash */
+font: italic 800 1.25em 'Instrument Serif', serif;
+letter-spacing: 0.08em;
+color: #7A2E12; /* solid ink, no gradient */
+word wrapper: position: relative; isolation: isolate; /* required — contains the wash's z-index:-1
+  in its own stacking context so it paints behind the word but stays above any opaque ancestor background */
+wash (behind, absolutely positioned, z-index:-1):
+  position: absolute; left:-16%; right:-16%; top:-30%; bottom:-16%;
+  background: radial-gradient(ellipse at 42% 40%, rgba(217,83,14,0.34), rgba(217,83,14,0) 70%);
+  border-radius: 42% 58% 63% 37% / 47% 42% 58% 53%;
+  transform: rotate(-3deg);
+  filter: blur(2px);
+underline: none`
+  },
+  'highlighter': {
+    family: 'background',
+    html: () => `<span class="word word--pad tr-highlighter">
+      <span class="wash-stripe"></span>
+      <span class="word-solid">passion</span>
+    </span>`,
+    spec: `/* passion word — highlighter stripe */
+font: italic 800 1.25em 'Instrument Serif', serif;
+letter-spacing: 0.08em;
+color: #2b1206; /* solid ink, no gradient */
+word wrapper: position: relative; isolation: isolate; /* required — contains the stripe's z-index:-1
+  in its own stacking context so it paints behind the word but stays above any opaque ancestor background */
+stripe (behind lower half, absolutely positioned, z-index:-1):
+  position: absolute; left:-5%; right:-7%; bottom:0.03em; height:0.52em;
+  /* rgba(244,164,96,a) multiplied over #87CEEB sky, baked into solid stops — no mix-blend-mode
+     (mix-blend-mode:multiply is a no-op inside an isolated stacking context: the stripe has no
+     sky behind it to multiply against, so bake the color instead) */
+  background: linear-gradient(90deg, #84a396 0%, #84aeab 55%, #85bbc5 100%);
+  transform: rotate(-1.4deg);
+  border-radius: 3px;
+underline: none`
+  },
+  'combo-ink-brush': {
+    family: 'combined',
+    html: () => `<span class="word word--pad tr-combo-ink-brush">
+      <span class="word-fill">passion</span>
+      ${brushSwash()}
+    </span>`,
+    spec: `/* passion word — ink-slant ramp + brush swash underline */
+font: italic 800 1.25em 'Instrument Serif', serif;
+letter-spacing: 0.08em;
+background-image: linear-gradient(115deg, #6B1029 0%, #9A3412 32%, #C2650C 62%, #E0A458 100%);
+background-clip: text; -webkit-background-clip: text; color: transparent;
+underline: filled brush-swash path (see "brush" spec above), same reveal timing`
+  },
+  'combo-full': {
+    family: 'combined',
+    html: () => `<span class="word word--pad tr-combo-full">
+      <span class="wash-blob"></span>
+      <span class="word-fill">passion</span>
+      <span class="ember-dot"></span>
+      ${doubleStrokeUnderline()}
+    </span>`,
+    spec: `/* passion word — full combo (drift + wash + double stroke + ember dot) */
+font: italic 800 1.25em 'Instrument Serif', serif;
+letter-spacing: 0.08em;
+background-image: linear-gradient(100deg, #D9530E 0%, #A8380A 25%, #C2410C 50%, #D9530E 75%, #A8380A 100%);
+background-size: 250% 100%;
+background-clip: text; -webkit-background-clip: text; color: transparent;
+animation: emberDrift 12s ease-in-out infinite alternate; /* same as ember-drift */
+word wrapper: position: relative; isolation: isolate; /* required — contains the wash's z-index:-1
+  in its own stacking context so it paints behind the word but stays above any opaque ancestor background */
+wash (behind, subtler than watercolor variant):
+  background: radial-gradient(ellipse at 42% 40%, rgba(217,83,14,0.18), rgba(217,83,14,0) 72%);
+  border-radius: 42% 58% 63% 37% / 47% 42% 58% 53%; transform: rotate(-3deg);
+underline: double stroke (see "double-stroke" spec above), draw-in transitions skip under
+  @media (prefers-reduced-motion: reduce) — render fully drawn
+ember-dot terminal: 6px circle, radial-gradient(rgba(217,83,14,0.9) -> transparent),
+  positioned top-right of word (right:-0.42em; top:0.08em),
+  animation: emberPulse 10s ease-in-out infinite; /* opacity 0.35 <-> 0.6 */
+@media (prefers-reduced-motion: reduce) { drift + pulse animations: none, settle at midpoint }`
+  }
+};
+
+let currentTreatment = 'baseline';
+
+function renderTreatment(){
+  const t = TREATMENTS[currentTreatment];
+  wordSlot.className = '';
+  wordSlot.innerHTML = t.html();
+  const hasDraw = wordSlot.querySelector('.draw, .brush-svg');
+  replayBtn.disabled = !hasDraw;
+  // Force a style/layout flush so the newly-inserted elements' first computed
+  // style is captured before we add `.drawn` — otherwise a single rAF can run
+  // ahead of that first paint and the transition never starts (snaps drawn).
+  void wordSlot.offsetWidth;
+  wordSlot.querySelectorAll('.draw').forEach(p => p.classList.add('drawn'));
+  wordSlot.querySelectorAll('.brush-svg').forEach(s => s.classList.add('drawn'));
+}
+
+function replay(){
+  // Re-render from scratch: fresh elements start un-drawn, so the draw-in
+  // transition actually replays instead of reversing then snapping back.
+  renderTreatment();
+}
+
+replayBtn.addEventListener('click', replay);
+
+document.querySelectorAll('input[name="treatment"]').forEach(r =>
+  r.addEventListener('change', e => { currentTreatment = e.target.value; renderTreatment(); }));
+
+$('#vpDesktop').addEventListener('click', () => {
+  viewportFrame.classList.remove('mobile');
+  $('#vpDesktop').classList.add('active');
+  $('#vpMobile').classList.remove('active');
+});
+$('#vpMobile').addEventListener('click', () => {
+  viewportFrame.classList.add('mobile');
+  $('#vpMobile').classList.add('active');
+  $('#vpDesktop').classList.remove('active');
+});
+
+$('#copyBtn').addEventListener('click', async () => {
+  const text = TREATMENTS[currentTreatment].spec;
+  $('#specOutput').textContent = text;
+  const status = $('#copyStatus');
+  try {
+    await navigator.clipboard.writeText(text);
+    status.textContent = 'Copied to clipboard.';
+  } catch (err) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      status.textContent = ok ? 'Copied to clipboard (fallback).' : 'Clipboard blocked — copy the text below manually.';
+    } catch (err2) {
+      status.textContent = 'Clipboard blocked — copy the text below manually.';
+    }
+  }
+  setTimeout(() => { status.textContent = ''; }, 4000);
+});
+
+renderTreatment();
+</script>
+</body>
+</html>

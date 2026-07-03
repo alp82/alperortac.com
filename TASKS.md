@@ -1,3 +1,10 @@
+passion
+curiosity
+quality
+good taste
+
+---
+
 A — Recycle + embed (recommended). Keeps the old line's DNA, lands all three pillars (build-for-love = passion, bad taste = enemy, authentic experience = cry):
 ▎ I'm a ⟨web enthusiast / agentic coach / relentless tinkerer⟩ with ⟨a side-project habit / a camera in hand / a soft spot for open source⟩. I build because I love it, sweat the details because bad taste is the enemy, and leave behind an authentic experience.
 
@@ -119,12 +126,11 @@ never [safe]
         * what is the one thing you own? - passion
         * what is your enemy? - ai slop
         * rallying cry - what protects your clients from your enemy? - authentic experience
-* 
-* [x] footer + contact merge
+* carousel of videos and posts
+* all titles use same dynamic color toggle
 * coding: https://reactbits.dev/text-animations/decrypted-text
 * context switching: https://reactbits.dev/text-animations/true-focus
 * button too much going on inside (colorful logos): https://reactbits.dev/components/border-glow
-* carousel of videos and posts
 * video game char with big head - drag around - according to day of time
 * README with shieldcn
 * react-bits
