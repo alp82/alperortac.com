@@ -1,32 +1,22 @@
 import { useCallback, useState } from "react";
 import { TOPICS, type TopicId } from "../../../data/topics";
-import { INNERS, LINKS, SECTIONS } from "./index";
-import type {
-	AnyInnerParams,
-	AnyLinkParams,
-	AnySectionParams,
-	InnerId,
-	LinkId,
-	SectionId,
-} from "./types";
+import { INNERS, LINKS } from "./index";
+import type { AnyInnerParams, AnyLinkParams, InnerId, LinkId } from "./types";
 
 /*
  * Composer state.
  *
- * Holds the full composition — a baseline bypass flag, one GLOBAL stage +
- * connector pick (with params), and a LOCAL cluster pick (with params) per
- * topic. State ALWAYS initializes to the deterministic defaults (no
- * localStorage), so the composition renders identically on the server and the
- * first client paint — no defaults-then-swap height growth after scroll
- * restoration. Selections live for the session only; they don't persist across
- * reloads.
+ * Holds the full composition — a baseline bypass flag, one GLOBAL connector
+ * pick (with params), and a LOCAL cluster pick (with params) per topic. State
+ * ALWAYS initializes to the deterministic defaults (no localStorage), so the
+ * composition renders identically on the server and the first client paint —
+ * no defaults-then-swap height growth after scroll restoration. Selections
+ * live for the session only; they don't persist across reloads.
  *
  * Nothing is written onto <html> — the composition is threaded down to the
  * dispatcher as props, keeping LayoutHost free of any composer import.
  */
 
-/** One topic's local stage pick + that pick's params. */
-export type TopicStage = { id: SectionId; params: AnySectionParams };
 /** One topic's local cluster pick + that pick's params. */
 export type TopicCluster = { id: InnerId; params: AnyInnerParams };
 
@@ -35,28 +25,14 @@ export type ComposerState = {
 	// Connector is GLOBAL — one pick for the whole band.
 	link: LinkId;
 	linkParams: AnyLinkParams;
-	// Stage + cluster are LOCAL — every topic picks its own (with params).
-	stages: Record<TopicId, TopicStage>;
+	// Cluster is LOCAL — every topic picks its own (with params).
 	clusters: Record<TopicId, TopicCluster>;
 };
 
-export const DEFAULT_SECTION: SectionId = "parallax-depth";
-export const DEFAULT_INNER: InnerId = "constellation";
+export const DEFAULT_INNER: InnerId = "parallax-depth";
 export const DEFAULT_LINK: LinkId = "none";
 
-/** Every topic starts on the baseline stage (centered-monolith) with defaults. */
-function defaultStages(): Record<TopicId, TopicStage> {
-	const out = {} as Record<TopicId, TopicStage>;
-	for (const t of TOPICS) {
-		out[t.id] = {
-			id: DEFAULT_SECTION,
-			params: { ...SECTIONS[DEFAULT_SECTION].defaults },
-		};
-	}
-	return out;
-}
-
-/** Every topic starts on the default cluster (constellation) with its defaults. */
+/** Every topic starts on the default cluster (parallax-depth) with its defaults. */
 function defaultClusters(): Record<TopicId, TopicCluster> {
 	const out = {} as Record<TopicId, TopicCluster>;
 	for (const t of TOPICS) {
@@ -79,7 +55,6 @@ export function defaultState(): ComposerState {
 		baseline: false,
 		link: DEFAULT_LINK,
 		linkParams: { ...LINKS[DEFAULT_LINK].defaults },
-		stages: defaultStages(),
 		clusters: defaultClusters(),
 	};
 }
@@ -106,30 +81,8 @@ export function useComposerControls() {
 		[],
 	);
 
-	// Stage picks are per-topic (mirror of the cluster picks); the "All" variant
-	// applies one stage to every topic. Switching id resets params to defaults.
-	const setStage = useCallback((topicId: TopicId, section: SectionId) => {
-		setState((s) => ({
-			...s,
-			stages: {
-				...s.stages,
-				[topicId]: { id: section, params: { ...SECTIONS[section].defaults } },
-			},
-		}));
-	}, []);
-	const setAllStages = useCallback((section: SectionId) => {
-		setState((s) => {
-			const stages = {} as Record<TopicId, TopicStage>;
-			for (const t of TOPICS) {
-				stages[t.id] = {
-					id: section,
-					params: { ...SECTIONS[section].defaults },
-				};
-			}
-			return { ...s, stages };
-		});
-	}, []);
 	// Cluster picks are per-topic: setting/patching takes the topic id.
+	// Switching id resets params to defaults.
 	const setInner = useCallback((topicId: TopicId, inner: InnerId) => {
 		setState((s) => ({
 			...s,
@@ -157,40 +110,8 @@ export function useComposerControls() {
 		}));
 	}, []);
 
-	// Patches target the CURRENT stage's own fields (per-topic, or all topics).
+	// Patches target the CURRENT cluster's own fields (per-topic, or all topics).
 	// Every control is range-bounded or enumerated, so a plain merge is valid.
-	const patchStageParams = useCallback(
-		(topicId: TopicId, patch: Partial<AnySectionParams>) =>
-			setState((s) => ({
-				...s,
-				stages: {
-					...s.stages,
-					[topicId]: {
-						...s.stages[topicId],
-						params: {
-							...s.stages[topicId].params,
-							...patch,
-						} as AnySectionParams,
-					},
-				},
-			})),
-		[],
-	);
-	const patchAllStageParams = useCallback(
-		(patch: Partial<AnySectionParams>) =>
-			setState((s) => {
-				const stages = {} as Record<TopicId, TopicStage>;
-				for (const t of TOPICS) {
-					const st = s.stages[t.id];
-					stages[t.id] = {
-						...st,
-						params: { ...st.params, ...patch } as AnySectionParams,
-					};
-				}
-				return { ...s, stages };
-			}),
-		[],
-	);
 	const patchInnerParams = useCallback(
 		(topicId: TopicId, patch: Partial<AnyInnerParams>) =>
 			setState((s) => ({
@@ -238,13 +159,9 @@ export function useComposerControls() {
 	return {
 		state,
 		setBaseline,
-		setStage,
-		setAllStages,
 		setInner,
 		setAllInners,
 		setLink,
-		patchStageParams,
-		patchAllStageParams,
 		patchInnerParams,
 		patchAllInnerParams,
 		patchLinkParams,
@@ -253,33 +170,22 @@ export function useComposerControls() {
 }
 
 /**
- * Single-line copy-spec string, namespaced per layer. The section/inner/link.*
- * keys are whatever the SELECTED style exposes (per-style params, emitted in
+ * Single-line copy-spec string, namespaced per layer. The inner/link.* keys
+ * are whatever the SELECTED style exposes (per-style params, emitted in
  * defaults order), so the line self-describes which knobs are live. Per-topic
  * inner.<topic> blocks are emitted only for topics that deviate from the default
  * cluster (DEFAULT_INNER + its default params); link.* drops entirely when
  * link === none. Baseline on → just `baseline: on`.
  *
- * e.g. `section: split-stage | section.accent: topic | section.height: 90 |
- * inner.coding: comic | inner.coding.density: roomy | inner.coding.halftone: on |
- * inner.coding.palette: classic | link: trail-dashes | link.color: earth |
- * link.weight: 2 | link.curve: 50 | link.dash: standard | link.footprints: off`
+ * e.g. `inner.coding: comic | inner.coding.density: roomy |
+ * inner.coding.halftone: on | inner.coding.palette: classic |
+ * link: trail-dashes | link.color: earth | link.weight: 2 | link.curve: 50 |
+ * link.dash: standard | link.footprints: off`
  */
 export function buildComposerSpec(state: ComposerState): string {
 	if (state.baseline) return "baseline: on";
 
 	const parts: string[] = [];
-	// Stages are per-topic; emit only topics that differ from the default stage
-	// (an omitted topic = DEFAULT_SECTION). Per-stage params in defaults order.
-	for (const t of TOPICS) {
-		const st = state.stages[t.id];
-		if (st.id === DEFAULT_SECTION) continue;
-		parts.push(`section.${t.id}: ${st.id}`);
-		for (const [k, v] of Object.entries(st.params)) {
-			const val = typeof v === "boolean" ? (v ? "on" : "off") : v;
-			parts.push(`section.${t.id}.${k}: ${val}`);
-		}
-	}
 
 	// Clusters are per-topic; emit only topics that DEVIATE from the default
 	// cluster (DEFAULT_INNER with its default params). A topic left untouched on

@@ -9,7 +9,7 @@ import { type ResolvedTrigger, useTriggerNav } from "./useTriggerNav";
 /*
  * The shipped topic BODY — the plate/bespoke-else-teaser dispatch, extracted
  * VERBATIM out of `SectionBody` so it can be rendered as the `children` of any
- * composer frame (Layer-2 inner). Every inner is a CONTAINER that wraps this
+ * composer frame (inner style). Every inner is a CONTAINER that wraps this
  * real body.
  *
  * Resolves `accent` + `CustomContent` INTERNALLY from `topic.id`, so callers

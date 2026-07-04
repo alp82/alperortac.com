@@ -1,7 +1,6 @@
 import { ArcadeHudCluster } from "./inner/arcade-hud";
 import { AuroraCluster } from "./inner/aurora";
 import { BlueprintCluster } from "./inner/blueprint";
-import { CelestialCluster } from "./inner/celestial";
 import { ChalkboardCluster } from "./inner/chalkboard";
 import { CircuitBoardCluster } from "./inner/circuit-board";
 import { CollectibleCluster } from "./inner/collectible";
@@ -9,162 +8,64 @@ import { ComicCluster } from "./inner/comic";
 import { ConstellationCluster } from "./inner/constellation";
 import { DaybreakCluster } from "./inner/daybreak";
 import { FieldJournalCluster } from "./inner/field-journal";
+import { FloatingIslandCluster } from "./inner/floating-island";
 import { MinimalCluster } from "./inner/minimal";
 import { MoonriseCluster } from "./inner/moonrise";
 import { NeonSignCluster } from "./inner/neon-sign";
+import { ParallaxDepthCluster } from "./inner/parallax-depth";
 import { PolaroidCluster } from "./inner/polaroid";
 import { SeedPacketCluster } from "./inner/seed-packet";
 import { SkylineCluster } from "./inner/skyline";
 import { SummitCluster } from "./inner/summit";
 import { TerminalCluster } from "./inner/terminal";
-import { TerrainCluster } from "./inner/terrain";
 import { TicketStubCluster } from "./inner/ticket-stub";
 import { TopoMapCluster } from "./inner/topo-map";
 import { TrailSignpostCluster } from "./inner/trail-signpost";
-import { WaterlineCluster } from "./inner/waterline";
-import { WeatherCluster } from "./inner/weather";
-import { WildlifeCluster } from "./inner/wildlife";
 import { BotanicalVineLink } from "./links/botanical-vine";
 import { ConstellationStarlineLink } from "./links/constellation-starline";
 import { FlowingCurveLink } from "./links/flowing-curve";
 import { RuledSeamLink } from "./links/ruled-seam";
 import { TrailDashesLink } from "./links/trail-dashes";
-import { CenteredMonolithStage } from "./sections/centered-monolith";
-import { FloatingIslandStage } from "./sections/floating-island";
-import { MarqueeScrollStage } from "./sections/marquee-scroll";
-import { ParallaxDepthStage } from "./sections/parallax-depth";
-import { SplitStageStage } from "./sections/split-stage";
-import { ZoomFocusStage } from "./sections/zoom-focus";
-import type {
-	InnerDef,
-	InnerId,
-	LinkDef,
-	LinkId,
-	SectionDef,
-	SectionId,
-} from "./types";
+import type { InnerDef, InnerId, LinkDef, LinkId } from "./types";
 
 /*
- * Composer registries — the single source of truth for the three layers
- * (section / inner / link). The panel reads these to build its radio lists +
- * per-item param controls; the dispatcher reads them to render the selected
+ * Composer registries — the single source of truth for the two layers
+ * (inner / link). The panel reads these to build its radio lists + per-item
+ * param controls; the dispatcher reads them to render the selected
  * composition.
  */
 
-export type {
-	InnerId,
-	LinkId,
-	SectionId,
-} from "./types";
+export type { InnerId, LinkId } from "./types";
 
-/* ── Layer 1: SECTION STYLES (the cinematic stage) ──────────────────────── */
+/* ── INNER STYLES (the centered cluster) ────────────────────────────────── */
 
-export const SECTIONS: { [Id in SectionId]: SectionDef<Id> } = {
-	"centered-monolith": {
-		id: "centered-monolith",
-		label: "Centered Monolith",
-		feel: "Huge centered type over a radial scrim; the landscape glows at the edges. Title-card energy.",
-		baseHeight: 100,
-		heightRange: [70, 130],
-		defaults: {
-			accent: "topic",
-			height: 100,
-			vignette: 45,
-			edgeGlow: 60,
-			titleScale: "bold",
-			indexTag: true,
-		},
-		Component: CenteredMonolithStage,
-	},
-	"split-stage": {
-		id: "split-stage",
-		label: "Split Stage",
-		feel: "Asymmetric viewport split: type one side, negative space + ghost flourish the other.",
-		baseHeight: 90,
-		heightRange: [70, 115],
-		defaults: {
-			accent: "topic",
-			height: 90,
-			ratio: 58,
-			side: "left",
-			flourish: 16,
-			spine: true,
-		},
-		Component: SplitStageStage,
-	},
+export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 	"parallax-depth": {
 		id: "parallax-depth",
 		label: "Parallax Depth",
-		feel: "Layered fore/background drift on scroll; the cluster floats over a slow ghost flourish. Tallest stage.",
-		baseHeight: 110,
-		heightRange: [90, 140],
-		defaults: {
-			accent: "none",
-			height: 90,
-			shape: "flourish",
-			depth: 50,
-			layers: 3,
-		},
-		Component: ParallaxDepthStage,
-	},
-	"marquee-scroll": {
-		id: "marquee-scroll",
-		label: "Marquee Scroll",
-		feel: "Giant repeating heading strips drift horizontally on scroll behind the cluster. Freezes under reduced motion.",
-		baseHeight: 90,
-		heightRange: [70, 115],
-		defaults: {
-			accent: "topic",
-			height: 90,
-			strips: 2,
-			speed: 50,
-			textStyle: "filled",
-			mirrored: true,
-		},
-		Component: MarqueeScrollStage,
+		feel: "Layered fore/background drift on scroll; the cluster floats over a slow ghost flourish with big Minimal-style chrome.",
+		surface: "plate",
+		defaults: { density: "roomy", shape: "flourish", depth: 50, layers: 3 },
+		Component: ParallaxDepthCluster,
 	},
 	"floating-island": {
 		id: "floating-island",
 		label: "Floating Island",
 		feel: "Cluster on a floating slab with a soft drop shadow, landscape all around; the slab bobs gently on scroll (reduced-motion safe).",
-		baseHeight: 90,
-		heightRange: [72, 115],
+		surface: "dark",
 		defaults: {
-			accent: "none",
-			height: 90,
+			density: "roomy",
 			floatHeight: 50,
 			bob: 50,
 			corners: "soft",
 			tint: 35,
 		},
-		Component: FloatingIslandStage,
+		Component: FloatingIslandCluster,
 	},
-	"zoom-focus": {
-		id: "zoom-focus",
-		label: "Zoom Focus",
-		feel: "Ken Burns: a ghost flourish slowly scales while the cluster grows understated→dominant on enter (reduced-motion safe).",
-		baseHeight: 95,
-		heightRange: [78, 122],
-		defaults: {
-			accent: "topic",
-			height: 95,
-			enterZoom: 45,
-			speed: 50,
-			drift: "up-right",
-		},
-		Component: ZoomFocusStage,
-	},
-};
-
-export const SECTION_ORDER: SectionId[] = ["parallax-depth", "floating-island"];
-
-/* ── Layer 2: INNER STYLES (the centered cluster) ───────────────────────── */
-
-export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 	minimal: {
 		id: "minimal",
 		label: "Minimal",
-		feel: "Clean cluster: a styled heading + optional accent underline, content below. Lets the stage do the talking.",
+		feel: "Clean cluster: a styled heading + optional accent underline, content below. Lets the landscape do the talking.",
 		surface: "plate",
 		defaults: { density: "roomy", underline: true, align: "center" },
 		Component: MinimalCluster,
@@ -245,86 +146,6 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 			drift: true,
 		},
 		Component: SkylineCluster,
-	},
-	terrain: {
-		id: "terrain",
-		label: "Terrain",
-		feel: "Nature / land: low silhouettes — pine, grass, cairn, rolling hills — over the existing ground.",
-		surface: "plate",
-		defaults: {
-			density: "roomy",
-			motif: "pine",
-			prominence: "subtle",
-			placement: "scatter",
-			variety: "mixed",
-			color: "ink",
-			drift: true,
-		},
-		Component: TerrainCluster,
-	},
-	waterline: {
-		id: "waterline",
-		label: "Waterline",
-		feel: "Nature / water: waves, koi, a sailboat or a lighthouse low over the scene.",
-		surface: "plate",
-		defaults: {
-			density: "roomy",
-			motif: "waves",
-			prominence: "subtle",
-			placement: "scatter",
-			variety: "mixed",
-			color: "ink",
-			drift: true,
-		},
-		Component: WaterlineCluster,
-	},
-	weather: {
-		id: "weather",
-		label: "Weather",
-		feel: "Atmosphere: rain, snow, drifting leaves or a corner sunbeam over the sky.",
-		surface: "plate",
-		defaults: {
-			density: "roomy",
-			motif: "rain",
-			prominence: "subtle",
-			placement: "scatter",
-			variety: "mixed",
-			color: "ink",
-			drift: true,
-		},
-		Component: WeatherCluster,
-	},
-	wildlife: {
-		id: "wildlife",
-		label: "Wildlife",
-		feel: "Creatures: butterflies, a deer, a fox or an owl — line-art over the scene.",
-		surface: "plate",
-		defaults: {
-			density: "roomy",
-			motif: "butterfly",
-			prominence: "subtle",
-			placement: "scatter",
-			variety: "mixed",
-			color: "ink",
-			drift: true,
-		},
-		Component: WildlifeCluster,
-	},
-	celestial: {
-		id: "celestial",
-		label: "Celestial",
-		feel: "Night sky: sparkle stars, a crescent moon, a meteor or ringed Saturn over the dark.",
-		surface: "plate",
-		defaults: {
-			density: "roomy",
-			motif: "stars",
-			prominence: "subtle",
-			placement: "scatter",
-			variety: "mixed",
-			color: "ink",
-			drift: true,
-		},
-		Component: CelestialCluster,
 	},
 	terminal: {
 		id: "terminal",
@@ -425,20 +246,17 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 };
 
 export const INNER_ORDER: InnerId[] = [
+	"parallax-depth",
+	"floating-island",
 	"constellation",
 	"skyline",
-	"terrain",
-	"waterline",
-	"weather",
-	"wildlife",
-	"celestial",
 	"terminal",
 	"ticket-stub",
 	"arcade-hud",
 	"seed-packet",
 ];
 
-/* ── Layer 3: LINKS (between-topic connectors) ──────────────────────────── */
+/* ── LINKS (between-topic connectors) ───────────────────────────────────── */
 
 // Shared rail defaults (color + signature params set per connector).
 const LINK_BASE = { weight: 2, height: 90, blend: 90, animate: true } as const;

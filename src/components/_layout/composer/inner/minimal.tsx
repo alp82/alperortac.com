@@ -3,11 +3,11 @@ import { FrameShell } from "./FrameShell";
 import { DENSITY_GAP, DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: minimal (DEFAULT) — "clean cluster."
+ * Inner: minimal — "clean cluster."
  *
  * The clean frame: a styled heading + a thin accent underline form the chrome,
  * then the topic's REAL body (the shared light plate) sits below. No heavy
- * chrome — lets the Layer-1 stage do the talking. Signature toggle
+ * chrome — lets the landscape do the talking. Signature toggle
  * (params.underline) = the accent underline beneath the heading; the `align`
  * knob swings the whole cluster between centered and left.
  */

@@ -8,7 +8,7 @@ import { DENSITY_HEADING, DENSITY_MAXW } from "./shared";
  * thin connecting star-figure sitting RIGHT BELOW THE TITLE (in the gap before
  * the body), so the decoration reads without merging into the paragraph text.
  * Lines are hairline (vector-effect:non-scaling-stroke); nodes small + soft;
- * nothing paints a background — it floats over the stage sky.
+ * nothing paints a background — it floats over the landscape sky.
  *
  * Signature toggle = the connecting lines; `tint` recolors lines/eyebrow/field;
  * `figure` swaps the star-pattern.

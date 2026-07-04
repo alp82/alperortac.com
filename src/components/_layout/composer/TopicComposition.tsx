@@ -1,20 +1,17 @@
 import type { Topic } from "../../../data/topics";
-import { INNERS, SECTIONS } from "./index";
+import { INNERS } from "./index";
 import { TopicBody } from "./TopicBody";
-import {
-	type InnerRenderProps,
-	type SectionRenderProps,
-	TOPIC_ACCENT,
-} from "./types";
+import { type InnerRenderProps, TOPIC_ACCENT } from "./types";
 import type { ComposerState } from "./useComposerControls";
 
 /*
  * Composition dispatcher.
  *
- * Builds one topic's composition: resolves the accent (per the section's accent
- * param), builds the topic's REAL body (the shared TopicBody), and hands it to
- * the Layer-2 inner frame as `children`, all wrapped in the Layer-1 stage. Every
- * frame is a container around the same body.
+ * Builds one topic's composition: a neutral centered `<article id>` wrapper
+ * (the per-topic scroll/deep-link anchor) that always sets `--cmp-accent` to
+ * the topic palette, builds the topic's REAL body (the shared TopicBody), and
+ * hands it to the inner frame as `children`. Every frame is a container
+ * around the same body.
  */
 
 type TopicCompositionProps = {
@@ -32,36 +29,13 @@ export function TopicComposition({
 	isNight,
 	lastTriggerRef,
 }: TopicCompositionProps) {
-	// Stage is local to each topic. The registry erases the id↔params link —
-	// Component wants its stage's exact param shape while state holds the union;
-	// setStage keeps id + params in lockstep, so this widening cast is sound.
-	const stage = state.stages[topic.id];
-	const section = SECTIONS[stage.id];
-	const Stage = section.Component as React.ComponentType<SectionRenderProps>;
+	// Accent always comes from the topic palette (the accent-source knob is gone).
+	const accent = TOPIC_ACCENT[topic.id];
 
-	const topicAccent = TOPIC_ACCENT[topic.id];
-	// Accent source: topic palette / a fixed warm amber / none.
-	const sectionAccent =
-		stage.params.accent === "topic"
-			? topicAccent
-			: stage.params.accent === "fixed"
-				? "#fde68a"
-				: null;
-	// The cluster always gets a concrete accent to key its motifs off (it falls
-	// back to the topic palette when the stage suppresses accent).
-	const clusterAccent = sectionAccent ?? topicAccent;
-
-	const stageProps = {
-		topic,
-		index,
-		isNight,
-		params: stage.params,
-		accent: sectionAccent,
-	};
-
-	// Cluster is local to each topic. Same widening cast as the Stage — the
-	// registry erases the id↔params link; the cluster keeps id + params in
-	// lockstep, so it's sound at runtime.
+	// Cluster is local to each topic. The registry erases the id↔params link —
+	// Component wants its cluster's exact param shape while state holds the
+	// union; the setters keep id + params in lockstep, so this widening cast is
+	// sound at runtime.
 	const cluster = state.clusters[topic.id];
 	const inner = INNERS[cluster.id];
 	const Cluster = inner.Component as React.ComponentType<InnerRenderProps>;
@@ -78,17 +52,21 @@ export function TopicComposition({
 		/>
 	);
 	return (
-		<Stage {...stageProps}>
+		<article
+			id={topic.id}
+			className="relative overflow-hidden flex flex-col items-center justify-center px-6 min-h-[90vh]"
+			style={{ "--cmp-accent": accent } as React.CSSProperties}
+		>
 			<Cluster
 				topic={topic}
 				index={index}
 				isNight={isNight}
 				lastTriggerRef={lastTriggerRef}
 				params={cluster.params}
-				accent={clusterAccent}
+				accent={accent}
 			>
 				{body}
 			</Cluster>
-		</Stage>
+		</article>
 	);
 }

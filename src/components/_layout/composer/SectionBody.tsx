@@ -10,7 +10,7 @@ import { flourishSrc, TOPIC_ACCENT } from "./types";
  * Resolves `layout` + `accent` INTERNALLY from `topic.id` (so neither caller can
  * pass a mismatched value) and wraps its output in a `relative` element carrying
  * `layoutClasses` + `--topic-accent`, so the accent-bar `before:` and full-bleed
- * `after:` pseudos anchor correctly even when nested inside a Stage.
+ * `after:` pseudos anchor correctly even when nested inside another wrapper.
  */
 
 const LAYOUT_BY_TOPIC: Record<

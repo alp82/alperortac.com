@@ -14,11 +14,11 @@ export const SEAM_VIEWBOX_W = 100;
 export const VBOX_H = 300;
 
 /*
- * Shared helpers for Layer-3 connectors.
+ * Shared helpers for link connectors.
  *
  * Connectors are VERTICAL: each renders a tall element straddling the seam
  * between topic N and N+1, descending the page (river flows down, vine grows
- * down, trail descends). They draw TOP→BOTTOM and bleed into the stages above
+ * down, trail descends). They draw TOP→BOTTOM and bleed into the topics above
  * and below behind a vertical mask fade (see VERTICAL_FADE_MASK / .cmp-seam-rail
  * in composer.css).
  *
@@ -117,7 +117,7 @@ export function useAspectViewBox(
 }
 
 /**
- * Vertical fade so a connector's TOP and BOTTOM ends melt into the stage above
+ * Vertical fade so a connector's TOP and BOTTOM ends melt into the topics above
  * and below instead of hard-stopping. Applied as both mask + -webkit-mask on
  * the rail wrapper (see .cmp-seam-rail) — kept here so connectors that fade an
  * inner element (e.g. river-ribbon's highlight) can reuse the exact stops.

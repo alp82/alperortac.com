@@ -18,8 +18,9 @@ describe("buildComposerSpec", () => {
 	});
 
 	it("all-default clusters emit no inner.* keys", () => {
-		// defaultState starts every topic on the untouched default constellation cluster.
+		// defaultState starts every topic on the untouched default parallax-depth cluster.
 		expect(buildComposerSpec(makeState())).not.toContain("inner.");
+		expect(buildComposerSpec(makeState())).not.toContain("section.");
 	});
 
 	it("a customized topic emits its inner.<topic>.* keys", () => {
@@ -56,5 +57,27 @@ describe("buildComposerSpec", () => {
 		expect(spec).toContain("link: none");
 		expect(spec).not.toContain("link.color");
 		expect(spec).not.toContain("link.weight");
+	});
+
+	// Milestone 2 coverage: a per-topic inner deviation (id switch + a param
+	// tweak) emits that topic's inner.* keys, leaves untouched topics omitted,
+	// and never emits section.* — guarding the post-stage-removal state shape
+	// (buildComposerSpec's stage loop is deleted in milestone 2).
+	it("a deviated inner emits its topic's inner.* keys and no section.* keys", () => {
+		const base = defaultState();
+		const spec = buildComposerSpec({
+			...base,
+			clusters: {
+				...base.clusters,
+				travel: {
+					id: "floating-island",
+					params: { ...INNERS["floating-island"].defaults, tint: 70 },
+				},
+			},
+		});
+		expect(spec).toContain("inner.travel: floating-island");
+		expect(spec).toContain("inner.travel.tint: 70");
+		expect(spec).not.toContain("inner.coding");
+		expect(spec).not.toContain("section.");
 	});
 });

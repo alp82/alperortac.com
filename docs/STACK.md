@@ -39,6 +39,7 @@ Tailwind v4 (via `@tailwindcss/vite`) + lucide-react + @icons-pack/react-simple-
 Vitest 4 + @testing-library/react + jsdom
 - **Constraint:** Tests colocated under `__tests__/` next to the module they cover (e.g. `src/data/__tests__/sections.test.ts`). jsdom is the default environment. No Playwright / e2e harness yet.
 - **Why:** Fast unit/component tests aligned with the Vite toolchain.
+- **Gotcha:** Vitest's default include glob also collects test files inside dot-directories, so any `.prototypes/*.test.tsx` tracer counts toward the suite total. `vite.config.ts` sets no `test.include` override to narrow it. Delete prototype tracer tests when their purpose is done, or the reported test count drifts.
 
 ## Tooling
 

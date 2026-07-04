@@ -1,7 +1,7 @@
 import type { InnerBase } from "../types";
 
 /*
- * Shared density scale for Layer-2 inner styles.
+ * Shared density scale for inner styles.
  *
  * Density is the one param every inside style shares; these maps turn it into
  * concrete max-width / vertical-gap / heading-scale values so every style reads
@@ -24,7 +24,7 @@ export const DENSITY_MAXW: Record<InnerBase["density"], string> = {
 	roomy: "max-w-3xl",
 };
 
-/** Density → heading scale (clusters live on a stage, so they trend large). */
+/** Density → heading scale (clusters sit directly over the landscape, so they trend large). */
 export const DENSITY_HEADING: Record<InnerBase["density"], string> = {
 	cozy: "text-4xl md:text-5xl",
 	comfortable: "text-5xl md:text-7xl",

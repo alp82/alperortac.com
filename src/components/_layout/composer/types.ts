@@ -1,131 +1,25 @@
 import type { Topic, TopicId } from "../../../data/topics";
 
 /*
- * 3-layer composer contract.
+ * 2-layer composer contract.
  *
- * A composition stacks three independent axes over a single topic:
- *   Layer 1 — SECTION STYLE   the full-bleed cinematic STAGE the topic sits on
- *   Layer 2 — INNER STYLE     the CENTERED CONTENT CLUSTER inside that stage
- *   Layer 3 — LINK (connector) the seam rendered BETWEEN consecutive topics
+ * A composition stacks two independent axes over a single topic:
+ *   INNER STYLE       the CENTERED CONTENT CLUSTER inside the topic's
+ *                     neutral `<article id>` wrapper (owned by
+ *                     TopicComposition)
+ *   LINK (connector)  the seam rendered BETWEEN consecutive topics
  *
- * Each layer has its own registry (sections/, inner/, links/) keyed by id, and
- * each item carries a small set of FOCUSED params the panel exposes as controls.
- * The dispatcher reads the selected ids + params to render the composition; the
+ * Each layer has its own registry (inner/, links/) keyed by id, and each item
+ * carries a small set of FOCUSED params the panel exposes as controls. The
+ * dispatcher reads the selected ids + params to render the composition; the
  * shared tokens/helpers below are also used by the `current` baseline path.
  */
 
-/* ── Layer 1: SECTION STYLE ─────────────────────────────────────────────── */
-
-export type SectionId =
-	| "centered-monolith"
-	| "split-stage"
-	| "parallax-depth"
-	| "marquee-scroll"
-	| "floating-island"
-	| "zoom-focus";
-
-/** Where the accent color a stage/cluster uses comes from. */
-export type AccentSource = "topic" | "fixed" | "none";
-
-/*
- * Per-stage params. The two axes EVERY stage shares (accent theming + stage
- * height) live in `StageBase`; everything else is specific to one stage and
- * moves THAT stage's signature — no generic align/scrim grab-bag. Order each
- * shape `accent, height, …specifics` so the copy-spec reads naturally.
- */
-
-/** Universal across every stage. */
-type StageBase = {
-	/** Accent color source for the stage's grade / rules / tint. */
-	accent: AccentSource;
-	/** Stage height as a vh value; clamped per-stage around its base. */
-	height: number;
-};
-
-/** centered-monolith — title-card type over a vignette. */
-export type MonolithParams = StageBase & {
-	/** Radial scrim depth that makes the type pop, 0..80. */
-	vignette: number;
-	/** Landscape light bleed at the rim, 0..100 (0 = edges off). */
-	edgeGlow: number;
-	/** Presence of the cluster — scales the whole content block. */
-	titleScale: "modest" | "bold" | "towering";
-	/** Show the "NN / total" index counter. */
-	indexTag: boolean;
-};
-
-/** split-stage — asymmetric type panel | negative-space panel. */
-export type SplitParams = StageBase & {
-	/** Share of width given to the content panel, 50..78 (%). */
-	ratio: number;
-	/** Which side the content panel sits on. */
-	side: "left" | "right";
-	/** Ghost flourish strength on the empty panel, 0..40. */
-	flourish: number;
-	/** Accent spine bar along the content panel's edge. */
-	spine: boolean;
-};
-
-/** parallax-depth — layered backdrop drifting under the cluster. */
-export type ParallaxParams = StageBase & {
-	/** Which backdrop shape drifts behind the cluster. */
-	shape: "flourish" | "blob" | "rings" | "grid" | "strata";
-	/** Drift separation between planes, 0..100. */
-	depth: number;
-	/** How many drifting planes behind the cluster. */
-	layers: 2 | 3;
-};
-
-/** marquee-scroll — giant heading strips drifting on scroll. */
-export type MarqueeParams = StageBase & {
-	/** How many marquee rows. */
-	strips: 1 | 2 | 3;
-	/** Scroll-drift strength, 0..100. */
-	speed: number;
-	/** Treatment of the strip type. */
-	textStyle: "filled" | "outline" | "accent";
-	/** Rows drift in opposite directions vs the same way. */
-	mirrored: boolean;
-};
-
-/** floating-island — cluster on a floating slab. */
-export type IslandParams = StageBase & {
-	/** Shadow throw + lift, 0..100. */
-	floatHeight: number;
-	/** Idle bob amount on scroll, 0..100 (0 = still). */
-	bob: number;
-	/** Slab corner radius. */
-	corners: "sharp" | "soft" | "pill";
-	/** Slab surface opacity, 0..100 (glassy → solid). */
-	tint: number;
-};
-
-/** zoom-focus — Ken Burns enter + drifting backdrop. */
-export type ZoomParams = StageBase & {
-	/** How far the cluster scales up on enter, 0..100. */
-	enterZoom: number;
-	/** Ken Burns drift speed, 0..100. */
-	speed: number;
-	/** Backdrop pan direction. */
-	drift: "in" | "up-left" | "up-right" | "down";
-};
-
-/** id → that stage's param shape. */
-export type SectionParamsMap = {
-	"centered-monolith": MonolithParams;
-	"split-stage": SplitParams;
-	"parallax-depth": ParallaxParams;
-	"marquee-scroll": MarqueeParams;
-	"floating-island": IslandParams;
-	"zoom-focus": ZoomParams;
-};
-
-/** The union of every stage's params (what composer state actually holds). */
-export type AnySectionParams = SectionParamsMap[SectionId];
-
-/* ── Layer 2: INNER STYLE ───────────────────────────────────────────────── */
+/* ── INNER STYLE ────────────────────────────────────────────────────────── */
 
 export type InnerId =
+	| "parallax-depth"
+	| "floating-island"
 	| "minimal"
 	| "trail-signpost"
 	| "field-journal"
@@ -146,20 +40,14 @@ export type InnerId =
 	| "moonrise"
 	| "daybreak"
 	| "summit"
-	| "skyline"
-	| "terrain"
-	| "waterline"
-	| "weather"
-	| "wildlife"
-	| "celestial";
+	| "skyline";
 
 /** Shared by every inside style — cluster scale / breathing room. */
 export type InnerBase = {
 	density: "cozy" | "comfortable" | "roomy";
 };
 
-/* Shared look-&-feel controls for the decoration inner groups (skyline + the
- * environment groups that run on the shared deco engine). */
+/* Shared look-&-feel controls for the skyline decoration inner. */
 export type DecoProminence = "whisper" | "subtle" | "present" | "bold";
 export type DecoPlacement = "corner" | "cluster" | "scatter" | "edges";
 export type DecoColor = "ink" | "tinted" | "vivid";
@@ -254,55 +142,37 @@ export type SummitParams = InnerBase & {
 };
 export type SkylineParams = InnerBase & {
 	motif: "birds" | "clouds" | "plane" | "kite" | "balloon";
-	prominence: "whisper" | "subtle" | "present" | "bold";
-	placement: "corner" | "cluster" | "scatter" | "edges";
-	variety: "uniform" | "mixed";
-	color: "ink" | "tinted" | "vivid";
-	drift: boolean;
-};
-export type TerrainParams = InnerBase & {
-	motif: "pine" | "grass" | "rocks" | "hills";
 	prominence: DecoProminence;
 	placement: DecoPlacement;
 	variety: "uniform" | "mixed";
 	color: DecoColor;
 	drift: boolean;
 };
-export type WaterlineParams = InnerBase & {
-	motif: "waves" | "koi" | "sailboat" | "lighthouse";
-	prominence: DecoProminence;
-	placement: DecoPlacement;
-	variety: "uniform" | "mixed";
-	color: DecoColor;
-	drift: boolean;
+/** parallax-depth — layered backdrop drifting under the cluster (ported stage). */
+export type ParallaxDepthParams = InnerBase & {
+	/** Which backdrop shape drifts behind the cluster. */
+	shape: "flourish" | "blob" | "rings" | "grid" | "strata";
+	/** Drift separation between planes, 0..100. */
+	depth: number;
+	/** How many drifting planes behind the cluster. */
+	layers: 2 | 3;
 };
-export type WeatherParams = InnerBase & {
-	motif: "rain" | "snow" | "leaves" | "sunbeam";
-	prominence: DecoProminence;
-	placement: DecoPlacement;
-	variety: "uniform" | "mixed";
-	color: DecoColor;
-	drift: boolean;
-};
-export type WildlifeParams = InnerBase & {
-	motif: "butterfly" | "deer" | "fox" | "owl";
-	prominence: DecoProminence;
-	placement: DecoPlacement;
-	variety: "uniform" | "mixed";
-	color: DecoColor;
-	drift: boolean;
-};
-export type CelestialParams = InnerBase & {
-	motif: "stars" | "moon" | "meteor" | "saturn";
-	prominence: DecoProminence;
-	placement: DecoPlacement;
-	variety: "uniform" | "mixed";
-	color: DecoColor;
-	drift: boolean;
+/** floating-island — cluster on a floating slab (ported stage). */
+export type FloatingIslandParams = InnerBase & {
+	/** Shadow throw + lift, 0..100. */
+	floatHeight: number;
+	/** Idle bob amount on scroll, 0..100 (0 = still). */
+	bob: number;
+	/** Slab corner radius. */
+	corners: "sharp" | "soft" | "pill";
+	/** Slab surface opacity, 0..100 (glassy → solid). */
+	tint: number;
 };
 
 /** id → that inside style's param shape. */
 export type InnerParamsMap = {
+	"parallax-depth": ParallaxDepthParams;
+	"floating-island": FloatingIslandParams;
 	minimal: MinimalParams;
 	"trail-signpost": TrailSignpostParams;
 	"field-journal": FieldJournalParams;
@@ -324,11 +194,6 @@ export type InnerParamsMap = {
 	daybreak: DaybreakParams;
 	summit: SummitParams;
 	skyline: SkylineParams;
-	terrain: TerrainParams;
-	waterline: WaterlineParams;
-	weather: WeatherParams;
-	wildlife: WildlifeParams;
-	celestial: CelestialParams;
 };
 
 /** The union of every inside style's params (what composer state holds). */
@@ -337,13 +202,13 @@ export type AnyInnerParams = InnerParamsMap[InnerId];
 /**
  * How the topic body sits inside an inner frame. `plate` keeps the frosted
  * voice surface (translucent bg + left accent border — the production look, and
- * fine for frames that sit straight on the stage). `light` / `dark` render the
+ * fine for frames that sit straight on the landscape). `light` / `dark` render the
  * body BARE — transparent, no border, text tuned for a light or dark frame — so
  * the prose blends into the frame's own surface instead of floating in a card.
  */
 export type InnerSurface = "plate" | "light" | "dark";
 
-/* ── Layer 3: LINK (between-topic connector) ────────────────────────────── */
+/* ── LINK (between-topic connector) ─────────────────────────────────────── */
 
 export type LinkId =
 	| "none"
@@ -365,7 +230,7 @@ export type LinkBase = {
 	weight: number;
 	/** Rail vertical extent in vh, 20..150 (drives `--rail-h`). */
 	height: number;
-	/** End-fade 0..100; melts the ends into the stages (drives `--rail-fade`). */
+	/** End-fade 0..100; melts the ends into the surrounding landscape (drives `--rail-fade`). */
 	blend: number;
 	/** Animate the draw-in on scroll. */
 	animate: boolean;
@@ -425,10 +290,11 @@ export type AnyLinkParams = LinkParamsMap[LinkId];
 /* ── Render contracts ───────────────────────────────────────────────────── */
 
 /**
- * Layer-2 contract: a frame is a CONTAINER — it renders its themed heading +
+ * Inner contract: a frame is a CONTAINER — it renders its themed heading +
  * decoration and the topic's REAL body (`children`, the shared `TopicBody`)
- * inside it. No section framing, no own vertical padding — the Layer-1 stage
- * owns height/backdrop/landscape and renders this inside it.
+ * inside it. No section framing, no own vertical padding — TopicComposition's
+ * neutral centered `<article id>` wrapper owns height/anchor and renders this
+ * inside it.
  */
 export type InnerRenderProps<Id extends InnerId = InnerId> = {
 	topic: Topic;
@@ -442,24 +308,7 @@ export type InnerRenderProps<Id extends InnerId = InnerId> = {
 	children: React.ReactNode;
 };
 
-/**
- * Layer-1 contract: render the cinematic stage for one topic and render the
- * Layer-2 cluster (passed as children) inside it. Stages only read
- * `topic.id` + `topic.heading` (never teaser/triggers), so promoted topics
- * with their own custom content can also ride a stage.
- */
-export type SectionRenderProps<Id extends SectionId = SectionId> = {
-	topic: Topic;
-	index: number;
-	isNight: boolean;
-	params: SectionParamsMap[Id];
-	/** Resolved accent for this topic (or null when accent source is "none"). */
-	accent: string | null;
-	/** The Layer-2 cluster, already constructed by the dispatcher. */
-	children: React.ReactNode;
-};
-
-/** Layer-3 contract: a connector rendered at the seam between two topics. */
+/** Link contract: a connector rendered at the seam between two topics. */
 export type LinkRenderProps<Id extends LinkId = LinkId> = {
 	/** Zero-based index of the topic ABOVE this seam (drives alternation). */
 	index: number;
@@ -470,18 +319,6 @@ export type LinkRenderProps<Id extends LinkId = LinkId> = {
 };
 
 /* ── Registry entry shapes ──────────────────────────────────────────────── */
-
-export type SectionDef<Id extends SectionId = SectionId> = {
-	id: Id;
-	label: string;
-	feel: string;
-	/** Base stage height in vh; the height param fine-tunes around this. */
-	baseHeight: number;
-	/** Inclusive clamp range for the height param, in vh. */
-	heightRange: [number, number];
-	defaults: SectionParamsMap[Id];
-	Component: React.ComponentType<SectionRenderProps<Id>>;
-};
 
 export type InnerDef<Id extends InnerId = InnerId> = {
 	id: Id;

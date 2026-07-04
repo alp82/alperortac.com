@@ -9,7 +9,7 @@ import { TopicArticle } from "./TopicArticle";
 /*
  * Interests band.
  *
- * Maps TOPICS → TopicArticle, with the Layer-3 connector rendered at each seam
+ * Maps TOPICS → TopicArticle, with the link connector rendered at each seam
  * BETWEEN consecutive topics (after every topic but the last) whenever the
  * composition is non-baseline and a connector is picked.
  */
@@ -27,7 +27,7 @@ export function CraftSection({
 	composer,
 }: CraftSectionProps) {
 	const showLinks = !composer.baseline && composer.link !== "none";
-	// Widening cast (same as Stage/Inside): the registry erases the id↔params
+	// Widening cast (same as Inside): the registry erases the id↔params
 	// link; setLink keeps link + linkParams in lockstep, so it's sound.
 	const LinkComponent = showLinks
 		? (LINKS[composer.link]

@@ -28,13 +28,9 @@ export function DesignModeHost({
 	const {
 		state,
 		setBaseline,
-		setStage,
-		setAllStages,
 		setInner,
 		setAllInners,
 		setLink,
-		patchStageParams,
-		patchAllStageParams,
 		patchInnerParams,
 		patchAllInnerParams,
 		patchLinkParams,
@@ -105,13 +101,9 @@ export function DesignModeHost({
 				<DesignPanel
 					state={state}
 					setBaseline={setBaseline}
-					setStage={setStage}
-					setAllStages={setAllStages}
 					setInner={setInner}
 					setAllInners={setAllInners}
 					setLink={setLink}
-					patchStageParams={patchStageParams}
-					patchAllStageParams={patchAllStageParams}
 					patchInnerParams={patchInnerParams}
 					patchAllInnerParams={patchAllInnerParams}
 					patchLinkParams={patchLinkParams}

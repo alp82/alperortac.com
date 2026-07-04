@@ -1,70 +1,43 @@
 import { useState } from "react";
 import { TOPICS, type TopicId } from "../../data/topics";
 import { Segmented, Slider, Swatches, Toggle } from "./composer/DesignControls";
-import {
-	INNER_ORDER,
-	INNERS,
-	LINK_ORDER,
-	LINKS,
-	SECTION_ORDER,
-	SECTIONS,
-} from "./composer/index";
-import { DecoControls } from "./composer/inner/_deco";
-import { CELESTIAL_SPEC } from "./composer/inner/celestial";
+import { INNER_ORDER, INNERS, LINK_ORDER, LINKS } from "./composer/index";
 import {
 	SKYLINE_COLOR_OPTS,
 	SKYLINE_HAS_VARIETY,
 } from "./composer/inner/skyline";
-import { TERRAIN_SPEC } from "./composer/inner/terrain";
-import { WATERLINE_SPEC } from "./composer/inner/waterline";
-import { WEATHER_SPEC } from "./composer/inner/weather";
-import { WILDLIFE_SPEC } from "./composer/inner/wildlife";
 import type {
 	AnyInnerParams,
 	AnyLinkParams,
-	AnySectionParams,
 	InnerId,
 	InnerParamsMap,
-	IslandParams,
 	LinkBase,
 	LinkId,
 	LinkParamsMap,
-	MarqueeParams,
-	MonolithParams,
-	ParallaxParams,
-	SectionId,
-	SplitParams,
-	ZoomParams,
 } from "./composer/types";
 import {
 	buildComposerSpec,
 	type ComposerState,
 	DEFAULT_INNER,
-	DEFAULT_SECTION,
 } from "./composer/useComposerControls";
 
 /*
  * Composer panel — shipped to prod inside the `panel-dialog-modal` <dialog>.
  *
  * Renders so the live landscape stays visible. A top "Shipped baseline" toggle
- * bypasses the composer to A/B against the baseline. Below it, three tabbed
- * layers — a GLOBAL Stage and Connector (one pick each) plus a per-topic
- * Cluster (chosen per topic via the topic selector) — each exposing the
- * selected item's focused params. Spec readout + Copy spec + Reset at the
- * bottom.
+ * bypasses the composer to A/B against the baseline. Below it, two tabbed
+ * layers — a per-topic Inside style (chosen per topic via the topic selector)
+ * plus a GLOBAL Connector (one pick) — each exposing the selected item's
+ * focused params. Spec readout + Copy spec + Reset at the bottom.
  */
 
 export const DESIGN_PANEL_TITLE_ID = "design-panel-title";
 
 type Handlers = {
 	setBaseline: (v: boolean) => void;
-	setStage: (topicId: TopicId, id: SectionId) => void;
-	setAllStages: (id: SectionId) => void;
 	setInner: (topicId: TopicId, id: InnerId) => void;
 	setAllInners: (id: InnerId) => void;
 	setLink: (id: LinkId) => void;
-	patchStageParams: (topicId: TopicId, p: Partial<AnySectionParams>) => void;
-	patchAllStageParams: (p: Partial<AnySectionParams>) => void;
 	patchInnerParams: (topicId: TopicId, p: Partial<AnyInnerParams>) => void;
 	patchAllInnerParams: (p: Partial<AnyInnerParams>) => void;
 	patchLinkParams: (p: Partial<AnyLinkParams>) => void;
@@ -142,231 +115,6 @@ function LayerRow({
 			)}
 		</div>
 	);
-}
-
-type SectionPatch = (p: Partial<AnySectionParams>) => void;
-
-/* Each stage's signature knobs. `params` is the union; the selected row's id
- * always matches the live params (the setters keep them in lockstep), so the
- * per-case cast is sound. */
-function StageSpecificControls({
-	id,
-	params,
-	patch,
-}: {
-	id: SectionId;
-	params: AnySectionParams;
-	patch: SectionPatch;
-}) {
-	switch (id) {
-		case "centered-monolith": {
-			const p = params as MonolithParams;
-			return (
-				<>
-					<Slider
-						label="Vignette"
-						value={p.vignette}
-						min={0}
-						max={80}
-						onChange={(vignette) => patch({ vignette })}
-					/>
-					<Slider
-						label="Edge glow"
-						value={p.edgeGlow}
-						min={0}
-						max={100}
-						onChange={(edgeGlow) => patch({ edgeGlow })}
-					/>
-					<Segmented
-						label="Title scale"
-						value={p.titleScale}
-						options={[
-							{ value: "modest", label: "Modest" },
-							{ value: "bold", label: "Bold" },
-							{ value: "towering", label: "Towering" },
-						]}
-						onChange={(titleScale) => patch({ titleScale })}
-					/>
-					<Toggle
-						label="Index tag"
-						checked={p.indexTag}
-						onChange={(indexTag) => patch({ indexTag })}
-					/>
-				</>
-			);
-		}
-		case "split-stage": {
-			const p = params as SplitParams;
-			return (
-				<>
-					<Slider
-						label="Split ratio"
-						value={p.ratio}
-						min={50}
-						max={78}
-						unit="%"
-						onChange={(ratio) => patch({ ratio })}
-					/>
-					<Segmented
-						label="Content side"
-						value={p.side}
-						options={[
-							{ value: "left", label: "Left" },
-							{ value: "right", label: "Right" },
-						]}
-						onChange={(side) => patch({ side })}
-					/>
-					<Slider
-						label="Flourish"
-						value={p.flourish}
-						min={0}
-						max={40}
-						onChange={(flourish) => patch({ flourish })}
-					/>
-					<Toggle
-						label="Accent spine"
-						checked={p.spine}
-						onChange={(spine) => patch({ spine })}
-					/>
-				</>
-			);
-		}
-		case "parallax-depth": {
-			const p = params as ParallaxParams;
-			// Backdrop shape (flourish) + layers (3) are locked — knobs removed.
-			return (
-				<Slider
-					label="Drift depth"
-					value={p.depth}
-					min={0}
-					max={100}
-					onChange={(depth) => patch({ depth })}
-				/>
-			);
-		}
-		case "marquee-scroll": {
-			const p = params as MarqueeParams;
-			return (
-				<>
-					<Segmented
-						label="Strips"
-						value={String(p.strips)}
-						options={[
-							{ value: "1", label: "1" },
-							{ value: "2", label: "2" },
-							{ value: "3", label: "3" },
-						]}
-						onChange={(v) => patch({ strips: Number(v) as 1 | 2 | 3 })}
-					/>
-					<Slider
-						label="Drift speed"
-						value={p.speed}
-						min={0}
-						max={100}
-						onChange={(speed) => patch({ speed })}
-					/>
-					<Segmented
-						label="Text style"
-						value={p.textStyle}
-						options={[
-							{ value: "filled", label: "Filled" },
-							{ value: "outline", label: "Outline" },
-							{ value: "accent", label: "Accent" },
-						]}
-						onChange={(textStyle) => patch({ textStyle })}
-					/>
-					<Toggle
-						label="Mirror directions"
-						checked={p.mirrored}
-						onChange={(mirrored) => patch({ mirrored })}
-					/>
-				</>
-			);
-		}
-		case "floating-island": {
-			const p = params as IslandParams;
-			return (
-				<>
-					<Slider
-						label="Float height"
-						value={p.floatHeight}
-						min={0}
-						max={100}
-						onChange={(floatHeight) => patch({ floatHeight })}
-					/>
-					<Slider
-						label="Bob"
-						value={p.bob}
-						min={0}
-						max={100}
-						onChange={(bob) => patch({ bob })}
-					/>
-					<Segmented
-						label="Corners"
-						value={p.corners}
-						options={[
-							{ value: "sharp", label: "Sharp" },
-							{ value: "soft", label: "Soft" },
-							{ value: "pill", label: "Pill" },
-						]}
-						onChange={(corners) => patch({ corners })}
-					/>
-					<Slider
-						label="Slab tint"
-						value={p.tint}
-						min={0}
-						max={100}
-						onChange={(tint) => patch({ tint })}
-					/>
-				</>
-			);
-		}
-		default: {
-			const p = params as ZoomParams;
-			return (
-				<>
-					<Slider
-						label="Enter zoom"
-						value={p.enterZoom}
-						min={0}
-						max={100}
-						onChange={(enterZoom) => patch({ enterZoom })}
-					/>
-					<Slider
-						label="Ken Burns speed"
-						value={p.speed}
-						min={0}
-						max={100}
-						onChange={(speed) => patch({ speed })}
-					/>
-					<Segmented
-						label="Drift"
-						value={p.drift}
-						options={[
-							{ value: "in", label: "In" },
-							{ value: "up-left", label: "Up-L" },
-							{ value: "up-right", label: "Up-R" },
-							{ value: "down", label: "Down" },
-						]}
-						onChange={(drift) => patch({ drift })}
-					/>
-				</>
-			);
-		}
-	}
-}
-
-function SectionParamsBlock({
-	id,
-	params,
-	patch,
-}: {
-	id: SectionId;
-	params: AnySectionParams;
-	patch: SectionPatch;
-}) {
-	// Accent (none) + stage height (90vh) are locked for both stages — knobs removed.
-	return <StageSpecificControls id={id} params={params} patch={patch} />;
 }
 
 type InnerPatch = (p: Partial<AnyInnerParams>) => void;
@@ -886,25 +634,56 @@ function InsideSpecificControls({
 				</>
 			);
 		}
-		case "terrain": {
-			const p = params as InnerParamsMap["terrain"];
-			return <DecoControls spec={TERRAIN_SPEC} params={p} patch={patch} />;
+		case "parallax-depth": {
+			const p = params as InnerParamsMap["parallax-depth"];
+			// Backdrop shape (flourish) + layers (3) are locked — knobs removed.
+			return (
+				<Slider
+					label="Drift depth"
+					value={p.depth}
+					min={0}
+					max={100}
+					onChange={(depth) => patch({ depth })}
+				/>
+			);
 		}
-		case "waterline": {
-			const p = params as InnerParamsMap["waterline"];
-			return <DecoControls spec={WATERLINE_SPEC} params={p} patch={patch} />;
-		}
-		case "weather": {
-			const p = params as InnerParamsMap["weather"];
-			return <DecoControls spec={WEATHER_SPEC} params={p} patch={patch} />;
-		}
-		case "wildlife": {
-			const p = params as InnerParamsMap["wildlife"];
-			return <DecoControls spec={WILDLIFE_SPEC} params={p} patch={patch} />;
-		}
-		case "celestial": {
-			const p = params as InnerParamsMap["celestial"];
-			return <DecoControls spec={CELESTIAL_SPEC} params={p} patch={patch} />;
+		case "floating-island": {
+			const p = params as InnerParamsMap["floating-island"];
+			return (
+				<>
+					<Slider
+						label="Float height"
+						value={p.floatHeight}
+						min={0}
+						max={100}
+						onChange={(floatHeight) => patch({ floatHeight })}
+					/>
+					<Slider
+						label="Bob"
+						value={p.bob}
+						min={0}
+						max={100}
+						onChange={(bob) => patch({ bob })}
+					/>
+					<Segmented
+						label="Corners"
+						value={p.corners}
+						options={[
+							{ value: "sharp", label: "Sharp" },
+							{ value: "soft", label: "Soft" },
+							{ value: "pill", label: "Pill" },
+						]}
+						onChange={(corners) => patch({ corners })}
+					/>
+					<Slider
+						label="Slab tint"
+						value={p.tint}
+						min={0}
+						max={100}
+						onChange={(tint) => patch({ tint })}
+					/>
+				</>
+			);
 		}
 		default:
 			return null;
@@ -1125,7 +904,7 @@ function LinkParamsBlock({
 				onChange={(height) => patch({ height })}
 			/>
 			<Slider
-				label="Blend into stages"
+				label="Blend into landscape"
 				value={params.blend}
 				min={0}
 				max={100}
@@ -1141,10 +920,9 @@ function LinkParamsBlock({
 	);
 }
 
-type LayerTab = "section" | "inner" | "link";
+type LayerTab = "inner" | "link";
 
 const TABS: { id: LayerTab; label: string; feel: string }[] = [
-	{ id: "section", label: "Stage", feel: "Section style" },
 	{ id: "inner", label: "Inside", feel: "Per topic" },
 	{ id: "link", label: "Connector", feel: "Between topics" },
 ];
@@ -1196,12 +974,6 @@ function uniformInner(clusters: ComposerState["clusters"]): InnerId | null {
 	return first && ids.every((id) => id === first) ? first : null;
 }
 
-function uniformSection(stages: ComposerState["stages"]): SectionId | null {
-	const ids = TOPICS.map((t) => stages[t.id].id);
-	const first = ids[0];
-	return first && ids.every((id) => id === first) ? first : null;
-}
-
 const TOPIC_CHIP = (selected: boolean) =>
 	`px-2 py-1 text-[10px] font-black uppercase tracking-wider border-2 transition-colors ${
 		selected
@@ -1209,9 +981,9 @@ const TOPIC_CHIP = (selected: boolean) =>
 			: "bg-white text-slate-700 border-slate-300 hover:border-slate-900"
 	}`;
 
-/* Stage + Inside are both per-topic, so each tab edits ONE topic at a time — or
- * every topic at once via the All chip. A shared activeTopic keeps the tabs in
- * sync; `isCustom`/`subtitle` reflect the CURRENT layer's per-topic picks. */
+/* Inside is per-topic, so its tab edits ONE topic at a time — or every topic
+ * at once via the All chip. `isCustom`/`subtitle` reflect the per-topic
+ * picks. */
 function TopicSelector({
 	label,
 	active,
@@ -1268,13 +1040,9 @@ function TopicSelector({
 export function DesignPanel({
 	state,
 	setBaseline,
-	setStage,
-	setAllStages,
 	setInner,
 	setAllInners,
 	setLink,
-	patchStageParams,
-	patchAllStageParams,
 	patchInnerParams,
 	patchAllInnerParams,
 	patchLinkParams,
@@ -1282,29 +1050,17 @@ export function DesignPanel({
 	onClose,
 }: DesignPanelProps) {
 	const [copied, setCopied] = useState(false);
-	const [tab, setTab] = useState<LayerTab>("section");
-	// Shared across the Stage + Inside tabs (both per-topic). "all" edits every
-	// topic at once; a TopicId edits just that one.
+	const [tab, setTab] = useState<LayerTab>("inner");
+	// Scope for the per-topic Inside tab. "all" edits every topic at once; a
+	// TopicId edits just that one.
 	const [activeTopic, setActiveTopic] = useState<TopicId | "all">("all");
 	const spec = buildComposerSpec(state);
 	const disabled = state.baseline;
 
-	// Resolve each per-topic list's selection + write handlers for the active
+	// Resolve the per-topic list's selection + write handlers for the active
 	// scope. In "all" mode the list keys off a representative topic and writes to
 	// every topic; the highlighted row reflects the common pick (none if mixed).
 	const repTopic: TopicId = TOPICS[0]?.id ?? "career";
-	const activeStage =
-		activeTopic === "all" ? state.stages[repTopic] : state.stages[activeTopic];
-	const selectedSection =
-		activeTopic === "all" ? uniformSection(state.stages) : activeStage.id;
-	const pickSection = (id: SectionId) => {
-		if (activeTopic === "all") setAllStages(id);
-		else setStage(activeTopic, id);
-	};
-	const patchSection = (p: Partial<AnySectionParams>) => {
-		if (activeTopic === "all") patchAllStageParams(p);
-		else patchStageParams(activeTopic, p);
-	};
 	const activeCluster =
 		activeTopic === "all"
 			? state.clusters[repTopic]
@@ -1349,9 +1105,9 @@ export function DesignPanel({
 					Composer
 				</h2>
 				<p className="text-xs opacity-70 mb-4 font-sans leading-snug">
-					A global stage × a per-topic inside style × a global connector. Tune
-					each layer's params, then scroll the page to judge it against the live
-					landscape, day → night.
+					A per-topic inside style × a global connector. Tune each layer's
+					params, then scroll the page to judge it against the live landscape,
+					day → night.
 				</p>
 
 				{/* Shipped baseline bypass */}
@@ -1370,35 +1126,6 @@ export function DesignPanel({
 					aria-hidden={disabled}
 				>
 					<TabBar active={tab} onSelect={setTab} />
-
-					{tab === "section" && (
-						<div className="flex flex-col gap-3">
-							<TopicSelector
-								label="Editing stage for"
-								active={activeTopic}
-								isCustom={(t) => state.stages[t].id !== DEFAULT_SECTION}
-								subtitle={(t) => SECTIONS[state.stages[t].id].label}
-								onSelect={setActiveTopic}
-							/>
-							<div className="flex flex-col gap-2">
-								{SECTION_ORDER.map((id) => (
-									<LayerRow
-										key={id}
-										label={SECTIONS[id].label}
-										feel={SECTIONS[id].feel}
-										selected={id === selectedSection}
-										onSelect={() => pickSection(id)}
-									>
-										<SectionParamsBlock
-											id={id}
-											params={activeStage.params}
-											patch={patchSection}
-										/>
-									</LayerRow>
-								))}
-							</div>
-						</div>
-					)}
 
 					{tab === "inner" && (
 						<div className="flex flex-col gap-3">

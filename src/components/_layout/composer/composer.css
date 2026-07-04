@@ -1,10 +1,9 @@
 /* ════════════════════════════════════════════════════════════════════
-   3-LAYER COMPOSER CSS
+   2-LAYER COMPOSER CSS
    --------------------------------------------------------------------
-   Presentation CSS for the composer's section (L1) / inner (L2) / link
-   (L3) layers. Imported as a stylesheet side-effect by the composer host;
-   Vite emits it into the SSR `_layout` stylesheet so the composed look is
-   styled at first paint.
+   Presentation CSS for the composer's inner / link layers. Imported as a
+   stylesheet side-effect by the composer host; Vite emits it into the SSR
+   `_layout` stylesheet so the composed look is styled at first paint.
 
    Ships two kinds of rules:
      • Global design tokens — `:root { --paper; --ink }` — available
@@ -21,26 +20,6 @@
 :root {
 	--paper: #faf7f1;
 	--ink: #0f172a;
-}
-
-/* ── shared stage shell ─────────────────────────────────────────────── */
-.cmp-stage {
-	position: relative;
-	overflow: hidden;
-}
-
-/* radial scrim used by centered-monolith */
-.cmp-scrim-radial::before {
-	content: "";
-	position: absolute;
-	inset: 0;
-	background: radial-gradient(
-		ellipse at center,
-		rgba(0, 0, 0, calc(var(--cmp-scrim, 0.4) + 0.15)) 0%,
-		rgba(0, 0, 0, calc(var(--cmp-scrim, 0.4) * 0.4)) 60%,
-		transparent 100%
-	);
-	pointer-events: none;
 }
 
 /* ── shared cluster CTA (minimal + any style that wants a clean button) ── */
@@ -62,25 +41,7 @@
 	outline-offset: 4px;
 }
 
-/* ── section: split-stage ───────────────────────────────────────────── */
-/* Single column on mobile (the open panel is hidden); the `ratio`/`side` params
-   drive the two-column split at md+ via --cmp-split-cols. */
-.cmp-split {
-	display: grid;
-	align-items: center;
-	grid-template-columns: 1fr;
-}
-@media (min-width: 768px) {
-	.cmp-split {
-		grid-template-columns: var(--cmp-split-cols, 1.35fr 1fr);
-	}
-}
-.cmp-split-panel {
-	position: relative;
-	z-index: 1;
-}
-
-/* ── section: parallax-depth ────────────────────────────────────────── */
+/* ── inner: parallax-depth ──────────────────────────────────────────── */
 .cmp-parallax-layer {
 	position: absolute;
 	inset: 0;
@@ -90,13 +51,13 @@
 /* reduced-motion: the parallax JS skips applying offsets, so the layers stay
    static without needing an !important override here. */
 
-/* ── Layer-3 VERTICAL connector (straddles the seam between two topics) ──
-   The seam slot takes ZERO normal-flow height so it never pushes the full-bleed
-   stages apart. Its tall child is absolutely positioned, horizontally centered
+/* ── link: VERTICAL connector (straddles the seam between two topics) ──
+   The seam slot takes ZERO normal-flow height so it never pushes the
+   topics apart. Its tall child is absolutely positioned, horizontally centered
    on the page and vertically centered ON the seam, so it reaches UP into the
-   bottom of the stage above and DOWN into the top of the stage below — a
+   bottom of the topic above and DOWN into the top of the topic below — a
    continuous thread descending the journey. overflow:visible lets it bleed past
-   the zero-height slot; z-index sits ABOVE stage backdrops/scrims but the rail
+   the zero-height slot; z-index sits ABOVE the inner clusters' backdrops but the rail
    is pointer-events:none so it never blocks content clusters or their clicks. */
 .cmp-seam {
 	position: relative;
@@ -116,7 +77,7 @@
 	/* height driven by the `height` link param (--rail-h); fallback = old extent */
 	height: var(--rail-h, clamp(280px, 45vh, 520px));
 	pointer-events: none;
-	/* soft-fade both ends so the connector melts into the stages, no hard stop.
+	/* soft-fade both ends so the connector melts into the landscape, no hard stop.
 	   Fade length driven by the `blend` link param (--rail-fade); fallback ≈ old. */
 	-webkit-mask: linear-gradient(
 		to bottom,
@@ -549,31 +510,7 @@
 	text-shadow: 2px 2px 0 #fde68a;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   ADDED SECTION STAGES (Layer 1) — distinct full-bleed stagings.
-   ════════════════════════════════════════════════════════════════════ */
-
-/* ── marquee-scroll ── giant drifting heading strips ── */
-.cmp-marquee-row {
-	position: absolute;
-	left: 0;
-	right: 0;
-	overflow: hidden;
-	white-space: nowrap;
-	pointer-events: none;
-	z-index: 1;
-}
-.cmp-marquee-text {
-	display: inline-block;
-	font-weight: 900;
-	text-transform: uppercase;
-	font-size: clamp(3rem, 14vw, 11rem);
-	letter-spacing: -0.04em;
-	line-height: 0.9;
-	will-change: transform;
-}
-
-/* ── floating-island ── slab over the landscape ── */
+/* ── inner: floating-island ── slab over the landscape ── */
 .cmp-island {
 	background: rgba(
 		15,
@@ -582,7 +519,7 @@
 		calc(0.5 + var(--cmp-island-surface, 0.35) * 0.5)
 	);
 	border: 1px solid rgba(255, 255, 255, 0.12);
-	/* radius (corners param) + shadow (floatHeight param) come from the stage */
+	/* radius (corners param) + shadow (floatHeight param) come from the inner */
 	border-radius: var(--cmp-island-radius, 18px);
 	box-shadow:
 		var(--cmp-island-shadow, 0 40px 80px -30px rgba(0, 0, 0, 0.85)),
@@ -590,29 +527,6 @@
 	backdrop-filter: blur(3px);
 	-webkit-backdrop-filter: blur(3px);
 	will-change: transform;
-}
-
-/* ── zoom-focus ── ken-burns backdrop ── */
-.cmp-zoom-bg {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	pointer-events: none;
-	z-index: 1;
-	/* duration (speed param) + pan target (drift param) come from the stage */
-	animation: cmp-kenburns var(--cmp-kenburns-dur, 18s) ease-in-out infinite
-		alternate;
-	will-change: transform;
-}
-@keyframes cmp-kenburns {
-	from {
-		transform: scale(1) translate(0, 0);
-	}
-	to {
-		transform: scale(1.18) translate(var(--cmp-kenburns-to, 2% -2%));
-	}
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -631,12 +545,9 @@
 	.terminal-cursor {
 		animation: none;
 	}
-	/* added stages: neutralize entrance/idle motion */
+	/* ported inner (floating-island): neutralize entrance/idle motion */
 	.cmp-island {
 		transition: none;
-	}
-	.cmp-zoom-bg {
-		animation: none;
 	}
 }
 

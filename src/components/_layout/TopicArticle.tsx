@@ -13,8 +13,9 @@ import type { ComposerState } from "./composer/useComposerControls";
  *      topics, the dedicated component inside the frosted plate for promoted
  *      ones).
  *
- *   2. Composed look (the default) → full TopicComposition (Section + Inner from
- *      the registries), which restyles each topic's stage + cluster.
+ *   2. Composed look (the default) → full TopicComposition (Inner from the
+ *      registry inside a neutral centered wrapper, plus the Link seam between
+ *      topics), which restyles each topic's cluster.
  */
 
 type TopicArticleProps = {

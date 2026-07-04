@@ -1,19 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import type { TopicId } from "../../../../data/topics";
+import type { InnerRenderProps, ParallaxDepthParams } from "../types";
 import { flourishSrc } from "../types";
-import type { ParallaxParams, SectionRenderProps } from "../types";
+import { AccentUnderlineHeading, FrameShell } from "./FrameShell";
+import { DENSITY_GAP, DENSITY_HEADING, DENSITY_MAXW } from "./shared";
+import { useRelativeScrollOffset } from "./shared-hooks";
 
 /*
- * Section: parallax-depth
+ * Inner: parallax-depth — "layered depth drift." (ported from the retired
+ * Layer-1 stage of the same name)
  *
- * Layered foreground/background: a backdrop shape drifts slower than the cluster
- * as the stage scrolls through the viewport, giving real depth over the pixel
- * world. Tallest stage so the parallax has room to read. ~110vh.
- *
- * Knobs — `shape` swaps the drifting backdrop (the topic flourish or a drawn
- * blob / rings / grid / sediment strata); `depth` scales the layer separation
- * (0 = flat, 50 = today); `layers` adds a mid scrim plane for extra depth.
- * Reduced-motion users get a static frame (the scroll listener never attaches).
+ * A backdrop shape drifts slower than the cluster as it scrolls through the
+ * viewport, giving real depth over the pixel world, with the Minimal style's
+ * big uppercase heading + accent underline as the fixed chrome. Knob — `depth`
+ * scales the layer separation (0 = flat, 50 = today); shape (flourish) and
+ * layers (3) ship locked in the panel. Reduced-motion users get a static frame
+ * (the scroll listener never attaches).
  */
 
 function ShapeBackdrop({
@@ -21,11 +23,11 @@ function ShapeBackdrop({
 	topicId,
 	accent,
 }: {
-	shape: ParallaxParams["shape"];
+	shape: ParallaxDepthParams["shape"];
 	topicId: TopicId;
-	accent: string | null;
+	accent: string;
 }) {
-	const tint = accent ?? "rgba(255,255,255,0.5)";
+	const tint = accent;
 	switch (shape) {
 		case "blob":
 			return (
@@ -81,55 +83,28 @@ function ShapeBackdrop({
 	}
 }
 
-export function ParallaxDepthStage({
+export function ParallaxDepthCluster({
 	topic,
 	params,
 	accent,
 	children,
-}: SectionRenderProps<"parallax-depth">) {
-	const ref = useRef<HTMLElement>(null);
-	const [offset, setOffset] = useState(0);
-
-	useEffect(() => {
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-		const el = ref.current;
-		if (!el) return;
-		let raf = 0;
-		const onScroll = () => {
-			if (raf) return;
-			raf = requestAnimationFrame(() => {
-				raf = 0;
-				const rect = el.getBoundingClientRect();
-				const center = rect.top + rect.height / 2;
-				const rel = (center - window.innerHeight / 2) / window.innerHeight;
-				setOffset(rel);
-			});
-		};
-		onScroll();
-		window.addEventListener("scroll", onScroll, { passive: true });
-		window.addEventListener("resize", onScroll);
-		return () => {
-			window.removeEventListener("scroll", onScroll);
-			window.removeEventListener("resize", onScroll);
-			if (raf) cancelAnimationFrame(raf);
-		};
-	}, []);
+}: InnerRenderProps<"parallax-depth">) {
+	const ref = useRef<HTMLDivElement>(null);
+	const offset = useRelativeScrollOffset(ref);
 
 	// depth 50 reproduces the original separation; 0 = flat, 100 = doubled.
 	const k = params.depth / 50;
 
+	const heading = (
+		<AccentUnderlineHeading
+			heading={topic.heading}
+			accent={accent}
+			headingClassName={DENSITY_HEADING[params.density]}
+		/>
+	);
+
 	return (
-		<article
-			ref={ref}
-			id={topic.id}
-			className="cmp-stage relative flex flex-col items-center justify-center px-6"
-			style={
-				{
-					minHeight: `${params.height}vh`,
-					"--cmp-accent": accent ?? "transparent",
-				} as React.CSSProperties
-			}
-		>
+		<div ref={ref} className="relative w-full flex flex-col items-center">
 			{/* far background shape — drifts slowest */}
 			<div
 				className="cmp-parallax-layer flex items-center justify-center"
@@ -159,8 +134,14 @@ export function ParallaxDepthStage({
 				className="relative z-10 w-full flex flex-col items-center"
 				style={{ transform: `translate3d(0, ${offset * 36 * k}px, 0)` }}
 			>
-				{children}
+				<FrameShell
+					className={`flex flex-col items-center text-center ${DENSITY_GAP[params.density]}`}
+					heading={heading}
+					contentClassName={`w-full ${DENSITY_MAXW[params.density]}`}
+				>
+					{children}
+				</FrameShell>
 			</div>
-		</article>
+		</div>
 	);
 }
