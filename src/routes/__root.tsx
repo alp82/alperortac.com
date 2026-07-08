@@ -1,19 +1,18 @@
+import { PostHogProvider } from "@posthog/react";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { PostHogProvider } from "@posthog/react";
 
 import { SOCIAL_LINKS } from "../components/_layout/social/socialLinks";
 import { CONTACT_EMAIL } from "../data/footer";
-import { HERO_SUMMARY } from "../data/hero";
+import { HERO_SUMMARY, OG_HEADLINE, OG_TAGLINE } from "../data/hero";
 import appCss from "../styles.css?url";
 
 const SITE_URL = "https://alperortac.com";
 const SITE_NAME = "Alper Ortac";
 const SITE_DESCRIPTION = HERO_SUMMARY.join(" ");
-const OG_IMAGE_URL = `${SITE_URL}/og/landing.webp`;
-const OG_IMAGE_ALT =
-	"Hey, I'm Alper. Web enthusiast and agentic coach with a side-project habit and a camera.";
+const OG_IMAGE_URL = `${SITE_URL}/og/landing.png`;
+const OG_IMAGE_ALT = `${OG_HEADLINE} ${OG_TAGLINE}`;
 const TWITTER_HANDLE = "@alperortac";
 
 const JSON_LD = JSON.stringify({
@@ -66,7 +65,7 @@ export const Route = createRootRoute({
 			{ property: "og:description", content: SITE_DESCRIPTION },
 			{ property: "og:url", content: pageUrl },
 			{ property: "og:image", content: OG_IMAGE_URL },
-			{ property: "og:image:type", content: "image/webp" },
+			{ property: "og:image:type", content: "image/png" },
 			{ property: "og:image:width", content: "1200" },
 			{ property: "og:image:height", content: "630" },
 			{ property: "og:image:alt", content: OG_IMAGE_ALT },

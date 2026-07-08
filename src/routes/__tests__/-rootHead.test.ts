@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SOCIAL_LINKS } from "../../components/_layout/social/socialLinks";
 import { CONTACT_EMAIL } from "../../data/footer";
-import { HERO_SUMMARY } from "../../data/hero";
+import { HERO_SUMMARY, OG_HEADLINE, OG_TAGLINE } from "../../data/hero";
 import { Route } from "../__root";
 
 // ---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ describe("root head contract", () => {
 		);
 	});
 
-	it("emits the full Open Graph set for landing.webp", () => {
+	it("emits the full Open Graph set for landing.png", () => {
 		const { meta } = getHead("/");
 		expect(metaBy(meta, "property", "og:type")?.content).toBe("website");
 		expect(metaBy(meta, "property", "og:site_name")?.content).toBeTruthy();
@@ -68,20 +68,15 @@ describe("root head contract", () => {
 			HERO_SUMMARY.join(" "),
 		);
 		const image = metaBy(meta, "property", "og:image")?.content;
-		expect(image).toBe("https://alperortac.com/og/landing.webp");
+		expect(image).toBe("https://alperortac.com/og/landing.png");
 		expect(image?.startsWith("https://")).toBe(true);
 		expect(metaBy(meta, "property", "og:image:type")?.content).toBe(
-			"image/webp",
+			"image/png",
 		);
-		expect(metaBy(meta, "property", "og:image:width")?.content).toMatch(
-			/^\d+$/,
-		);
-		expect(metaBy(meta, "property", "og:image:height")?.content).toMatch(
-			/^\d+$/,
-		);
+		expect(metaBy(meta, "property", "og:image:width")?.content).toBe("1200");
+		expect(metaBy(meta, "property", "og:image:height")?.content).toBe("630");
 		const alt = metaBy(meta, "property", "og:image:alt")?.content;
-		expect(typeof alt).toBe("string");
-		expect(alt?.trim().length).toBeGreaterThan(0);
+		expect(alt).toBe(`${OG_HEADLINE} ${OG_TAGLINE}`);
 	});
 
 	it("emits a summary_large_image Twitter card mirroring the og image", () => {
@@ -98,7 +93,9 @@ describe("root head contract", () => {
 		expect(metaBy(meta, "name", "twitter:image")?.content).toBe(
 			metaBy(meta, "property", "og:image")?.content,
 		);
-		expect(metaBy(meta, "name", "twitter:image:alt")?.content).toBeTruthy();
+		expect(metaBy(meta, "name", "twitter:image:alt")?.content).toBe(
+			`${OG_HEADLINE} ${OG_TAGLINE}`,
+		);
 	});
 
 	it("canonical link and og:url track the current pathname", () => {

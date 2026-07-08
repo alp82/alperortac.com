@@ -7,8 +7,9 @@ import { FollowMeRow } from "./FollowMeRow";
 import { FooterContact } from "./FooterContact";
 import { FooterHeadline } from "./FooterHeadline";
 
+const currentYear = new Date().getFullYear();
+
 export function FooterSection() {
-	const currentYear = new Date().getFullYear();
 
 	return (
 		<footer
@@ -45,15 +46,15 @@ export function FooterSection() {
 				<FollowMeRow />
 
 				<div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-current/15">
-					<div className="font-black uppercase tracking-tighter drop-shadow-sm">
-						© {currentYear} ALPER ORTAC
+					<div className="font-black uppercase tracking-wider drop-shadow-sm">
+						© {currentYear} - ALPER ORTAC
 					</div>
 					<a
 						href={`#${SECTION_IDS.start}`}
 						className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest drop-shadow-sm rounded-sm hover:opacity-70 transition-opacity focus-visible:ring-2 focus-visible:ring-current"
 					>
-						<Sun size={16} aria-hidden="true" />
-						To the top
+						<Sun size={16} className="text-yellow-300" aria-hidden="true" />
+						To the sky
 					</a>
 				</div>
 			</div>

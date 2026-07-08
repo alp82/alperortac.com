@@ -1,7 +1,7 @@
 export const FOOTER_ROLES: readonly string[] = ["Let's"];
 
 export const FOOTER_PHRASES: readonly string[] = [
-	"make something memorable.",
+	"make your site memorable.",
 	"explore ideas together.",
 	"optimize your agentic setup.",
 	"connect.",

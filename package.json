@@ -11,6 +11,7 @@
     "build": "bun --bun vite build",
     "serve": "bun --bun vite preview",
     "typecheck": "tsc --noEmit",
+    "generate:og": "bun scripts/generate-og.tsx",
     "format": "biome format --write",
     "lint": "biome lint",
     "check": "biome ci"
@@ -34,6 +35,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
+    "@fontsource/bodoni-moda": "^5.2.7",
+    "@fontsource/inter": "^5.2.8",
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "latest",
     "@testing-library/dom": "^10.4.1",
@@ -43,6 +47,7 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",
     "jsdom": "^28.1.0",
+    "satori": "^0.26.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
     "vitest": "^4.1.5"
