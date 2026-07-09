@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	decodeXmlEntities,
+	fetchFeedXml,
 	parseShortsFeed,
 	renderShortsModule,
 	type ShortEntry,
@@ -209,6 +210,47 @@ describe("parseShortsFeed — malformed entries are skipped, not thrown", () => 
 	it("returns [] for a well-formed feed with zero entries (no throw)", () => {
 		expect(() => parseShortsFeed(ZERO_ENTRY_FEED)).not.toThrow();
 		expect(parseShortsFeed(ZERO_ENTRY_FEED)).toEqual([]);
+	});
+});
+
+describe("fetchFeedXml — retry with linear backoff, fail loud after attempts", () => {
+	const URL = "https://example.test/feed.xml";
+
+	it("returns the body after two non-ok responses followed by a success", async () => {
+		const fetchImpl = vi
+			.fn()
+			.mockResolvedValueOnce({ ok: false, status: 500, statusText: "ISE" })
+			.mockResolvedValueOnce({ ok: false, status: 404, statusText: "NF" })
+			.mockResolvedValueOnce({ ok: true, text: async () => "<feed/>" });
+		const xml = await fetchFeedXml(fetchImpl as unknown as typeof fetch, URL, {
+			delayMs: 1,
+		});
+		expect(xml).toBe("<feed/>");
+		expect(fetchImpl).toHaveBeenCalledTimes(3);
+	});
+
+	it("throws after exhausting all attempts, calling fetchImpl exactly attempts times", async () => {
+		const fetchImpl = vi
+			.fn()
+			.mockResolvedValue({ ok: false, status: 500, statusText: "ISE" });
+		await expect(
+			fetchFeedXml(fetchImpl as unknown as typeof fetch, URL, {
+				attempts: 3,
+				delayMs: 1,
+			}),
+		).rejects.toThrow(/3 attempts/);
+		expect(fetchImpl).toHaveBeenCalledTimes(3);
+	});
+
+	it("retries on thrown errors too and surfaces the last failure message", async () => {
+		const fetchImpl = vi.fn().mockRejectedValue(new Error("socket hang up"));
+		await expect(
+			fetchFeedXml(fetchImpl as unknown as typeof fetch, URL, {
+				attempts: 2,
+				delayMs: 1,
+			}),
+		).rejects.toThrow(/socket hang up/);
+		expect(fetchImpl).toHaveBeenCalledTimes(2);
 	});
 });
 

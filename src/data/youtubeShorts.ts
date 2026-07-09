@@ -12,7 +12,7 @@ export const YOUTUBE_SHORTS: YoutubeShort[] = [
 	{
 		id: "YaoyTizlaE4",
 		title: "Is it worth it Part 1",
-		views: 241,
+		views: 243,
 		publishedAt: "2026-05-11T07:55:48+00:00",
 	},
 	{
@@ -24,7 +24,7 @@ export const YOUTUBE_SHORTS: YoutubeShort[] = [
 	{
 		id: "5mgQepVfcyc",
 		title: "Day 3 -  Best tools for your tech stack - Part 1",
-		views: 453,
+		views: 454,
 		publishedAt: "2026-05-06T21:10:50+00:00",
 	},
 	{

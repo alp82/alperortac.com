@@ -1,7 +1,11 @@
 import { writeFileSync } from "node:fs";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { parseShortsFeed, renderShortsModule } from "./shortsFeed";
+import {
+	fetchFeedXml,
+	parseShortsFeed,
+	renderShortsModule,
+} from "./shortsFeed";
 
 const FEED_URL =
 	"https://www.youtube.com/feeds/videos.xml?channel_id=UCNo1thPweKiBs9-gcpvrJhQ";
@@ -11,13 +15,7 @@ const OUT = fileURLToPath(
 );
 
 async function main() {
-	const res = await fetch(FEED_URL, { signal: AbortSignal.timeout(15_000) });
-	if (!res.ok) {
-		throw new Error(
-			`Shorts feed request failed: ${res.status} ${res.statusText}`,
-		);
-	}
-	const xml = await res.text();
+	const xml = await fetchFeedXml(fetch, FEED_URL);
 	const shorts = parseShortsFeed(xml);
 	if (shorts.length === 0) {
 		console.error(

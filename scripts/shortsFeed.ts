@@ -76,6 +76,37 @@ export function parseShortsFeed(xml: string): ShortEntry[] {
 	);
 }
 
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// The feed endpoint is flaky (transient 500s/404s between 200s), so retry with
+// linear backoff before failing loud. Network happens only through the
+// injected fetchImpl, keeping this testable without hitting the wire.
+export async function fetchFeedXml(
+	fetchImpl: typeof fetch,
+	url: string,
+	opts?: { attempts?: number; timeoutMs?: number; delayMs?: number },
+): Promise<string> {
+	const attempts = opts?.attempts ?? 5;
+	const timeoutMs = opts?.timeoutMs ?? 15_000;
+	const delayMs = opts?.delayMs ?? 800;
+	let lastFailure = "";
+	for (let attempt = 1; attempt <= attempts; attempt++) {
+		try {
+			const res = await fetchImpl(url, {
+				signal: AbortSignal.timeout(timeoutMs),
+			});
+			if (res.ok) return await res.text();
+			lastFailure = `HTTP ${res.status} ${res.statusText}`;
+		} catch (error) {
+			lastFailure = error instanceof Error ? error.message : String(error);
+		}
+		if (attempt < attempts) await delay(delayMs * attempt);
+	}
+	throw new Error(
+		`Shorts feed request failed after ${attempts} attempts: ${lastFailure}`,
+	);
+}
+
 // Every string field goes through JSON.stringify so quotes, backslashes and
 // unicode in titles always land as valid TypeScript string literals.
 export function renderShortsModule(shorts: ShortEntry[]): string {
