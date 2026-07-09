@@ -4,12 +4,29 @@ import { MINIMAP_BOUNDARIES, PANEL_SIDES, SECTION_IDS } from "../sections";
 import { TOPICS } from "../topics";
 
 describe("sections topology", () => {
-	it("MINIMAP_BOUNDARIES match SECTION_IDS for {find-me, craft, contact}", () => {
+	it("MINIMAP_BOUNDARIES match SECTION_IDS for {socials, craft, contact}", () => {
 		expect(MINIMAP_BOUNDARIES.map((b) => b.id)).toEqual([
 			SECTION_IDS.findMe,
 			SECTION_IDS.craft,
 			SECTION_IDS.contact,
 		]);
+	});
+
+	// Pin: the find-me section's id value is being renamed to "socials" (the
+	// anchor rename). RED until sections.ts's SECTION_IDS.findMe and
+	// MINIMAP_BOUNDARIES[0].id both switch to the new string.
+	it('SECTION_IDS.findMe and MINIMAP_BOUNDARIES[0].id are "socials"', () => {
+		expect(SECTION_IDS.findMe).toBe("socials");
+		expect(MINIMAP_BOUNDARIES[0].id).toBe("socials");
+	});
+
+	// Regression guard: the rename only touches the ID VALUE, not the JS key —
+	// callers keep writing SECTION_IDS.findMe. This passes already and must
+	// keep passing after the rename.
+	it('SECTION_IDS keeps the "findMe" key (only the value renames, not the key)', () => {
+		const keys = Object.keys(SECTION_IDS);
+		expect(keys).toContain("findMe");
+		expect(keys).not.toContain("socials");
 	});
 
 	it("PANEL_SIDES covers every TOPICS slug (drift guard)", () => {

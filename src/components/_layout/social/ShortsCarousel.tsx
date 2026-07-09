@@ -34,6 +34,7 @@ function ShortsSGlyph() {
 function EyeIcon() {
 	return (
 		<svg
+			className="w-[clamp(8px,5.73cqw,11px)] h-[clamp(8px,5.73cqw,11px)] shrink-0"
 			width="11"
 			height="11"
 			viewBox="0 0 24 24"
@@ -59,7 +60,7 @@ function ShortCard({ short }: { short: YoutubeShort }) {
 			aria-label={`${short.title} - watch on YouTube Shorts`}
 			draggable={false}
 		>
-			<div className="relative aspect-[9/16] overflow-hidden bg-[#111111] shrink-0">
+			<div className="short-card-inner relative aspect-[9/16] overflow-hidden bg-[#111111] shrink-0">
 				{src && (
 					<img
 						className="block w-full h-full object-cover"
@@ -72,10 +73,10 @@ function ShortCard({ short }: { short: YoutubeShort }) {
 						}
 					/>
 				)}
-				<div className="absolute top-0 left-0 right-0 z-[2] flex items-start gap-[7px] pt-2 pb-3.5 px-[9px] bg-[linear-gradient(to_bottom,rgba(0,0,0,0.78)_0%,rgba(0,0,0,0.42)_65%,rgba(0,0,0,0)_100%)]">
+				<div className="absolute top-0 left-0 right-0 z-[2] flex items-start gap-[min(3.65cqw,7px)] pt-[min(4.17cqw,8px)] pb-[min(7.29cqw,14px)] px-[min(4.69cqw,9px)] bg-[linear-gradient(to_bottom,rgba(0,0,0,0.78)_0%,rgba(0,0,0,0.42)_65%,rgba(0,0,0,0)_100%)]">
 					{!avatarFailed && (
 						<img
-							className="w-6 h-6 rounded-full border-[1.5px] border-white shrink-0 object-cover shadow-[0_1px_2px_rgba(0,0,0,0.5)] bg-[#666666]"
+							className="w-[min(12.5cqw,28px)] h-[min(12.5cqw,28px)] rounded-full border-[1.5px] border-white shrink-0 object-cover shadow-[0_1px_2px_rgba(0,0,0,0.5)] bg-[#666666]"
 							src={CHANNEL_AVATAR_SRC}
 							alt=""
 							loading="lazy"
@@ -84,18 +85,18 @@ function ShortCard({ short }: { short: YoutubeShort }) {
 						/>
 					)}
 					<div className="min-w-0">
-						<p className="text-[10.5px] font-extrabold leading-[1.24] text-white line-clamp-2 [text-shadow:0_1px_2px_rgba(0,0,0,0.7)]">
+						<p className="text-[clamp(8px,5.47cqw,10.5px)] font-extrabold leading-[1.24] text-white line-clamp-2 [text-shadow:0_1px_2px_rgba(0,0,0,0.7)]">
 							{short.title}
 						</p>
-						<p className="mt-0.5 text-[9px] font-semibold text-white whitespace-nowrap overflow-hidden text-ellipsis">
+						<p className="mt-0.5 text-[clamp(7.5px,4.69cqw,9px)] font-semibold text-white whitespace-nowrap overflow-hidden text-ellipsis">
 							{CHANNEL_NAME}
 						</p>
 					</div>
 				</div>
-				<span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[2] w-[54px] drop-shadow-[0_3px_8px_rgba(0,0,0,0.55)] transition-transform duration-[120ms] ease-out group-hover:scale-[1.06] motion-reduce:transform-none">
+				<span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[2] w-[min(28.125cqw,60px)] drop-shadow-[0_3px_8px_rgba(0,0,0,0.55)] transition-transform duration-[120ms] ease-out group-hover:scale-[1.06] motion-reduce:transform-none">
 					<ShortsSGlyph />
 				</span>
-				<div className="absolute left-0 right-0 bottom-0 z-[2] flex items-center gap-1 bg-black/[.58] px-[9px] py-1.5 text-[9.5px] font-extrabold text-white">
+				<div className="absolute left-0 right-0 bottom-0 z-[2] flex items-center gap-[min(2.08cqw,4px)] bg-black/[.58] px-[min(4.69cqw,9px)] py-[min(3.125cqw,6px)] text-[clamp(7.5px,4.95cqw,9.5px)] font-extrabold text-white">
 					<EyeIcon /> {viewsLabel(short.views)} views
 				</div>
 			</div>

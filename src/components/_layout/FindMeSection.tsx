@@ -81,11 +81,14 @@ export function FindMeSection() {
 			id={SECTION_IDS.findMe}
 			className="pt-4 pb-64 px-6 relative overflow-hidden text-slate-900"
 		>
-			{/* 632px = exactly 3 shorts in the rail: 3*196 card + 2*16 gap + 2*6 track padding */}
-			<div className="max-w-[632px] mx-auto relative z-10">
+			{/* Cards are fluid thirds of the rail (.short-card calc in styles.css),
+			    so ANY container width shows exactly 3 shorts. The box is max-w-3xl
+			    (768px) so the 4-chip Posts row fits on one line at desktop; wrapping
+			    is the accepted narrow-screen fallback. */}
+			<div className="max-w-3xl mx-auto relative z-10">
 				<div className="text-center mb-12">
 					<SectionTitle className="mb-4" accent={FIND_ME_ACCENT} night={night}>
-						Find Me
+						Socials
 					</SectionTitle>
 				</div>
 

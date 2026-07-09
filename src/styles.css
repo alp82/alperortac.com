@@ -684,15 +684,25 @@ body.panel-open nav {
 	outline-offset: 4px;
 }
 .shorts-track {
+	--shorts-gap: 16px;
 	display: flex;
 	align-items: flex-start;
-	gap: 16px;
+	gap: var(--shorts-gap);
 	padding: 6px;
 	will-change: transform;
 	transform: translate3d(0, 0, 0);
 }
 .short-card {
-	flex: 0 0 196px;
+	/* Fluid thirds: the percentage flex-basis resolves against the track's
+	   content box (padding excluded), reproducing 196px at the old 632px box
+	   exactly ((632 - 12 - 32) / 3 = 196) and keeping exactly 3 cards visible
+	   at any width. */
+	flex: 0 0 calc((100% - 2 * var(--shorts-gap)) / 3);
+	/* Query container for the overlay cqw sizing inside ShortsCarousel. Lives
+	   here (not on .short-card-inner) so the container is a transform-free box;
+	   cqw resolves against the content box, i.e. card width minus the 2px
+	   borders (196px card -> 192px = 1cqw is 1.92px). */
+	container-type: inline-size;
 	text-decoration: none;
 	color: #0f172a;
 	border: 2px solid #0f172a;
@@ -702,31 +712,44 @@ body.panel-open nav {
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
-	transition: transform 80ms ease-out, box-shadow 80ms ease-out, border-color 80ms ease-out;
+	transition: box-shadow 80ms ease-out, border-color 80ms ease-out;
+}
+/* The press/affordance translate lives on .short-card-inner (the card's
+   content box), never on .short-card itself: .short-card's own bounding box
+   must stay transform-free so useShortsRail's measure() (which reads
+   getBoundingClientRect() deltas between adjacent .short-card elements) is
+   never skewed by a focus-visible/hover nudge persisting across a resize. */
+.short-card-inner {
+	transition: transform 80ms ease-out;
 }
 .short-card:hover,
 .short-card:focus-visible {
-	transform: translate(2px, 2px);
 	box-shadow: 4px 4px 0 0 #0f172a;
 	border-color: #ff0000;
+}
+.short-card:hover .short-card-inner,
+.short-card:focus-visible .short-card-inner {
+	transform: translate(2px, 2px);
 }
 .short-card:focus-visible {
 	outline: 3px solid #0f172a;
 	outline-offset: 3px;
 }
 .short-card:active {
-	transform: translate(6px, 6px);
 	box-shadow: 0 0 0 0 #0f172a;
 }
+.short-card:active .short-card-inner {
+	transform: translate(6px, 6px);
+}
 @media (prefers-reduced-motion: reduce) {
-	.short-card {
-		transition: box-shadow 80ms ease-out, border-color 80ms ease-out;
+	.short-card-inner {
+		transition: none;
 	}
-	.short-card:hover,
-	.short-card:focus-visible {
+	.short-card:hover .short-card-inner,
+	.short-card:focus-visible .short-card-inner {
 		transform: none;
 	}
-	.short-card:active {
+	.short-card:active .short-card-inner {
 		transform: none;
 	}
 }

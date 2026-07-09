@@ -382,7 +382,7 @@ function LayoutHost() {
 									onClick={() => setAboutOpen(false)}
 									className={aboutItemClass}
 								>
-									Find Me
+									Socials
 								</a>
 								{TOPICS.map((topic) => (
 									<a
@@ -446,7 +446,7 @@ function LayoutHost() {
 				dangerouslySetInnerHTML={{
 					__html: `
 						html { scroll-behavior: smooth; }
-						#craft article, #find-me, #contact { scroll-margin-top: 80px; }
+						#craft article, #socials, #contact { scroll-margin-top: 80px; }
 						.cursor-pixel { cursor: crosshair; }
 						::selection {
 							background: #fef08a;

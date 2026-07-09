@@ -136,8 +136,8 @@ export function useShortsRail() {
 	}, [render]);
 
 	// The only place that reads layout. Card slots are uniform, so one step is
-	// the offset gap between the first two children; in jsdom (and before
-	// first layout) every offset is 0 and the zero/non-finite guard pins the
+	// the gap between the first two children; in jsdom (and before first
+	// layout) every measurement is 0 and the zero/non-finite guard pins the
 	// step to 0, which downstream turns goTo into a no-op.
 	const measure = useCallback(() => {
 		const rail = railRef.current;
@@ -145,9 +145,15 @@ export function useShortsRail() {
 		if (!rail || !track) return;
 		const first = track.children[0] as HTMLElement | undefined;
 		const second = track.children[1] as HTMLElement | undefined;
+		// Fluid card widths are fractional, so integer offsetLeft deltas miss
+		// maxOffset by up to (N-3)*0.5px — outside atEnd's 1px hairline
+		// (railMotion.ts) — causing an end-of-rail double-press/dead-beat.
+		// Rect deltas are fractional-exact and transform-invariant (the shared
+		// track translate cancels in the delta — never use an absolute .left).
 		const rawStep =
 			second && first
-				? second.offsetLeft - first.offsetLeft
+				? second.getBoundingClientRect().left -
+					first.getBoundingClientRect().left
 				: (first?.offsetWidth ?? 0);
 		const step = Number.isFinite(rawStep) && rawStep > 0 ? rawStep : 0;
 		const viewportW = rail.clientWidth;

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { stubMatchMedia } from "../../../../test/stubMatchMedia";
 import { useShortsRail } from "../useShortsRail";
 
-function Harness() {
+function Harness({ cardCount = 3 }: { cardCount?: number } = {}) {
 	const {
 		railRef,
 		trackRef,
@@ -18,9 +18,10 @@ function Harness() {
 		<div>
 			<div ref={railRef} data-testid="rail" {...railProps}>
 				<div ref={trackRef} data-testid="track">
-					<div data-testid="card-0" />
-					<div data-testid="card-1" />
-					<div data-testid="card-2" />
+					{Array.from({ length: cardCount }, (_, i) => (
+						// biome-ignore lint/suspicious/noArrayIndexKey: fixed-count static test fixture, never reordered
+						<div key={`card-${i}`} data-testid={`card-${i}`} />
+					))}
 				</div>
 			</div>
 			<div
@@ -35,6 +36,25 @@ function Harness() {
 	);
 }
 
+// Minimal getBoundingClientRect stub, mirroring the shape jsdom itself
+// returns (all-zero) but with a real `left` — used for both the bar (unrelated
+// to this rect-left convention historically) and, once measure() switches the
+// card step to a rect-delta read, the two step-defining cards too.
+function stubRect(el: HTMLElement, left: number, width = 0) {
+	el.getBoundingClientRect = () =>
+		({
+			left,
+			top: 0,
+			right: left + width,
+			bottom: 20,
+			width,
+			height: 20,
+			x: left,
+			y: 0,
+			toJSON: () => ({}),
+		}) as DOMRect;
+}
+
 // jsdom never lays elements out, so measure()'s reads (clientWidth,
 // scrollWidth, offsetLeft, offsetWidth) all default to 0. Stub them to a
 // realistic 3-card rail (step 300px, room to scroll) so a drag actually
@@ -42,6 +62,12 @@ function Harness() {
 // passed it becomes a 300px bar starting at viewport x 50, so with the
 // 300/900 geometry the thumb is 100px wide, its travel (usable) is 200px,
 // and at rest it spans [50, 150].
+//
+// card0/card1 also get a getBoundingClientRect stub (left: 0 / left: 300,
+// delta 300) mirroring their offsetLeft values: measure()'s card step reads
+// switch from offsetLeft deltas to rect-left deltas (the v2 fractional-step
+// fix), and without this stub jsdom's default all-zero rect would zero the
+// step and break every test below post-fix.
 function mockLayout(
 	rail: HTMLElement,
 	track: HTMLElement,
@@ -69,23 +95,14 @@ function mockLayout(
 		value: 300,
 		configurable: true,
 	});
+	stubRect(card0, 0, 300);
+	stubRect(card1, 300, 300);
 	if (bar) {
 		Object.defineProperty(bar, "clientWidth", {
 			value: 300,
 			configurable: true,
 		});
-		bar.getBoundingClientRect = () =>
-			({
-				left: 50,
-				top: 0,
-				right: 350,
-				bottom: 20,
-				width: 300,
-				height: 20,
-				x: 50,
-				y: 0,
-				toJSON: () => ({}),
-			}) as DOMRect;
+		stubRect(bar, 50, 300);
 	}
 }
 
@@ -371,5 +388,164 @@ describe("useShortsRail scrollbar interaction", () => {
 		});
 		expect(bar.className).not.toContain("shorts-scrollbar--grabbing");
 		expect(track.style.transform).toBe(transformBefore);
+	});
+});
+
+// v2 fractional-step fix: measure()'s card-step read switches from integer
+// offsetLeft deltas to fractional getBoundingClientRect deltas, mirroring the
+// real 768px-viewport 9-card rail where 772px of usable width doesn't divide
+// evenly by 3 cards per screen. Geometry: rail clientWidth 768, track
+// scrollWidth 2312 (9 cards), maxOffset = 2312 - 768 = 1544. The two cards
+// that define the step get BOTH an offsetLeft pair (6, 263 — delta 257,
+// integer, what the old code reads) AND a getBoundingClientRect pair
+// (6, 6 + 772/3 — delta 257.333..., fractional, what the new code reads).
+// 257.333...  * 6 = 1544 exactly, so 6 ArrowRight presses land exactly on
+// maxOffset only when the fractional rect delta drives the step; the old
+// integer-delta step (257 * 6 = 1542) falls one card-step short and never
+// reaches the flush end.
+describe("useShortsRail fractional-step flush (v2)", () => {
+	afterEach(() => {
+		cleanup();
+		vi.unstubAllGlobals();
+	});
+
+	it("6 ArrowRight presses flush exactly to maxOffset (1544), and a 7th loops back to ~0", () => {
+		stubMatchMedia(true); // instant, synchronous jumps
+		const { getByTestId } = render(<Harness cardCount={9} />);
+		const rail = getByTestId("rail");
+		const track = getByTestId("track");
+		const card0 = getByTestId("card-0");
+		const card1 = getByTestId("card-1");
+
+		Object.defineProperty(rail, "clientWidth", {
+			value: 768,
+			configurable: true,
+		});
+		Object.defineProperty(track, "scrollWidth", {
+			value: 2312,
+			configurable: true,
+		});
+		// Integer offsetLeft pair (what the pre-fix code reads): delta 257.
+		Object.defineProperty(card0, "offsetLeft", {
+			value: 6,
+			configurable: true,
+		});
+		Object.defineProperty(card1, "offsetLeft", {
+			value: 263,
+			configurable: true,
+		});
+		Object.defineProperty(card0, "offsetWidth", {
+			value: 257,
+			configurable: true,
+		});
+		// Fractional rect pair (what the fixed code reads): delta 772/3.
+		stubRect(card0, 6);
+		stubRect(card1, 6 + 772 / 3);
+
+		fireEvent(window, new Event("resize"));
+
+		for (let i = 0; i < 6; i++) {
+			fireEvent.keyDown(rail, { key: "ArrowRight" });
+		}
+		expect(trackOffsetPx(track)).toBe(1544);
+
+		fireEvent.keyDown(rail, { key: "ArrowRight" });
+		expect(trackOffsetPx(track)).toBeCloseTo(0);
+	});
+
+	it("3 ArrowRight presses land on the fractional rect-delta step, not the integer offsetLeft step", () => {
+		// Same geometry as the flush test above, but pinned mid-rail (index 3,
+		// well short of the maxOffset clamp) so the fractional vs. integer step
+		// actually produces different numbers: fractional 3*257.333 = 772.0,
+		// integer (pre-fix) 3*257 = 771. The flush test's clamped endpoint
+		// (1544) passes for either step once it's >= 257.33, so it alone can't
+		// catch a regression back to the integer step - this one can.
+		stubMatchMedia(true);
+		const { getByTestId } = render(<Harness cardCount={9} />);
+		const rail = getByTestId("rail");
+		const track = getByTestId("track");
+		const card0 = getByTestId("card-0");
+		const card1 = getByTestId("card-1");
+
+		Object.defineProperty(rail, "clientWidth", {
+			value: 768,
+			configurable: true,
+		});
+		Object.defineProperty(track, "scrollWidth", {
+			value: 2312,
+			configurable: true,
+		});
+		Object.defineProperty(card0, "offsetLeft", {
+			value: 6,
+			configurable: true,
+		});
+		Object.defineProperty(card1, "offsetLeft", {
+			value: 263,
+			configurable: true,
+		});
+		Object.defineProperty(card0, "offsetWidth", {
+			value: 257,
+			configurable: true,
+		});
+		stubRect(card0, 6);
+		stubRect(card1, 6 + 772 / 3);
+
+		fireEvent(window, new Event("resize"));
+
+		for (let i = 0; i < 3; i++) {
+			fireEvent.keyDown(rail, { key: "ArrowRight" });
+		}
+		// 3 * 257.333... = 772.0, comfortably under maxOffset (1544), so the
+		// clamp can't hide a regression to the integer step (which would give
+		// 771 here).
+		expect(trackOffsetPx(track)).toBeCloseTo(772, 1);
+	});
+});
+
+// measure()'s step read has a fallback branch for a single-card rail (no
+// second child to diff a rect/offsetLeft delta against): rawStep falls back
+// to `first?.offsetWidth ?? 0`. A lone card also means the rail's content
+// never exceeds its own viewport, so maxOffset is 0 and there's nothing to
+// scroll to - this exercises both the fallback step read and the resulting
+// no-op navigation.
+describe("useShortsRail single-card fallback (v2)", () => {
+	afterEach(() => cleanup());
+
+	it("a single card falls back to offsetWidth for its step and ArrowRight is a no-op", () => {
+		const { getByTestId } = render(<Harness cardCount={1} />);
+		const rail = getByTestId("rail");
+		const track = getByTestId("track");
+		const bar = getByTestId("bar");
+		const card0 = getByTestId("card-0");
+
+		// One card exactly filling the rail: no second child for measure() to
+		// diff, so it must fall back to offsetWidth; content equals viewport,
+		// so maxOffset is 0.
+		Object.defineProperty(rail, "clientWidth", {
+			value: 300,
+			configurable: true,
+		});
+		Object.defineProperty(track, "scrollWidth", {
+			value: 300,
+			configurable: true,
+		});
+		Object.defineProperty(card0, "offsetWidth", {
+			value: 300,
+			configurable: true,
+		});
+		fireEvent(window, new Event("resize"));
+
+		expect(trackOffsetPx(track)).toBeCloseTo(0);
+		// Content fits exactly, so the scrollbar has nothing to show.
+		expect(bar.hidden).toBe(true);
+
+		fireEvent.keyDown(rail, { key: "ArrowRight" });
+		// next() sees atEnd(0, 0) === true and loops back to goTo(0) rather
+		// than advancing past the single card - offset stays at 0.
+		expect(trackOffsetPx(track)).toBeCloseTo(0);
+
+		fireEvent.keyDown(rail, { key: "ArrowLeft" });
+		// prev() likewise wraps a single-card index back to itself.
+		expect(trackOffsetPx(track)).toBeCloseTo(0);
 	});
 });

@@ -80,9 +80,48 @@ describe("FindMeSection directory", () => {
 		const { container } = render(<FindMeSection />);
 		expect(container.querySelector(".lucide-arrow-right")).toBeNull();
 	});
+
+	// Anchor rename (v2 plan): the section root's id switches from "find-me"
+	// to "socials". RED until FindMeSection.tsx's SECTION_IDS.findMe rename
+	// lands (this test also exercises the real SECTION_IDS constant, so it
+	// goes green in lockstep with the sections.ts pin test).
+	it('renders its root as <section id="socials">, not "find-me"', () => {
+		const { container } = render(<FindMeSection />);
+		expect(container.querySelector("section#socials")).not.toBeNull();
+		expect(container.querySelector('[id="find-me"]')).toBeNull();
+	});
+
+	// Socials widen (v2 plan): the inner content wrapper grows from the
+	// 632px 3-card-rail cap to a plain max-w-3xl measure. RED until the
+	// className swap lands.
+	it("the inner content wrapper is max-w-3xl, not the old 632px rail cap", () => {
+		const { container } = render(<FindMeSection />);
+		const wrapper = container.querySelector(".mx-auto.relative.z-10");
+		expect(wrapper).not.toBeNull();
+		expect(wrapper?.className).toContain("max-w-3xl");
+		expect(wrapper?.className).not.toContain("max-w-[632px]");
+	});
+
+	// Regression pin: the widen must not collapse the chip rows back to a
+	// single line — every social group's chip row keeps wrapping.
+	it("every social group's chip row stays a flex-wrap gap-2 row", () => {
+		const { container } = render(<FindMeSection />);
+		const rows = Array.from(
+			container.querySelectorAll(".flex.flex-wrap.gap-2"),
+		);
+		expect(rows.length).toBe(SOCIAL_GROUPS.length);
+		for (const row of rows) {
+			expect(row.className).toContain("flex-wrap");
+			expect(row.className).toContain("gap-2");
+		}
+	});
 });
 
 describe("FindMeSection carousel", () => {
+	// Asserts PRESENCE of one card per YOUTUBE_SHORTS entry, not visibility —
+	// only 3 cards are visible at a time (CSS clipping via the rail's
+	// hidden-overflow viewport), which is a manual/visual concern this test
+	// does not cover.
 	it("renders exactly YOUTUBE_SHORTS.length cards in the rail", () => {
 		const { container } = render(<FindMeSection />);
 		const rail = container.querySelector(".shorts-rail");
@@ -355,7 +394,7 @@ describe("FindMeSection carousel", () => {
 
 // v4 whole-section day/night freeze: FindMeSection no longer takes an
 // isNight prop. Instead, its own SectionTitle measures the SECTION root
-// (#find-me) once at mount, and every night-dependent bit inside — the
+// (#socials) once at mount, and every night-dependent bit inside — the
 // heading, every chip, and the scrollbar indicator — must all agree with
 // that single section-level phase, even when adversarially given a
 // DIFFERENT rect on their own wrapper.
@@ -371,11 +410,11 @@ describe("FindMeSection whole-section day/night freeze", () => {
 		const restore = stubSectionGeometry({
 			scrollHeight: 10000,
 			innerHeight: 800,
-			rects: [{ match: "#find-me", top: 5860, height: 1800 }],
+			rects: [{ match: "#socials", top: 5860, height: 1800 }],
 		});
 		const { container } = render(<FindMeSection />);
 		const h2 = Array.from(container.querySelectorAll("h2")).find(
-			(h) => h.textContent?.trim() === "Find Me",
+			(h) => h.textContent?.trim() === "Socials",
 		);
 		expect(h2).toBeTruthy();
 		expect(h2?.className).toContain("text-white");
@@ -397,19 +436,19 @@ describe("FindMeSection whole-section day/night freeze", () => {
 		const restore = stubSectionGeometry({
 			scrollHeight: 10000,
 			innerHeight: 800,
-			rects: [{ match: "#find-me", top: 5860, height: 1800 }],
+			rects: [{ match: "#socials", top: 5860, height: 1800 }],
 			rect: { top: 100, height: 100 },
 		});
 		const { container } = render(<FindMeSection />);
 		const h2 = Array.from(container.querySelectorAll("h2")).find(
-			(h) => h.textContent?.trim() === "Find Me",
+			(h) => h.textContent?.trim() === "Socials",
 		);
 		expect(h2).toBeTruthy();
 		expect(h2?.className).toContain("text-white");
 		restore();
 	});
 
-	// centerY(#find-me) = 50 + 100/2 = 100; (100-400)/9200 < 0 → clamp01 → 0 (day).
+	// centerY(#socials) = 50 + 100/2 = 100; (100-400)/9200 < 0 → clamp01 → 0 (day).
 	// centerY(default/title) = 5860 + 800/2 = 6260; (6260-400)/9200 ≈ 0.637 ≥ 0.55
 	// (night) — so the title's OWN rect would say night, but the section says
 	// day; the heading must still follow the section.
@@ -417,12 +456,12 @@ describe("FindMeSection whole-section day/night freeze", () => {
 		const restore = stubSectionGeometry({
 			scrollHeight: 10000,
 			innerHeight: 800,
-			rects: [{ match: "#find-me", top: 50, height: 100 }],
+			rects: [{ match: "#socials", top: 50, height: 100 }],
 			rect: { top: 5860, height: 800 },
 		});
 		const { container } = render(<FindMeSection />);
 		const h2 = Array.from(container.querySelectorAll("h2")).find(
-			(h) => h.textContent?.trim() === "Find Me",
+			(h) => h.textContent?.trim() === "Socials",
 		);
 		expect(h2).toBeTruthy();
 		expect(h2?.className).toContain("text-slate-900");
@@ -438,7 +477,7 @@ describe("FindMeSection whole-section day/night freeze", () => {
 		});
 		const { container } = render(<FindMeSection />);
 		const h2 = Array.from(container.querySelectorAll("h2")).find(
-			(h) => h.textContent?.trim() === "Find Me",
+			(h) => h.textContent?.trim() === "Socials",
 		);
 		expect(h2).toBeTruthy();
 		expect(h2?.className).toContain("text-slate-900");

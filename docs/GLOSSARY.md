@@ -66,6 +66,18 @@ For each domain term, give the definition and the aliases to avoid. Aliases shou
 
 **Avoid:** "innerOverride" / "inner bypass" (the removed mechanic this replaces, not the inner itself), "baseline" (the composer's shipped-look toggle is a separate control), "default inner" (too generic - say "rich card" for this specific style).
 
+### section-position frozen night phase
+
+**Definition:** Each section decides its day/night appearance ONCE at mount, from where that section's own root element sits in the scroll journey (its center's scroll progress vs `NIGHT_UI_THRESHOLD = 0.55`, computed via `sectionProgressAt`/`scrollProgressAt` in `src/data/skyCurve.ts`), and never re-evaluates on scroll. The single frozen phase drives the WHOLE section's chrome together - heading, topic plates, and (for Find Me) the social chips + shorts carousel - so a section never splits lighting mid-scroll. It re-seeds once on `document.fonts.ready` (font swap can shift geometry). This is a deliberate exception to the site's otherwise live, scroll-driven day/night (nav, footer, watermark, and the between-section seam connectors stay LIVE). Implemented by `useSectionNightPhase` in `src/components/_layout/SectionTitle.tsx`, called at each section root (FindMeSection's `<section>`, each topic's `<article>`).
+
+**Avoid:** "per-title measurement" / "self-measuring titles" (this is NOT a per-title measurement - titles take their section's phase via SectionTitle's `night` override, never self-measure).
+
+### SectionTitle (unified title system)
+
+**Definition:** The shared component (`src/components/_layout/SectionTitle.tsx`) rendering all section titles with one look - Find Me font + white offset drop-shadow, `text-6xl md:text-8xl`, and an optional AccentUnderline bar - and taking its section's frozen night phase via a required-in-practice `night` override. Deliberately EXCLUDED from the system (non-adoption is a design decision, NOT missed migration - do not unify without user sign-off): the footer headline (`FooterHeadline`, a separate typewriter/gradient treatment), the subpage panel titles (`CareerPanel` etc.), and the `minimal.tsx` composer inner (keeps its own heading).
+
+**Avoid:** _TODO:_ aliases to avoid (review and fill)
+
 ## Relationships
 
 - Branches contains the eight Topics. Topics are not Branches; they live inside it.
