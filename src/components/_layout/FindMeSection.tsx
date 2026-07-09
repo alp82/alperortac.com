@@ -1,11 +1,8 @@
-import { ArrowRight } from "lucide-react";
 import { SECTION_IDS } from "../../data/sections";
+import { ShortsCarousel } from "./social/ShortsCarousel";
 import { SOCIAL_GROUPS, type SocialLinkData } from "./social/socialLinks";
 
-const SOCIAL_LINK_CLASS =
-	"btn-brutalist flex items-center justify-between w-full text-left group font-black uppercase tracking-wider";
-
-function SocialLink({
+function SocialChip({
 	label,
 	href,
 	Icon,
@@ -16,22 +13,15 @@ function SocialLink({
 }: SocialLinkData & { isNight: boolean }) {
 	const body = (
 		<>
-			<span className="flex items-center gap-3 min-w-0">
-				<span
-					style={
-						{ "--icon-c": isNight ? "#f8fafc" : brand } as React.CSSProperties
-					}
-					className="flex items-center justify-center shrink-0 transition-colors duration-200 text-[var(--icon-c)] group-hover:text-white"
-				>
-					<Icon size={28} color="currentColor" />
-				</span>
-				<span className="truncate">{label}</span>
+			<span
+				style={
+					{ "--icon-c": isNight ? "#f8fafc" : brand } as React.CSSProperties
+				}
+				className="flex items-center justify-center shrink-0 transition-colors duration-200 text-[var(--icon-c)] group-hover:text-white"
+			>
+				<Icon size={28} color="currentColor" />
 			</span>
-			<ArrowRight
-				size={22}
-				strokeWidth={3}
-				className="opacity-0 translate-x-3 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out shrink-0"
-			/>
+			<span>{label}</span>
 		</>
 	);
 
@@ -41,7 +31,9 @@ function SocialLink({
 		"--btn-text-hover": "#ffffff",
 	} as React.CSSProperties;
 
-	const className = `${SOCIAL_LINK_CLASS}${isNight ? " btn-brutalist--night" : ""}`;
+	const className = `btn-brutalist btn-brutalist--chip inline-flex items-center gap-3 font-black uppercase tracking-wider group${
+		isNight ? " btn-brutalist--night" : ""
+	}`;
 
 	if (href) {
 		return (
@@ -87,6 +79,8 @@ export function FindMeSection({ isNight }: { isNight: boolean }) {
 					</p>
 				</div>
 
+				<ShortsCarousel isNight={isNight} />
+
 				<div className="space-y-10">
 					{SOCIAL_GROUPS.map((group) => (
 						<div key={group.title}>
@@ -97,9 +91,9 @@ export function FindMeSection({ isNight }: { isNight: boolean }) {
 								</h3>
 								<div className="flex-1 h-px bg-slate-900/20" />
 							</div>
-							<div className="space-y-3">
+							<div className="flex flex-wrap gap-2">
 								{group.links.map((link) => (
-									<SocialLink key={link.label} {...link} isNight={isNight} />
+									<SocialChip key={link.label} {...link} isNight={isNight} />
 								))}
 							</div>
 						</div>

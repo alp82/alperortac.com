@@ -551,13 +551,14 @@ body.panel-open nav {
 
 .btn-brutalist {
 	--btn-tint: #ffffff;
+	--btn-shadow-color: #0f172a;
 	position: relative;
 	padding: 18px 18px;
 	background: var(--btn-tint);
 	color: #0f172a;
 	border: 2px solid #0f172a;
 	border-radius: 4px;
-	box-shadow: 6px 6px 0 0 #0f172a;
+	box-shadow: 6px 6px 0 0 var(--btn-shadow-color);
 	cursor: pointer;
 	user-select: none;
 	transition: transform 80ms ease-out, box-shadow 80ms ease-out, background-color 80ms ease-out, color 80ms ease-out;
@@ -566,11 +567,11 @@ body.panel-open nav {
 	background: var(--btn-tint-hover, var(--btn-tint));
 	color: var(--btn-text-hover, inherit);
 	transform: translate(2px, 2px);
-	box-shadow: 4px 4px 0 0 #0f172a;
+	box-shadow: 4px 4px 0 0 var(--btn-shadow-color);
 }
 .btn-brutalist:active {
 	transform: translate(6px, 6px);
-	box-shadow: 0 0 0 0 #0f172a;
+	box-shadow: 0 0 0 0 var(--btn-shadow-color);
 }
 .btn-brutalist:focus-visible {
 	outline: 3px solid #0f172a;
@@ -578,15 +579,9 @@ body.panel-open nav {
 }
 .btn-brutalist--dark {
 	--btn-tint: #0f172a;
+	--btn-shadow-color: #475569;
 	color: #f8fafc;
 	border-color: #0f172a;
-	box-shadow: 6px 6px 0 0 #475569;
-}
-.btn-brutalist--dark:hover {
-	box-shadow: 4px 4px 0 0 #475569;
-}
-.btn-brutalist--dark:active {
-	box-shadow: 0 0 0 0 #475569;
 }
 .btn-brutalist--dark:focus-visible {
 	outline: 3px solid #f8fafc;
@@ -617,29 +612,29 @@ body.panel-open nav {
 	outline-color: currentColor;
 }
 .btn-brutalist--night {
+	--btn-shadow-color: #475569;
 	color: #f8fafc;
 	border-color: #f8fafc;
-	box-shadow: 6px 6px 0 0 #475569;
-}
-.btn-brutalist--night:hover {
-	box-shadow: 4px 4px 0 0 #475569;
-}
-.btn-brutalist--night:active {
-	box-shadow: 0 0 0 0 #475569;
 }
 .btn-brutalist--night:focus-visible {
 	outline-color: #f8fafc;
 }
+/* Square chip variant: sharp corners and tighter padding only; font size,
+   icon size, border, shadow and tint all inherit from the base button. */
+.btn-brutalist--chip {
+	border-radius: 0;
+	padding: 12px 14px;
+}
 .btn-brutalist:disabled,
 .btn-brutalist[aria-disabled="true"] {
-	box-shadow: 0 0 0 0 #0f172a;
+	box-shadow: 0 0 0 0 var(--btn-shadow-color);
 	transform: translate(6px, 6px);
 	cursor: not-allowed;
 	opacity: 0.6;
 }
 .btn-brutalist:disabled:hover,
 .btn-brutalist[aria-disabled="true"]:hover {
-	box-shadow: 0 0 0 0 #0f172a;
+	box-shadow: 0 0 0 0 var(--btn-shadow-color);
 }
 @media (prefers-reduced-motion: reduce) {
 	.btn-brutalist {
@@ -650,11 +645,7 @@ body.panel-open nav {
 	}
 	.btn-brutalist:active {
 		transform: none;
-		box-shadow: 0 0 0 0 #0f172a;
-	}
-	.btn-brutalist--dark:active {
-		transform: none;
-		box-shadow: 0 0 0 0 #475569;
+		box-shadow: 0 0 0 0 var(--btn-shadow-color);
 	}
 	.btn-brutalist:disabled,
 	.btn-brutalist[aria-disabled="true"] {
@@ -675,6 +666,72 @@ body.panel-open nav {
 @media (prefers-reduced-motion: reduce) {
 	.glyph-hover-white {
 		transition: none;
+	}
+}
+
+/* ---- LATEST SHORTS RAIL (FindMeSection carousel) ----
+   Scroll-snap strip of brutalist 9:16 Short cards. Motion (spring scroll,
+   auto-advance) is driven by useShortsRail via rAF, so NO scroll-behavior:
+   smooth here: it would fight the scripted scrollLeft writes. */
+.shorts-rail {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+	overflow-x: auto;
+	scroll-snap-type: x proximity;
+	padding: 6px 6px 16px;
+	scrollbar-width: thin;
+	scrollbar-color: #0f172a transparent;
+}
+.shorts-rail:focus-visible {
+	outline: 3px solid #0f172a;
+	outline-offset: 4px;
+}
+.shorts-rail::-webkit-scrollbar {
+	height: 8px;
+}
+.shorts-rail::-webkit-scrollbar-thumb {
+	background: #0f172a;
+	border-radius: 4px;
+}
+.short-card {
+	scroll-snap-align: start;
+	flex: 0 0 196px;
+	text-decoration: none;
+	color: #0f172a;
+	border: 2px solid #0f172a;
+	border-radius: 0;
+	box-shadow: 6px 6px 0 0 #0f172a;
+	background: #ffffff;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	transition: transform 80ms ease-out, box-shadow 80ms ease-out, border-color 80ms ease-out;
+}
+.short-card:hover,
+.short-card:focus-visible {
+	transform: translate(2px, 2px);
+	box-shadow: 4px 4px 0 0 #0f172a;
+	border-color: #ff0000;
+}
+.short-card:focus-visible {
+	outline: 3px solid #0f172a;
+	outline-offset: 3px;
+}
+.short-card:active {
+	transform: translate(6px, 6px);
+	box-shadow: 0 0 0 0 #0f172a;
+}
+@media (prefers-reduced-motion: reduce) {
+	.short-card {
+		transition: box-shadow 80ms ease-out, border-color 80ms ease-out;
+	}
+	.short-card:hover,
+	.short-card:focus-visible {
+		transform: none;
+	}
+	.short-card:active {
+		transform: none;
 	}
 }
 
