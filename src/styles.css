@@ -754,53 +754,78 @@ body.panel-open nav {
 	}
 }
 
-/* Interactive minimap-idiom scrollbar: a faint full-width track hairline
-   (::before) with a hollow 2px translucent thumb (subtle fill, no radius, no
-   shadow) sliding on it - the Minimap band idiom given a rail so it reads as
-   one coherent element on a horizontal bar. Pressing the track jumps the rail
-   to that spot; grabbing the thumb scrubs it live (useShortsRail's bar
-   session), hence the grab/grabbing cursor pair. It stays aria-hidden as a
-   redundant pointer-only affordance - the rail itself is the keyboard/AT
-   surface. Thumb width is set at measure time; its position glides per frame
-   from the same spring-animated offset as the track. Hidden by measure()
-   whenever the content fits. */
+/* Filmstrip minimap scrollbar (V6): a bright base filmstrip of every Short's
+   thumbnail sits under a dimmed copy of the same filmstrip (__off-wrap). A
+   per-frame hard-cut CSS mask keeps that dim copy visible everywhere EXCEPT
+   the window's span, where it is punched away to reveal the bright base
+   strip - so the current viewport reads bright and the rest reads dimmed. A
+   red window frame (__thumb) sits on top marking the visible-viewport span, porting the
+   vertical Minimap band idiom to this horizontal rail. Pressing the track
+   jumps the rail to that spot; grabbing the window scrubs it live
+   (useShortsRail's bar session), hence the grab/grabbing cursor pair. It
+   stays aria-hidden as a redundant pointer-only affordance - the rail itself
+   is the keyboard/AT surface. Window width is set at measure time; its
+   position and the mask glide per frame from the same spring-animated offset
+   as the track. Hidden by measure() whenever the content fits. */
 .shorts-scrollbar {
 	position: relative;
-	height: 20px;
+	height: 44px;
 	margin-top: 10px;
 	cursor: grab;
 	touch-action: pan-y;
 	user-select: none;
+	overflow: hidden;
+	border: 2px solid rgba(15, 23, 42, 0.5);
+	background: #0f172a;
 }
 .shorts-scrollbar--grabbing {
 	cursor: grabbing;
 }
-.shorts-scrollbar::before {
-	content: "";
+.shorts-scrollbar__strip {
 	position: absolute;
-	left: 0;
-	right: 0;
-	top: calc(50% - 0.5px);
-	height: 1px;
-	background: rgba(15, 23, 42, 0.3);
+	inset: 0;
+	display: flex;
+	pointer-events: none;
+	z-index: 1;
+}
+.shorts-scrollbar__off-wrap {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 2;
+	will-change: mask-image;
+}
+.shorts-scrollbar__off {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	filter: brightness(0.22) contrast(0.9);
+}
+.shorts-scrollbar__cell {
+	flex: 1 1 20%;
+	height: 100%;
+	object-fit: cover;
+	/* Bias the thin 44px cover-crop toward the upper-mid frame where Shorts
+	   put their subject, so a cell never slices a dead-center background band
+	   (e.g. a code-editor black region) and reads as empty. */
+	object-position: 50% 35%;
+	display: block;
 }
 .shorts-scrollbar__thumb {
 	position: absolute;
 	top: 0;
 	bottom: 0;
 	left: 0;
-	border: 2px solid rgba(15, 23, 42, 0.3);
-	background: rgba(15, 23, 42, 0.1);
+	box-sizing: border-box;
+	pointer-events: none;
+	z-index: 3;
+	border: 3px solid #ff0000;
+	box-shadow: 3px 3px 0 0 #ff0000;
 	border-radius: 0;
-	box-shadow: none;
 	will-change: transform;
 }
-.shorts-scrollbar--night::before {
-	background: rgba(255, 255, 255, 0.3);
-}
-.shorts-scrollbar--night .shorts-scrollbar__thumb {
-	border-color: rgba(255, 255, 255, 0.3);
-	background: rgba(255, 255, 255, 0.1);
+.shorts-scrollbar--night {
+	border-color: rgba(248, 250, 252, 0.4);
 }
 
 /* ---- THE PLATE (frosted copy panel: hero / topic teaser / linktree) ----

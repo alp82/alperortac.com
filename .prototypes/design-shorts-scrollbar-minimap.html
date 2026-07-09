@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shorts scrollbar &mdash; minimap-idiom picker (A/B/C)</title>
+<style>
+	* { box-sizing: border-box; }
+	html, body { margin: 0; padding: 0; }
+	body {
+		font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+		background: #e8eef2;
+		color: #0f172a;
+		transition: background 250ms ease-out, color 250ms ease-out;
+	}
+	body.night { background: #0b0a17; color: #f8fafc; }
+
+	.page-header {
+		padding: 18px 24px 14px;
+		border-bottom: 2px solid #0f172a;
+		background: #ffffff;
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 20px;
+		flex-wrap: wrap;
+	}
+	body.night .page-header { background: #14122a; border-color: #f8fafc; }
+	.page-header h1 {
+		margin: 0 0 4px;
+		font-size: 15px;
+		font-weight: 900;
+		text-transform: uppercase;
+		letter-spacing: 0.16em;
+	}
+	.page-header p { margin: 0; font-size: 12.5px; color: #475569; max-width: 640px; }
+	body.night .page-header p { color: #cbd5e1; }
+	.sky-toggle { display: flex; border: 2px solid #0f172a; flex-shrink: 0; }
+	body.night .sky-toggle { border-color: #f8fafc; }
+	.sky-toggle button {
+		padding: 9px 16px;
+		font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;
+		background: #ffffff; color: #0f172a; border: none; cursor: pointer;
+	}
+	.sky-toggle button:first-child { border-right: 2px solid #0f172a; }
+	body.night .sky-toggle button:first-child { border-color: #f8fafc; }
+	.sky-toggle button.on { background: #0f172a; color: #ffffff; }
+	body.night .sky-toggle button { background: #14122a; color: #f8fafc; }
+	body.night .sky-toggle button.on { background: #f8fafc; color: #0f172a; }
+
+	.layout { max-width: 900px; margin: 0 auto; padding: 22px 24px 60px; display: flex; flex-direction: column; gap: 22px; }
+
+	/* ---------- shared rail, above all bars ---------- */
+	.rail-block { border: 2px solid #0f172a; background: #87cbe8; padding: 22px 22px 26px; transition: background 250ms ease-out; }
+	body.night .rail-block { background: rgb(18, 12, 46); border-color: #f8fafc; }
+	.rail-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+	.rail-head h2 { margin: 0; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.28em; opacity: 0.75; }
+	.rail-head .rule { flex: 1; height: 1px; background: rgba(15, 23, 42, 0.25); }
+	body.night .rail-head .rule { background: rgba(248, 250, 252, 0.25); }
+	.rail-arrows { display: flex; gap: 8px; margin-bottom: 12px; }
+	.chip {
+		display: inline-flex; align-items: center; justify-content: center;
+		padding: 10px 12px; background: #ffffff; color: #0f172a;
+		border: 2px solid #0f172a; box-shadow: 5px 5px 0 0 #0f172a;
+		cursor: pointer; user-select: none; transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+	}
+	.chip:hover { transform: translate(2px, 2px); box-shadow: 3px 3px 0 0 #0f172a; }
+	.chip:active { transform: translate(5px, 5px); box-shadow: 0 0 0 0 #0f172a; }
+	body.night .chip { background: #0f172a; color: #f8fafc; border-color: #f8fafc; box-shadow: 5px 5px 0 0 #475569; }
+	body.night .chip:hover { box-shadow: 3px 3px 0 0 #475569; }
+	body.night .chip:active { box-shadow: 0 0 0 0 #475569; }
+	.chip svg { display: block; }
+
+	.shorts-rail { overflow: hidden; }
+	.shorts-track { display: flex; align-items: flex-start; gap: 14px; padding: 5px; will-change: transform; }
+	.short-card {
+		flex: 0 0 calc((100% - 2 * 14px) / 3);
+		border: 2px solid #0f172a; background: #ffffff; box-shadow: 5px 5px 0 0 #0f172a;
+		overflow: hidden; display: flex; flex-direction: column;
+	}
+	.short-card .thumb-wrap { position: relative; aspect-ratio: 9 / 16; background: #111318; overflow: hidden; }
+	.short-card .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+	.short-card .thumb-fallback {
+		position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+		background: linear-gradient(160deg, #7c2d12, #1c1917); color: #fff; font-size: 22px; font-weight: 900;
+	}
+	.short-card .cap { padding: 6px 8px; font-size: 10px; font-weight: 800; letter-spacing: 0.02em; }
+
+	/* ---------- design panels ---------- */
+	.panel { border: 2px solid #0f172a; background: #ffffff; color: #0f172a; }
+	.panel-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 2px solid #0f172a; }
+	.badge { width: 26px; height: 26px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #0f172a; color: #fff; font-weight: 900; font-size: 13px; }
+	.panel-head-text h3 { margin: 0 0 2px; font-size: 12.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; }
+	.panel-head-text p { margin: 0; font-size: 11.5px; color: #475569; }
+	.panel-stage { padding: 20px 20px 22px; background: #87cbe8; transition: background 250ms ease-out; }
+	body.night .panel-stage { background: rgb(18, 12, 46); }
+
+	/* ---------- shared bar chrome ---------- */
+	.shorts-scrollbar { position: relative; cursor: grab; touch-action: pan-x; user-select: none; overflow: hidden; }
+	.shorts-scrollbar.grabbing { cursor: grabbing; }
+	.win {
+		position: absolute; top: 0; bottom: 0; left: 0;
+		pointer-events: none; box-sizing: border-box;
+	}
+
+	/* A - filmstrip */
+	#barA { height: 48px; }
+	.filmstrip { position: absolute; inset: 0; display: flex; }
+	.filmstrip img { flex: 1 1 20%; height: 100%; object-fit: cover; display: block; }
+	.filmstrip .thumb-fallback { flex: 1 1 20%; height: 100%; display: none; align-items: center; justify-content: center; background: linear-gradient(160deg,#7c2d12,#1c1917); color: #fff; font-size: 12px; font-weight: 900; }
+	#dimA { position: absolute; inset: 0; }
+	#winA { border: 2px solid rgba(15, 23, 42, 0.4); }
+
+	/* B - color band */
+	#barB { height: 28px; }
+	.band { position: absolute; inset: 0; display: flex; }
+	.band span { flex: 1 1 20%; height: 100%; }
+	#dimB { position: absolute; inset: 0; }
+	#winB { border: 2px solid rgba(15, 23, 42, 0.45); }
+
+	/* C - brutalist red window */
+	#barC { height: 18px; }
+	#trailC { position: absolute; inset: 0; }
+	#winC { border: 2px solid #FF0000; }
+
+	/* ---------- both-skies static compare strip ---------- */
+	.compare { border-top: 2px solid #0f172a; display: grid; grid-template-columns: 1fr 1fr; }
+	.compare > div { padding: 16px 18px; }
+	.compare .day-cell { background: #87cbe8; }
+	.compare .night-cell { background: rgb(18, 12, 46); }
+	.compare .cell-label { margin: 0 0 8px; font-size: 9.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(15,23,42,0.6); }
+	.compare .night-cell .cell-label { color: rgba(248,250,252,0.65); }
+
+	/* ---------- spec block ---------- */
+	.spec { border-top: 2px solid #0f172a; }
+	.spec pre {
+		margin: 0; padding: 14px 16px;
+		font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+		font-size: 11px; line-height: 1.55; white-space: pre-wrap; word-break: break-word;
+		background: #f8fafc; color: #0f172a;
+	}
+	.spec-foot { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 2px solid #0f172a; flex-wrap: wrap; }
+	.copy-btn {
+		padding: 9px 16px; font-size: 11.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em;
+		background: #0f172a; color: #ffffff; border: 2px solid #0f172a; box-shadow: 4px 4px 0 0 #64748b; cursor: pointer;
+	}
+	.copy-btn:hover { transform: translate(1px, 1px); box-shadow: 3px 3px 0 0 #64748b; }
+	.copy-btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 0 #64748b; }
+	.spec-foot p { margin: 0; font-size: 11.5px; color: #475569; }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+	<div>
+		<h1>Latest Shorts scrollbar &mdash; minimap idiom, three directions</h1>
+		<p>Same rail, three bar treatments (A filmstrip / B color band / C brutalist red window). Drag any bar to scrub the rail &mdash; all three stay in sync. Toggle day/night for the whole page, then copy whichever spec wins.</p>
+	</div>
+	<div class="sky-toggle" id="skyToggle">
+		<button type="button" data-sky="day" class="on">Day</button>
+		<button type="button" data-sky="night">Night</button>
+	</div>
+</header>
+
+<div class="layout">
+
+	<div class="rail-block">
+		<div class="rail-head"><h2>Latest Shorts</h2><div class="rule"></div></div>
+		<div class="rail-arrows">
+			<button type="button" class="chip" id="btnPrev" aria-label="Previous">
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+			</button>
+			<button type="button" class="chip" id="btnNext" aria-label="Next">
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+			</button>
+		</div>
+		<div class="shorts-rail" id="rail">
+			<div class="shorts-track" id="track"></div>
+		</div>
+	</div>
+
+	<!-- A -->
+	<div class="panel">
+		<div class="panel-head">
+			<div class="badge">A</div>
+			<div class="panel-head-text">
+				<h3>Filmstrip minimap</h3>
+				<p>Truest port: the trail is all 5 thumbnails, dimmed to a whisper; a bright bordered window slides over the visible ones.</p>
+			</div>
+		</div>
+		<div class="panel-stage">
+			<div class="shorts-scrollbar" id="barA">
+				<div class="filmstrip" id="filmstripA"></div>
+				<div id="dimA"></div>
+				<div class="win" id="winA"></div>
+			</div>
+		</div>
+		<div class="compare">
+			<div class="day-cell"><p class="cell-label">Day</p><div class="shorts-scrollbar" id="barA_day" style="height:48px; pointer-events:none;"><div class="filmstrip" id="filmstripA_day"></div><div id="dimA_day"></div><div class="win" id="winA_day" style="border:2px solid rgba(15,23,42,0.4);"></div></div></div>
+			<div class="night-cell"><p class="cell-label">Night</p><div class="shorts-scrollbar" id="barA_night" style="height:48px; pointer-events:none;"><div class="filmstrip" id="filmstripA_night"></div><div id="dimA_night"></div><div class="win" id="winA_night" style="border:2px solid rgba(255,255,255,0.55);"></div></div></div>
+		</div>
+		<div class="spec">
+			<pre>/* A - filmstrip minimap */
+.shorts-scrollbar {
+	position: relative;
+	height: 48px;
+	margin-top: 10px;
+	cursor: grab;
+	overflow: hidden;
+}
+.shorts-scrollbar__filmstrip {
+	position: absolute;
+	inset: 0;
+	display: flex;
+}
+.shorts-scrollbar__filmstrip img {
+	flex: 1 1 20%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+.shorts-scrollbar__dim {
+	position: absolute;
+	inset: 0;
+	background: rgba(15, 23, 42, 0.5);
+	/* mask: transparent over the window, black (dim) elsewhere, ~8% soft edge -
+	   same buildDimMask idiom as Minimap.tsx, ported to `to right` */
+	mask-image: linear-gradient(to right, black 0%, black calc(var(--win-left) - 8%),
+		transparent var(--win-left), transparent calc(var(--win-left) + var(--win-width)),
+		black calc(var(--win-left) + var(--win-width) + 8%), black 100%);
+	-webkit-mask-image: /* same */;
+	pointer-events: none;
+}
+.shorts-scrollbar__thumb {
+	position: absolute;
+	top: 0; bottom: 0; left: 0;
+	width: 60%; /* JS-set: viewportW / contentW, 3 of 5 cards */
+	border: 2px solid rgba(15, 23, 42, 0.4);
+	background: transparent;
+	pointer-events: none;
+}
+.shorts-scrollbar--night .shorts-scrollbar__dim { background: rgba(255, 255, 255, 0.35); }
+.shorts-scrollbar--night .shorts-scrollbar__thumb { border-color: rgba(255, 255, 255, 0.55); }</pre>
+			<div class="spec-foot">
+				<button type="button" class="copy-btn" id="copyA">Copy A spec</button>
+				<p>Paste this line back into chat to lock design A.</p>
+			</div>
+		</div>
+	</div>
+
+	<!-- B -->
+	<div class="panel">
+		<div class="panel-head">
+			<div class="badge">B</div>
+			<div class="panel-head-text">
+				<h3>Color-sample band</h3>
+				<p>One flat cell per Short, tinted by that thumbnail's dominant color. Abstract, reads as a coded journey rather than a picture strip.</p>
+			</div>
+		</div>
+		<div class="panel-stage">
+			<div class="shorts-scrollbar" id="barB">
+				<div class="band" id="bandB"></div>
+				<div id="dimB"></div>
+				<div class="win" id="winB"></div>
+			</div>
+		</div>
+		<div class="compare">
+			<div class="day-cell"><p class="cell-label">Day</p><div class="shorts-scrollbar" id="barB_day" style="height:28px; pointer-events:none;"><div class="band" id="bandB_day"></div><div id="dimB_day"></div><div class="win" id="winB_day" style="border:2px solid rgba(15,23,42,0.45);"></div></div></div>
+			<div class="night-cell"><p class="cell-label">Night</p><div class="shorts-scrollbar" id="barB_night" style="height:28px; pointer-events:none;"><div class="band" id="bandB_night"></div><div id="dimB_night"></div><div class="win" id="winB_night" style="border:2px solid rgba(255,255,255,0.6);"></div></div></div>
+		</div>
+		<div class="spec">
+			<pre>/* B - color-sample band */
+.shorts-scrollbar {
+	position: relative;
+	height: 28px;
+	margin-top: 10px;
+	cursor: grab;
+	overflow: hidden;
+}
+.shorts-scrollbar__band {
+	position: absolute;
+	inset: 0;
+	display: flex;
+}
+.shorts-scrollbar__band span {
+	flex: 1 1 20%;
+	height: 100%;
+}
+/* per-thumbnail dominant colors - in the real build these are generated by a
+   small script that samples each i.ytimg.com thumbnail at build time; hand-
+   picked here since thumbnail fetch is CORS-blocked in a sandbox */
+.shorts-scrollbar__band span:nth-child(1) { background: #c0392b; }
+.shorts-scrollbar__band span:nth-child(2) { background: #d35400; }
+.shorts-scrollbar__band span:nth-child(3) { background: #2980b9; }
+.shorts-scrollbar__band span:nth-child(4) { background: #16a34a; }
+.shorts-scrollbar__band span:nth-child(5) { background: #7c3aed; }
+.shorts-scrollbar__dim {
+	position: absolute;
+	inset: 0;
+	background: rgba(15, 23, 42, 0.45);
+	mask-image: linear-gradient(to right, black 0%, black calc(var(--win-left) - 8%),
+		transparent var(--win-left), transparent calc(var(--win-left) + var(--win-width)),
+		black calc(var(--win-left) + var(--win-width) + 8%), black 100%);
+	-webkit-mask-image: /* same */;
+	pointer-events: none;
+}
+.shorts-scrollbar__thumb {
+	position: absolute;
+	top: 0; bottom: 0; left: 0;
+	width: 60%;
+	border: 2px solid rgba(15, 23, 42, 0.45);
+	background: transparent;
+	pointer-events: none;
+}
+.shorts-scrollbar--night .shorts-scrollbar__dim { background: rgba(255, 255, 255, 0.3); }
+.shorts-scrollbar--night .shorts-scrollbar__thumb { border-color: rgba(255, 255, 255, 0.6); }</pre>
+			<div class="spec-foot">
+				<button type="button" class="copy-btn" id="copyB">Copy B spec</button>
+				<p>Paste this line back into chat to lock design B.</p>
+			</div>
+		</div>
+	</div>
+
+	<!-- C -->
+	<div class="panel">
+		<div class="panel-head">
+			<div class="badge">C</div>
+			<div class="panel-head-text">
+				<h3>Brutalist red window</h3>
+				<p>No thumbnails, no per-cell color. A translucent ink trail (thumb height) and a YouTube-red bordered filled window. Cheapest, most restrained.</p>
+			</div>
+		</div>
+		<div class="panel-stage">
+			<div class="shorts-scrollbar" id="barC">
+				<div id="trailC"></div>
+				<div class="win" id="winC"></div>
+			</div>
+		</div>
+		<div class="compare">
+			<div class="day-cell"><p class="cell-label">Day</p><div class="shorts-scrollbar" id="barC_day" style="height:18px; pointer-events:none;"><div id="trailC_day" style="position:absolute;inset:0;background:rgba(15,23,42,0.08);"></div><div class="win" id="winC_day" style="border:2px solid #FF0000; background:rgba(255,0,0,0.12);"></div></div></div>
+			<div class="night-cell"><p class="cell-label">Night</p><div class="shorts-scrollbar" id="barC_night" style="height:18px; pointer-events:none;"><div id="trailC_night" style="position:absolute;inset:0;background:rgba(255,255,255,0.15);"></div><div class="win" id="winC_night" style="border:2px solid #FF0000; background:rgba(255,0,0,0.18);"></div></div></div>
+		</div>
+		<div class="spec">
+			<pre>/* C - brutalist red window */
+.shorts-scrollbar {
+	position: relative;
+	height: 18px;
+	margin-top: 10px;
+	cursor: grab;
+	overflow: hidden;
+}
+.shorts-scrollbar::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: rgba(15, 23, 42, 0.08);
+}
+.shorts-scrollbar__thumb {
+	position: absolute;
+	top: 0; bottom: 0; left: 0;
+	width: 60%;
+	border: 2px solid #FF0000;
+	background: rgba(255, 0, 0, 0.12);
+}
+.shorts-scrollbar--night::before { background: rgba(255, 255, 255, 0.15); }
+.shorts-scrollbar--night .shorts-scrollbar__thumb {
+	border-color: #FF0000;
+	background: rgba(255, 0, 0, 0.18);
+}</pre>
+			<div class="spec-foot">
+				<button type="button" class="copy-btn" id="copyC">Copy C spec</button>
+				<p>Paste this line back into chat to lock design C.</p>
+			</div>
+		</div>
+	</div>
+
+</div>
+
+<script>
+(function () {
+	"use strict";
+
+	var IDS = ["YaoyTizlaE4", "cgsF6B5eR98", "5mgQepVfcyc", "UGgKyRGUwkE", "ueRlidFgFYY"];
+	var CAPS = ["Short 1", "Short 2", "Short 3", "Short 4", "Short 5"];
+	var WIDTH_FRAC = 0.6; /* 3 of 5 cards visible */
+	var FADE_PCT = 8;
+
+	function thumbSrc(id, size) { return "https://i.ytimg.com/vi/" + id + "/" + size + ".jpg"; }
+
+	function wireThumb(img, id) {
+		var tried = 0;
+		img.addEventListener("error", function () {
+			tried++;
+			if (tried === 1) {
+				img.src = thumbSrc(id, "hqdefault");
+			} else {
+				img.style.display = "none";
+				var fb = img.nextElementSibling;
+				if (fb) fb.style.display = "flex";
+			}
+		});
+		img.src = thumbSrc(id, "oardefault");
+	}
+
+	/* ---------- rail cards ---------- */
+	var track = document.getElementById("track");
+	IDS.forEach(function (id, i) {
+		var card = document.createElement("div");
+		card.className = "short-card";
+		card.innerHTML =
+			'<div class="thumb-wrap"><img alt="" /><div class="thumb-fallback">' + (i + 1) + "</div></div>" +
+			'<p class="cap">' + CAPS[i] + "</p>";
+		track.appendChild(card);
+		wireThumb(card.querySelector("img"), id);
+	});
+
+	/* ---------- filmstrip + band cell builders (reused for live + both compare cells) ---------- */
+	function buildFilmstrip(container) {
+		IDS.forEach(function (id, i) {
+			var img = document.createElement("img");
+			img.alt = "";
+			container.appendChild(img);
+			var fb = document.createElement("div");
+			fb.className = "thumb-fallback";
+			fb.textContent = i + 1;
+			container.appendChild(fb);
+			wireThumb(img, id);
+		});
+	}
+	var BAND_COLORS = ["#c0392b", "#d35400", "#2980b9", "#16a34a", "#7c3aed"];
+	function buildBand(container) {
+		BAND_COLORS.forEach(function (c) {
+			var span = document.createElement("span");
+			span.style.background = c;
+			container.appendChild(span);
+		});
+	}
+
+	["filmstripA", "filmstripA_day", "filmstripA_night"].forEach(function (id) {
+		buildFilmstrip(document.getElementById(id));
+	});
+	["bandB", "bandB_day", "bandB_night"].forEach(function (id) {
+		buildBand(document.getElementById(id));
+	});
+
+	/* ---------- dim-mask (Minimap idiom, ported horizontal) ---------- */
+	function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+	function dimMaskH(leftPct, widthPct) {
+		var a1 = clamp(leftPct - FADE_PCT, 0, 100);
+		var b1 = leftPct;
+		var a2 = leftPct + widthPct;
+		var b2 = clamp(a2 + FADE_PCT, 0, 100);
+		return "linear-gradient(to right, black 0%, black " + a1.toFixed(2) + "%, transparent " + b1.toFixed(2) +
+			"%, transparent " + a2.toFixed(2) + "%, black " + b2.toFixed(2) + "%, black 100%)";
+	}
+
+	/* ---------- shared position state ---------- */
+	var pos = 0.15; /* start slightly scrubbed so all three read as "in motion" at a glance */
+	var isNight = false;
+
+	var rail = document.getElementById("rail");
+
+	function measureRail() {
+		var railW = rail.clientWidth;
+		var trackW = track.scrollWidth;
+		return Math.max(0, trackW - railW);
+	}
+
+	function renderDimBar(barEl, dimEl, winEl, dimDay, dimNight, borderDay, borderNight) {
+		var barW = barEl.clientWidth;
+		if (barW <= 0) return;
+		var thumbW = barW * WIDTH_FRAC;
+		var travel = barW - thumbW;
+		var left = pos * travel;
+		winEl.style.width = thumbW + "px";
+		winEl.style.transform = "translate3d(" + left + "px, 0, 0)";
+		winEl.style.borderColor = isNight ? borderNight : borderDay;
+		var leftPct = (left / barW) * 100;
+		var widthPct = (thumbW / barW) * 100;
+		var mask = dimMaskH(leftPct, widthPct);
+		dimEl.style.maskImage = mask;
+		dimEl.style.webkitMaskImage = mask;
+		dimEl.style.background = isNight ? dimNight : dimDay;
+	}
+
+	function render() {
+		var maxOffset = measureRail();
+		var offsetPx = pos * maxOffset;
+		track.style.transform = "translate3d(" + (-offsetPx) + "px, 0, 0)";
+
+		renderDimBar(
+			document.getElementById("barA"), document.getElementById("dimA"), document.getElementById("winA"),
+			"rgba(15, 23, 42, 0.5)", "rgba(255, 255, 255, 0.35)",
+			"rgba(15, 23, 42, 0.4)", "rgba(255, 255, 255, 0.55)"
+		);
+		renderDimBar(
+			document.getElementById("barB"), document.getElementById("dimB"), document.getElementById("winB"),
+			"rgba(15, 23, 42, 0.45)", "rgba(255, 255, 255, 0.3)",
+			"rgba(15, 23, 42, 0.45)", "rgba(255, 255, 255, 0.6)"
+		);
+
+		var barC = document.getElementById("barC");
+		var winC = document.getElementById("winC");
+		var trailC = document.getElementById("trailC");
+		var barCW = barC.clientWidth;
+		if (barCW > 0) {
+			var thumbCW = barCW * WIDTH_FRAC;
+			var travelC = barCW - thumbCW;
+			var leftC = pos * travelC;
+			winC.style.width = thumbCW + "px";
+			winC.style.transform = "translate3d(" + leftC + "px, 0, 0)";
+			winC.style.borderColor = "#FF0000";
+			winC.style.background = isNight ? "rgba(255, 0, 0, 0.18)" : "rgba(255, 0, 0, 0.12)";
+			trailC.style.background = isNight ? "rgba(255, 255, 255, 0.15)" : "rgba(15, 23, 42, 0.08)";
+		}
+
+		document.body.classList.toggle("night", isNight);
+		[document.getElementById("barA"), document.getElementById("barB"), document.getElementById("barC")].forEach(function (b) {
+			b.classList.toggle("night", isNight);
+		});
+	}
+
+	/* fixed 30% position for the "both skies at once" static comparison cells */
+	function renderCompare() {
+		renderDimBarAt(0.3, "barA_day", "dimA_day", "winA_day", "rgba(15,23,42,0.5)", "rgba(15,23,42,0.4)");
+		renderDimBarAt(0.3, "barA_night", "dimA_night", "winA_night", "rgba(255,255,255,0.35)", "rgba(255,255,255,0.55)");
+		renderDimBarAt(0.3, "barB_day", "dimB_day", "winB_day", "rgba(15,23,42,0.45)", "rgba(15,23,42,0.45)");
+		renderDimBarAt(0.3, "barB_night", "dimB_night", "winB_night", "rgba(255,255,255,0.3)", "rgba(255,255,255,0.6)");
+		renderClassicAt(0.3, "barC_day", "winC_day");
+		renderClassicAt(0.3, "barC_night", "winC_night");
+	}
+	function renderDimBarAt(p, barId, dimId, winId, dimColor, borderColor) {
+		var barEl = document.getElementById(barId);
+		var dimEl = document.getElementById(dimId);
+		var winEl = document.getElementById(winId);
+		var barW = barEl.clientWidth;
+		if (barW <= 0) return;
+		var thumbW = barW * WIDTH_FRAC;
+		var travel = barW - thumbW;
+		var left = p * travel;
+		winEl.style.width = thumbW + "px";
+		winEl.style.transform = "translate3d(" + left + "px, 0, 0)";
+		var leftPct = (left / barW) * 100;
+		var widthPct = (thumbW / barW) * 100;
+		var mask = dimMaskH(leftPct, widthPct);
+		dimEl.style.maskImage = mask;
+		dimEl.style.webkitMaskImage = mask;
+		dimEl.style.background = dimColor;
+	}
+	function renderClassicAt(p, barId, winId) {
+		var barEl = document.getElementById(barId);
+		var winEl = document.getElementById(winId);
+		var barW = barEl.clientWidth;
+		if (barW <= 0) return;
+		var thumbW = barW * WIDTH_FRAC;
+		var travel = barW - thumbW;
+		var left = p * travel;
+		winEl.style.width = thumbW + "px";
+		winEl.style.transform = "translate3d(" + left + "px, 0, 0)";
+	}
+
+	/* ---------- drag: shared across A/B/C, updates the single `pos` state ---------- */
+	function attachDrag(barEl, winEl) {
+		var dragging = false, travel = 0, rectLeft = 0, grabX = 0;
+		function update(clientX) {
+			var x = clientX - rectLeft - grabX;
+			pos = travel > 0 ? clamp(x / travel, 0, 1) : 0;
+			render();
+		}
+		barEl.addEventListener("pointerdown", function (e) {
+			var rect = barEl.getBoundingClientRect();
+			var barW = rect.width;
+			var thumbW = barW * WIDTH_FRAC;
+			travel = barW - thumbW;
+			rectLeft = rect.left;
+			var winRect = winEl.getBoundingClientRect();
+			var within = e.clientX >= winRect.left && e.clientX <= winRect.right;
+			grabX = within ? (e.clientX - winRect.left) : thumbW / 2;
+			dragging = true;
+			barEl.classList.add("grabbing");
+			try { barEl.setPointerCapture(e.pointerId); } catch (err) {}
+			update(e.clientX);
+		});
+		barEl.addEventListener("pointermove", function (e) { if (dragging) update(e.clientX); });
+		function stop(e) {
+			dragging = false;
+			barEl.classList.remove("grabbing");
+			if (barEl.hasPointerCapture && barEl.hasPointerCapture(e.pointerId)) {
+				barEl.releasePointerCapture(e.pointerId);
+			}
+		}
+		barEl.addEventListener("pointerup", stop);
+		barEl.addEventListener("pointercancel", stop);
+	}
+	attachDrag(document.getElementById("barA"), document.getElementById("winA"));
+	attachDrag(document.getElementById("barB"), document.getElementById("winB"));
+	attachDrag(document.getElementById("barC"), document.getElementById("winC"));
+
+	/* ---------- prev/next (steps across the 2 remaining start-indices: 0, 1, 2) ---------- */
+	document.getElementById("btnPrev").addEventListener("click", function () { pos = clamp(pos - 0.5, 0, 1); render(); });
+	document.getElementById("btnNext").addEventListener("click", function () { pos = clamp(pos + 0.5, 0, 1); render(); });
+
+	/* ---------- day/night toggle ---------- */
+	document.getElementById("skyToggle").addEventListener("click", function (e) {
+		var btn = e.target.closest("button");
+		if (!btn) return;
+		isNight = btn.dataset.sky === "night";
+		document.querySelectorAll("#skyToggle button").forEach(function (b) {
+			b.classList.toggle("on", b.dataset.sky === btn.dataset.sky);
+		});
+		render();
+	});
+
+	/* ---------- copy buttons ---------- */
+	function wireCopy(btnId, text) {
+		var btn = document.getElementById(btnId);
+		btn.addEventListener("click", function () {
+			function done(ok) {
+				btn.textContent = ok ? "Copied!" : "Copy failed - select manually";
+				setTimeout(function () { btn.textContent = btnId === "copyA" ? "Copy A spec" : (btnId === "copyB" ? "Copy B spec" : "Copy C spec"); }, 1800);
+			}
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+			} else {
+				var ta = document.createElement("textarea");
+				ta.value = text;
+				document.body.appendChild(ta);
+				ta.select();
+				var ok = false;
+				try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
+				document.body.removeChild(ta);
+				done(ok);
+			}
+		});
+	}
+	wireCopy("copyA", "design: A-filmstrip | height: 48px | dim-day: rgba(15,23,42,0.5) | dim-night: rgba(255,255,255,0.35) | window-border-day: rgba(15,23,42,0.4) | window-border-night: rgba(255,255,255,0.55) | window-width: 60%");
+	wireCopy("copyB", "design: B-color-band | height: 28px | cell-colors: #c0392b,#d35400,#2980b9,#16a34a,#7c3aed | dim-day: rgba(15,23,42,0.45) | dim-night: rgba(255,255,255,0.3) | window-border-day: rgba(15,23,42,0.45) | window-border-night: rgba(255,255,255,0.6) | window-width: 60%");
+	wireCopy("copyC", "design: C-red-window | height: 18px | trail-day: rgba(15,23,42,0.08) | trail-night: rgba(255,255,255,0.15) | window-border: #FF0000 | window-fill-day: rgba(255,0,0,0.12) | window-fill-night: rgba(255,0,0,0.18) | window-width: 60%");
+
+	/* ---------- boot ---------- */
+	render();
+	renderCompare();
+	window.addEventListener("resize", function () { render(); renderCompare(); });
+})();
+</script>
+</body>
+</html>

@@ -46,6 +46,24 @@ function EyeIcon() {
 	);
 }
 
+function FilmstripCell({ short }: { short: YoutubeShort }) {
+	const vertical = `https://i.ytimg.com/vi/${short.id}/oardefault.jpg`;
+	const fallback = `https://i.ytimg.com/vi/${short.id}/hqdefault.jpg`;
+	const [src, setSrc] = useState<string | null>(vertical);
+	if (!src)
+		return <span className="shorts-scrollbar__cell" aria-hidden="true" />;
+	return (
+		<img
+			className="shorts-scrollbar__cell"
+			src={src}
+			alt=""
+			loading="lazy"
+			draggable={false}
+			onError={() => setSrc((c) => (c === vertical ? fallback : null))}
+		/>
+	);
+}
+
 function ShortCard({ short }: { short: YoutubeShort }) {
 	const vertical = `https://i.ytimg.com/vi/${short.id}/oardefault.jpg`;
 	const fallback = `https://i.ytimg.com/vi/${short.id}/hqdefault.jpg`;
@@ -110,6 +128,7 @@ export function ShortsCarousel({ isNight }: { isNight: boolean }) {
 		trackRef,
 		barRef,
 		thumbRef,
+		offWrapRef,
 		wrapProps,
 		railProps,
 		barProps,
@@ -164,6 +183,18 @@ export function ShortsCarousel({ isNight }: { isNight: boolean }) {
 				{...barProps}
 				className={`shorts-scrollbar${isNight ? " shorts-scrollbar--night" : ""}${barGrabbing ? " shorts-scrollbar--grabbing" : ""}`}
 			>
+				<div className="shorts-scrollbar__strip">
+					{YOUTUBE_SHORTS.map((short) => (
+						<FilmstripCell key={short.id} short={short} />
+					))}
+				</div>
+				<div ref={offWrapRef} className="shorts-scrollbar__off-wrap">
+					<div className="shorts-scrollbar__off">
+						{YOUTUBE_SHORTS.map((short) => (
+							<FilmstripCell key={short.id} short={short} />
+						))}
+					</div>
+				</div>
 				<div ref={thumbRef} className="shorts-scrollbar__thumb" />
 			</div>
 		</div>

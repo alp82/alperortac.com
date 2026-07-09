@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shorts scrollbar &mdash; filmstrip minimap, off-window treatments (V1&ndash;V6)</title>
+<style>
+	* { box-sizing: border-box; }
+	html, body { margin: 0; padding: 0; }
+	body {
+		font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+		background: #e8eef2;
+		color: #0f172a;
+		transition: background 250ms ease-out, color 250ms ease-out;
+	}
+	body.night { background: #0b0a17; color: #f8fafc; }
+
+	.page-header {
+		padding: 18px 24px 14px;
+		border-bottom: 2px solid #0f172a;
+		background: #ffffff;
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 20px;
+		flex-wrap: wrap;
+	}
+	body.night .page-header { background: #14122a; border-color: #f8fafc; }
+	.page-header h1 {
+		margin: 0 0 4px;
+		font-size: 15px;
+		font-weight: 900;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+	}
+	.page-header p { margin: 0; font-size: 12.5px; color: #475569; max-width: 680px; }
+	body.night .page-header p { color: #cbd5e1; }
+	.sky-toggle { display: flex; border: 2px solid #0f172a; flex-shrink: 0; }
+	body.night .sky-toggle { border-color: #f8fafc; }
+	.sky-toggle button {
+		padding: 9px 16px;
+		font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;
+		background: #ffffff; color: #0f172a; border: none; cursor: pointer;
+	}
+	.sky-toggle button:first-child { border-right: 2px solid #0f172a; }
+	body.night .sky-toggle button:first-child { border-color: #f8fafc; }
+	.sky-toggle button.on { background: #0f172a; color: #ffffff; }
+	body.night .sky-toggle button { background: #14122a; color: #f8fafc; }
+	body.night .sky-toggle button.on { background: #f8fafc; color: #0f172a; }
+
+	.layout { max-width: 900px; margin: 0 auto; padding: 22px 24px 60px; display: flex; flex-direction: column; gap: 22px; }
+
+	/* ---------- shared rail (reference only, moved by the global nudge arrows) ---------- */
+	.rail-block { border: 2px solid #0f172a; background: #87cbe8; padding: 22px 22px 26px; transition: background 250ms ease-out; }
+	body.night .rail-block { background: rgb(18, 12, 46); border-color: #f8fafc; }
+	.rail-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+	.rail-head h2 { margin: 0; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.28em; opacity: 0.75; }
+	.rail-head .rule { flex: 1; height: 1px; background: rgba(15, 23, 42, 0.25); }
+	body.night .rail-head .rule { background: rgba(248, 250, 252, 0.25); }
+	.rail-note { margin: 0 0 12px; font-size: 11px; color: rgba(15,23,42,0.6); }
+	body.night .rail-note { color: rgba(248,250,252,0.65); }
+	.rail-arrows { display: flex; gap: 8px; margin-bottom: 12px; }
+	.chip {
+		display: inline-flex; align-items: center; justify-content: center;
+		padding: 10px 12px; background: #ffffff; color: #0f172a;
+		border: 2px solid #0f172a; box-shadow: 5px 5px 0 0 #0f172a;
+		cursor: pointer; user-select: none; transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+	}
+	.chip:hover { transform: translate(2px, 2px); box-shadow: 3px 3px 0 0 #0f172a; }
+	.chip:active { transform: translate(5px, 5px); box-shadow: 0 0 0 0 #0f172a; }
+	body.night .chip { background: #0f172a; color: #f8fafc; border-color: #f8fafc; box-shadow: 5px 5px 0 0 #475569; }
+	body.night .chip:hover { box-shadow: 3px 3px 0 0 #475569; }
+	body.night .chip:active { box-shadow: 0 0 0 0 #475569; }
+	.chip svg { display: block; }
+
+	.shorts-rail { overflow: hidden; }
+	.shorts-track { display: flex; align-items: flex-start; gap: 14px; padding: 5px; will-change: transform; }
+	.short-card {
+		flex: 0 0 calc((100% - 2 * 14px) / 3);
+		border: 2px solid #0f172a; background: #ffffff; box-shadow: 5px 5px 0 0 #0f172a;
+		overflow: hidden; display: flex; flex-direction: column;
+	}
+	.short-card .thumb-wrap { position: relative; aspect-ratio: 9 / 16; background: #111318; overflow: hidden; }
+	.short-card .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+	.short-card .thumb-fallback {
+		position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+		background: linear-gradient(160deg, #7c2d12, #1c1917); color: #fff; font-size: 22px; font-weight: 900;
+	}
+	.short-card .cap { padding: 6px 8px; font-size: 10px; font-weight: 800; letter-spacing: 0.02em; }
+
+	/* ---------- design panels ---------- */
+	.panel { border: 2px solid #0f172a; background: #ffffff; color: #0f172a; }
+	.panel-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 2px solid #0f172a; }
+	.badge { width: 26px; height: 26px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #0f172a; color: #fff; font-weight: 900; font-size: 12px; }
+	.panel-head-text h3 { margin: 0 0 2px; font-size: 12.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; }
+	.panel-head-text p { margin: 0; font-size: 11.5px; color: #475569; }
+	.panel-stage { padding: 20px 20px 22px; background: #87cbe8; transition: background 250ms ease-out; }
+	body.night .panel-stage { background: rgb(18, 12, 46); }
+
+	/* ---------- shared bar chrome ---------- */
+	.scrollbar-bar {
+		position: relative; height: 48px;
+		cursor: grab; touch-action: pan-x; user-select: none; overflow: hidden;
+	}
+	.scrollbar-bar.grabbing { cursor: grabbing; }
+
+	.strip-base, .strip-off, .strip-off-wrap, .strip-tint { position: absolute; inset: 0; }
+	.strip-base, .strip-off { display: flex; pointer-events: none; }
+	.strip-base img, .strip-off img { flex: 1 1 20%; height: 100%; object-fit: cover; display: block; }
+	.strip-base .thumb-fallback, .strip-off .thumb-fallback {
+		flex: 1 1 20%; height: 100%; display: none; align-items: center; justify-content: center;
+		background: linear-gradient(160deg,#7c2d12,#1c1917); color: #fff; font-size: 10px; font-weight: 900;
+	}
+	.strip-off-wrap { pointer-events: none; will-change: mask-image; }
+	.strip-tint { pointer-events: none; }
+
+	/* V5 pixelate structural markup: shrink each off-window thumb to a small
+	   box then blow it back up with nearest-neighbor interpolation so detail
+	   collapses into flat color blocks. */
+	.mosaic-cell { flex: 1 1 20%; height: 100%; position: relative; overflow: hidden; }
+	.mosaic-shrink {
+		position: absolute; top: 0; left: 0; width: 12%; height: 12%;
+		transform-origin: top left; transform: scale(8.3334);
+	}
+	.mosaic-shrink img {
+		width: 100%; height: 100%; object-fit: cover; display: block;
+		image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;
+	}
+
+	/* the window: crisp hard-edged frame, no radius, hard offset shadow */
+	.win-hard {
+		position: absolute; top: 0; bottom: 0; left: 0;
+		box-sizing: border-box; pointer-events: none;
+		border-style: solid; border-width: 3px; border-radius: 0;
+		will-change: transform, width;
+	}
+
+	/* ---------- spec block ---------- */
+	.spec { border-top: 2px solid #0f172a; }
+	.spec pre {
+		margin: 0; padding: 14px 16px;
+		font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+		font-size: 11px; line-height: 1.55; white-space: pre-wrap; word-break: break-word;
+		background: #f8fafc; color: #0f172a;
+	}
+	.spec-foot { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 2px solid #0f172a; flex-wrap: wrap; }
+	.copy-btn {
+		padding: 9px 16px; font-size: 11.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em;
+		background: #0f172a; color: #ffffff; border: 2px solid #0f172a; box-shadow: 4px 4px 0 0 #64748b; cursor: pointer;
+	}
+	.copy-btn:hover { transform: translate(1px, 1px); box-shadow: 3px 3px 0 0 #64748b; }
+	.copy-btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 0 #64748b; }
+	.spec-foot p { margin: 0; font-size: 11.5px; color: #475569; }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+	<div>
+		<h1>Filmstrip minimap &mdash; six off-window treatments (V1&ndash;V6)</h1>
+		<p>Direction A locked (filmstrip trail, hard-edged window). This page explores ONLY how the off-window filmstrip is stylized to read as calm/not-busy while the windowed thumbnails stay full-color, full-detail, undimmed. Drag any bar to scrub it independently; the top rail + arrows nudge all six together for a synced reference.</p>
+	</div>
+	<div class="sky-toggle" id="skyToggle">
+		<button type="button" data-sky="day" class="on">Day</button>
+		<button type="button" data-sky="night">Night</button>
+	</div>
+</header>
+
+<div class="layout">
+
+	<div class="rail-block">
+		<div class="rail-head"><h2>Latest Shorts</h2><div class="rule"></div></div>
+		<p class="rail-note">Reference only &mdash; same 5-card rail as the real component. Arrows below nudge this rail and all six bars together; drag a bar directly to scrub it on its own.</p>
+		<div class="rail-arrows">
+			<button type="button" class="chip" id="btnPrev" aria-label="Previous">
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+			</button>
+			<button type="button" class="chip" id="btnNext" aria-label="Next">
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+			</button>
+		</div>
+		<div class="shorts-rail" id="rail">
+			<div class="shorts-track" id="track"></div>
+		</div>
+	</div>
+
+	<div id="variantsHost"></div>
+
+</div>
+
+<script>
+(function () {
+	"use strict";
+
+	var IDS = ["YaoyTizlaE4", "cgsF6B5eR98", "5mgQepVfcyc", "UGgKyRGUwkE", "ueRlidFgFYY"];
+	var CAPS = ["Short 1", "Short 2", "Short 3", "Short 4", "Short 5"];
+	var WIDTH_FRAC = 0.6; /* 3 of 5 cards visible */
+
+	function thumbSrc(id, size) { return "https://i.ytimg.com/vi/" + id + "/" + size + ".jpg"; }
+
+	function wireThumb(img, id) {
+		var tried = 0;
+		img.addEventListener("error", function () {
+			tried++;
+			if (tried === 1) {
+				img.src = thumbSrc(id, "hqdefault");
+			} else {
+				img.style.display = "none";
+				var fb = img.nextElementSibling;
+				if (fb) fb.style.display = "flex";
+			}
+		});
+		img.src = thumbSrc(id, "oardefault");
+	}
+
+	function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+	/* ---------- reference rail cards ---------- */
+	var track = document.getElementById("track");
+	IDS.forEach(function (id, i) {
+		var card = document.createElement("div");
+		card.className = "short-card";
+		card.innerHTML =
+			'<div class="thumb-wrap"><img alt="" /><div class="thumb-fallback">' + (i + 1) + "</div></div>" +
+			'<p class="cap">' + CAPS[i] + "</p>";
+		track.appendChild(card);
+		wireThumb(card.querySelector("img"), id);
+	});
+
+	/* ---------- filmstrip builders (reused base + off-window layers) ---------- */
+	function buildFilmstrip(container) {
+		IDS.forEach(function (id, i) {
+			var img = document.createElement("img");
+			img.alt = "";
+			container.appendChild(img);
+			var fb = document.createElement("div");
+			fb.className = "thumb-fallback";
+			fb.textContent = i + 1;
+			container.appendChild(fb);
+			wireThumb(img, id);
+		});
+	}
+	function buildMosaicFilmstrip(container) {
+		IDS.forEach(function (id) {
+			var cell = document.createElement("div");
+			cell.className = "mosaic-cell";
+			var shrink = document.createElement("div");
+			shrink.className = "mosaic-shrink";
+			var img = document.createElement("img");
+			img.alt = "";
+			shrink.appendChild(img);
+			cell.appendChild(shrink);
+			container.appendChild(cell);
+			wireThumb(img, id);
+		});
+	}
+
+	/* ---------- hard-edge cutout mask: zero fade, sharp cut ---------- */
+	function dimMaskHard(leftPct, widthPct) {
+		var a = clamp(leftPct, 0, 100);
+		var b = clamp(leftPct + widthPct, 0, 100);
+		return "linear-gradient(to right, black 0%, black " + a.toFixed(3) + "%, transparent " + a.toFixed(3) +
+			"%, transparent " + b.toFixed(3) + "%, black " + b.toFixed(3) + "%, black 100%)";
+	}
+
+	/* ---------- variant config: the six off-window treatments ---------- */
+	var VARIANTS = [
+		{
+			id: "v1", badge: "V1", name: "Grayscale + hard dim",
+			blurb: "Off-window drains to grayscale and drops brightness hard. Color becomes the signal, so the lit window's color explodes out against a colorless surround.",
+			filter: "grayscale(1) brightness(0.4) contrast(0.9)",
+			winBorderDay: "#0f172a", winBorderNight: "#f8fafc",
+			winShadowDay: "#0f172a", winShadowNight: "#475569"
+		},
+		{
+			id: "v2", badge: "V2", name: "Ink duotone",
+			blurb: "Off-window desaturates, then gets a translucent ink scrim blended in color mode. Reads as one calm navy texture; the window is the only true-color patch.",
+			filter: "grayscale(1) brightness(0.55)",
+			tint: "rgba(15,23,42,0.6)", tintBlend: "color",
+			winBorderDay: "#FF0000", winBorderNight: "#FF0000",
+			winShadowDay: "#0f172a", winShadowNight: "#f8fafc"
+		},
+		{
+			id: "v3", badge: "V3", name: "Blur + dim",
+			blurb: "Off-window blurs into soft color smears while the window stays razor-crisp. Blur is the strongest de-busy-er; tests whether a hard border still pops against a soft surround.",
+			filter: "blur(2.5px) brightness(0.5)",
+			winBorderDay: "#0f172a", winBorderNight: "#f8fafc",
+			winShadowDay: "#0f172a", winShadowNight: "#475569"
+		},
+		{
+			id: "v4", badge: "V4", name: "Flatten (low detail)",
+			blurb: "Off-window collapses toward flat muted color blocks &mdash; no blur, hard pixel edges kept, detail killed via brightness/contrast/saturation.",
+			filter: "brightness(0.55) contrast(0.65) saturate(0.5)",
+			winBorderDay: "#0f172a", winBorderNight: "#f8fafc",
+			winShadowDay: "#FF0000", winShadowNight: "#FF0000"
+		},
+		{
+			id: "v5", badge: "V5", name: "Pixelate / mosaic",
+			blurb: "Off-window renders each thumbnail as a few big color blocks (CSS-only shrink + nearest-neighbor upscale). Retro, blocky, very un-busy &mdash; experimental, approximated in pure CSS.",
+			mosaic: true,
+			winBorderDay: "#FF0000", winBorderNight: "#FF0000",
+			winShadowDay: "#0f172a", winShadowNight: "#f8fafc"
+		},
+		{
+			id: "v6", badge: "V6", name: "Near-black scrim punch-through",
+			blurb: "Off-window nearly vanishes into near-black; the filmstrip is barely a ghost, and the lit window reads as a bright punched-out hole. Maximum on/off contrast.",
+			filter: "brightness(0.22) contrast(0.9)",
+			winBorderDay: "#FF0000", winBorderNight: "#FF0000",
+			winShadowDay: "#FF0000", winShadowNight: "#FF0000"
+		}
+	];
+
+	function slug(v) { return (v.badge + "-" + v.name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
+
+	function specText(v) {
+		var lines = [];
+		lines.push("/* " + v.badge + " — " + v.name + " */");
+		lines.push(".shorts-scrollbar { position: relative; height: 48px; cursor: grab; overflow: hidden; }");
+		lines.push("");
+		lines.push("/* off-window layer: second copy of the same filmstrip, stacked above the base */");
+		if (v.mosaic) {
+			lines.push(".shorts-scrollbar__off-thumb {");
+			lines.push("  /* structural, not a filter — shrink to 12% box, then upscale */");
+			lines.push("  width: 12%; height: 12%; transform-origin: top left; transform: scale(8.3334);");
+			lines.push("  image-rendering: pixelated;");
+			lines.push("}");
+		} else {
+			lines.push(".shorts-scrollbar__off {");
+			lines.push("  filter: " + v.filter + ";");
+			lines.push("}");
+		}
+		if (v.tint) {
+			lines.push(".shorts-scrollbar__off-tint {");
+			lines.push("  background: " + v.tint + ";");
+			lines.push("  mix-blend-mode: " + v.tintBlend + ";");
+			lines.push("}");
+		}
+		lines.push("");
+		lines.push("/* hard cutout mask over the off-window group — zero fade, sharp cut;");
+		lines.push("   reveals the full-color base filmstrip underneath inside the window */");
+		lines.push(".shorts-scrollbar__off-wrap {");
+		lines.push("  mask-image: linear-gradient(to right, black 0%, black var(--win-left), transparent var(--win-left),");
+		lines.push("    transparent calc(var(--win-left) + var(--win-width)), black calc(var(--win-left) + var(--win-width)), black 100%);");
+		lines.push("  -webkit-mask-image: /* same */;");
+		lines.push("}");
+		lines.push("");
+		lines.push(".shorts-scrollbar__thumb {");
+		lines.push("  position: absolute; top: 0; bottom: 0; left: 0;");
+		lines.push("  width: 60%; /* JS-set: viewportW / contentW, 3 of 5 cards */");
+		lines.push("  border: 3px solid " + v.winBorderDay + ";");
+		lines.push("  box-shadow: 3px 3px 0 0 " + v.winShadowDay + ";");
+		lines.push("  border-radius: 0;");
+		lines.push("}");
+		lines.push(".shorts-scrollbar--night .shorts-scrollbar__thumb {");
+		lines.push("  border-color: " + v.winBorderNight + ";");
+		lines.push("  box-shadow: 3px 3px 0 0 " + v.winShadowNight + ";");
+		lines.push("}");
+		return lines.join("\n");
+	}
+
+	function copyLine(v) {
+		return "variant: " + v.badge + "-" + slug(v).replace(v.badge.toLowerCase() + "-", "") +
+			" | off-treatment: " + (v.mosaic ? "structural-mosaic(12pct-box+scale8.3334+pixelated)" : v.filter) +
+			(v.tint ? " | off-tint: " + v.tint + " blend:" + v.tintBlend : "") +
+			" | window-border-day: " + v.winBorderDay +
+			" | window-border-night: " + v.winBorderNight +
+			" | window-shadow-day: " + v.winShadowDay +
+			" | window-shadow-night: " + v.winShadowNight +
+			" | window-width: 60%";
+	}
+
+	/* ---------- build the six panels ---------- */
+	var host = document.getElementById("variantsHost");
+	VARIANTS.forEach(function (v) {
+		var panel = document.createElement("div");
+		panel.className = "panel";
+		panel.innerHTML =
+			'<div class="panel-head"><div class="badge">' + v.badge + '</div><div class="panel-head-text"><h3>' + v.name + '</h3><p>' + v.blurb + '</p></div></div>' +
+			'<div class="panel-stage"><div class="scrollbar-bar" id="bar_' + v.id + '">' +
+				'<div class="strip-base" id="base_' + v.id + '"></div>' +
+				'<div class="strip-off-wrap" id="offwrap_' + v.id + '">' +
+					'<div class="strip-off" id="off_' + v.id + '"></div>' +
+					(v.tint ? '<div class="strip-tint" id="tint_' + v.id + '"></div>' : '') +
+				'</div>' +
+				'<div class="win-hard" id="win_' + v.id + '"></div>' +
+			'</div></div>' +
+			'<div class="spec"><pre id="spectext_' + v.id + '"></pre>' +
+				'<div class="spec-foot"><button type="button" class="copy-btn" id="copy_' + v.id + '">Copy ' + v.badge + ' spec</button><p>Paste this line back into chat to lock ' + v.badge + '.</p></div>' +
+			'</div>';
+		host.appendChild(panel);
+
+		v.barEl = document.getElementById("bar_" + v.id);
+		v.offwrapEl = document.getElementById("offwrap_" + v.id);
+		v.winEl = document.getElementById("win_" + v.id);
+		v.pos = 0.15;
+
+		buildFilmstrip(document.getElementById("base_" + v.id));
+		if (v.mosaic) {
+			buildMosaicFilmstrip(document.getElementById("off_" + v.id));
+		} else {
+			buildFilmstrip(document.getElementById("off_" + v.id));
+			document.getElementById("off_" + v.id).style.filter = v.filter;
+		}
+		if (v.tint) {
+			var tintEl = document.getElementById("tint_" + v.id);
+			tintEl.style.background = v.tint;
+			tintEl.style.mixBlendMode = v.tintBlend;
+		}
+
+		document.getElementById("spectext_" + v.id).textContent = specText(v);
+	});
+
+	/* ---------- render: mask geometry (every drag frame) ---------- */
+	function renderVariant(v) {
+		var barW = v.barEl.clientWidth;
+		if (barW <= 0) return;
+		var thumbW = barW * WIDTH_FRAC;
+		var travel = barW - thumbW;
+		var left = v.pos * travel;
+		v.winEl.style.width = thumbW + "px";
+		v.winEl.style.transform = "translate3d(" + left + "px, 0, 0)";
+		var leftPct = (left / barW) * 100;
+		var widthPct = (thumbW / barW) * 100;
+		var mask = dimMaskHard(leftPct, widthPct);
+		v.offwrapEl.style.maskImage = mask;
+		v.offwrapEl.style.webkitMaskImage = mask;
+	}
+
+	/* ---------- night-mode colors (only on sky toggle, not every drag) ---------- */
+	var isNight = false;
+	function applyNightColors(v) {
+		v.winEl.style.borderColor = isNight ? v.winBorderNight : v.winBorderDay;
+		v.winEl.style.boxShadow = "3px 3px 0 0 " + (isNight ? v.winShadowNight : v.winShadowDay);
+	}
+
+	function renderAll() {
+		VARIANTS.forEach(renderVariant);
+	}
+	function applyAllNightColors() {
+		VARIANTS.forEach(applyNightColors);
+	}
+
+	/* ---------- reference rail follows the global "nudge" position only ---------- */
+	var rail = document.getElementById("rail");
+	var masterPos = 0.15;
+	function measureRail() {
+		var railW = rail.clientWidth;
+		var trackW = track.scrollWidth;
+		return Math.max(0, trackW - railW);
+	}
+	function renderRail() {
+		var maxOffset = measureRail();
+		var offsetPx = masterPos * maxOffset;
+		track.style.transform = "translate3d(" + (-offsetPx) + "px, 0, 0)";
+	}
+
+	/* ---------- drag: each bar owns its own `pos`, independent of the others ---------- */
+	function attachDrag(v) {
+		var dragging = false, travel = 0, rectLeft = 0, grabX = 0;
+		function update(clientX) {
+			var x = clientX - rectLeft - grabX;
+			v.pos = travel > 0 ? clamp(x / travel, 0, 1) : 0;
+			renderVariant(v);
+		}
+		v.barEl.addEventListener("pointerdown", function (e) {
+			var rect = v.barEl.getBoundingClientRect();
+			var barW = rect.width;
+			var thumbW = barW * WIDTH_FRAC;
+			travel = barW - thumbW;
+			rectLeft = rect.left;
+			var winRect = v.winEl.getBoundingClientRect();
+			var within = e.clientX >= winRect.left && e.clientX <= winRect.right;
+			grabX = within ? (e.clientX - winRect.left) : thumbW / 2;
+			dragging = true;
+			v.barEl.classList.add("grabbing");
+			try { v.barEl.setPointerCapture(e.pointerId); } catch (err) {}
+			update(e.clientX);
+		});
+		v.barEl.addEventListener("pointermove", function (e) { if (dragging) update(e.clientX); });
+		function stop(e) {
+			dragging = false;
+			v.barEl.classList.remove("grabbing");
+			if (v.barEl.hasPointerCapture && v.barEl.hasPointerCapture(e.pointerId)) {
+				v.barEl.releasePointerCapture(e.pointerId);
+			}
+		}
+		v.barEl.addEventListener("pointerup", stop);
+		v.barEl.addEventListener("pointercancel", stop);
+	}
+	VARIANTS.forEach(attachDrag);
+
+	/* ---------- global nudge arrows: move the rail + all six bars together ---------- */
+	document.getElementById("btnPrev").addEventListener("click", function () {
+		masterPos = clamp(masterPos - 0.5, 0, 1);
+		VARIANTS.forEach(function (v) { v.pos = masterPos; });
+		renderRail(); renderAll();
+	});
+	document.getElementById("btnNext").addEventListener("click", function () {
+		masterPos = clamp(masterPos + 0.5, 0, 1);
+		VARIANTS.forEach(function (v) { v.pos = masterPos; });
+		renderRail(); renderAll();
+	});
+
+	/* ---------- day/night toggle ---------- */
+	document.getElementById("skyToggle").addEventListener("click", function (e) {
+		var btn = e.target.closest("button");
+		if (!btn) return;
+		isNight = btn.dataset.sky === "night";
+		document.querySelectorAll("#skyToggle button").forEach(function (b) {
+			b.classList.toggle("on", b.dataset.sky === btn.dataset.sky);
+		});
+		document.body.classList.toggle("night", isNight);
+		applyAllNightColors();
+	});
+
+	/* ---------- copy buttons ---------- */
+	VARIANTS.forEach(function (v) {
+		var btn = document.getElementById("copy_" + v.id);
+		var text = copyLine(v);
+		btn.addEventListener("click", function () {
+			function done(ok) {
+				btn.textContent = ok ? "Copied!" : "Copy failed - select manually";
+				setTimeout(function () { btn.textContent = "Copy " + v.badge + " spec"; }, 1800);
+			}
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+			} else {
+				var ta = document.createElement("textarea");
+				ta.value = text;
+				document.body.appendChild(ta);
+				ta.select();
+				var ok = false;
+				try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
+				document.body.removeChild(ta);
+				done(ok);
+			}
+		});
+	});
+
+	/* ---------- boot ---------- */
+	applyAllNightColors();
+	renderRail();
+	renderAll();
+	window.addEventListener("resize", function () { renderRail(); renderAll(); });
+})();
+</script>
+</body>
+</html>
