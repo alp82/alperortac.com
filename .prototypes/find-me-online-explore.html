@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Find Me Online — layout explorer</title>
+<style>
+  :root {
+    --ink: #0f172a;
+    --sky: #7ec8e3;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: var(--sky); color: var(--ink);
+    font-family: ui-sans-serif, system-ui, "Inter", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 0 0 140px; }
+
+  /* ---------- fixed legend ---------- */
+  .legend {
+    position: fixed; top: 12px; right: 12px; z-index: 999;
+    background: rgba(255,255,255,.88); backdrop-filter: blur(6px);
+    border: 2px solid var(--ink); border-radius: 6px; box-shadow: 4px 4px 0 0 var(--ink);
+    padding: 10px 14px; max-width: 250px; font-size: 11.5px; line-height: 1.45;
+    font-weight: 700;
+  }
+  .legend b { font-family: ui-monospace, monospace; text-transform: uppercase; letter-spacing: .06em; font-size: 11px; }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 90px 24px 0; }
+
+  h1.page-title {
+    font-size: 30px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.02em;
+    margin: 0 0 6px; text-shadow: 3px 3px 0 rgba(255,255,255,.5);
+  }
+  .page-sub { margin: 0 0 40px; font-weight: 700; font-size: 13px; opacity: .8; max-width: 70ch; }
+
+  section.block { margin-bottom: 64px; }
+  .block-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+  .block-head h2 {
+    font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: -.01em; margin: 0;
+    text-shadow: 3px 3px 0 rgba(255,255,255,.5);
+  }
+  .block-note { font-size: 12px; font-weight: 700; opacity: .75; margin: 0 0 20px; }
+
+  /* ---------- segmented toggle ---------- */
+  .toggle {
+    display: inline-flex; gap: 6px; background: rgba(255,255,255,.5); border: 2px solid var(--ink);
+    border-radius: 6px; padding: 4px; box-shadow: 4px 4px 0 0 var(--ink); margin-bottom: 22px;
+  }
+  .toggle button {
+    font-family: inherit; font-weight: 900; text-transform: uppercase; letter-spacing: .05em;
+    font-size: 12px; padding: 8px 14px; border: 2px solid transparent; border-radius: 4px;
+    background: transparent; color: var(--ink); cursor: pointer; transition: all 120ms ease-out;
+  }
+  .toggle button:hover { background: rgba(255,255,255,.6); }
+  .toggle button.active {
+    background: var(--ink); color: #fff; border-color: var(--ink);
+  }
+
+  .caption {
+    font-size: 12px; font-weight: 700; font-style: italic; opacity: .8; margin: 14px 0 0;
+    background: rgba(255,255,255,.4); display: inline-block; padding: 4px 10px; border-radius: 4px;
+    border-left: 3px solid var(--ink);
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ================= shared brutalist button primitive ================= */
+  .bx {
+    --tint: #fff; --hover: #000; --icon: #0f172a; --icon-h: #fff;
+    display: inline-flex; align-items: center; text-decoration: none; color: var(--ink);
+    font-weight: 900; text-transform: uppercase; letter-spacing: .04em;
+    background: var(--tint); border: 2px solid var(--ink); border-radius: 4px;
+    box-shadow: 6px 6px 0 0 var(--ink); cursor: pointer; user-select: none;
+    transition: transform 80ms ease-out, box-shadow 80ms ease-out, background 120ms ease-out, color 120ms ease-out;
+  }
+  .bx:hover { background: var(--hover); color: #fff; transform: translate(2px,2px); box-shadow: 4px 4px 0 0 var(--ink); }
+  .bx:active { transform: translate(6px,6px); box-shadow: 0 0 0 0 var(--ink); }
+  .bx svg .g { fill: var(--icon); transition: fill 80ms ease-out; }
+  .bx:hover svg .g { fill: var(--icon-h); }
+
+  /* ---------- CURRENT (heavy) reference ---------- */
+  .heavy-ref { max-width: 420px; padding: 16px; background: rgba(255,255,255,.35); border-radius: 8px; border: 1.5px dashed rgba(15,23,42,.4); }
+  .heavy-group { margin-bottom: 18px; }
+  .heavy-group:last-child { margin-bottom: 0; }
+  .heavy-group-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .25em; opacity: .6; margin: 0 0 8px; }
+  .heavy-stack { display: flex; flex-direction: column; gap: 10px; }
+  .heavy-btn.bx { width: 100%; justify-content: space-between; padding: 14px 16px; font-size: 13px; }
+  .heavy-btn .left { display: flex; align-items: center; gap: 10px; }
+
+  /* ---------- A1 icon grid ---------- */
+  .a1-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 12px; max-width: 620px; }
+  .a1-tile.bx { flex-direction: column; justify-content: center; gap: 6px; aspect-ratio: 1; padding: 10px 4px; position: relative; }
+  .a1-tile .cap {
+    font-size: 8.5px; letter-spacing: .04em; opacity: 0; transform: translateY(2px);
+    transition: opacity 120ms ease-out, transform 120ms ease-out; white-space: nowrap;
+  }
+  .a1-tile:hover .cap { opacity: 1; transform: translateY(0); }
+
+  /* ---------- A2 compact chips ---------- */
+  .a2-group { margin-bottom: 16px; }
+  .a2-group:last-child { margin-bottom: 0; }
+  .a2-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .a2-chip.bx { padding: 7px 12px 7px 9px; gap: 8px; font-size: 12px; border-radius: 0; box-shadow: 4px 4px 0 0 var(--ink); }
+  .a2-chip.bx:hover { transform: translate(1.5px,1.5px); box-shadow: 2.5px 2.5px 0 0 var(--ink); }
+  .a2-chip.bx:active { transform: translate(4px,4px); box-shadow: 0 0 0 0 var(--ink); }
+
+  /* ---------- A3 icon rail ---------- */
+  .a3-group { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .a3-group:last-child { margin-bottom: 0; }
+  .a3-group-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .25em; opacity: .6; width: 64px; flex-shrink: 0; }
+  .a3-row { display: flex; gap: 8px; }
+  .a3-btn.bx { width: 42px; height: 42px; justify-content: center; padding: 0; position: relative; border-radius: 6px; }
+  .a3-btn .tip {
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(4px);
+    background: var(--ink); color: #fff; font-size: 10px; font-weight: 800; text-transform: none; letter-spacing: 0;
+    padding: 4px 8px; border-radius: 4px; white-space: nowrap; opacity: 0; pointer-events: none;
+    transition: opacity 120ms ease-out, transform 120ms ease-out;
+  }
+  .a3-btn .tip::after {
+    content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: var(--ink);
+  }
+  .a3-btn:hover .tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ================= Part B : content carousels ================= */
+  .rail-wrap { position: relative; }
+  .rail-arrows { display: flex; gap: 8px; margin-bottom: 12px; }
+  .arrow-btn.bx { width: 38px; height: 38px; justify-content: center; padding: 0; border-radius: 6px; --hover: #0f172a; }
+  .arrow-btn.bx svg { fill: none; stroke: var(--ink); stroke-width: 3; }
+  .arrow-btn.bx:hover svg { stroke: #fff; }
+
+  .rail {
+    display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x proximity;
+    padding: 6px 6px 16px; scrollbar-width: thin; scrollbar-color: var(--ink) transparent;
+    scroll-behavior: smooth;
+  }
+  .rail:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+  .rail::-webkit-scrollbar { height: 8px; }
+  .rail::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 4px; }
+
+  /* X post card */
+  .card-x {
+    scroll-snap-align: start; flex: 0 0 260px; background: #fff; border: 2px solid var(--ink); border-radius: 8px;
+    box-shadow: 6px 6px 0 0 var(--ink); padding: 14px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .card-x .head { display: flex; align-items: center; gap: 8px; }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; flex-shrink: 0;
+    border: 2px solid var(--ink);
+  }
+  .card-x .who { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+  .card-x .who .name { font-weight: 900; font-size: 12.5px; }
+  .card-x .who .handle { font-size: 11px; opacity: .6; font-weight: 700; }
+  .card-x .body { font-size: 13px; line-height: 1.45; font-weight: 600; flex: 1; }
+  .card-x .meta { display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 800; opacity: .65; }
+  .card-x .stats { display: flex; gap: 10px; }
+  .xbadge {
+    width: 16px; height: 16px; border-radius: 3px; background: #000; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .xbadge svg { fill: #fff; }
+
+  /* Short card */
+  .card-short {
+    scroll-snap-align: start; flex: 0 0 148px; background: #fff; border: 2px solid var(--ink); border-radius: 8px;
+    box-shadow: 6px 6px 0 0 var(--ink); overflow: hidden; display: flex; flex-direction: column;
+  }
+  .short-thumb {
+    aspect-ratio: 9/16; position: relative; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(160deg, var(--c1), var(--c2)); overflow: hidden;
+  }
+  .short-thumb::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(circle at 25% 20%, rgba(255,255,255,.25) 0, transparent 40%),
+                       radial-gradient(circle at 80% 80%, rgba(0,0,0,.18) 0, transparent 45%);
+  }
+  .short-play {
+    width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.92);
+    border: 2px solid var(--ink); display: flex; align-items: center; justify-content: center; z-index: 1;
+    box-shadow: 3px 3px 0 0 rgba(15,23,42,.5);
+  }
+  .short-play svg { fill: var(--ink); margin-left: 2px; }
+  .short-badge {
+    position: absolute; top: 6px; right: 6px; background: #FF0000; color: #fff; font-size: 8px; font-weight: 900;
+    padding: 2px 5px; border-radius: 3px; letter-spacing: .04em; z-index: 1;
+  }
+  .short-views {
+    position: absolute; bottom: 6px; left: 6px; color: #fff; font-size: 10px; font-weight: 800;
+    text-shadow: 0 1px 3px rgba(0,0,0,.6); z-index: 1; display: flex; align-items: center; gap: 3px;
+  }
+  .short-info { padding: 8px 9px 10px; }
+  .short-info .title { font-size: 11px; font-weight: 800; line-height: 1.3; margin: 0; }
+
+  /* B2 rails */
+  .b2-rail-label { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .2em; opacity: .65; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  .b2-rail-label .line { flex: 1; height: 1px; background: rgba(15,23,42,.25); }
+  .b2-block { margin-bottom: 26px; }
+  .b2-block:last-child { margin-bottom: 0; }
+
+  /* B3 coverflow */
+  .coverflow-wrap {
+    position: relative; height: 340px; display: flex; align-items: center; justify-content: center;
+    perspective: 1200px;
+  }
+  .coverflow-track {
+    position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  }
+  .cf-card {
+    position: absolute; transition: transform 420ms cubic-bezier(.22,.9,.34,1), opacity 420ms ease, filter 420ms ease;
+    cursor: pointer;
+  }
+  .cf-card .card-x, .cf-card .card-short { box-shadow: 8px 8px 0 0 var(--ink); }
+  .cf-controls { display: flex; justify-content: center; gap: 10px; margin-top: 18px; }
+  .cf-dots { display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: 14px; }
+  .cf-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(15,23,42,.25); border: 1.5px solid var(--ink); cursor: pointer; transition: background 150ms; }
+  .cf-dot.active { background: var(--ink); }
+
+  footer.foot { margin-top: 60px; font-size: 11px; font-weight: 700; opacity: .6; text-align: center; }
+
+  /* ================= Part C : composition ================= */
+  .note-callout {
+    background: rgba(15,23,42,.09); border-left: 4px solid var(--ink); border-radius: 0 6px 6px 0;
+    padding: 10px 16px; font-weight: 800; font-size: 12.5px; line-height: 1.5; margin: 0 0 40px; max-width: 72ch;
+  }
+  .comp-section {
+    background: rgba(255,255,255,.42); border: 2px solid var(--ink); border-radius: 10px;
+    box-shadow: 8px 8px 0 0 var(--ink); padding: 34px 30px 30px; margin-bottom: 6px;
+  }
+  .comp-title {
+    font-size: 32px; font-weight: 900; text-transform: uppercase; letter-spacing: -.02em; margin: 0 0 8px;
+    text-shadow: 3px 3px 0 rgba(255,255,255,.5);
+  }
+  .comp-sub { margin: 0 0 26px; font-weight: 700; font-size: 13.5px; opacity: .82; max-width: 62ch; }
+  .comp-chip-label { margin: 0 0 10px; }
+  .comp-gap-top { margin-top: 28px; }
+  .lib-divider {
+    display: flex; align-items: center; gap: 14px; margin: 12px 0 44px;
+    font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .2em; opacity: .55;
+  }
+  .lib-divider .line { flex: 1; height: 2px; background: var(--ink); opacity: .25; }
+  .short-info .short-date { font-size: 10px; font-weight: 800; opacity: .55; margin: 3px 0 0; }
+
+  /* ---------- hero (C1, the shipped section) ---------- */
+  .hero-block { margin-bottom: 8px; }
+  .hero-final { padding: 38px 34px 34px; }
+  .hero-chip-gap { margin-top: clamp(56px, 9vw, 104px); }
+  #c1-rail { scroll-behavior: auto; }
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Compare</b><br>
+  C1 hero above the divider is the finished, real section. A1/A2/A3, B1/B2/B3 and the C2 alternate below the divider are reference / component library only.
+</div>
+
+<div class="wrap">
+  <h1 class="page-title">Find Me Online — layout explorer</h1>
+  <p class="page-sub">Throwaway HTML playground. Same brutalist DNA (2px ink border, 6px hard shadow, brand-color hover fill) — just repackaged. Nothing here is final code.</p>
+
+  <p class="note-callout">C1 below is the finished, real section — carousel auto-advances with a springy snap, then a big breathing gap, then the grouped chip directory. Everything under the divider is throwaway reference / component library.</p>
+
+  <!-- ============================================================= -->
+  <!-- HERO — C1, the real shipped section -->
+  <!-- ============================================================= -->
+  <section class="block hero-block">
+    <div class="comp-section hero-final">
+      <h1 class="comp-title">Find Me Online</h1>
+      <p class="comp-sub">Freshest posts and shorts, pulled live from X and YouTube. Full directory below.</p>
+
+      <div class="rail-wrap" id="c1-rail-wrap">
+        <div class="rail-arrows">
+          <button class="arrow-btn bx" id="c1-prev" aria-label="scroll left"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button class="arrow-btn bx" id="c1-next" aria-label="scroll right"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div class="rail" id="c1-rail" tabindex="0"></div>
+      </div>
+
+      <div class="hero-chip-gap" id="c1-chips"></div>
+    </div>
+  </section>
+
+  <div class="lib-divider"><span class="line"></span><span>Component library / reference — below</span><span class="line"></span></div>
+
+  <!-- ============================================================= -->
+  <!-- PART C2 — alternate ordering, reference only -->
+  <!-- ============================================================= -->
+  <section class="block">
+    <div class="block-head"><h2>Part C2 — Alternate composition (reference)</h2></div>
+    <p class="block-note">Directory-first ordering considered against C1. Kept for comparison only — not wired to the hero's spring/auto-advance behavior.</p>
+    <div class="comp-section">
+      <h1 class="comp-title">Find Me Online</h1>
+      <p class="comp-sub">Freshest posts and shorts, pulled live from X and YouTube. Full directory below.</p>
+
+      <p class="b2-rail-label comp-chip-label">All platforms <span class="line"></span></p>
+      <div class="a2-row" id="c2-chips"></div>
+
+      <div class="rail-wrap comp-gap-top">
+        <div class="rail-arrows">
+          <button class="arrow-btn bx" id="c2-prev" aria-label="scroll left"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button class="arrow-btn bx" id="c2-next" aria-label="scroll right"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div class="rail" id="c2-rail" tabindex="0"></div>
+      </div>
+    </div>
+    <p class="caption">C2 — directory-first for scanners; the live feed becomes the payoff once you've skimmed the links.</p>
+  </section>
+
+  <!-- ============================================================= -->
+  <!-- PART A -->
+  <!-- ============================================================= -->
+  <section class="block">
+    <div class="block-head"><h2>Part A — Compact platform buttons</h2></div>
+    <p class="block-note">Current shipped layout is a tall vertical stack (shown below for scale). Toggle A1 / A2 / A3 to compare compact replacements.</p>
+
+    <div class="heavy-ref" id="heavy-ref"></div>
+
+    <div class="toggle" id="toggle-a">
+      <button data-panel="a1" class="active">A1 · Icon grid</button>
+      <button data-panel="a2">A2 · Compact chips</button>
+      <button data-panel="a3">A3 · Icon rail</button>
+    </div>
+
+    <div class="panel active" id="panel-a1">
+      <div class="a1-grid" id="a1-grid"></div>
+      <p class="caption">A1 — most compact of the three, but label only shows on hover/focus (discoverability lower on touch devices).</p>
+    </div>
+    <div class="panel" id="panel-a2">
+      <div id="a2-groups"></div>
+      <p class="caption">A2 — keeps grouping and readable labels, still ~70% shorter than the current stack; best balance of compact + legible.</p>
+    </div>
+    <div class="panel" id="panel-a3">
+      <div id="a3-groups"></div>
+      <p class="caption">A3 — tightest single-line footprint per group, but relies on hover tooltips so labels are invisible until interaction.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================= -->
+  <!-- PART B -->
+  <!-- ============================================================= -->
+  <section class="block">
+    <div class="block-head"><h2>Part B — Content carousel</h2></div>
+    <p class="block-note">Fake-but-plausible X posts + YouTube Shorts. Toggle B1 / B2 / B3. All keyboard-navigable (Tab into rail, arrow keys / buttons to move).</p>
+
+    <div class="toggle" id="toggle-b">
+      <button data-panel="b1" class="active">B1 · Unified scroll-snap</button>
+      <button data-panel="b2">B2 · Two-rail split</button>
+      <button data-panel="b3">B3 · Coverflow deck</button>
+    </div>
+
+    <div class="panel active" id="panel-b1">
+      <div class="rail-wrap">
+        <div class="rail-arrows">
+          <button class="arrow-btn bx" id="b1-prev" aria-label="scroll left"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button class="arrow-btn bx" id="b1-next" aria-label="scroll right"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div class="rail" id="b1-rail" tabindex="0"></div>
+      </div>
+      <p class="caption">B1 — one mixed rail (posts + shorts interleaved), most content per glance, but the size mismatch between card types is visually busier.</p>
+    </div>
+
+    <div class="panel" id="panel-b2">
+      <div class="b2-block">
+        <p class="b2-rail-label">Latest posts <span class="line"></span></p>
+        <div class="rail-wrap">
+          <div class="rail" id="b2-rail-x" tabindex="0"></div>
+        </div>
+      </div>
+      <div class="b2-block">
+        <p class="b2-rail-label">Shorts <span class="line"></span></p>
+        <div class="rail-wrap">
+          <div class="rail" id="b2-rail-short" tabindex="0"></div>
+        </div>
+      </div>
+      <p class="caption">B2 — clean separation, each type gets its own rhythm/card size; costs more vertical space than B1's single row.</p>
+    </div>
+
+    <div class="panel" id="panel-b3">
+      <div class="coverflow-wrap" id="cf-wrap">
+        <div class="coverflow-track" id="cf-track"></div>
+      </div>
+      <div class="cf-dots" id="cf-dots"></div>
+      <p class="caption">B3 — most playful and eye-catching (auto-advance, pauses on hover/focus), but shows one item at a time so it's slower to browse than a rail.</p>
+    </div>
+  </section>
+
+  <footer class="foot">throwaway · .prototypes/find-me-online-explore.html — nothing here is wired to real code</footer>
+</div>
+
+<script>
+/* ============================================================= */
+/* Icon glyph paths (simplified, recognizable single-path marks) */
+/* ============================================================= */
+const ICONS = {
+  x: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z",
+  threads: "M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.6 1.472 12.021v-.017c.028-3.579.878-6.42 2.523-8.451C5.845 1.234 8.598.048 12.179.024h.008c2.746.018 5.043.708 6.833 2.053 1.686 1.267 2.878 3.078 3.545 5.384l-2.272.654c-1.096-3.79-3.72-5.729-7.796-5.766h-.006c-2.911.019-5.11.921-6.535 2.682-1.334 1.65-2.02 4.024-2.043 7.056.023 3.033.71 5.407 2.043 7.056 1.424 1.762 3.624 2.664 6.535 2.683 2.626-.018 4.369-.653 5.828-2.126 1.394-1.407 1.858-3.152 1.786-4.828-.043-1.02-.29-1.885-.735-2.578-.354 3.31-2.087 6.087-6.14 6.229-2.393.084-4.51-.842-5.62-2.53-1.036-1.575-1.062-3.696.09-5.322 1.163-1.643 3.243-2.5 5.86-2.395 1.24.05 2.322.315 3.226.79-.163-1.037-.664-1.837-1.523-2.42-.999-.68-2.406-1.024-4.183-1.024h-.01c-2.028.005-3.588.586-4.638 1.727-.966 1.049-1.48 2.554-1.53 4.475l.002.024c.05 1.92.564 3.426 1.53 4.474 1.05 1.142 2.61 1.723 4.638 1.727h.014c1.712-.005 2.945-.407 3.667-1.196.605-.66.94-1.63.997-2.887-.716-.216-1.51-.324-2.365-.324-.007 0-.014 0-.02 0-1.526 0-2.6.394-3.007.976-.278.398-.256.9.058 1.331.415.573 1.25.877 2.416.878 2.24-.014 3.343-1.276 3.6-4.086-.847-.4-1.902-.61-3.135-.61-2.113.001-3.658.663-4.594 1.968-.797 1.11-.79 2.526.017 3.73.734 1.096 2.174 1.702 4.052 1.702.06 0 .12 0 .18-.003 3.11-.11 4.462-2.164 4.732-4.965.31.507.494 1.13.532 1.858.06 1.164-.276 2.398-1.276 3.414-1.09 1.105-2.559 1.617-4.72 1.633z",
+  bluesky: "M12 10.8c-.6-1.9-2.5-6.4-4.9-8.5C4.9.4 3.4.2 2.6.7c-.8.5-1 1.9-.5 3.5.6 1.9 2.6 5.5 5 7.2-2.4-1.5-6.7-3-8.5-1.5-.6.5-.9 1.5-.5 2.6.5 1.3 2.2 2.5 5 2.6-2.6.4-5.7 1.6-6.6 3.4-.6 1.2-.4 2.5.5 3.3 1.4 1.2 4.3.9 7.3-1.6 1.9-1.6 3.5-3.9 4.7-6.3 1.2 2.4 2.8 4.7 4.7 6.3 3 2.5 5.9 2.8 7.3 1.6.9-.8 1.1-2.1.5-3.3-.9-1.8-4-3-6.6-3.4 2.8-.1 4.5-1.3 5-2.6.4-1.1.1-2.1-.5-2.6-1.8-1.5-6.1 0-8.5 1.5 2.4-1.7 4.4-5.3 5-7.2.5-1.6.3-3-.5-3.5-.8-.5-2.3-.3-4.5 1.6-2.4 2.1-4.3 6.6-4.9 8.5z",
+  reddit: "M12 0C5.373 0 0 5.373 0 12c0 3.314 1.343 6.314 3.515 8.485L1 24l3.686-2.451A11.94 11.94 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm5.82 12.9a1.55 1.55 0 0 1-1.55 1.55c-.4 0-.76-.15-1.03-.4-1.02.65-2.4 1.07-3.93 1.13l.75-3.55 2.46.52a1.107 1.107 0 1 0 .1-.6l-2.75-.58a.28.28 0 0 0-.33.22l-.83 3.98c-1.5-.08-2.85-.5-3.85-1.14a1.54 1.54 0 0 1-1.03.4A1.55 1.55 0 1 1 6.9 12.4c.42 0 .8.16 1.08.42.9-.6 2.13-1 3.5-1.1l.62-2.94a.24.24 0 0 1 .29-.19l2.07.44a1.11 1.11 0 1 1-.1.55l-1.85-.4-.53 2.48c1.35.1 2.56.5 3.44 1.1.28-.25.65-.4 1.05-.4a1.55 1.55 0 0 1 1.55 1.54zM8.9 13.1a.85.85 0 1 0 0-1.7.85.85 0 0 0 0 1.7zm6.2 0a.85.85 0 1 0 0-1.7.85.85 0 0 0 0 1.7zm-4.63 1.63a.24.24 0 0 0-.02.34c.42.5 1.24.85 2.2.85s1.79-.35 2.2-.85a.24.24 0 1 0-.36-.32c-.32.38-.98.7-1.84.7s-1.52-.32-1.84-.7a.24.24 0 0 0-.34-.02z",
+  youtube: "M23.5 6.2a3.02 3.02 0 0 0-2.12-2.14C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.38.56A3.02 3.02 0 0 0 .5 6.2 31.6 31.6 0 0 0 0 12a31.6 31.6 0 0 0 .5 5.8 3.02 3.02 0 0 0 2.12 2.14C4.5 20.5 12 20.5 12 20.5s7.5 0 9.38-.56A3.02 3.02 0 0 0 23.5 17.8 31.6 31.6 0 0 0 24 12a31.6 31.6 0 0 0-.5-5.8zM9.6 15.6V8.4l6.4 3.6z",
+  github: "M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12",
+  linkedin: "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.852 3.37-1.852 3.601 0 4.267 2.37 4.267 5.455v6.288zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.063 2.063 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z",
+  tiktok: "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z",
+  instagram: "M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m5.28 5.6644a5.977 5.977 0 1 1 0 11.954 5.977 5.977 0 0 1 0-11.954zm0 1.892a4.085 4.085 0 1 0 0 8.17 4.085 4.085 0 0 0 0-8.17zm6.406-2.09a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0z",
+};
+
+const PLATFORMS = [
+  { key: "x", label: "X (Twitter)", group: "posts", href: "https://x.com/alperortac", brand: "#000000", tint: "#dde0e6" },
+  { key: "threads", label: "Threads", group: "posts", href: "https://threads.com/@alper.the.ortac", brand: "#000000", tint: "#e8e9ee" },
+  { key: "bluesky", label: "Bluesky", group: "posts", href: "https://bsky.app/profile/alperortac.bsky.social", brand: "#0285FF", tint: "#cfe8ff" },
+  { key: "reddit", label: "Reddit", group: "posts", href: "https://reddit.com/user/alp82", brand: "#FF4500", tint: "#ffd8c2" },
+  { key: "youtube", label: "YouTube", group: "video", href: "https://youtube.com/@AlperTheOrtac", brand: "#FF0000", tint: "#ffcfcf" },
+  { key: "tiktok", label: "TikTok", group: "video", href: "https://tiktok.com/@alperortac", brand: "#000000", tint: "#e9eaf0", split: true },
+  { key: "instagram", label: "Instagram", group: "video", href: "https://instagram.com/alper.the.ortac", brand: "#d62976", tint: "#f6d9e6",
+    hoverBg: "linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)" },
+  { key: "github", label: "GitHub", group: "pro", href: "https://github.com/alp82", brand: "#181717", tint: "#dee1e6" },
+  { key: "linkedin", label: "LinkedIn", group: "pro", href: "https://linkedin.com/in/alper-ortac-b8319549", brand: "#0A66C2", tint: "#cfe0f7" },
+];
+const GROUPS = [
+  { key: "posts", label: "Posts" },
+  { key: "video", label: "Video" },
+  { key: "pro", label: "Pro" },
+];
+
+function glyph(key, size) {
+  size = size || 22;
+  if (key === "tiktok") {
+    return '<svg width="'+size+'" height="'+size+'" viewBox="-2 -2 28 28">' +
+      '<path transform="translate(-1.3,-1.3)" fill="#25F4EE" d="'+ICONS.tiktok+'"/>' +
+      '<path transform="translate(1.3,1.3)" fill="#FE2C55" d="'+ICONS.tiktok+'"/>' +
+      '<path class="g" fill="#050608" d="'+ICONS.tiktok+'"/></svg>';
+  }
+  if (key === "instagram") {
+    return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24">' +
+      '<defs><linearGradient id="ig-grad-'+Math.random().toString(36).slice(2)+'" x1="0" y1="1" x2="1" y2="0">' +
+      '<stop offset="0" stop-color="#feda75"/><stop offset=".25" stop-color="#fa7e1e"/><stop offset=".5" stop-color="#d62976"/>' +
+      '<stop offset=".75" stop-color="#962fbf"/><stop offset="1" stop-color="#4f5bd5"/></linearGradient></defs>' +
+      '<path class="g" d="'+ICONS.instagram+'" fill="url(#ig-grad-0)"/></svg>';
+  }
+  return '<svg class="g" width="'+size+'" height="'+size+'" viewBox="0 0 24 24"><path class="g" d="'+ICONS[key]+'"/></svg>';
+}
+
+function btnStyle(p) {
+  return '--tint:'+p.tint+';--hover:'+(p.hoverBg||p.brand)+';--icon:'+p.brand+';--icon-h:#fff;';
+}
+
+/* ---------------- heavy reference (current shipped look, scaled small so it doesn't dominate the page) ---------------- */
+(function renderHeavy() {
+  const el = document.getElementById('heavy-ref');
+  let html = '<p style="font-size:10px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;opacity:.55;margin:0 0 10px;">current (heavy) — for reference</p>';
+  GROUPS.forEach(g => {
+    const items = PLATFORMS.filter(p => p.group === g.key);
+    html += '<div class="heavy-group"><p class="heavy-group-title">'+g.label+'</p><div class="heavy-stack">';
+    items.forEach(p => {
+      html += '<a class="bx heavy-btn" style="'+btnStyle(p)+'" href="'+p.href+'" target="_blank" rel="noopener">' +
+        '<span class="left">'+glyph(p.key,20)+'<span>'+p.label+'</span></span></a>';
+    });
+    html += '</div></div>';
+  });
+  el.innerHTML = html;
+})();
+
+/* ---------------- A1 icon grid ---------------- */
+(function renderA1() {
+  const el = document.getElementById('a1-grid');
+  el.innerHTML = PLATFORMS.map(p =>
+    '<a class="bx a1-tile" style="'+btnStyle(p)+'" href="'+p.href+'" target="_blank" rel="noopener" aria-label="'+p.label+'">' +
+      glyph(p.key,22) + '<span class="cap">'+p.label+'</span></a>'
+  ).join('');
+})();
+
+/* ---------------- A2 compact chips (grouped: Posts / Video / Pro) ---------------- */
+function renderChipsGrouped(containerId) {
+  document.getElementById(containerId).innerHTML = GROUPS.map(g => {
+    const items = PLATFORMS.filter(p => p.group === g.key);
+    return '<div class="a2-group"><p class="heavy-group-title">'+g.label+'</p><div class="a2-row">' +
+      items.map(p => '<a class="bx a2-chip" style="'+btnStyle(p)+'" href="'+p.href+'" target="_blank" rel="noopener">' +
+        glyph(p.key,16) + '<span>'+p.label+'</span></a>').join('') +
+      '</div></div>';
+  }).join('');
+}
+renderChipsGrouped('a2-groups');
+
+/* ---------------- A3 icon rail ---------------- */
+(function renderA3() {
+  const el = document.getElementById('a3-groups');
+  el.innerHTML = GROUPS.map(g => {
+    const items = PLATFORMS.filter(p => p.group === g.key);
+    return '<div class="a3-group"><p class="a3-group-title">'+g.label+'</p><div class="a3-row">' +
+      items.map(p => '<a class="bx a3-btn" style="'+btnStyle(p)+'" href="'+p.href+'" target="_blank" rel="noopener" aria-label="'+p.label+'">' +
+        glyph(p.key,18) + '<span class="tip">'+p.label+'</span></a>').join('') +
+      '</div></div>';
+  }).join('');
+})();
+
+/* ============================================================= */
+/* Part B fake content                                            */
+/* ============================================================= */
+const X_ICON = '<svg width="10" height="10" viewBox="0 0 24 24"><path d="'+ICONS.x+'"/></svg>';
+/* days = how long ago (used both to render a plausible date label AND to
+   sort/interleave the two feeds by recency — see buildMixedFeed) */
+const POSTS = [
+  { body: "Shipped the depth-dive zoom transition today. Landscape stays visible around a centered floating card — feels so much better than a hard cut.", likes: "142", rt: "18", days: 1 },
+  { body: "Small thing but: hover states on brutalist buttons should press, not just glow. translate(2px,2px) + shadow shrink does it.", likes: "89", rt: "6", days: 3 },
+  { body: "Building a nature scroll-journey site with an actual dig mechanic. Portfolio sites are too boring by default, fighting that.", likes: "310", rt: "44", days: 6 },
+  { body: "Hot take: neo-brutalism works because the shadow is a physical metaphor, not a decoration. Press it, it moves.", likes: "201", rt: "27", days: 9 },
+  { body: "Two hours deep in color-mix() for tint variants. CSS in 2026 is genuinely fun again.", likes: "56", rt: "3", days: 13 },
+  { body: "New hero pass: sunset gradient + drifting clouds + a bird. Subtle parallax only, nothing screams for attention.", likes: "178", rt: "22", days: 16 },
+];
+const SHORTS = [
+  { title: "Brutalist button hover in 15 seconds", views: "12.4K", c1: "#fbbf24", c2: "#f97316", days: 2 },
+  { title: "Why your shadows look fake", views: "8.1K", c1: "#38bdf8", c2: "#6366f1", days: 4 },
+  { title: "Dig mechanic — first working version", views: "24.7K", c1: "#34d399", c2: "#059669", days: 7 },
+  { title: "color-mix() explained fast", views: "5.9K", c1: "#f472b6", c2: "#a855f7", days: 10 },
+  { title: "Portfolio scroll journey walkthrough", views: "31.2K", c1: "#fb7185", c2: "#e11d48", days: 14 },
+  { title: "Hero redesign before/after", views: "9.6K", c1: "#facc15", c2: "#ea580c", days: 18 },
+];
+
+function dayLabel(days) {
+  return days < 7 ? days + 'd' : Math.round(days / 7) + 'w';
+}
+
+function xCard(p) {
+  return '<div class="card-x">' +
+    '<div class="head"><span class="avatar">A</span>' +
+      '<span class="who"><span class="name">Alper Ortac <span class="xbadge">'+X_ICON+'</span></span><span class="handle">@alperortac</span></span>' +
+    '</div>' +
+    '<div class="body">'+p.body+'</div>' +
+    '<div class="meta"><span class="stats"><span>❤ '+p.likes+'</span><span>↻ '+p.rt+'</span></span><span>'+dayLabel(p.days)+'</span></div>' +
+  '</div>';
+}
+function shortCard(s) {
+  return '<div class="card-short">' +
+    '<div class="short-thumb" style="--c1:'+s.c1+';--c2:'+s.c2+'">' +
+      '<span class="short-badge">SHORTS</span>' +
+      '<span class="short-play"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>' +
+      '<span class="short-views">▶ '+s.views+'</span>' +
+    '</div>' +
+    '<div class="short-info"><p class="title">'+s.title+'</p><p class="short-date">'+dayLabel(s.days)+'</p></div>' +
+  '</div>';
+}
+
+/* interleave posts + shorts into one feed sorted newest-first by days */
+function buildMixedFeed() {
+  const items = POSTS.map(p => ({ type: 'x', data: p, days: p.days }))
+    .concat(SHORTS.map(s => ({ type: 'short', data: s, days: s.days })));
+  items.sort((a, b) => a.days - b.days);
+  return items;
+}
+const MIXED_FEED_HTML = buildMixedFeed()
+  .map(item => item.type === 'x' ? xCard(item.data) : shortCard(item.data))
+  .join('');
+
+/* ---- shared unified-rail wiring (used by B1 and both Part C rails) ---- */
+function wireRail(railId, prevId, nextId) {
+  const rail = document.getElementById(railId);
+  rail.innerHTML = MIXED_FEED_HTML;
+  document.getElementById(prevId).addEventListener('click', () => rail.scrollBy({ left: -300, behavior: 'smooth' }));
+  document.getElementById(nextId).addEventListener('click', () => rail.scrollBy({ left: 300, behavior: 'smooth' }));
+  rail.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { rail.scrollBy({ left: 260, behavior: 'smooth' }); e.preventDefault(); }
+    if (e.key === 'ArrowLeft') { rail.scrollBy({ left: -260, behavior: 'smooth' }); e.preventDefault(); }
+  });
+}
+wireRail('b1-rail', 'b1-prev', 'b1-next');
+
+/* ---- B2 two-rail split ---- */
+(function renderB2() {
+  document.getElementById('b2-rail-x').innerHTML = POSTS.map(xCard).join('');
+  document.getElementById('b2-rail-short').innerHTML = SHORTS.map(shortCard).join('');
+  [['b2-rail-x', 260], ['b2-rail-short', 160]].forEach(([id, step]) => {
+    const rail = document.getElementById(id);
+    rail.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight') { rail.scrollBy({ left: step, behavior: 'smooth' }); e.preventDefault(); }
+      if (e.key === 'ArrowLeft') { rail.scrollBy({ left: -step, behavior: 'smooth' }); e.preventDefault(); }
+    });
+  });
+})();
+
+/* ---- B3 coverflow deck ---- */
+(function renderB3() {
+  const deck = [];
+  for (let i = 0; i < 6; i++) { deck.push({ type: 'x', data: POSTS[i] }); deck.push({ type: 'short', data: SHORTS[i] }); }
+  const track = document.getElementById('cf-track');
+  const dotsEl = document.getElementById('cf-dots');
+  let active = 0;
+  let timer = null;
+
+  track.innerHTML = deck.map((item, i) =>
+    '<div class="cf-card" data-i="'+i+'">' + (item.type === 'x' ? xCard(item.data) : shortCard(item.data)) + '</div>'
+  ).join('');
+  dotsEl.innerHTML = deck.map((_, i) => '<span class="cf-dot" data-i="'+i+'"></span>').join('');
+
+  const cards = Array.from(track.children);
+  const dots = Array.from(dotsEl.children);
+
+  function layout() {
+    cards.forEach((c, i) => {
+      let d = i - active;
+      // wrap to shortest path
+      if (d > deck.length / 2) d -= deck.length;
+      if (d < -deck.length / 2) d += deck.length;
+      const abs = Math.abs(d);
+      let tx = d * 130, scale = 1, rot = d * 10, z = 100 - abs, opacity = 1, blur = 0;
+      if (abs === 0) { tx = 0; scale = 1.08; rot = 0; }
+      if (abs > 2) { opacity = 0; }
+      else { opacity = 1 - abs * 0.28; blur = abs * 1.2; }
+      c.style.transform = 'translateX('+tx+'px) scale('+scale+') rotateY('+(-rot)+'deg)';
+      c.style.zIndex = z;
+      c.style.opacity = opacity;
+      c.style.filter = 'blur('+blur+'px)';
+      c.style.pointerEvents = abs === 0 ? 'auto' : 'none';
+    });
+    dots.forEach((d, i) => d.classList.toggle('active', i === active));
+  }
+  function go(i) { active = (i + deck.length) % deck.length; layout(); }
+  function next() { go(active + 1); }
+  function prev() { go(active - 1); }
+
+  dots.forEach(d => d.addEventListener('click', () => go(parseInt(d.dataset.i, 10))));
+  cards.forEach(c => c.addEventListener('click', () => go(parseInt(c.dataset.i, 10))));
+
+  const wrap = document.getElementById('cf-wrap');
+  wrap.tabIndex = 0;
+  wrap.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { next(); e.preventDefault(); }
+    if (e.key === 'ArrowLeft') { prev(); e.preventDefault(); }
+  });
+
+  function start() { timer = setInterval(next, 3200); }
+  function stop() { clearInterval(timer); }
+  wrap.addEventListener('mouseenter', stop);
+  wrap.addEventListener('mouseleave', start);
+  wrap.addEventListener('focusin', stop);
+  wrap.addEventListener('focusout', start);
+
+  layout();
+  start();
+})();
+
+/* ============================================================= */
+/* Part C — composition (the real blended section)                */
+/* ============================================================= */
+function renderChipsFlat(id) {
+  document.getElementById(id).innerHTML = PLATFORMS.map(p =>
+    '<a class="bx a2-chip" style="'+btnStyle(p)+'" href="'+p.href+'" target="_blank" rel="noopener">' +
+      glyph(p.key,16) + '<span>'+p.label+'</span></a>'
+  ).join('');
+}
+renderChipsGrouped('c1-chips');   // hero: Posts / Video / Pro groups (locked refinement #1)
+renderChipsFlat('c2-chips');      // reference-only alternate, unchanged
+
+wireRail('c2-rail', 'c2-prev', 'c2-next');
+
+/* ---- hero rail: auto-advance + spring-eased snap (locked refinements #3 + #4) ---- */
+function wireHeroRail(railId, prevId, nextId, wrapId) {
+  const rail = document.getElementById(railId);
+  const wrap = document.getElementById(wrapId);
+  rail.innerHTML = MIXED_FEED_HTML;
+
+  const AUTO_MS = 3500;     // auto-advance interval
+  const SPRING_MS = 620;    // spring settle duration
+  const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  let raf = null, timer = null, dragging = false;
+
+  function railLeftOf(el) {
+    return el.getBoundingClientRect().left - rail.getBoundingClientRect().left + rail.scrollLeft;
+  }
+  function kids() { return Array.from(rail.children); }
+  function currentIndex() {
+    const list = kids();
+    let idx = 0, best = -Infinity;
+    list.forEach((c, i) => {
+      const left = railLeftOf(c);
+      if (left <= rail.scrollLeft + 2 && left > best) { best = left; idx = i; }
+    });
+    return idx;
+  }
+  // back-out easing: overshoots past the target then settles — the "spring" feel
+  function easeOutBack(t) {
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  }
+  function springTo(target) {
+    cancelAnimationFrame(raf);
+    const maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
+    target = Math.max(0, Math.min(maxScroll, target));
+    if (reducedMotion) { rail.scrollLeft = target; return; }
+    const start = rail.scrollLeft;
+    const delta = target - start;
+    const t0 = performance.now();
+    function step(now) {
+      const t = Math.min(1, (now - t0) / SPRING_MS);
+      rail.scrollLeft = start + delta * easeOutBack(t);
+      if (t < 1) raf = requestAnimationFrame(step);
+    }
+    raf = requestAnimationFrame(step);
+  }
+  function goTo(idx) {
+    const list = kids();
+    if (!list.length) return;
+    const wrapped = ((idx % list.length) + list.length) % list.length;
+    springTo(wrapped === 0 ? 0 : railLeftOf(list[wrapped]));
+  }
+  function next() { goTo(currentIndex() + 1); }
+  function prev() { goTo(currentIndex() - 1); }
+
+  document.getElementById(prevId).addEventListener('click', () => { prev(); restartAuto(); });
+  document.getElementById(nextId).addEventListener('click', () => { next(); restartAuto(); });
+  rail.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { next(); restartAuto(); e.preventDefault(); }
+    if (e.key === 'ArrowLeft') { prev(); restartAuto(); e.preventDefault(); }
+  });
+
+  function startAuto() {
+    if (reducedMotion) return;           // no auto-advance under reduced motion
+    stopAuto();
+    timer = setInterval(next, AUTO_MS);
+  }
+  function stopAuto() { clearInterval(timer); timer = null; }
+  function restartAuto() { if (!dragging) startAuto(); }
+
+  wrap.addEventListener('mouseenter', stopAuto);
+  wrap.addEventListener('mouseleave', () => { if (!dragging) startAuto(); });
+  rail.addEventListener('focusin', stopAuto);
+  rail.addEventListener('focusout', () => { if (!dragging) startAuto(); });
+  rail.addEventListener('pointerdown', () => { dragging = true; stopAuto(); cancelAnimationFrame(raf); });
+  window.addEventListener('pointerup', () => { if (dragging) { dragging = false; startAuto(); } });
+  window.addEventListener('pointercancel', () => { if (dragging) { dragging = false; startAuto(); } });
+
+  startAuto();
+}
+wireHeroRail('c1-rail', 'c1-prev', 'c1-next', 'c1-rail-wrap');
+
+/* ============================================================= */
+/* Toggle wiring                                                  */
+/* ============================================================= */
+function wireToggle(toggleId, panelPrefix) {
+  const toggle = document.getElementById(toggleId);
+  toggle.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      toggle.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.panel[id^="panel-' + panelPrefix + '"]')
+        .forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+    });
+  });
+}
+wireToggle('toggle-a', 'a');
+wireToggle('toggle-b', 'b');
+</script>
+</body>
+</html>

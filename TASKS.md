@@ -1,4 +1,3 @@
-* carousel of videos and posts
 * all titles use same dynamic color toggle
 * hero accent rotation
     passion
