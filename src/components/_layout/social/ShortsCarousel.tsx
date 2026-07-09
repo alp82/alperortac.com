@@ -57,6 +57,7 @@ function ShortCard({ short }: { short: YoutubeShort }) {
 			target="_blank"
 			rel="noopener noreferrer"
 			aria-label={`${short.title} - watch on YouTube Shorts`}
+			draggable={false}
 		>
 			<div className="relative aspect-[9/16] overflow-hidden bg-[#111111] shrink-0">
 				{src && (
@@ -65,6 +66,7 @@ function ShortCard({ short }: { short: YoutubeShort }) {
 						src={src}
 						alt=""
 						loading="lazy"
+						draggable={false}
 						onError={() =>
 							setSrc((current) => (current === vertical ? fallback : null))
 						}
@@ -77,6 +79,7 @@ function ShortCard({ short }: { short: YoutubeShort }) {
 							src={CHANNEL_AVATAR_SRC}
 							alt=""
 							loading="lazy"
+							draggable={false}
 							onError={() => setAvatarFailed(true)}
 						/>
 					)}
@@ -101,12 +104,24 @@ function ShortCard({ short }: { short: YoutubeShort }) {
 }
 
 export function ShortsCarousel({ isNight }: { isNight: boolean }) {
-	const { railRef, wrapProps, railProps, prev, next } = useShortsRail();
+	const {
+		railRef,
+		trackRef,
+		barRef,
+		thumbRef,
+		wrapProps,
+		railProps,
+		barProps,
+		barGrabbing,
+		prev,
+		next,
+		canScroll,
+	} = useShortsRail();
 	const arrowClass = `btn-brutalist btn-brutalist--chip inline-flex items-center justify-center${
 		isNight ? " btn-brutalist--night" : ""
 	}`;
 	return (
-		<div className="mb-[clamp(56px,9vw,104px)]" {...wrapProps}>
+		<div className="mb-12" {...wrapProps}>
 			<div className="flex items-center gap-3 mb-4">
 				<h3 className="text-xs font-black uppercase tracking-[0.3em] opacity-70">
 					Latest Shorts
@@ -118,6 +133,7 @@ export function ShortsCarousel({ isNight }: { isNight: boolean }) {
 					type="button"
 					aria-label="Scroll to previous Short"
 					onClick={prev}
+					disabled={!canScroll}
 					className={arrowClass}
 				>
 					<ChevronLeft size={16} strokeWidth={3} />
@@ -126,15 +142,28 @@ export function ShortsCarousel({ isNight }: { isNight: boolean }) {
 					type="button"
 					aria-label="Scroll to next Short"
 					onClick={next}
+					disabled={!canScroll}
 					className={arrowClass}
 				>
 					<ChevronRight size={16} strokeWidth={3} />
 				</button>
 			</div>
 			<div className="shorts-rail" ref={railRef} {...railProps}>
-				{YOUTUBE_SHORTS.map((short) => (
-					<ShortCard key={short.id} short={short} />
-				))}
+				<div className="shorts-track" ref={trackRef}>
+					{YOUTUBE_SHORTS.map((short) => (
+						<ShortCard key={short.id} short={short} />
+					))}
+				</div>
+			</div>
+			<div
+				ref={barRef}
+				role="presentation"
+				aria-hidden="true"
+				hidden
+				{...barProps}
+				className={`shorts-scrollbar${isNight ? " shorts-scrollbar--night" : ""}${barGrabbing ? " shorts-scrollbar--grabbing" : ""}`}
+			>
+				<div ref={thumbRef} className="shorts-scrollbar__thumb" />
 			</div>
 		</div>
 	);

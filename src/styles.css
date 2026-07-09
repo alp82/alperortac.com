@@ -670,32 +670,28 @@ body.panel-open nav {
 }
 
 /* ---- LATEST SHORTS RAIL (FindMeSection carousel) ----
-   Scroll-snap strip of brutalist 9:16 Short cards. Motion (spring scroll,
-   auto-advance) is driven by useShortsRail via rAF, so NO scroll-behavior:
-   smooth here: it would fight the scripted scrollLeft writes. */
+   Hidden-overflow viewport around the translate3d-animated .shorts-track
+   strip of brutalist 9:16 Short cards. The rail itself never scrolls: all
+   motion (damped-spring glide, auto-advance, drag, wheel) is useShortsRail
+   writing transforms per rAF frame, so no scroll-snap or scrollbar styling
+   here - the indicator below is the custom .shorts-scrollbar. */
 .shorts-rail {
-	display: flex;
-	align-items: flex-start;
-	gap: 16px;
-	overflow-x: auto;
-	scroll-snap-type: x proximity;
-	padding: 6px 6px 16px;
-	scrollbar-width: thin;
-	scrollbar-color: #0f172a transparent;
+	overflow: hidden;
+	touch-action: pan-y;
 }
 .shorts-rail:focus-visible {
 	outline: 3px solid #0f172a;
 	outline-offset: 4px;
 }
-.shorts-rail::-webkit-scrollbar {
-	height: 8px;
-}
-.shorts-rail::-webkit-scrollbar-thumb {
-	background: #0f172a;
-	border-radius: 4px;
+.shorts-track {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+	padding: 6px;
+	will-change: transform;
+	transform: translate3d(0, 0, 0);
 }
 .short-card {
-	scroll-snap-align: start;
 	flex: 0 0 196px;
 	text-decoration: none;
 	color: #0f172a;
@@ -733,6 +729,55 @@ body.panel-open nav {
 	.short-card:active {
 		transform: none;
 	}
+}
+
+/* Interactive minimap-idiom scrollbar: a faint full-width track hairline
+   (::before) with a hollow 2px translucent thumb (subtle fill, no radius, no
+   shadow) sliding on it - the Minimap band idiom given a rail so it reads as
+   one coherent element on a horizontal bar. Pressing the track jumps the rail
+   to that spot; grabbing the thumb scrubs it live (useShortsRail's bar
+   session), hence the grab/grabbing cursor pair. It stays aria-hidden as a
+   redundant pointer-only affordance - the rail itself is the keyboard/AT
+   surface. Thumb width is set at measure time; its position glides per frame
+   from the same spring-animated offset as the track. Hidden by measure()
+   whenever the content fits. */
+.shorts-scrollbar {
+	position: relative;
+	height: 20px;
+	margin-top: 10px;
+	cursor: grab;
+	touch-action: pan-y;
+	user-select: none;
+}
+.shorts-scrollbar--grabbing {
+	cursor: grabbing;
+}
+.shorts-scrollbar::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: calc(50% - 0.5px);
+	height: 1px;
+	background: rgba(15, 23, 42, 0.3);
+}
+.shorts-scrollbar__thumb {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	border: 2px solid rgba(15, 23, 42, 0.3);
+	background: rgba(15, 23, 42, 0.1);
+	border-radius: 0;
+	box-shadow: none;
+	will-change: transform;
+}
+.shorts-scrollbar--night::before {
+	background: rgba(255, 255, 255, 0.3);
+}
+.shorts-scrollbar--night .shorts-scrollbar__thumb {
+	border-color: rgba(255, 255, 255, 0.3);
+	background: rgba(255, 255, 255, 0.1);
 }
 
 /* ---- THE PLATE (frosted copy panel: hero / topic teaser / linktree) ----

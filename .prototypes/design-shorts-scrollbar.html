@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shorts carousel progress indicator - premium look picker</title>
+<style>
+	/* ---------- prototype chrome (not part of the spec) ---------- */
+	* { box-sizing: border-box; }
+	html, body { margin: 0; padding: 0; }
+	body {
+		font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+		background: #e8eef2;
+		color: #0f172a;
+	}
+	.page-header {
+		padding: 18px 24px 14px;
+		border-bottom: 2px solid #0f172a;
+		background: #ffffff;
+	}
+	.page-header h1 {
+		margin: 0 0 4px;
+		font-size: 15px;
+		font-weight: 900;
+		text-transform: uppercase;
+		letter-spacing: 0.18em;
+	}
+	.page-header p { margin: 0; font-size: 12.5px; color: #475569; max-width: 720px; }
+	.layout {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 320px;
+		gap: 20px;
+		padding: 20px 24px 48px;
+		max-width: 1100px;
+		margin: 0 auto;
+		align-items: start;
+	}
+	@media (max-width: 1020px) { .layout { grid-template-columns: 1fr; } }
+
+	/* ---------- stage: faithful backdrop ---------- */
+	.stage {
+		border: 2px solid #0f172a;
+		background: #87cbe8;
+		padding: 34px 0 30px;
+		transition: background 250ms ease-out;
+		overflow: hidden;
+	}
+	.stage.night { background: rgb(20, 10, 50); }
+	.section { width: 632px; max-width: calc(100% - 32px); margin: 0 auto; }
+	.sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+	.sec-head h3 {
+		margin: 0;
+		font-size: 12px;
+		font-weight: 900;
+		text-transform: uppercase;
+		letter-spacing: 0.3em;
+		opacity: 0.7;
+		color: #0f172a;
+	}
+	.sec-head .rule { flex: 1; height: 1px; background: rgba(15, 23, 42, 0.2); }
+	.stage.night .sec-head h3 { color: #f8fafc; }
+	.stage.night .sec-head .rule { background: rgba(248, 250, 252, 0.25); }
+
+	.arrows { display: flex; gap: 8px; margin-bottom: 12px; }
+	.chip {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 12px 14px;
+		background: #ffffff;
+		color: #0f172a;
+		border: 2px solid #0f172a;
+		border-radius: 0;
+		box-shadow: 6px 6px 0 0 #0f172a;
+		cursor: pointer;
+		user-select: none;
+		transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+	}
+	.chip:hover { transform: translate(2px, 2px); box-shadow: 4px 4px 0 0 #0f172a; }
+	.chip:active { transform: translate(6px, 6px); box-shadow: 0 0 0 0 #0f172a; }
+	.stage.night .chip {
+		background: #0f172a;
+		color: #f8fafc;
+		border-color: #f8fafc;
+		box-shadow: 6px 6px 0 0 #475569;
+	}
+	.stage.night .chip:hover { box-shadow: 4px 4px 0 0 #475569; }
+	.stage.night .chip:active { box-shadow: 0 0 0 0 #475569; }
+	.chip svg { display: block; }
+
+	.shorts-rail { overflow: hidden; }
+	.shorts-track {
+		display: flex;
+		align-items: flex-start;
+		gap: 16px;
+		padding: 6px;
+		will-change: transform;
+		transform: translate3d(0, 0, 0);
+		transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+	.short-card {
+		flex: 0 0 196px;
+		text-decoration: none;
+		color: #0f172a;
+		border: 2px solid #0f172a;
+		border-radius: 0;
+		box-shadow: 6px 6px 0 0 #0f172a;
+		background: #ffffff;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+	.card-thumb { position: relative; aspect-ratio: 9 / 16; overflow: hidden; background: #111111; }
+	.card-top {
+		position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+		display: flex; align-items: flex-start; gap: 7px;
+		padding: 8px 9px 14px;
+		background: linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 65%, rgba(0,0,0,0) 100%);
+	}
+	.card-avatar {
+		width: 24px; height: 24px; border-radius: 50%;
+		border: 1.5px solid #ffffff; flex-shrink: 0;
+		background: linear-gradient(135deg, #b45309, #7c2d12);
+		color: #ffffff; font-size: 10px; font-weight: 900;
+		display: flex; align-items: center; justify-content: center;
+		box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+	}
+	.card-title {
+		margin: 0; font-size: 10.5px; font-weight: 800; line-height: 1.24; color: #ffffff;
+		display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+		text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+	}
+	.card-chan { margin: 2px 0 0; font-size: 9px; font-weight: 600; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.card-glyph {
+		position: absolute; top: 50%; left: 50%; z-index: 2;
+		width: 54px; transform: translate(-50%, -50%);
+		filter: drop-shadow(0 3px 8px rgba(0,0,0,0.55));
+	}
+	.card-views {
+		position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+		display: flex; align-items: center; gap: 4px;
+		background: rgba(0,0,0,0.58); padding: 6px 9px;
+		font-size: 9.5px; font-weight: 800; color: #ffffff;
+	}
+
+	/* .shorts-scrollbar / __thumb / --night live in #dyn (the generated spec) */
+	#stageBar .shorts-scrollbar__thumb {
+		transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+	body.sweeping #stageBar .shorts-scrollbar__thumb,
+	body.sweeping .shorts-track { transition: none; }
+
+	/* ---------- dual-sky strip check ---------- */
+	.dual { margin-top: 20px; border: 2px solid #0f172a; background: #ffffff; }
+	.dual h2, .spec h2, .panel h2 {
+		margin: 0; padding: 10px 14px;
+		font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.14em;
+		border-bottom: 2px solid #0f172a; background: #ffffff;
+	}
+	.strip { padding: 26px 28px; }
+	.strip.day { background: #87cbe8; }
+	.strip.night-bg { background: rgb(20, 10, 50); }
+	.strip .shorts-scrollbar { pointer-events: none; }
+
+	/* ---------- spec block ---------- */
+	.spec { margin-top: 20px; border: 2px solid #0f172a; background: #ffffff; }
+	.spec pre {
+		margin: 0; padding: 14px;
+		font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+		font-size: 11.5px; line-height: 1.55;
+		white-space: pre-wrap; word-break: break-word;
+		background: #f8fafc;
+	}
+	.spec-foot { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 2px solid #0f172a; }
+	.copy-btn {
+		padding: 10px 18px;
+		font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em;
+		background: #0f172a; color: #ffffff; border: 2px solid #0f172a; border-radius: 0;
+		box-shadow: 4px 4px 0 0 #64748b; cursor: pointer;
+	}
+	.copy-btn:hover { transform: translate(1px, 1px); box-shadow: 3px 3px 0 0 #64748b; }
+	.copy-btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 0 #64748b; }
+	.spec-foot p { margin: 0; font-size: 12px; color: #475569; }
+
+	/* ---------- controls panel ---------- */
+	.panel { border: 2px solid #0f172a; background: #ffffff; position: sticky; top: 16px; }
+	.panel-body { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+	.group-label { font-size: 10.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; margin-bottom: 6px; }
+	.seg { display: flex; flex-wrap: wrap; gap: 0; border: 2px solid #0f172a; }
+	.seg button {
+		flex: 1 1 auto; padding: 8px 6px;
+		font-size: 11px; font-weight: 800; letter-spacing: 0.02em;
+		background: #ffffff; color: #0f172a; border: none; border-right: 2px solid #0f172a;
+		cursor: pointer; white-space: nowrap;
+	}
+	.seg button:last-child { border-right: none; }
+	.seg button.on { background: #0f172a; color: #ffffff; }
+	.seg.treatments button { flex: 1 1 50%; border-bottom: 2px solid #0f172a; }
+	.seg.treatments button:nth-child(2n) { border-right: none; }
+	.seg.treatments button:nth-child(n+3) { border-bottom: none; }
+	.ctl { display: grid; grid-template-columns: 118px 1fr 44px; align-items: center; gap: 8px; font-size: 12px; }
+	.ctl label { font-weight: 700; }
+	.ctl output { font-variant-numeric: tabular-nums; text-align: right; font-size: 11.5px; color: #334155; }
+	input[type="range"] { width: 100%; accent-color: #0f172a; margin: 0; }
+	.toggles { display: flex; flex-direction: column; gap: 8px; }
+	.tgl { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+	.tgl input { accent-color: #0f172a; width: 16px; height: 16px; }
+	.hint { font-size: 11px; color: #64748b; line-height: 1.45; margin: 0; }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+	<h1>Latest Shorts &mdash; progress indicator picker</h1>
+	<p>Exploring the carousel's scroll-progress indicator against the real day-sky and night-sky backdrops. Pick a treatment, tune the sliders, check both skies, then copy the CSS spec and paste it back into chat.</p>
+</header>
+
+<div class="layout">
+	<main>
+		<!-- faithful backdrop -->
+		<div class="stage" id="stage">
+			<div class="section">
+				<div class="sec-head"><h3>Latest Shorts</h3><div class="rule"></div></div>
+				<div class="arrows">
+					<button type="button" class="chip" id="btnPrev" aria-label="Previous">
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+					</button>
+					<button type="button" class="chip" id="btnNext" aria-label="Next">
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+					</button>
+				</div>
+				<div class="shorts-rail" id="rail">
+					<div class="shorts-track" id="track"><!-- cards injected --></div>
+				</div>
+				<div class="shorts-scrollbar" id="stageBar">
+					<div class="shorts-scrollbar__thumb" id="stageThumb"></div>
+				</div>
+			</div>
+		</div>
+
+		<!-- both skies at once -->
+		<div class="dual">
+			<h2>Both skies at a glance</h2>
+			<div class="strip day">
+				<div class="shorts-scrollbar preview-bar"><div class="shorts-scrollbar__thumb preview-thumb"></div></div>
+			</div>
+			<div class="strip night-bg">
+				<div class="shorts-scrollbar shorts-scrollbar--night preview-bar"><div class="shorts-scrollbar__thumb preview-thumb"></div></div>
+			</div>
+		</div>
+
+		<!-- spec readout -->
+		<div class="spec">
+			<h2>Implementation spec (look-only; JS keeps driving width + translate3d)</h2>
+			<pre id="specOut"></pre>
+			<div class="spec-foot">
+				<button type="button" class="copy-btn" id="copyBtn">Copy spec</button>
+				<p>Paste the copied spec back into chat &mdash; it becomes the implementation target.</p>
+			</div>
+		</div>
+	</main>
+
+	<aside class="panel">
+		<h2>Controls</h2>
+		<div class="panel-body">
+			<div>
+				<div class="group-label">Treatment</div>
+				<div class="seg treatments" id="segTreatment">
+					<button type="button" data-t="hollow">1 Hollow band</button>
+					<button type="button" data-t="trackHollow">2 Track + hollow</button>
+					<button type="button" data-t="line">3 Progress line</button>
+					<button type="button" data-t="pill">4 Soft filled pill</button>
+				</div>
+			</div>
+			<div>
+				<div class="group-label">Stage sky</div>
+				<div class="seg" id="segSky">
+					<button type="button" data-sky="day">Day</button>
+					<button type="button" data-sky="night">Night</button>
+				</div>
+			</div>
+
+			<div class="ctl"><label for="rThumbDay">Thumb op. day</label><input type="range" id="rThumbDay" min="0.1" max="0.9" step="0.05"><output id="oThumbDay"></output></div>
+			<div class="ctl"><label for="rThumbNight">Thumb op. night</label><input type="range" id="rThumbNight" min="0.1" max="0.9" step="0.05"><output id="oThumbNight"></output></div>
+			<div class="ctl"><label for="rTrackOp">Track opacity</label><input type="range" id="rTrackOp" min="0.05" max="0.6" step="0.05"><output id="oTrackOp"></output></div>
+			<div class="ctl"><label for="rHeight">Bar height</label><input type="range" id="rHeight" min="4" max="20" step="1"><output id="oHeight"></output></div>
+			<div class="ctl"><label for="rBorder">Border / line px</label><input type="range" id="rBorder" min="0" max="4" step="1"><output id="oBorder"></output></div>
+			<div class="ctl"><label for="rRadius">Corner radius</label><input type="range" id="rRadius" min="0" max="12" step="1"><output id="oRadius"></output></div>
+			<div class="ctl"><label for="rFillOp">Fill opacity</label><input type="range" id="rFillOp" min="0.04" max="0.4" step="0.02"><output id="oFillOp"></output></div>
+
+			<div class="toggles">
+				<label class="tgl"><input type="checkbox" id="cTrack"> Show track rail</label>
+				<label class="tgl"><input type="checkbox" id="cFill"> Thumb has fill</label>
+				<label class="tgl"><input type="checkbox" id="cSweep"> Auto-sweep the carousel</label>
+			</div>
+			<p class="hint">Picking a treatment loads its preset values; every slider stays live afterwards, so any hybrid is reachable. Colors are locked to the site family: slate <code>#0f172a</code> by day, white by night.</p>
+		</div>
+	</aside>
+</div>
+
+<!-- generated spec CSS - exactly what the copy button emits -->
+<style id="dyn"></style>
+
+<script>
+(function () {
+	"use strict";
+
+	/* ---------- fake but faithful cards ---------- */
+	var CARDS = [
+		{ t: "Why I quit my job to build games full-time", v: "12.4K", g: "linear-gradient(160deg,#1d4ed8,#0f172a)" },
+		{ t: "The 3 mistakes every junior dev makes", v: "8.1K", g: "linear-gradient(160deg,#b91c1c,#1c1917)" },
+		{ t: "How I plan a week of deep work", v: "5.7K", g: "linear-gradient(160deg,#047857,#022c22)" },
+		{ t: "Game design tricks hiding in your favorite apps", v: "21K", g: "linear-gradient(160deg,#7c3aed,#1e1b4b)" },
+		{ t: "Freelancing: what nobody tells you about rates", v: "9.9K", g: "linear-gradient(160deg,#c2410c,#231007)" }
+	];
+	var GLYPH = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="#FF0000" d="m18.931 9.99-1.441-.601 1.717-.913a4.48 4.48 0 0 0 1.874-6.078 4.506 4.506 0 0 0-6.09-1.874L4.792 5.929a4.504 4.504 0 0 0-2.402 4.193 4.521 4.521 0 0 0 2.666 3.904c.036.012 1.442.6 1.442.6l-1.706.901a4.51 4.51 0 0 0-2.369 3.967A4.528 4.528 0 0 0 6.93 24c.725 0 1.437-.174 2.08-.508l10.21-5.406a4.494 4.494 0 0 0 2.39-4.192 4.525 4.525 0 0 0-2.678-3.904Z"/><path fill="#FFFFFF" d="M9.597 15.19V8.824l6.007 3.184z"/></svg>';
+	var EYE = '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 5C5.5 5 1.7 10.6 1 12c.7 1.4 4.5 7 11 7s10.3-5.6 11-7c-.7-1.4-4.5-7-11-7zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9zm0-7.2A2.7 2.7 0 1 0 12 14.7a2.7 2.7 0 0 0 0-5.4z"/></svg>';
+
+	var track = document.getElementById("track");
+	track.innerHTML = CARDS.map(function (c) {
+		return '<span class="short-card"><span class="card-thumb" style="background:' + c.g + '">' +
+			'<span class="card-top"><span class="card-avatar">AO</span><span style="min-width:0">' +
+			'<p class="card-title">' + c.t + '</p><p class="card-chan">Alper Ortac</p></span></span>' +
+			'<span class="card-glyph">' + GLYPH + '</span>' +
+			'<span class="card-views">' + EYE + ' ' + c.v + ' views</span>' +
+			'</span></span>';
+	}).join("");
+
+	/* ---------- state + presets ---------- */
+	var PRESETS = {
+		hollow:      { track: false, trackOp: 0.18, border: 2, radius: 0, fill: false, fillOp: 0.12, thumbDay: 0.40, thumbNight: 0.30, height: 12 },
+		trackHollow: { track: true,  trackOp: 0.18, border: 2, radius: 0, fill: false, fillOp: 0.12, thumbDay: 0.45, thumbNight: 0.32, height: 12 },
+		line:        { track: true,  trackOp: 0.25, border: 2, radius: 1, fill: false, fillOp: 0.12, thumbDay: 0.55, thumbNight: 0.55, height: 12 },
+		pill:        { track: false, trackOp: 0.12, border: 1, radius: 6, fill: true,  fillOp: 0.14, thumbDay: 0.35, thumbNight: 0.30, height: 12 }
+	};
+	var TREATMENT_LABEL = {
+		hollow: "hollow-band", trackHollow: "track-hollow", line: "progress-line", pill: "soft-pill"
+	};
+
+	var state = { treatment: "trackHollow", sky: "day" };
+	Object.keys(PRESETS.trackHollow).forEach(function (k) { state[k] = PRESETS.trackHollow[k]; });
+
+	/* ---------- spec generation (single source of truth) ---------- */
+	function rgba(dark, a) {
+		return dark ? "rgba(15, 23, 42, " + a + ")" : "rgba(255, 255, 255, " + a + ")";
+	}
+	function buildSpec(s) {
+		var isLine = s.treatment === "line";
+		var lineW = Math.max(1, s.border);
+		var dayC = rgba(true, s.thumbDay), nightC = rgba(false, s.thumbNight);
+		var summary =
+			"treatment: " + TREATMENT_LABEL[s.treatment] +
+			" | height: " + s.height + "px" +
+			" | border: " + (isLine ? "none (line " + lineW + "px)" : s.border + "px") +
+			" | radius: " + s.radius + "px" +
+			" | thumb-day: " + dayC +
+			" | thumb-night: " + nightC +
+			" | fill: " + (isLine ? "solid (thumb opacity)" : (s.fill ? "rgba @ " + s.fillOp : "none")) +
+			" | track: " + (s.track ? "rgba @ " + s.trackOp : "none");
+
+		var css = "/* spec: " + summary + " */\n";
+		css += ".shorts-scrollbar {\n\tposition: relative;\n\theight: " + s.height + "px;\n\tmargin-top: 10px;\n\tpointer-events: none;\n}\n";
+
+		if (s.track) {
+			css += ".shorts-scrollbar::before {\n\tcontent: \"\";\n\tposition: absolute;\n\tleft: 0;\n\tright: 0;\n\ttop: calc(50% - 0.5px);\n\theight: 1px;\n\tbackground: " + rgba(true, s.trackOp) + ";\n}\n";
+		}
+
+		css += ".shorts-scrollbar__thumb {\n\tposition: absolute;\n";
+		if (isLine) {
+			css += "\ttop: calc(50% - " + (lineW / 2) + "px);\n\theight: " + lineW + "px;\n\tleft: 0;\n";
+			css += "\tborder: none;\n\tbackground: " + dayC + ";\n";
+		} else {
+			css += "\ttop: 0;\n\tbottom: 0;\n\tleft: 0;\n";
+			css += "\tborder: " + (s.border > 0 ? s.border + "px solid " + dayC : "none") + ";\n";
+			css += "\tbackground: " + (s.fill ? rgba(true, s.fillOp) : "transparent") + ";\n";
+		}
+		css += "\tborder-radius: " + s.radius + "px;\n\tbox-shadow: none;\n\twill-change: transform;\n}\n";
+
+		if (s.track) {
+			css += ".shorts-scrollbar--night::before {\n\tbackground: " + rgba(false, s.trackOp) + ";\n}\n";
+		}
+		css += ".shorts-scrollbar--night .shorts-scrollbar__thumb {\n";
+		if (isLine) {
+			css += "\tbackground: " + nightC + ";\n";
+		} else {
+			if (s.border > 0) css += "\tborder-color: " + nightC + ";\n";
+			if (s.fill) css += "\tbackground: " + rgba(false, s.fillOp) + ";\n";
+		}
+		css += "}";
+		return css;
+	}
+
+	/* ---------- carousel geometry ---------- */
+	var rail = document.getElementById("rail");
+	var stageBar = document.getElementById("stageBar");
+	var stageThumb = document.getElementById("stageThumb");
+	var offset = 0, maxOffset = 0, thumbTravel = 0;
+	var STEP = 212; /* card 196 + gap 16 */
+
+	function measure() {
+		var railW = rail.clientWidth;
+		var trackW = track.scrollWidth;
+		maxOffset = Math.max(0, trackW - railW);
+		var barW = stageBar.clientWidth;
+		var frac = Math.min(1, railW / trackW);
+		var thumbW = Math.round(barW * frac);
+		stageThumb.style.width = thumbW + "px";
+		thumbTravel = barW - thumbW;
+		applyOffset(offset);
+	}
+	function applyOffset(x) {
+		offset = Math.max(0, Math.min(maxOffset, x));
+		track.style.transform = "translate3d(" + (-offset) + "px, 0, 0)";
+		var tx = maxOffset > 0 ? (offset / maxOffset) * thumbTravel : 0;
+		stageThumb.style.transform = "translate3d(" + tx + "px, 0, 0)";
+	}
+	document.getElementById("btnPrev").addEventListener("click", function () { stopSweep(); applyOffset(offset - STEP); });
+	document.getElementById("btnNext").addEventListener("click", function () { stopSweep(); applyOffset(offset + STEP); });
+	window.addEventListener("resize", measure);
+
+	/* auto-sweep */
+	var sweepRAF = null, sweepT0 = 0, sweepFrom = 0;
+	var cSweep = document.getElementById("cSweep");
+	function sweepFrame(ts) {
+		if (!sweepT0) { sweepT0 = ts; }
+		var t = (ts - sweepT0) / 6000; /* full there-and-back every 6s */
+		var p = 0.5 - 0.5 * Math.cos((sweepFrom / Math.max(1, maxOffset) + t) * 2 * Math.PI);
+		applyOffset(maxOffset * p);
+		sweepRAF = requestAnimationFrame(sweepFrame);
+	}
+	function stopSweep() {
+		if (sweepRAF) { cancelAnimationFrame(sweepRAF); sweepRAF = null; }
+		document.body.classList.remove("sweeping");
+		cSweep.checked = false;
+	}
+	cSweep.addEventListener("change", function () {
+		if (cSweep.checked) {
+			document.body.classList.add("sweeping");
+			sweepT0 = 0; sweepFrom = offset;
+			sweepRAF = requestAnimationFrame(sweepFrame);
+		} else {
+			stopSweep();
+		}
+	});
+
+	/* ---------- controls wiring ---------- */
+	var dyn = document.getElementById("dyn");
+	var specOut = document.getElementById("specOut");
+	var sliders = [
+		["rThumbDay", "oThumbDay", "thumbDay", false],
+		["rThumbNight", "oThumbNight", "thumbNight", false],
+		["rTrackOp", "oTrackOp", "trackOp", false],
+		["rHeight", "oHeight", "height", true],
+		["rBorder", "oBorder", "border", true],
+		["rRadius", "oRadius", "radius", true],
+		["rFillOp", "oFillOp", "fillOp", false]
+	];
+	var cTrack = document.getElementById("cTrack");
+	var cFill = document.getElementById("cFill");
+
+	function syncControls() {
+		sliders.forEach(function (row) {
+			var input = document.getElementById(row[0]);
+			input.value = state[row[2]];
+			document.getElementById(row[1]).textContent = row[3] ? state[row[2]] + "px" : Number(state[row[2]]).toFixed(2);
+		});
+		cTrack.checked = state.track;
+		cFill.checked = state.fill;
+		document.querySelectorAll("#segTreatment button").forEach(function (b) {
+			b.classList.toggle("on", b.dataset.t === state.treatment);
+		});
+		document.querySelectorAll("#segSky button").forEach(function (b) {
+			b.classList.toggle("on", b.dataset.sky === state.sky);
+		});
+	}
+
+	function render() {
+		var css = buildSpec(state);
+		dyn.textContent = css;
+		specOut.textContent = css;
+		document.getElementById("stage").classList.toggle("night", state.sky === "night");
+		stageBar.classList.toggle("shorts-scrollbar--night", state.sky === "night");
+		/* dual strips: fixed 60% thumb at 30% travel */
+		document.querySelectorAll(".preview-bar").forEach(function (bar) {
+			var thumb = bar.querySelector(".preview-thumb");
+			var w = bar.clientWidth;
+			thumb.style.width = Math.round(w * 0.6) + "px";
+			thumb.style.transform = "translate3d(" + Math.round(w * 0.4 * 0.3) + "px, 0, 0)";
+		});
+		measure();
+	}
+
+	sliders.forEach(function (row) {
+		document.getElementById(row[0]).addEventListener("input", function (e) {
+			state[row[2]] = row[3] ? parseInt(e.target.value, 10) : parseFloat(e.target.value);
+			syncControls();
+			render();
+		});
+	});
+	cTrack.addEventListener("change", function () { state.track = cTrack.checked; render(); });
+	cFill.addEventListener("change", function () { state.fill = cFill.checked; render(); });
+
+	document.getElementById("segTreatment").addEventListener("click", function (e) {
+		var btn = e.target.closest("button");
+		if (!btn) return;
+		state.treatment = btn.dataset.t;
+		var p = PRESETS[state.treatment];
+		Object.keys(p).forEach(function (k) { state[k] = p[k]; });
+		syncControls();
+		render();
+	});
+	document.getElementById("segSky").addEventListener("click", function (e) {
+		var btn = e.target.closest("button");
+		if (!btn) return;
+		state.sky = btn.dataset.sky;
+		syncControls();
+		render();
+	});
+
+	/* ---------- copy ---------- */
+	var copyBtn = document.getElementById("copyBtn");
+	copyBtn.addEventListener("click", function () {
+		var text = specOut.textContent;
+		function done(ok) {
+			copyBtn.textContent = ok ? "Copied!" : "Copy failed - select the block manually";
+			setTimeout(function () { copyBtn.textContent = "Copy spec"; }, 1800);
+		}
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+		} else {
+			var ta = document.createElement("textarea");
+			ta.value = text;
+			document.body.appendChild(ta);
+			ta.select();
+			var ok = false;
+			try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
+			document.body.removeChild(ta);
+			done(ok);
+		}
+	});
+
+	/* ---------- boot ---------- */
+	syncControls();
+	render();
+	window.addEventListener("resize", render);
+})();
+</script>
+</body>
+</html>

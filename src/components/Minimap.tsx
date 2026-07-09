@@ -79,6 +79,7 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [viewportRatio, setViewportRatio] = useState(0);
 	const isDraggingRef = useRef(false);
+	const [grabbing, setGrabbing] = useState(false);
 
 	useEffect(() => {
 		const measure = () => {
@@ -108,6 +109,7 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 
 	const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
 		isDraggingRef.current = true;
+		setGrabbing(true);
 		e.currentTarget.setPointerCapture(e.pointerId);
 		scrollToY(e.clientY);
 	};
@@ -119,6 +121,7 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 
 	const stopDrag = (e: React.PointerEvent<HTMLDivElement>) => {
 		isDraggingRef.current = false;
+		setGrabbing(false);
 		if (e.currentTarget.hasPointerCapture(e.pointerId)) {
 			e.currentTarget.releasePointerCapture(e.pointerId);
 		}
@@ -163,7 +166,7 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 			onPointerCancel={stopDrag}
 			role="presentation"
 			aria-hidden="true"
-			className="hidden md:block fixed right-0 top-0 w-20 h-screen border-l-2 border-white/20 cursor-pointer select-none z-40 overflow-hidden touch-none"
+			className={`hidden md:block fixed right-0 top-0 w-20 h-screen border-l-2 border-white/20 ${grabbing ? "cursor-grabbing" : "cursor-grab"} select-none z-40 overflow-hidden touch-none`}
 			style={{
 				background: minimapGradient,
 				willChange: "transform",

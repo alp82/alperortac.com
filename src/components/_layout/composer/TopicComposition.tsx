@@ -1,4 +1,6 @@
+import { useRef } from "react";
 import type { Topic } from "../../../data/topics";
+import { useSectionNightPhase } from "../SectionTitle";
 import { INNERS } from "./index";
 import { TopicBody } from "./TopicBody";
 import { type InnerRenderProps, TOPIC_ACCENT } from "./types";
@@ -18,7 +20,6 @@ type TopicCompositionProps = {
 	state: ComposerState;
 	topic: Topic;
 	index: number;
-	isNight: boolean;
 	lastTriggerRef: React.RefObject<HTMLElement | null>;
 };
 
@@ -26,9 +27,12 @@ export function TopicComposition({
 	state,
 	topic,
 	index,
-	isNight,
 	lastTriggerRef,
 }: TopicCompositionProps) {
+	const articleRef = useRef<HTMLElement>(null);
+	// ONE frozen phase for the whole topic section, measured at the article
+	// root — everything night-dependent inside agrees with it.
+	const night = useSectionNightPhase(articleRef);
 	// Accent always comes from the topic palette (the accent-source knob is gone).
 	const accent = TOPIC_ACCENT[topic.id];
 
@@ -46,13 +50,14 @@ export function TopicComposition({
 	const body = (
 		<TopicBody
 			topic={topic}
-			isNight={isNight}
+			isNight={night}
 			lastTriggerRef={lastTriggerRef}
 			surface={inner.surface}
 		/>
 	);
 	return (
 		<article
+			ref={articleRef}
 			id={topic.id}
 			className="relative overflow-hidden flex flex-col items-center justify-center px-6 min-h-[90vh]"
 			style={{ "--cmp-accent": accent } as React.CSSProperties}
@@ -60,7 +65,7 @@ export function TopicComposition({
 			<Cluster
 				topic={topic}
 				index={index}
-				isNight={isNight}
+				isNight={night}
 				lastTriggerRef={lastTriggerRef}
 				params={cluster.params}
 				accent={accent}

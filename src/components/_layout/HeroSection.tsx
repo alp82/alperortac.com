@@ -1,12 +1,8 @@
-import { SECTION_IDS } from "../../data/sections";
 import { HeroSubtitle } from "./HeroSubtitle";
 
 export function HeroSection() {
 	return (
-		<section
-			id={SECTION_IDS.start}
-			className="min-h-[70vh] flex flex-col items-center justify-center px-6 pt-24 pb-2 text-center"
-		>
+		<section className="min-h-[70vh] flex flex-col items-center justify-center px-6 pt-24 pb-2 text-center">
 			<img
 				src="/alper-avatar.webp"
 				alt="Alp portrait"

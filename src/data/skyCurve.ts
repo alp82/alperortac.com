@@ -35,6 +35,26 @@ export function clamp01(x: number): number {
 	return Math.max(0, Math.min(1, x));
 }
 
+// Canonical scroll-progress formula: the single source both the live sky
+// driver (_layout.tsx) and the mount-frozen section phase read from.
+export function scrollProgressAt(
+	scrollY: number,
+	scrollHeight: number,
+	innerHeight: number,
+): number {
+	const total = scrollHeight - innerHeight;
+	return total > 0 ? clamp01(scrollY / total) : 0;
+}
+
+// Progress at the scroll position that centers `centerY` in the viewport.
+export function sectionProgressAt(
+	centerY: number,
+	scrollHeight: number,
+	innerHeight: number,
+): number {
+	return scrollProgressAt(centerY - innerHeight / 2, scrollHeight, innerHeight);
+}
+
 export function bell(t: number): number {
 	return Math.sin(t * Math.PI);
 }

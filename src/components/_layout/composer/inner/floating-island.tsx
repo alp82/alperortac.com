@@ -1,6 +1,7 @@
 import { useRef } from "react";
+import { SectionTitle } from "../../SectionTitle";
 import type { FloatingIslandParams, InnerRenderProps } from "../types";
-import { AccentUnderlineHeading, FrameShell } from "./FrameShell";
+import { FrameShell } from "./FrameShell";
 import { DENSITY_GAP, DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 import { useRelativeScrollOffset } from "./shared-hooks";
 
@@ -31,6 +32,7 @@ export function FloatingIslandCluster({
 	topic,
 	params,
 	accent,
+	isNight,
 	children,
 }: InnerRenderProps<"floating-island">) {
 	const ref = useRef<HTMLDivElement>(null);
@@ -42,11 +44,13 @@ export function FloatingIslandCluster({
 	const shadow = `0 ${24 + params.floatHeight * 0.7}px ${48 + params.floatHeight}px -30px rgba(0,0,0,0.85)`;
 
 	const heading = (
-		<AccentUnderlineHeading
-			heading={topic.heading}
+		<SectionTitle
+			size={DENSITY_HEADING[params.density]}
 			accent={accent}
-			headingClassName={DENSITY_HEADING[params.density]}
-		/>
+			night={isNight}
+		>
+			{topic.heading}
+		</SectionTitle>
 	);
 
 	return (

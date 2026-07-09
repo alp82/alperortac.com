@@ -1,6 +1,10 @@
+import { useRef } from "react";
 import { SECTION_IDS } from "../../data/sections";
+import { SectionTitle, useSectionNightPhase } from "./SectionTitle";
 import { ShortsCarousel } from "./social/ShortsCarousel";
 import { SOCIAL_GROUPS, type SocialLinkData } from "./social/socialLinks";
+
+const FIND_ME_ACCENT = "#334155";
 
 function SocialChip({
 	label,
@@ -63,23 +67,29 @@ function SocialChip({
 	);
 }
 
-export function FindMeSection({ isNight }: { isNight: boolean }) {
+export function FindMeSection() {
+	const sectionRef = useRef<HTMLElement>(null);
+	// ONE frozen phase for the whole section, measured at the section root:
+	// the heading, every chip, and the scrollbar must all agree. The title
+	// takes this phase via its `night` override rather than self-measuring —
+	// the section is ~1500-2000px tall, so title-center vs section-center
+	// differ by ~0.1 progress.
+	const night = useSectionNightPhase(sectionRef);
 	return (
 		<section
+			ref={sectionRef}
 			id={SECTION_IDS.findMe}
 			className="pt-4 pb-64 px-6 relative overflow-hidden text-slate-900"
 		>
-			<div className="max-w-xl mx-auto relative z-10">
+			{/* 632px = exactly 3 shorts in the rail: 3*196 card + 2*16 gap + 2*6 track padding */}
+			<div className="max-w-[632px] mx-auto relative z-10">
 				<div className="text-center mb-12">
-					<h2 className="text-4xl md:text-6xl font-black mb-4 uppercase tracking-tighter drop-shadow-[4px_4px_0px_rgba(255,255,255,0.5)]">
-						Find Me Online
-					</h2>
-					<p className="plate text-base font-bold opacity-90 bg-white/40 backdrop-blur-md px-4 py-2 border-l-4 border-slate-900 inline-block">
-						Pick a platform. I'm here, posting, shipping, replying.
-					</p>
+					<SectionTitle className="mb-4" accent={FIND_ME_ACCENT} night={night}>
+						Find Me
+					</SectionTitle>
 				</div>
 
-				<ShortsCarousel isNight={isNight} />
+				<ShortsCarousel isNight={night} />
 
 				<div className="space-y-10">
 					{SOCIAL_GROUPS.map((group) => (
@@ -93,7 +103,7 @@ export function FindMeSection({ isNight }: { isNight: boolean }) {
 							</div>
 							<div className="flex flex-wrap gap-2">
 								{group.links.map((link) => (
-									<SocialChip key={link.label} {...link} isNight={isNight} />
+									<SocialChip key={link.label} {...link} isNight={night} />
 								))}
 							</div>
 						</div>

@@ -3,7 +3,11 @@ import { useEffect, useMemo, useRef } from "react";
 import type { CelestialState } from "../../data/celestial";
 import { PERSONAL, PERSONAL_BY_SLUG } from "../../data/personal";
 import { PROJECTS, type Project } from "../../data/projects";
-import { PANEL_SIDES, type PanelKey } from "../../data/sections";
+import {
+	PANEL_OPEN_CLASS,
+	PANEL_SIDES,
+	type PanelKey,
+} from "../../data/sections";
 import { STORIES, type StorySlug } from "../../data/stories";
 import { type PersonalSlug, TOPICS } from "../../data/topics";
 import { CAREER_PANEL_TITLE_ID, CareerPanel } from "../CareerPanel";
@@ -148,7 +152,7 @@ export function PanelHost({
 				dialog.close();
 			}
 		});
-		document.body.classList.toggle("panel-open", openPanel !== null);
+		document.body.classList.toggle(PANEL_OPEN_CLASS, openPanel !== null);
 	}, [openPanel, panelRefs]);
 
 	// Inert the nav and main-shell while a detail panel is open (non-modal) so
@@ -286,7 +290,7 @@ export function PanelHost({
 		});
 		return () => {
 			for (const fn of cleanups) fn();
-			document.body.classList.remove("panel-open");
+			document.body.classList.remove(PANEL_OPEN_CLASS);
 		};
 	}, [navigate, panelRefs, lastTriggerRef, setSkyOpen]);
 

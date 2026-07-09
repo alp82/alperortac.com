@@ -6,6 +6,8 @@ import {
 	DEFAULT_SKY_CURVE,
 	rgbToHsl,
 	type SkyCurve,
+	scrollProgressAt,
+	sectionProgressAt,
 	skyAt,
 } from "../skyCurve";
 
@@ -219,6 +221,90 @@ describe("skyCurve", () => {
 					expect(out.enabled).toBe(base.enabled);
 				});
 			}
+		});
+	});
+
+	// Migrated from SectionTitle.render.test.tsx TC-24..31: sectionProgressAt
+	// now lives in skyCurve.ts (the whole-section day/night freeze reads it
+	// from here instead of a SectionTitle-local copy), same inputs/expected.
+	describe("sectionProgressAt (pure)", () => {
+		// TC-24
+		it("returns 0.55 at the boundary", () => {
+			expect(sectionProgressAt(950, 1800, 800)).toBeCloseTo(0.55, 5);
+		});
+
+		// TC-25
+		it("returns ~0.549 just under the boundary", () => {
+			expect(sectionProgressAt(949, 1800, 800)).toBeCloseTo(0.549, 3);
+		});
+
+		// TC-26
+		it("clamps to 0 for a far-negative centerY", () => {
+			expect(sectionProgressAt(-1000, 1800, 800)).toBe(0);
+		});
+
+		// TC-27
+		it("clamps to 1 for a far-past centerY", () => {
+			expect(sectionProgressAt(5000, 1800, 800)).toBe(1);
+		});
+
+		// TC-28
+		it("ignores centerY when total <= 0 (short page)", () => {
+			expect(sectionProgressAt(0, 500, 800)).toBe(0);
+			expect(sectionProgressAt(10000, 500, 800)).toBe(0);
+		});
+
+		// TC-29
+		it("returns 0 when total === 0", () => {
+			expect(sectionProgressAt(123, 800, 800)).toBe(0);
+		});
+
+		// TC-30
+		it("computes an arbitrary mid-scroll progress", () => {
+			expect(sectionProgressAt(6000, 10000, 800)).toBeCloseTo(0.6087, 3);
+		});
+
+		// TC-31
+		it("computes an arbitrary early-scroll progress", () => {
+			expect(sectionProgressAt(500, 10000, 800)).toBeCloseTo(0.0109, 3);
+		});
+	});
+
+	describe("scrollProgressAt (pure)", () => {
+		it("returns 0 at scrollY 0", () => {
+			expect(scrollProgressAt(0, 1800, 800)).toBe(0);
+		});
+
+		it("clamps to 0 for a negative scrollY", () => {
+			expect(scrollProgressAt(-500, 1800, 800)).toBe(0);
+		});
+
+		it("computes an arbitrary mid-scroll progress", () => {
+			expect(scrollProgressAt(500, 1800, 800)).toBeCloseTo(0.5, 5);
+		});
+
+		it("clamps to 1 for a scrollY past the max", () => {
+			expect(scrollProgressAt(2000, 1800, 800)).toBe(1);
+		});
+
+		it("ignores scrollY when total <= 0 (short page)", () => {
+			expect(scrollProgressAt(0, 500, 800)).toBe(0);
+			expect(scrollProgressAt(10000, 500, 800)).toBe(0);
+		});
+	});
+
+	describe("sectionProgressAt delegates to scrollProgressAt(centerY - innerHeight/2, ...)", () => {
+		it.each([
+			[950, 1800, 800],
+			[949, 1800, 800],
+			[6000, 10000, 800],
+			[500, 10000, 800],
+			[-1000, 1800, 800],
+			[5000, 1800, 800],
+		])("sectionProgressAt(%i, %i, %i) === scrollProgressAt(centerY - innerHeight/2, ...)", (centerY, scrollHeight, innerHeight) => {
+			expect(sectionProgressAt(centerY, scrollHeight, innerHeight)).toBe(
+				scrollProgressAt(centerY - innerHeight / 2, scrollHeight, innerHeight),
+			);
 		});
 	});
 });

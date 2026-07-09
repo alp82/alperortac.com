@@ -3,6 +3,7 @@ import { cleanup, render } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "../../../../data/topics";
+import { stubSectionGeometry } from "../../../../test/stubSectionGeometry";
 import { INNER_ORDER, INNERS } from "../index";
 import { TopicComposition } from "../TopicComposition";
 import type { InnerId, InnerRenderProps } from "../types";
@@ -269,7 +270,6 @@ function renderComposition(t: Topic = topic) {
 			state={defaultState()}
 			topic={t}
 			index={0}
-			isNight={false}
 			lastTriggerRef={lastTriggerRef}
 		/>,
 	);
@@ -295,15 +295,19 @@ describe("Milestone 2 — neutral wrapper replaces the stage", () => {
 	});
 
 	// TC-5: the default render shows Parallax Depth chrome — an h2 containing
-	// topic.heading, styled with the ported inners' fixed drop-shadow chrome
+	// topic.heading, styled with SectionTitle's shared brutalist drop-shadow
 	// class (the stage-era DEFAULT_INNER was "constellation", whose h2 used a
-	// different text-shadow treatment, not this drop-shadow class).
-	it("shows Parallax Depth chrome: an h2 with topic.heading and the ported drop-shadow class", () => {
+	// different text-shadow treatment; the ported inners' pre-SectionTitle
+	// chrome used a softer 0_2px_16px shadow, which this swaps out).
+	it("shows Parallax Depth chrome: an h2 with topic.heading and SectionTitle's shared drop-shadow class", () => {
 		const { container } = renderComposition(topic);
 		const heading = container.querySelector("h2");
 		expect(heading).not.toBeNull();
 		expect(heading?.textContent).toBe(topic.heading);
 		expect(heading?.className).toContain(
+			"drop-shadow-[4px_4px_0px_rgba(255,255,255,0.5)]",
+		);
+		expect(heading?.className).not.toContain(
 			"drop-shadow-[0_2px_16px_rgba(0,0,0,0.45)]",
 		);
 	});
@@ -382,7 +386,6 @@ function renderCompositionWithInner(id: InnerId, t: Topic = topic) {
 			state={state}
 			topic={t}
 			index={0}
-			isNight={false}
 			lastTriggerRef={lastTriggerRef}
 		/>,
 	);
@@ -479,5 +482,53 @@ describe("useRelativeScrollOffset — reduced-motion guard", () => {
 		);
 		expect(registeredTypes).not.toContain("scroll");
 		expect(registeredTypes).not.toContain("resize");
+	});
+});
+
+/*
+ * v4 whole-section day/night freeze: TopicComposition's rendered inners lose
+ * their isNight prop (dropped above from renderComposition/
+ * renderCompositionWithInner) — night is now derived once from the whole
+ * <article id=topic.id> section's own scroll position, via the inner's
+ * SectionTitle measuring the ARTICLE root, not its own wrapper.
+ */
+describe("TopicComposition whole-section day/night freeze", () => {
+	afterEach(() => {
+		cleanup();
+		vi.unstubAllGlobals();
+	});
+
+	// TCM-N1: adversarial — the article (#travel) gets a NIGHT-side rect,
+	// while the DEFAULT rect (which the title's own wrapper receives, since
+	// it doesn't match "#travel") is far-DAY. The heading must still follow
+	// the ARTICLE's frozen phase (night), not its own rect.
+	it("the Travel heading follows the article's frozen night phase, not its own rect", () => {
+		// The reduced-motion describe block above unstubs the module-level
+		// matchMedia stub set at import time; re-stub it here (a real
+		// prefers-reduced-motion: reduce mismatch, matches:false) so the
+		// ported inner's useRelativeScrollOffset can call it unconditionally.
+		vi.stubGlobal("matchMedia", (query: string) => ({
+			matches: false,
+			media: query,
+			onchange: null,
+			addListener: () => {},
+			removeListener: () => {},
+			addEventListener: () => {},
+			removeEventListener: () => {},
+			dispatchEvent: () => false,
+		}));
+		const restore = stubSectionGeometry({
+			scrollHeight: 10000,
+			innerHeight: 800,
+			rects: [{ match: "#travel", top: 5860, height: 1800 }],
+			rect: { top: 100, height: 100 },
+		});
+		const { container } = renderCompositionWithInner("parallax-depth", topic);
+		const heading = Array.from(container.querySelectorAll("h2")).find((h) =>
+			h.className.includes("drop-shadow-[4px_4px_0px_rgba(255,255,255,0.5)]"),
+		);
+		expect(heading?.textContent).toBe(topic.heading);
+		expect(heading?.className).toContain("text-white");
+		restore();
 	});
 });

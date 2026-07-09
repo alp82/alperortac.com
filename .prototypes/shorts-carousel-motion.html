@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shorts Carousel — Motion Picker</title>
+<style>
+  :root {
+    --ink: #0f172a;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f1f5f9;
+    color: var(--ink);
+    padding: 24px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { opacity: .65; font-size: 13px; margin: 0 0 20px; }
+
+  .panel {
+    background: #fff;
+    border: 2px solid var(--ink);
+    box-shadow: 6px 6px 0 0 var(--ink);
+    padding: 16px 18px;
+    margin-bottom: 22px;
+  }
+  .panel h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    opacity: .6;
+    margin: 0 0 12px;
+  }
+
+  /* ---- tabs ---- */
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tab {
+    font: inherit;
+    font-weight: 800;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: 8px 14px;
+    border: 2px solid var(--ink);
+    background: #fff;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 0 var(--ink);
+  }
+  .tab:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 0 var(--ink); }
+  .tab.active { background: var(--ink); color: #fff; }
+
+  /* ---- controls grid ---- */
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px 22px;
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; font-weight: 700; opacity: .7; display: flex; justify-content: space-between; }
+  .field select, .field input[type="range"] { width: 100%; }
+  .field[data-hidden="true"] { display: none; }
+  .checkline { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+
+  code.readout {
+    display: block;
+    white-space: pre-wrap;
+    font: 12px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+    background: #0f172a;
+    color: #a7f3d0;
+    padding: 12px 14px;
+    margin-top: 4px;
+    user-select: all;
+  }
+  .copybtn {
+    margin-top: 8px;
+    font: 700 12px/1 inherit;
+    padding: 7px 12px;
+    border: 2px solid var(--ink);
+    background: #fff;
+    cursor: pointer;
+  }
+  .copybtn:active { background: #e2e8f0; }
+  .copied { color: #16a34a; font-weight: 700; font-size: 12px; margin-left: 8px; }
+
+  /* ---- rail / cards (mirrors src/styles.css .shorts-rail / .short-card) ---- */
+  .rail-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; opacity: .55; margin: 0 0 6px; }
+  .rail-viewport {
+    overflow: hidden;
+    padding: 6px 6px 16px;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+    touch-action: pan-y;
+    cursor: grab;
+  }
+  .rail-viewport.dragging { cursor: grabbing; }
+  .rail-track {
+    display: flex;
+    gap: 16px;
+    will-change: transform;
+    transform: translate3d(0,0,0);
+  }
+  .short-card {
+    flex: 0 0 196px;
+    text-decoration: none;
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    box-shadow: 6px 6px 0 0 var(--ink);
+    background: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  .short-thumb {
+    position: relative;
+    aspect-ratio: 9 / 16;
+    overflow: hidden;
+    background: #111;
+  }
+  .short-thumb .top {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; gap: 7px; align-items: flex-start;
+    padding: 8px 9px 14px;
+    background: linear-gradient(to bottom, rgba(0,0,0,.78) 0%, rgba(0,0,0,.42) 65%, transparent 100%);
+  }
+  .short-thumb .avatar { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #fff; background: #666; flex-shrink: 0; }
+  .short-thumb .title { font-size: 10.5px; font-weight: 800; color: #fff; line-height: 1.24; text-shadow: 0 1px 2px rgba(0,0,0,.7); }
+  .short-thumb .chan { font-size: 9px; font-weight: 700; color: #fff; margin-top: 2px; }
+  .short-thumb .badge {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,.58); color: #fff; font-size: 9.5px; font-weight: 800;
+    padding: 6px 9px;
+  }
+  .short-thumb .glyph {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 40px; height: 40px; border-radius: 50%; background: rgba(255,0,0,.9);
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px;
+  }
+
+  .compare { display: grid; gap: 18px; }
+  .compare[data-single="true"] .before-block { display: none; }
+
+  footer { font-size: 12px; opacity: .55; margin-top: 30px; line-height: 1.6; }
+  footer b { opacity: 1; }
+</style>
+</head>
+<body>
+
+<h1>Shorts Carousel — Motion Picker (prototype)</h1>
+<p class="sub">Throwaway sketch. Compares 4 motion approaches for the "Find Me Online" Shorts rail against the current hard-jump interval. Nothing here touches the real app.</p>
+
+<div class="panel">
+  <h2>Approach</h2>
+  <div class="tabs" id="tabs"></div>
+</div>
+
+<div class="panel">
+  <h2>Controls</h2>
+  <div class="controls" id="controls"></div>
+  <div class="checkline" style="margin-top:14px;">
+    <input type="checkbox" id="showBefore" checked />
+    <label for="showBefore">Show "before" (current: 3.5s interval, hard scrollLeft jump) for side-by-side comparison</label>
+  </div>
+  <div class="checkline" style="margin-top:8px;">
+    <input type="checkbox" id="forceReduced" />
+    <label for="forceReduced">Force reduced-motion variant (in addition to OS setting)</label>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Active spec (paste this back as the implementation target)</h2>
+  <code class="readout" id="readout"></code>
+  <button class="copybtn" id="copyBtn">Copy spec</button>
+  <span class="copied" id="copiedMsg" style="display:none;">Copied</span>
+</div>
+
+<div class="compare" id="compare">
+  <div class="before-block">
+    <p class="rail-label">Before — current behaviour (setInterval + scrollLeft jump)</p>
+    <div class="rail-viewport"><div class="rail-track" id="beforeTrack"></div></div>
+  </div>
+  <div>
+    <p class="rail-label">After — selected approach</p>
+    <div class="rail-viewport" id="afterViewport"><div class="rail-track" id="afterTrack"></div></div>
+  </div>
+</div>
+
+<footer>
+  <p><b>Likely cause of current lag</b> (from reading <code>useShortsRail.ts</code>): the spring writes <code>rail.scrollLeft = ...</code> on every animation frame, and reads <code>rail.scrollLeft</code> / <code>offsetLeft</code> synchronously elsewhere (currentIndex, atMaxScroll). Assigning <code>scrollLeft</code> repeatedly forces the browser's scroll/layout machinery every frame instead of compositing a transform — that's main-thread work per frame, not GPU-only. It also fights native <code>scroll-snap-type: x proximity</code> on <code>.shorts-rail</code> — the browser's own snap logic can tug against the rAF-driven spring, which is a likely source of the "hard jump" feel on interval advance (see BEFORE rail above, which reproduces this exact pattern).</p>
+  <p>All motion below animates <code>transform: translate3d()</code> only — no <code>left</code>/<code>margin</code>/<code>scrollLeft</code> writes in the after-rail.</p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- sample data, mirrors src/data/youtubeShorts.ts shape ----
+  var SHORTS = [
+    { id: "YaoyTizlaE4", title: "Is it worth it Part 1", views: 243 },
+    { id: "cgsF6B5eR98", title: "Magical CLI Tools - Part 1 #agenticcoding #coding #develop", views: 1015 },
+    { id: "5mgQepVfcyc", title: "Day 3 - Best tools for your tech stack - Part 1", views: 454 },
+    { id: "UGgKyRGUwkE", title: "I see the issue now - Part 1", views: 959 },
+    { id: "ueRlidFgFYY", title: "Agentic Coding - hello to Day 1 of 30", views: 743 }
+  ];
+  var HUES = [8, 200, 265, 40, 320];
+
+  function viewsLabel(n) {
+    return n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, "") + "K" : String(n);
+  }
+
+  function cardHTML(short, i) {
+    var hue = HUES[i % HUES.length];
+    var grad = "linear-gradient(160deg, hsl(" + hue + " 70% 45%), hsl(" + (hue + 40) + " 70% 22%))";
+    return (
+      '<div class="short-card" draggable="false">' +
+        '<div class="short-thumb" style="background:' + grad + '">' +
+          '<div class="top"><div class="avatar"></div><div><div class="title">' + short.title + '</div><div class="chan">Alper Ortac</div></div></div>' +
+          '<div class="glyph">S</div>' +
+          '<div class="badge">' + viewsLabel(short.views) + ' views</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function setHTML(cards) { return cards.map(cardHTML).join(""); }
+
+  var CARD_SET_HTML = setHTML(SHORTS);
+
+  var prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+  function reducedActive() {
+    return prefersReduced.matches || document.getElementById("forceReduced").checked;
+  }
+
+  // ============ EASING ============
+  var EASINGS = {
+    "expo-out": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "smooth": "cubic-bezier(0.22, 1, 0.36, 1)",
+    "overshoot": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+    "spring": "spring" // handled specially via rAF, not CSS
+  };
+
+  // simple damped-harmonic spring integrator: returns array of {t,p} not needed;
+  // we step it live in rAF using stiffness/damping/mass.
+  function makeSpringStepper(stiffness, damping, mass) {
+    return function stepSpring(pos, vel, target, dt) {
+      var Fspring = -stiffness * (pos - target);
+      var Fdamp = -damping * vel;
+      var accel = (Fspring + Fdamp) / mass;
+      vel += accel * dt;
+      pos += vel * dt;
+      return { pos: pos, vel: vel };
+    };
+  }
+
+  // ============ SHARED STATE ============
+  var current = { teardown: null };
+  var afterViewport = document.getElementById("afterViewport");
+  var afterTrack = document.getElementById("afterTrack");
+  var beforeTrack = document.getElementById("beforeTrack");
+  var readoutEl = document.getElementById("readout");
+
+  function clearAfter() {
+    if (current.teardown) { current.teardown(); current.teardown = null; }
+    afterTrack.innerHTML = "";
+    afterTrack.style.transition = "none";
+    afterTrack.style.transform = "translate3d(0,0,0)";
+    afterViewport.classList.remove("dragging");
+  }
+
+  function setReadout(text) { readoutEl.textContent = text; }
+
+  // ============ BEFORE RAIL (reproduces real bug: scrollLeft jump) ============
+  (function setupBefore() {
+    beforeTrack.style.display = "flex";
+    beforeTrack.style.gap = "16px";
+    beforeTrack.innerHTML = CARD_SET_HTML;
+    var viewport = beforeTrack.parentElement;
+    viewport.style.overflowX = "auto"; // this rail intentionally scrolls (mirrors current impl)
+    viewport.style.maskImage = "none";
+    viewport.style["-webkit-mask-image"] = "none";
+    var step = 196 + 16;
+    var idx = 0;
+    setInterval(function () {
+      if (reducedActive()) return;
+      idx = (idx + 1) % SHORTS.length;
+      var max = viewport.scrollWidth - viewport.clientWidth;
+      var target = idx === 0 ? 0 : Math.min(max, idx * step);
+      // exact current behaviour: instant-looking write, no easing curve applied
+      // per-frame in the real code it's spring-eased but STILL via scrollLeft,
+      // which is the layout-thrash culprit this sketch calls out.
+      viewport.scrollLeft = target; // hard jump, no transform
+    }, 3500);
+  })();
+
+  // ============ APPROACH 1: continuous marquee drift ============
+  function mountMarquee(params) {
+    afterTrack.innerHTML = CARD_SET_HTML + CARD_SET_HTML; // duplicate for seamless loop
+    afterTrack.style.transition = "none";
+    var setWidth = 0;
+    requestAnimationFrame(function measure() {
+      var firstSet = Array.prototype.slice.call(afterTrack.children, 0, SHORTS.length);
+      var last = firstSet[firstSet.length - 1];
+      setWidth = last.offsetLeft + last.offsetWidth + 16 /* gap */ - firstSet[0].offsetLeft;
+    });
+
+    var x = 0;
+    var vel = -params.speed; // px/s, negative = moves left
+    var hovered = false;
+    var raf = null;
+    var last = performance.now();
+
+    function targetVel() {
+      if (reducedActive()) return 0;
+      if (hovered) return params.hoverSlow ? -params.speed * 0.15 : 0;
+      return -params.speed;
+    }
+
+    function frame(now) {
+      var dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      var tv = targetVel();
+      vel += (tv - vel) * Math.min(1, dt * 4); // smooth approach, never a hard stop
+      x += vel * dt;
+      if (setWidth > 0) {
+        if (x <= -setWidth) x += setWidth;
+        if (x > 0) x -= setWidth;
+      }
+      afterTrack.style.transform = "translate3d(" + x.toFixed(2) + "px,0,0)";
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+
+    function onEnter() { hovered = true; }
+    function onLeave() { hovered = false; }
+    afterViewport.addEventListener("mouseenter", onEnter);
+    afterViewport.addEventListener("mouseleave", onLeave);
+
+    setReadout(
+      "// continuous marquee drift (rAF loop)\n" +
+      "velocity: " + params.speed + "px/s  hoverSlow: " + params.hoverSlow + "\n" +
+      "el.style.transform = `translate3d(${x}px,0,0)`; // per-frame, GPU composited\n" +
+      "// on hover: lerp velocity toward " + (params.hoverSlow ? "15% of base (slow, not stop)" : "0 (stop)") + ", damping 4/s"
+    );
+
+    return function teardown() {
+      cancelAnimationFrame(raf);
+      afterViewport.removeEventListener("mouseenter", onEnter);
+      afterViewport.removeEventListener("mouseleave", onLeave);
+    };
+  }
+
+  // ============ shared: index-based looped rail (used by snap + momentum) ============
+  function buildLoopedTrack() {
+    afterTrack.innerHTML = CARD_SET_HTML + CARD_SET_HTML;
+  }
+  function stepPx() { return 196 + 16; }
+
+  // ============ APPROACH 2: snap-per-interval, real easing curve ============
+  function mountSnap(params) {
+    buildLoopedTrack();
+    var idx = 0;
+    var step = stepPx();
+    var timer = null;
+    var springRaf = null;
+
+    function specString() {
+      if (params.easing === "spring") {
+        return "spring(stiffness=" + params.stiffness + ", damping=" + params.damping + ", mass=1)  // rAF-driven, no CSS transition";
+      }
+      return "transition: transform " + params.duration + "ms " + EASINGS[params.easing] + ";";
+    }
+
+    function applyReadout() {
+      setReadout(
+        "// snap-per-interval, eased transition\n" +
+        "interval: " + params.interval + "ms   duration: " + params.duration + "ms\n" +
+        specString()
+      );
+    }
+    applyReadout();
+
+    function goTo(nextIdx, instant) {
+      idx = nextIdx;
+      var targetX = -(idx * step);
+      if (instant || reducedActive()) {
+        afterTrack.style.transition = "none";
+        afterTrack.style.transform = "translate3d(" + targetX + "px,0,0)";
+        return;
+      }
+      if (params.easing === "spring") {
+        if (springRaf) cancelAnimationFrame(springRaf);
+        var stepSpring = makeSpringStepper(params.stiffness, params.damping, 1);
+        var startTransform = afterTrack.style.transform || "translate3d(0,0,0)";
+        var m = /translate3d\((-?\d+\.?\d*)px/.exec(startTransform);
+        var pos = m ? parseFloat(m[1]) : 0;
+        var vel = 0;
+        var lastT = performance.now();
+        afterTrack.style.transition = "none";
+        (function frame(now) {
+          var dt = Math.min(0.032, (now - lastT) / 1000);
+          lastT = now;
+          var r = stepSpring(pos, vel, targetX, dt);
+          pos = r.pos; vel = r.vel;
+          afterTrack.style.transform = "translate3d(" + pos.toFixed(2) + "px,0,0)";
+          if (Math.abs(pos - targetX) > 0.3 || Math.abs(vel) > 5) {
+            springRaf = requestAnimationFrame(frame);
+          } else {
+            afterTrack.style.transform = "translate3d(" + targetX + "px,0,0)";
+          }
+        })(lastT);
+      } else {
+        afterTrack.style.transition = "transform " + params.duration + "ms " + EASINGS[params.easing];
+        afterTrack.style.transform = "translate3d(" + targetX + "px,0,0)";
+      }
+    }
+
+    function tick() {
+      idx += 1;
+      if (idx >= SHORTS.length) {
+        goTo(idx, false);
+        setTimeout(function () {
+          // seamless reset: jump back one set width with transition off,
+          // imperceptible because set N+1 is visually identical to set 0..N-1's clone
+          afterTrack.style.transition = "none";
+          idx = 0;
+          afterTrack.style.transform = "translate3d(0px,0,0)";
+        }, params.easing === "spring" ? 700 : params.duration);
+      } else {
+        goTo(idx, false);
+      }
+    }
+
+    timer = setInterval(function () { if (!reducedActive()) tick(); }, params.interval);
+
+    return function teardown() {
+      clearInterval(timer);
+      if (springRaf) cancelAnimationFrame(springRaf);
+    };
+  }
+
+  // ============ APPROACH 3: momentum / inertial drift between rest points ============
+  function mountMomentum(params) {
+    buildLoopedTrack();
+    var idx = 0;
+    var step = stepPx();
+    var stepSpring = makeSpringStepper(params.stiffness, params.damping, 1);
+    var pos = 0, vel = 0, target = 0;
+    var raf = null;
+    var lastT = performance.now();
+    var timer = null;
+
+    setReadout(
+      "// momentum drift between rest points (damped spring)\n" +
+      "interval: " + params.interval + "ms\n" +
+      "spring(stiffness=" + params.stiffness + ", damping=" + params.damping + ", mass=1) " +
+      (params.stiffness < 140 ? "// underdamped: visible overshoot-settle" : "")
+    );
+
+    function frame(now) {
+      var dt = Math.min(0.032, (now - lastT) / 1000);
+      lastT = now;
+      if (!reducedActive()) {
+        var r = stepSpring(pos, vel, target, dt);
+        pos = r.pos; vel = r.vel;
+      } else {
+        pos = target; vel = 0;
+      }
+      afterTrack.style.transform = "translate3d(" + pos.toFixed(2) + "px,0,0)";
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+
+    timer = setInterval(function () {
+      idx += 1;
+      if (idx >= SHORTS.length) {
+        // let it settle at the clone position, then silently rebase
+        target = -(idx * step);
+        setTimeout(function () {
+          idx = 0; pos = 0; target = 0; vel = 0;
+          afterTrack.style.transform = "translate3d(0px,0,0)";
+        }, 900);
+      } else {
+        target = -(idx * step);
+      }
+    }, params.interval);
+
+    return function teardown() {
+      cancelAnimationFrame(raf);
+      clearInterval(timer);
+    };
+  }
+
+  // ============ APPROACH 4: drag + free-scroll with momentum ============
+  function mountDrag(params) {
+    buildLoopedTrack();
+    var step = stepPx();
+    var setWidth = 0;
+    requestAnimationFrame(function () {
+      var firstSet = Array.prototype.slice.call(afterTrack.children, 0, SHORTS.length);
+      var last = firstSet[firstSet.length - 1];
+      setWidth = last.offsetLeft + last.offsetWidth + 16 - firstSet[0].offsetLeft;
+    });
+
+    var pos = 0, vel = 0;
+    var dragging = false, lastX = 0, lastT = 0;
+    var raf = null;
+    var settling = false;
+
+    setReadout(
+      "// drag + free-scroll with momentum (pointer inertia)\n" +
+      "friction: " + params.friction + "/frame   snap-back spring(stiffness=" + params.stiffness + ", damping=" + params.damping + ")\n" +
+      "translate3d only; pointer events drive velocity, rAF decays it, then eases to nearest card"
+    );
+
+    function wrap() {
+      if (setWidth <= 0) return;
+      if (pos <= -setWidth) pos += setWidth;
+      if (pos > 0) pos -= setWidth;
+    }
+
+    function nearestTarget() {
+      return Math.round(pos / step) * step;
+    }
+
+    function onPointerDown(e) {
+      dragging = true;
+      settling = false;
+      afterViewport.classList.add("dragging");
+      lastX = e.clientX; lastT = performance.now();
+      vel = 0;
+      afterViewport.setPointerCapture(e.pointerId);
+    }
+    function onPointerMove(e) {
+      if (!dragging) return;
+      var now = performance.now();
+      var dx = e.clientX - lastX;
+      var dt = Math.max(1, now - lastT);
+      pos += dx;
+      vel = dx / (dt / 1000); // px/s
+      lastX = e.clientX; lastT = now;
+      wrap();
+      afterTrack.style.transform = "translate3d(" + pos.toFixed(2) + "px,0,0)";
+    }
+    function onPointerUp() {
+      if (!dragging) return;
+      dragging = false;
+      afterViewport.classList.remove("dragging");
+      settling = true;
+    }
+
+    var stepSpring = makeSpringStepper(params.stiffness, params.damping, 1);
+    var snapVel = 0, snapping = false, snapTarget = 0;
+
+    function frame(now) {
+      var dt = Math.min(0.032, (now - lastT) / 1000 || 0.016);
+      lastT = now;
+      if (dragging) {
+        // driven directly by pointermove
+      } else if (settling) {
+        if (!snapping && Math.abs(vel) > 40 && !reducedActive()) {
+          pos += vel * dt;
+          vel *= Math.pow(params.friction, dt * 60);
+          wrap();
+          if (Math.abs(vel) <= 40) { snapping = true; snapTarget = nearestTarget(); snapVel = vel; }
+        } else {
+          if (!snapping) { snapping = true; snapTarget = nearestTarget(); snapVel = vel; }
+          var r = stepSpring(pos, snapVel, snapTarget, dt);
+          pos = r.pos; snapVel = r.vel;
+          if (Math.abs(pos - snapTarget) < 0.3 && Math.abs(snapVel) < 5) {
+            pos = snapTarget; settling = false; snapping = false; vel = 0;
+          }
+        }
+        wrap();
+        afterTrack.style.transform = "translate3d(" + pos.toFixed(2) + "px,0,0)";
+      }
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+
+    afterViewport.addEventListener("pointerdown", onPointerDown);
+    afterViewport.addEventListener("pointermove", onPointerMove);
+    afterViewport.addEventListener("pointerup", onPointerUp);
+    afterViewport.addEventListener("pointercancel", onPointerUp);
+
+    return function teardown() {
+      cancelAnimationFrame(raf);
+      afterViewport.removeEventListener("pointerdown", onPointerDown);
+      afterViewport.removeEventListener("pointermove", onPointerMove);
+      afterViewport.removeEventListener("pointerup", onPointerUp);
+      afterViewport.removeEventListener("pointercancel", onPointerUp);
+    };
+  }
+
+  // ============ TABS + CONTROLS WIRING ============
+  var APPROACHES = [
+    { id: "marquee", label: "1. Marquee drift", mount: mountMarquee },
+    { id: "snap", label: "2. Snap + easing", mount: mountSnap },
+    { id: "momentum", label: "3. Momentum drift", mount: mountMomentum },
+    { id: "drag", label: "4. Drag + free-scroll", mount: mountDrag }
+  ];
+
+  var tabsEl = document.getElementById("tabs");
+  var controlsEl = document.getElementById("controls");
+  var activeId = "marquee";
+
+  var FIELD_DEFS = {
+    speed: { label: "Speed (px/s)", min: 10, max: 200, step: 5, value: 45, forApproach: ["marquee"] },
+    hoverSlow: { label: "Hover slows (vs stops)", type: "checkbox", value: true, forApproach: ["marquee"] },
+    interval: { label: "Interval (ms)", min: 1000, max: 6000, step: 100, value: 3500, forApproach: ["snap", "momentum"] },
+    duration: { label: "Transition duration (ms)", min: 200, max: 1200, step: 20, value: 620, forApproach: ["snap"] },
+    easing: {
+      label: "Easing curve", type: "select", forApproach: ["snap"],
+      options: [
+        ["expo-out", "expo-out cubic-bezier(0.16,1,0.3,1)"],
+        ["smooth", "smooth cubic-bezier(0.22,1,0.36,1)"],
+        ["overshoot", "overshoot cubic-bezier(0.34,1.56,0.64,1)"],
+        ["spring", "spring (stiffness/damping)"]
+      ],
+      value: "expo-out"
+    },
+    stiffness: { label: "Spring stiffness", min: 40, max: 400, step: 5, value: 170, forApproach: ["momentum", "drag"] },
+    damping: { label: "Spring damping", min: 5, max: 60, step: 1, value: 18, forApproach: ["momentum", "drag"] },
+    friction: { label: "Drag friction (per 1/60s)", min: 0.80, max: 0.99, step: 0.01, value: 0.94, forApproach: ["drag"] }
+  };
+  // snap also needs stiffness/damping when easing === spring
+  FIELD_DEFS.stiffness.forApproach.push("snap");
+  FIELD_DEFS.damping.forApproach.push("snap");
+
+  var values = {};
+  Object.keys(FIELD_DEFS).forEach(function (k) { values[k] = FIELD_DEFS[k].value; });
+
+  function buildTabs() {
+    tabsEl.innerHTML = "";
+    APPROACHES.forEach(function (a) {
+      var btn = document.createElement("button");
+      btn.className = "tab" + (a.id === activeId ? " active" : "");
+      btn.textContent = a.label;
+      btn.addEventListener("click", function () {
+        activeId = a.id;
+        buildTabs();
+        buildControls();
+        remount();
+      });
+      tabsEl.appendChild(btn);
+    });
+  }
+
+  function fieldVisible(def) { return def.forApproach.indexOf(activeId) !== -1; }
+
+  function buildControls() {
+    controlsEl.innerHTML = "";
+    Object.keys(FIELD_DEFS).forEach(function (key) {
+      var def = FIELD_DEFS[key];
+      if (!fieldVisible(def)) return;
+      // hide stiffness/damping under snap unless easing===spring
+      if (key === "stiffness" || key === "damping") {
+        if (activeId === "snap" && values.easing !== "spring") return;
+      }
+      var wrap = document.createElement("div");
+      wrap.className = "field";
+      var label = document.createElement("label");
+      var valueSpan = document.createElement("span");
+      label.textContent = def.label + " ";
+      label.appendChild(valueSpan);
+      wrap.appendChild(label);
+
+      if (def.type === "checkbox") {
+        var cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = values[key];
+        cb.addEventListener("change", function () { values[key] = cb.checked; remount(); });
+        wrap.appendChild(cb);
+        valueSpan.textContent = "";
+      } else if (def.type === "select") {
+        var sel = document.createElement("select");
+        def.options.forEach(function (opt) {
+          var o = document.createElement("option");
+          o.value = opt[0]; o.textContent = opt[1];
+          if (opt[0] === values[key]) o.selected = true;
+          sel.appendChild(o);
+        });
+        sel.addEventListener("change", function () {
+          values[key] = sel.value;
+          buildControls(); // easing=spring toggles stiffness/damping visibility
+          remount();
+        });
+        wrap.appendChild(sel);
+      } else {
+        var range = document.createElement("input");
+        range.type = "range";
+        range.min = def.min; range.max = def.max; range.step = def.step;
+        range.value = values[key];
+        valueSpan.textContent = values[key];
+        range.addEventListener("input", function () {
+          values[key] = parseFloat(range.value);
+          valueSpan.textContent = values[key];
+          remount();
+        });
+        wrap.appendChild(range);
+      }
+      controlsEl.appendChild(wrap);
+    });
+  }
+
+  function remount() {
+    clearAfter();
+    var approach = APPROACHES.filter(function (a) { return a.id === activeId; })[0];
+    current.teardown = approach.mount(values);
+  }
+
+  document.getElementById("showBefore").addEventListener("change", function (e) {
+    document.getElementById("compare").dataset.single = e.target.checked ? "false" : "true";
+  });
+  document.getElementById("forceReduced").addEventListener("change", function () { /* live-read via reducedActive() */ });
+
+  document.getElementById("copyBtn").addEventListener("click", function () {
+    var text = readoutEl.textContent;
+    var msg = document.getElementById("copiedMsg");
+    function flash() { msg.style.display = "inline"; setTimeout(function () { msg.style.display = "none"; }, 1200); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(flash).catch(function () { fallbackCopy(text, flash); });
+    } else {
+      fallbackCopy(text, flash);
+    }
+  });
+  function fallbackCopy(text, cb) {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    cb();
+  }
+
+  buildTabs();
+  buildControls();
+  remount();
+})();
+</script>
+</body>
+</html>

@@ -1,8 +1,9 @@
 import { useRef } from "react";
 import type { TopicId } from "../../../../data/topics";
+import { SectionTitle } from "../../SectionTitle";
 import type { InnerRenderProps, ParallaxDepthParams } from "../types";
 import { flourishSrc } from "../types";
-import { AccentUnderlineHeading, FrameShell } from "./FrameShell";
+import { FrameShell } from "./FrameShell";
 import { DENSITY_GAP, DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 import { useRelativeScrollOffset } from "./shared-hooks";
 
@@ -87,6 +88,7 @@ export function ParallaxDepthCluster({
 	topic,
 	params,
 	accent,
+	isNight,
 	children,
 }: InnerRenderProps<"parallax-depth">) {
 	const ref = useRef<HTMLDivElement>(null);
@@ -96,11 +98,13 @@ export function ParallaxDepthCluster({
 	const k = params.depth / 50;
 
 	const heading = (
-		<AccentUnderlineHeading
-			heading={topic.heading}
+		<SectionTitle
+			size={DENSITY_HEADING[params.density]}
 			accent={accent}
-			headingClassName={DENSITY_HEADING[params.density]}
-		/>
+			night={isNight}
+		>
+			{topic.heading}
+		</SectionTitle>
 	);
 
 	return (

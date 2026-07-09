@@ -1,4 +1,5 @@
 import type { Topic, TopicId } from "../../../data/topics";
+import { SectionTitle } from "../SectionTitle";
 import { TopicBody } from "./TopicBody";
 import { flourishSrc, TOPIC_ACCENT } from "./types";
 
@@ -43,8 +44,6 @@ export function SectionBody({
 	const layout = LAYOUT_BY_TOPIC[topic.id];
 	const accent = TOPIC_ACCENT[topic.id];
 	const src = flourishSrc(topic.id);
-	const headingDark = !isNight;
-	const headingClass = `topic-heading text-4xl md:text-6xl font-black uppercase tracking-tighter transition-colors duration-300 ${headingDark ? "text-slate-900" : "text-white"}`;
 
 	const layoutClasses =
 		layout === "accent-bar"
@@ -79,10 +78,14 @@ export function SectionBody({
 			)}
 			<header className="max-w-3xl">
 				{layout === "stamped" ? (
-					<h2 className={headingClass}>{topic.heading}</h2>
+					<SectionTitle accent={accent} night={isNight} underlineAlign="left">
+						{topic.heading}
+					</SectionTitle>
 				) : (
 					<div className="flex items-center gap-3">
-						<h2 className={headingClass}>{topic.heading}</h2>
+						<SectionTitle accent={accent} night={isNight} underlineAlign="left">
+							{topic.heading}
+						</SectionTitle>
 						{flourishImg}
 					</div>
 				)}

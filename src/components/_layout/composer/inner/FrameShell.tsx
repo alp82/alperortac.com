@@ -32,35 +32,3 @@ export function FrameShell({
 		</div>
 	);
 }
-
-/*
- * Minimal-style heading chrome: big uppercase heading + accent-underline
- * span. Shared by the inner styles whose fixed chrome is this exact
- * Minimal-style block (currently parallax-depth and floating-island); other
- * inner styles that vary the chrome (e.g. minimal's own conditional
- * underline + alignment) keep their own inline heading JSX.
- */
-export function AccentUnderlineHeading({
-	heading,
-	accent,
-	headingClassName,
-}: {
-	heading: React.ReactNode;
-	accent: string;
-	headingClassName: string;
-}) {
-	return (
-		<div>
-			<h2
-				className={`${headingClassName} font-black uppercase tracking-tighter leading-[0.9] drop-shadow-[0_2px_16px_rgba(0,0,0,0.45)]`}
-			>
-				{heading}
-			</h2>
-			<span
-				className="mx-auto mt-4 block h-1.5 w-20 rounded-full"
-				style={{ background: accent }}
-				aria-hidden="true"
-			/>
-		</div>
-	);
-}

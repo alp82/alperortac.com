@@ -2,7 +2,7 @@ import { ExternalLink, Sun } from "lucide-react";
 import { Fragment } from "react";
 import { FOOTER_PROJECTS_INTRO } from "../../../data/footer";
 import { PROJECTS } from "../../../data/projects";
-import { SECTION_IDS } from "../../../data/sections";
+import { handleScrollTopClick, SECTION_IDS } from "../../../data/sections";
 import { FollowMeRow } from "./FollowMeRow";
 import { FooterContact } from "./FooterContact";
 import { FooterHeadline } from "./FooterHeadline";
@@ -10,7 +10,6 @@ import { FooterHeadline } from "./FooterHeadline";
 const currentYear = new Date().getFullYear();
 
 export function FooterSection() {
-
 	return (
 		<footer
 			id={SECTION_IDS.contact}
@@ -50,7 +49,8 @@ export function FooterSection() {
 						© {currentYear} - ALPER ORTAC
 					</div>
 					<a
-						href={`#${SECTION_IDS.start}`}
+						href="/"
+						onClick={handleScrollTopClick}
 						className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest drop-shadow-sm rounded-sm hover:opacity-70 transition-opacity focus-visible:ring-2 focus-visible:ring-current"
 					>
 						<Sun size={16} className="text-yellow-300" aria-hidden="true" />

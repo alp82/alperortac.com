@@ -26,12 +26,17 @@ import { NarrativeWatermark } from "../components/NarrativeWatermark";
 import { SUBPAGE_WORDS } from "../components/narrativeWatermark";
 import { PixelBackground } from "../components/PixelBackground";
 import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
-import { type PanelKey, SECTION_IDS } from "../data/sections";
+import {
+	handleScrollTopClick,
+	type PanelKey,
+	SECTION_IDS,
+} from "../data/sections";
 import {
 	DEFAULT_SKY_CURVE,
 	NIGHT_UI_THRESHOLD,
-	skyAt,
 	type SkyCurve,
+	scrollProgressAt,
+	skyAt,
 } from "../data/skyCurve";
 import { PANEL_KEY_TO_TOPIC_ID, TOPICS } from "../data/topics";
 
@@ -155,12 +160,11 @@ function LayoutHost() {
 						// sky would stay day while the scroll animates to the right spot.
 						const targetY = el.offsetTop;
 						window.scrollTo(0, targetY);
-						const totalScroll =
-							document.documentElement.scrollHeight - window.innerHeight;
-						const progress =
-							totalScroll > 0
-								? Math.min(Math.max(targetY / totalScroll, 0), 1)
-								: 0;
+						const progress = scrollProgressAt(
+							targetY,
+							document.documentElement.scrollHeight,
+							window.innerHeight,
+						);
 						scrollProgressRef.current = progress;
 						setScrollProgress(progress);
 						setScrollY(targetY);
@@ -244,12 +248,8 @@ function LayoutHost() {
 			if (panelOpenRef.current) return;
 			const winHeight = window.innerHeight;
 			const docHeight = document.documentElement.scrollHeight;
-			const totalScroll = docHeight - winHeight;
 			const currentScroll = window.scrollY;
-			const progress =
-				totalScroll > 0
-					? Math.min(Math.max(currentScroll / totalScroll, 0), 1)
-					: 0;
+			const progress = scrollProgressAt(currentScroll, docHeight, winHeight);
 			scrollProgressRef.current = progress;
 			setScrollProgress(progress);
 			setScrollY(currentScroll);
@@ -327,7 +327,8 @@ function LayoutHost() {
 				className="fixed top-0 left-0 right-0 md:right-20 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-sm bg-white/10 border-b border-white/20"
 			>
 				<a
-					href={`#${SECTION_IDS.start}`}
+					href="/"
+					onClick={handleScrollTopClick}
 					className="text-xl font-black tracking-tighter uppercase flex items-center gap-2 drop-shadow-md transition-colors duration-100 hover:opacity-70"
 					style={{ color: navColor }}
 				>
@@ -346,7 +347,8 @@ function LayoutHost() {
 					style={{ color: navColor }}
 				>
 					<a
-						href={`#${SECTION_IDS.start}`}
+						href="/"
+						onClick={handleScrollTopClick}
 						className="hover:opacity-70 transition-colors"
 					>
 						Start
@@ -380,7 +382,7 @@ function LayoutHost() {
 									onClick={() => setAboutOpen(false)}
 									className={aboutItemClass}
 								>
-									Find Me Online
+									Find Me
 								</a>
 								{TOPICS.map((topic) => (
 									<a
@@ -414,7 +416,7 @@ function LayoutHost() {
 
 			<div ref={mainShellRef} className="main-shell min-h-screen md:pr-20">
 				<HeroSection />
-				<FindMeSection isNight={isNight} />
+				<FindMeSection />
 				<CraftSection
 					lastTriggerRef={lastTriggerRef}
 					isNight={isNight}
@@ -444,7 +446,7 @@ function LayoutHost() {
 				dangerouslySetInnerHTML={{
 					__html: `
 						html { scroll-behavior: smooth; }
-						#craft article, #start, #find-me, #contact { scroll-margin-top: 80px; }
+						#craft article, #find-me, #contact { scroll-margin-top: 80px; }
 						.cursor-pixel { cursor: crosshair; }
 						::selection {
 							background: #fef08a;

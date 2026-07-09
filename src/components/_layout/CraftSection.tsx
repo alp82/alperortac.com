@@ -16,6 +16,9 @@ import { TopicArticle } from "./TopicArticle";
 
 type CraftSectionProps = {
 	lastTriggerRef: React.RefObject<HTMLElement | null>;
+	// isNight is only for the seam LinkComponents: seams sit BETWEEN frozen
+	// sections and deliberately track the live sky; each topic freezes its own
+	// phase at its article root.
 	isNight: boolean;
 	// The active composition (composed look by default; panel can switch to baseline).
 	composer: ComposerState;
@@ -43,7 +46,6 @@ export function CraftSection({
 							topic={topic}
 							index={index}
 							lastTriggerRef={lastTriggerRef}
-							isNight={isNight}
 							composer={composer}
 						/>
 						{LinkComponent && index < TOPICS.length - 1 && (

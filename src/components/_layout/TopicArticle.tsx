@@ -22,7 +22,6 @@ type TopicArticleProps = {
 	topic: Topic;
 	index: number;
 	lastTriggerRef: React.RefObject<HTMLElement | null>;
-	isNight: boolean;
 	// The active composition (composed look by default; panel can switch to baseline).
 	composer: ComposerState;
 };
@@ -31,7 +30,6 @@ export function TopicArticle({
 	topic,
 	index,
 	lastTriggerRef,
-	isNight,
 	composer,
 }: TopicArticleProps) {
 	if (!composer.baseline) {
@@ -40,18 +38,11 @@ export function TopicArticle({
 				state={composer}
 				topic={topic}
 				index={index}
-				isNight={isNight}
 				lastTriggerRef={lastTriggerRef}
 			/>
 		);
 	}
 
 	// "Shipped baseline" toggle.
-	return (
-		<CurrentBlock
-			topic={topic}
-			isNight={isNight}
-			lastTriggerRef={lastTriggerRef}
-		/>
-	);
+	return <CurrentBlock topic={topic} lastTriggerRef={lastTriggerRef} />;
 }

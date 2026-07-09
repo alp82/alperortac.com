@@ -1,4 +1,6 @@
+import { useRef } from "react";
 import type { Topic } from "../../../data/topics";
+import { useSectionNightPhase } from "../SectionTitle";
 import { SectionBody } from "./SectionBody";
 
 /*
@@ -17,20 +19,19 @@ import { SectionBody } from "./SectionBody";
 
 type CurrentBlockProps = {
 	topic: Topic;
-	isNight: boolean;
 	lastTriggerRef: React.RefObject<HTMLElement | null>;
 };
 
-export function CurrentBlock({
-	topic,
-	isNight,
-	lastTriggerRef,
-}: CurrentBlockProps) {
+export function CurrentBlock({ topic, lastTriggerRef }: CurrentBlockProps) {
+	const articleRef = useRef<HTMLElement>(null);
+	// ONE frozen phase for the whole topic section, measured at the article
+	// root — everything night-dependent inside agrees with it.
+	const night = useSectionNightPhase(articleRef);
 	return (
-		<article id={topic.id}>
+		<article ref={articleRef} id={topic.id}>
 			<SectionBody
 				topic={topic}
-				isNight={isNight}
+				isNight={night}
 				lastTriggerRef={lastTriggerRef}
 			/>
 		</article>
