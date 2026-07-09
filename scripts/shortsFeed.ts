@@ -78,9 +78,14 @@ export function parseShortsFeed(xml: string): ShortEntry[] {
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// The feed endpoint is flaky (transient 500s/404s between 200s), so retry with
-// linear backoff before failing loud. Network happens only through the
-// injected fetchImpl, keeping this testable without hitting the wire.
+// YouTube serves the feed a 4xx/5xx to requests without a browser-like
+// User-Agent (bot heuristic, harsher from datacenter IPs like a CI/deploy
+// host), so we always send one. On top of that the endpoint is genuinely
+// flaky, so retry with linear backoff before failing loud. Network happens
+// only through the injected fetchImpl, keeping this testable without the wire.
+const BROWSER_USER_AGENT =
+	"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+
 export async function fetchFeedXml(
 	fetchImpl: typeof fetch,
 	url: string,
@@ -93,6 +98,7 @@ export async function fetchFeedXml(
 	for (let attempt = 1; attempt <= attempts; attempt++) {
 		try {
 			const res = await fetchImpl(url, {
+				headers: { "User-Agent": BROWSER_USER_AGENT },
 				signal: AbortSignal.timeout(timeoutMs),
 			});
 			if (res.ok) return await res.text();
