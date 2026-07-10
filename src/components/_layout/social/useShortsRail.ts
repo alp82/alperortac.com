@@ -48,7 +48,6 @@ export function useShortsRail() {
 	const trackRef = useRef<HTMLDivElement>(null);
 	const barRef = useRef<HTMLDivElement>(null);
 	const thumbRef = useRef<HTMLDivElement>(null);
-	const offWrapRef = useRef<HTMLDivElement>(null);
 	const reducedMotion = useReducedMotion();
 	// Mirrors the bar's hidden-when-it-fits toggle for the prev/next arrows:
 	// starts false (sane pre-measure default, matching the bar's default
@@ -105,16 +104,8 @@ export function useShortsRail() {
 		const thumb = thumbRef.current;
 		if (thumb) {
 			const { viewportW, contentW, barW } = sizesRef.current;
-			const { widthFrac, posFrac } = thumbGeometry(viewportW, contentW, offset);
+			const { posFrac } = thumbGeometry(viewportW, contentW, offset);
 			thumb.style.transform = `translate3d(${posFrac * barW}px,0,0)`;
-			const offWrap = offWrapRef.current;
-			if (offWrap) {
-				const leftPct = posFrac * 100;
-				const rightPct = (posFrac + widthFrac) * 100;
-				const mask = `linear-gradient(to right, #000 0%, #000 ${leftPct}%, transparent ${leftPct}%, transparent ${rightPct}%, #000 ${rightPct}%, #000 100%)`;
-				offWrap.style.maskImage = mask;
-				offWrap.style.webkitMaskImage = mask;
-			}
 		}
 	}, []);
 
@@ -642,7 +633,6 @@ export function useShortsRail() {
 		trackRef,
 		barRef,
 		thumbRef,
-		offWrapRef,
 		wrapProps: {
 			onMouseEnter,
 			onMouseLeave,

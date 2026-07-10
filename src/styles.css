@@ -721,6 +721,9 @@ body.panel-open nav {
    never skewed by a focus-visible/hover nudge persisting across a resize. */
 .short-card-inner {
 	transition: transform 80ms ease-out;
+	/* Shared curve for the reveal-on-hover trio below, hoisted once so the
+	   170ms cubic-bezier isn't repeated verbatim on each of the three layers. */
+	--reveal: 170ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .short-card:hover,
 .short-card:focus-visible {
@@ -741,8 +744,88 @@ body.panel-open nav {
 .short-card:active .short-card-inner {
 	transform: translate(6px, 6px);
 }
+
+/* Reveal-on-hover treatment (locked via
+   .prototypes/design-shorts-card-palette.html): at rest each thumbnail sits
+   under a 3.5px blur (z0), a 62% ink-navy scrim (z1), and a per-card 135deg
+   duotone gradient (z2, hue from the card's inline --card-hue fading into ink
+   navy). Hover OR keyboard focus lifts all three together in 170ms so only
+   the engaged card shows the naked thumbnail. The title band sits at z3, the
+   glyph and views bar at z4, all inline Tailwind in ShortsCarousel.tsx. No
+   will-change here: only 5 cards ever mount, and an active filter transition
+   promotes its own layer while it runs. */
+.short-card__imgwrap {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	overflow: hidden;
+}
+.short-card__img {
+	position: absolute;
+	/* -6% bleed so the blur radius never feathers a transparent gutter at the
+	   card edge. */
+	inset: -6%;
+	width: 112%;
+	height: 112%;
+	object-fit: cover;
+	display: block;
+	filter: blur(3.5px);
+	transition: filter var(--reveal);
+}
+.short-card__scrim {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	pointer-events: none;
+	background: rgb(15 23 42 / 0.62);
+	transition: background-color var(--reveal);
+}
+.short-card__grad {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	pointer-events: none;
+	background: linear-gradient(135deg, var(--card-hue) 0%, #0f172a 100%);
+	opacity: 0.4;
+	transition: opacity var(--reveal);
+}
+.short-card:hover .short-card__img,
+.short-card:focus-visible .short-card__img {
+	filter: blur(0);
+}
+.short-card:hover .short-card__scrim,
+.short-card:focus-visible .short-card__scrim {
+	background: rgb(15 23 42 / 0);
+}
+.short-card:hover .short-card__grad,
+.short-card:focus-visible .short-card__grad {
+	opacity: 0;
+}
+/* Touch devices have no hover: the reveal-on-hover treatment would otherwise
+   leave every card permanently veiled. On (hover: none) the cards render
+   unveiled at rest instead - these off-state values are identical to the
+   :hover/:focus-visible reveal above, so touch rest == desktop hover with no
+   conflict between the two. */
+@media (hover: none) {
+	.short-card__img {
+		filter: none;
+	}
+	.short-card__scrim {
+		background: rgb(15 23 42 / 0);
+	}
+	.short-card__grad {
+		opacity: 0;
+	}
+}
 @media (prefers-reduced-motion: reduce) {
 	.short-card-inner {
+		transition: none;
+	}
+	/* The reveal is a state change, not decoration: it still happens, it just
+	   snaps instead of animating. */
+	.short-card__img,
+	.short-card__scrim,
+	.short-card__grad {
 		transition: none;
 	}
 	.short-card:hover .short-card-inner,
@@ -754,62 +837,29 @@ body.panel-open nav {
 	}
 }
 
-/* Filmstrip minimap scrollbar (V6): a bright base filmstrip of every Short's
-   thumbnail sits under a dimmed copy of the same filmstrip (__off-wrap). A
-   per-frame hard-cut CSS mask keeps that dim copy visible everywhere EXCEPT
-   the window's span, where it is punched away to reveal the bright base
-   strip - so the current viewport reads bright and the rest reads dimmed. A
-   red window frame (__thumb) sits on top marking the visible-viewport span, porting the
-   vertical Minimap band idiom to this horizontal rail. Pressing the track
-   jumps the rail to that spot; grabbing the window scrubs it live
+/* Hairline minimap scrollbar (locked 10px): a hard-edged ink-bordered faint
+   track with a solid red window (__thumb) marking the visible-viewport span,
+   matching the site's brutalist border/flat-shadow vocabulary. Pressing the
+   track jumps the rail to that spot; grabbing the window scrubs it live
    (useShortsRail's bar session), hence the grab/grabbing cursor pair. It
    stays aria-hidden as a redundant pointer-only affordance - the rail itself
    is the keyboard/AT surface. Window width is set at measure time; its
-   position and the mask glide per frame from the same spring-animated offset
-   as the track. Hidden by measure() whenever the content fits. */
+   position glides per frame from the same spring-animated offset as the
+   track. Hidden by measure() whenever the content fits. */
 .shorts-scrollbar {
 	position: relative;
-	height: 44px;
+	box-sizing: border-box;
+	height: 10px;
 	margin-top: 10px;
 	cursor: grab;
 	touch-action: pan-y;
 	user-select: none;
 	overflow: hidden;
-	border: 2px solid rgba(15, 23, 42, 0.5);
-	background: #0f172a;
+	background: rgba(15, 23, 42, 0.18);
+	border: 2px solid #0f172a;
 }
 .shorts-scrollbar--grabbing {
 	cursor: grabbing;
-}
-.shorts-scrollbar__strip {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	pointer-events: none;
-	z-index: 1;
-}
-.shorts-scrollbar__off-wrap {
-	position: absolute;
-	inset: 0;
-	pointer-events: none;
-	z-index: 2;
-	will-change: mask-image;
-}
-.shorts-scrollbar__off {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	filter: brightness(0.22) contrast(0.9);
-}
-.shorts-scrollbar__cell {
-	flex: 1 1 20%;
-	height: 100%;
-	object-fit: cover;
-	/* Bias the thin 44px cover-crop toward the upper-mid frame where Shorts
-	   put their subject, so a cell never slices a dead-center background band
-	   (e.g. a code-editor black region) and reads as empty. */
-	object-position: 50% 35%;
-	display: block;
 }
 .shorts-scrollbar__thumb {
 	position: absolute;
@@ -818,14 +868,15 @@ body.panel-open nav {
 	left: 0;
 	box-sizing: border-box;
 	pointer-events: none;
-	z-index: 3;
-	border: 3px solid #ff0000;
-	box-shadow: 3px 3px 0 0 #ff0000;
+	background: #ff0000;
+	box-shadow: 2px 2px 0 0 #0f172a;
 	border-radius: 0;
 	will-change: transform;
 }
+/* Night legibility: lighten the faint track so it reads on the dark sky; the
+   red window reads on both. */
 .shorts-scrollbar--night {
-	border-color: rgba(248, 250, 252, 0.4);
+	background: rgba(248, 250, 252, 0.2);
 }
 
 /* ---- THE PLATE (frosted copy panel: hero / topic teaser / linktree) ----

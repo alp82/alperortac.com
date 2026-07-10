@@ -18,7 +18,7 @@ export const YOUTUBE_SHORTS: YoutubeShort[] = [
 	{
 		id: "cgsF6B5eR98",
 		title: "Magical CLI Tools - Part 1 #agenticcoding #coding #develop",
-		views: 1015,
+		views: 1016,
 		publishedAt: "2026-05-09T15:11:22+00:00",
 	},
 	{

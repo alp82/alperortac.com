@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Latest Shorts &mdash; card treatment &amp; minimap picker</title>
+<style>
+	* { box-sizing: border-box; }
+	html, body { margin: 0; padding: 0; }
+	body {
+		font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+		background: #e8eef2;
+		color: #0f172a;
+	}
+
+	/* ---------- page header ---------- */
+	.page-header {
+		padding: 18px 24px 14px;
+		border-bottom: 2px solid #0f172a;
+		background: #ffffff;
+	}
+	.page-header h1 {
+		margin: 0 0 5px; font-size: 15px; font-weight: 900;
+		text-transform: uppercase; letter-spacing: 0.14em;
+	}
+	.page-header p { margin: 0; font-size: 12.5px; color: #475569; max-width: 780px; line-height: 1.5; }
+
+	.shell { display: flex; align-items: flex-start; gap: 0; }
+
+	/* ---------- control rail ---------- */
+	.controls {
+		flex: 0 0 288px; position: sticky; top: 0; align-self: flex-start;
+		max-height: 100vh; overflow-y: auto;
+		padding: 20px 20px 40px; border-right: 2px solid #0f172a; background: #ffffff;
+	}
+	.ctl-group { margin-bottom: 20px; }
+	.ctl-group > label.head {
+		display: block; font-size: 10.5px; font-weight: 900; text-transform: uppercase;
+		letter-spacing: 0.12em; color: #0f172a; margin-bottom: 8px;
+	}
+	.ctl-group .hint { font-size: 10.5px; color: #64748b; margin: 6px 0 0; line-height: 1.4; }
+
+	/* segmented / radio-as-buttons */
+	.seg { display: flex; flex-direction: column; border: 2px solid #0f172a; }
+	.seg button {
+		text-align: left; padding: 8px 10px; font-size: 11.5px; font-weight: 800;
+		background: #ffffff; color: #0f172a; border: none; border-top: 2px solid #0f172a;
+		cursor: pointer; line-height: 1.25;
+	}
+	.seg button:first-child { border-top: none; }
+	.seg button small { display: block; font-weight: 600; font-size: 10px; color: #64748b; margin-top: 2px; }
+	.seg button.on { background: #0f172a; color: #ffffff; }
+	.seg button.on small { color: #cbd5e1; }
+	.seg button:hover:not(.on) { background: #f1f5f9; }
+
+	.slider-row { display: flex; align-items: center; gap: 10px; }
+	.slider-row input[type=range] { flex: 1; accent-color: #ff0000; }
+	.slider-row .val { font-size: 11px; font-weight: 900; min-width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
+
+	.sub { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1; }
+	.sub[hidden] { display: none; }
+
+	.copy-wrap { margin-top: 8px; }
+	.copy-btn {
+		width: 100%; padding: 12px; font-size: 12px; font-weight: 900; text-transform: uppercase;
+		letter-spacing: 0.08em; background: #ff0000; color: #ffffff; border: 2px solid #0f172a;
+		box-shadow: 4px 4px 0 0 #0f172a; cursor: pointer;
+	}
+	.copy-btn:active { box-shadow: 0 0 0 0 #0f172a; transform: translate(4px, 4px); }
+	.copy-note { font-size: 10.5px; color: #64748b; margin: 8px 0 0; line-height: 1.45; }
+	.copy-out {
+		margin-top: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 10.5px; background: #0f172a; color: #f8fafc; padding: 8px 9px;
+		word-break: break-word; line-height: 1.5;
+	}
+
+	/* ---------- preview column ---------- */
+	.preview { flex: 1; min-width: 0; padding: 0 0 80px; }
+	.stage {
+		background: #87cbe8; padding: 26px 32px 34px; transition: background 200ms ease-out;
+		border-bottom: 2px solid rgba(15,23,42,0.25);
+	}
+	.stage.night { background: rgb(18, 12, 46); }
+	.stage-label {
+		display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+	}
+	.stage-label h2 { margin: 0; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.28em; color: #0f172a; opacity: 0.72; }
+	.stage.night .stage-label h2 { color: #f8fafc; }
+	.stage-label .tag {
+		font-size: 9.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;
+		padding: 3px 7px; border: 1.5px solid #0f172a; background: #fff; color: #0f172a; white-space: nowrap;
+	}
+	.stage-label .tag.live { background: #ff0000; color: #fff; border-color: #0f172a; }
+	.stage-label .rule { flex: 1; height: 1px; background: rgba(15,23,42,0.22); }
+	.stage.night .stage-label .rule { background: rgba(248,250,252,0.25); }
+
+	.col { max-width: 720px; }
+
+	.shorts-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+	.shorts-head h3 { margin: 0; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3em; opacity: 0.7; }
+	.stage.night .shorts-head h3 { color: #f8fafc; }
+	.shorts-head .rule { flex: 1; height: 1px; background: rgba(15,23,42,0.2); }
+	.stage.night .shorts-head .rule { background: rgba(248,250,252,0.25); }
+
+	.row { display: flex; gap: 16px; padding: 6px; }
+
+	/* ---------- brutalist short card (faithful to styles.css) ---------- */
+	.short-card {
+		flex: 0 0 calc((100% - 32px) / 3);
+		text-decoration: none; color: #0f172a;
+		border: 2px solid #0f172a; border-radius: 0;
+		box-shadow: 6px 6px 0 0 #0f172a; background: #ffffff; overflow: hidden;
+		display: flex; flex-direction: column;
+		transition: box-shadow 80ms ease-out, border-color 80ms ease-out;
+		cursor: pointer;
+	}
+	.short-card:hover { box-shadow: 4px 4px 0 0 #0f172a; border-color: #ff0000; }
+	.short-card:hover .card-inner { transform: translate(2px, 2px); }
+	.card-inner {
+		position: relative; aspect-ratio: 9 / 16; overflow: hidden; background: #111111;
+		transition: transform 80ms ease-out;
+	}
+
+	/* the image layer (isolated so blend modes don't leak into overlays) */
+	.imgwrap { position: absolute; inset: 0; z-index: 0; isolation: isolate; overflow: hidden; }
+	.imgwrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+	.duo-navy { position: absolute; inset: 0; pointer-events: none; }
+
+	/* treatment: grayscale */
+	.t-grayscale img { filter: grayscale(1) contrast(1.05) brightness(1.02); }
+	/* treatment: duotone (navy shadows + paper highlights, CSS-only via blend) */
+	.t-duotone .imgwrap { background: #eef2f7; }
+	.t-duotone img { filter: grayscale(1) contrast(1.15) brightness(1.05); mix-blend-mode: multiply; }
+	.t-duotone .duo-navy { background: #0f172a; mix-blend-mode: lighten; }
+	/* treatment: shared color-grade + tint scrim */
+	.t-grade img { filter: grayscale(0.34) saturate(0.72) contrast(0.95) brightness(1.05) sepia(0.12); }
+	.t-grade .scrim { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+		background: linear-gradient(160deg, rgba(30,41,59,0.30), rgba(15,23,42,0.34)); mix-blend-mode: multiply; }
+	/* treatment: heavy dark scrim (image recedes, red accent punches) */
+	.t-dark .scrim { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+		background: linear-gradient(180deg, rgba(15,23,42,0.55), rgba(15,23,42,0.62)); }
+	/* title-forward: blurred texture behind a clean title face */
+	.t-title img { transform: scale(1.12); }
+	.t-title .scrim { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+		background: rgba(15,23,42,var(--scrim, 0.55)); }
+
+	/* no-photo generated faces */
+	.face-solid { position: absolute; inset: 0; z-index: 0; background: #0f172a; }
+	.face-gradient { position: absolute; inset: 0; z-index: 0;
+		background: linear-gradient(150deg, #0f172a 0%, #1e293b 52%, #ff0000 190%); }
+	.face-halftone { position: absolute; inset: 0; z-index: 0; background: #0f172a;
+		background-image: radial-gradient(rgba(248,250,252,0.16) 1.4px, transparent 1.6px);
+		background-size: 11px 11px; }
+	.face-solid::after, .face-gradient::after, .face-halftone::after {
+		content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: #ff0000; }
+
+	/* ---------- overlays (avatar + title, glyph, views) faithful to component ---------- */
+	.ov-top {
+		position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+		display: flex; align-items: flex-start; gap: 7px; padding: 8px 9px 14px;
+		background: linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 65%, rgba(0,0,0,0) 100%);
+	}
+	.ov-top.dim { background: linear-gradient(to bottom, rgba(0,0,0,0.30), rgba(0,0,0,0)); }
+	.avatar {
+		width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #fff; flex-shrink: 0;
+		background: #475569; color: #fff; font-size: 9px; font-weight: 900;
+		display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+	}
+	.ov-top .meta { min-width: 0; }
+	.ov-top .title {
+		margin: 0; font-size: 10.5px; font-weight: 800; line-height: 1.24; color: #fff;
+		display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+		text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+	}
+	.ov-top .chan { margin: 2px 0 0; font-size: 9px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+	/* title-forward big title face */
+	.ov-titleface {
+		position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; justify-content: flex-end;
+		padding: 12px 12px 40px;
+	}
+	.ov-titleface .avatar { margin-bottom: 9px; }
+	.ov-titleface .title {
+		margin: 0; font-size: 14px; font-weight: 900; line-height: 1.16; color: #fff; letter-spacing: -0.01em;
+		display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+		text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+	}
+	.ov-titleface .chan { margin: 6px 0 0; font-size: 9.5px; font-weight: 700; color: #fff; opacity: 0.9; }
+
+	.glyph {
+		position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3;
+		width: 60px; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.55)); transition: transform 120ms ease-out;
+	}
+	.glyph.small { width: 46px; }
+	.short-card:hover .glyph { transform: translate(-50%, -50%) scale(1.06); }
+	.ov-views {
+		position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+		display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.58);
+		padding: 6px 9px; font-size: 9.5px; font-weight: 800; color: #fff;
+	}
+	.ov-views svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+	/* ---------- minimap ---------- */
+	.mm-wrap { max-width: 720px; margin-top: 10px; }
+	.mm-caption { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(15,23,42,0.55); margin: 0 0 5px; }
+	.stage.night .mm-caption { color: rgba(248,250,252,0.55); }
+
+	.mm-filmstrip {
+		position: relative; height: 44px; overflow: hidden;
+		border: 2px solid rgba(15,23,42,0.5); background: #0f172a;
+	}
+	.stage.night .mm-filmstrip { border-color: rgba(248,250,252,0.4); }
+	.mm-strip { position: absolute; inset: 0; display: flex; z-index: 1; }
+	.mm-cell { flex: 1 1 20%; height: 100%; object-fit: cover; object-position: 50% 35%; display: block; }
+	.mm-off { position: absolute; inset: 0; display: flex; z-index: 2;
+		filter: brightness(0.22) contrast(0.9);
+		-webkit-mask-image: linear-gradient(to right, transparent 0 60%, #000 60% 100%);
+		mask-image: linear-gradient(to right, transparent 0 60%, #000 60% 100%); }
+	.mm-window { position: absolute; top: 0; bottom: 0; left: 0; width: 60%; z-index: 3;
+		box-sizing: border-box; border: 3px solid #ff0000; box-shadow: 3px 3px 0 0 #ff0000; }
+
+	/* tamed filmstrip: gentler dim, inherits card treatment on cells */
+	.mm-filmstrip.tamed .mm-off { filter: brightness(0.5) contrast(0.92); }
+	.mm-filmstrip.tamed { border-color: rgba(15,23,42,0.35); }
+
+	/* generated-face cells for no-photo minimap */
+	.mm-cell.gen { display: block; }
+
+	/* dots */
+	.mm-dots { display: flex; align-items: center; justify-content: center; gap: 10px; height: 26px; }
+	.mm-dots .dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(15,23,42,0.28); border: 1.5px solid rgba(15,23,42,0.4); }
+	.stage.night .mm-dots .dot { background: rgba(248,250,252,0.25); border-color: rgba(248,250,252,0.4); }
+	.mm-dots .dot.on { background: #ff0000; border-color: #0f172a; }
+	.mm-dots .dot.wide { width: 22px; border-radius: 5px; }
+
+	/* hairline */
+	.mm-hair { position: relative; height: 6px; background: rgba(15,23,42,0.18); }
+	.stage.night .mm-hair { background: rgba(248,250,252,0.2); }
+	.mm-hair .seg { position: absolute; top: 0; bottom: 0; left: 0; width: 60%; background: #ff0000; }
+
+	.mm-removed { font-size: 10px; color: rgba(15,23,42,0.4); font-style: italic; padding: 4px 0; }
+	.stage.night .mm-removed { color: rgba(248,250,252,0.4); }
+
+	.sky-toggle { display: inline-flex; border: 2px solid #0f172a; }
+	.sky-toggle button { padding: 6px 12px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; background: #fff; color: #0f172a; border: none; cursor: pointer; }
+	.sky-toggle button:first-child { border-right: 2px solid #0f172a; }
+	.sky-toggle button.on { background: #0f172a; color: #fff; }
+</style>
+</head>
+<body>
+	<header class="page-header">
+		<h1>Latest Shorts &mdash; card treatment &amp; minimap picker</h1>
+		<p>Same 3-up rail and filmstrip minimap from the Socials section, rendered with the <strong>real</strong> YouTube thumbnails (honest chaos). Top stage is the locked <strong>baseline (current)</strong>; the stage below re-renders live as you switch the thumbnail role, its sub-treatment, and the minimap style. Goal: calm the noise while keeping the punch &mdash; brutalist chrome, red accent, day/night all intact. Pick a combination, hit <em>Copy spec</em>, paste it back into chat.</p>
+	</header>
+
+	<div class="shell">
+		<aside class="controls">
+			<div class="ctl-group">
+				<label class="head">Sky (preview both)</label>
+				<div class="sky-toggle" id="sky">
+					<button data-sky="day" class="on">Day</button>
+					<button data-sky="night">Night</button>
+				</div>
+				<p class="hint">Viewing mode only &mdash; not part of the spec. Both must stay legible.</p>
+			</div>
+
+			<div class="ctl-group">
+				<label class="head">Thumbnail role</label>
+				<div class="seg" id="role">
+					<button data-role="baseline" class="on">Baseline (current)<small>Raw thumbnail as-is</small></button>
+					<button data-role="hero-tamed">Hero, tamed<small>Thumbnail is the face, unified via a shared grade</small></button>
+					<button data-role="title-forward">Title-forward<small>Thumbnail blurred to texture behind a clean title</small></button>
+					<button data-role="no-photo">No photo<small>Generated brand card face, no thumbnail</small></button>
+				</div>
+			</div>
+
+			<div class="ctl-group sub" id="sub-hero" hidden>
+				<label class="head">Hero treatment</label>
+				<div class="seg" id="heroTreatment">
+					<button data-t="as-is" class="on">As-is<small>No filter (comparison anchor)</small></button>
+					<button data-t="grayscale">Grayscale<small>Strip color casts entirely</small></button>
+					<button data-t="duotone">Duotone<small>Navy shadows + paper highlights</small></button>
+					<button data-t="grade-scrim">Grade + tint scrim<small>Desaturate + unify toward one cast</small></button>
+					<button data-t="dark-scrim">Heavy dark scrim<small>Image recedes, red accent punches</small></button>
+				</div>
+			</div>
+
+			<div class="ctl-group sub" id="sub-title" hidden>
+				<label class="head">Title-forward tuning</label>
+				<div class="slider-row">
+					<span style="font-size:10px;font-weight:800;min-width:34px;">Blur</span>
+					<input type="range" id="blur" min="0" max="24" step="1" value="12" />
+					<span class="val" id="blurVal">12px</span>
+				</div>
+				<div class="slider-row" style="margin-top:8px;">
+					<span style="font-size:10px;font-weight:800;min-width:34px;">Scrim</span>
+					<input type="range" id="scrim" min="0" max="85" step="5" value="55" />
+					<span class="val" id="scrimVal">55%</span>
+				</div>
+			</div>
+
+			<div class="ctl-group sub" id="sub-nophoto" hidden>
+				<label class="head">No-photo style</label>
+				<div class="seg" id="nophotoStyle">
+					<button data-s="solid" class="on">Solid brand<small>Flat navy, red base bar</small></button>
+					<button data-s="halftone">Halftone<small>Dotted texture over navy</small></button>
+					<button data-s="gradient">Gradient<small>Navy &rarr; ember</small></button>
+				</div>
+			</div>
+
+			<div class="ctl-group">
+				<label class="head">Minimap</label>
+				<div class="seg" id="minimap">
+					<button data-m="filmstrip-v6" class="on">Filmstrip V6<small>Current bright/dim strip + red window</small></button>
+					<button data-m="filmstrip-tamed">Filmstrip, tamed<small>Inherits the card treatment, gentler dim</small></button>
+					<button data-m="dots">Dots<small>5 markers, window highlighted</small></button>
+					<button data-m="hairline">Hairline bar<small>Thin track, red window segment</small></button>
+					<button data-m="removed">Removed<small>No minimap at all</small></button>
+				</div>
+			</div>
+
+			<div class="ctl-group copy-wrap">
+				<button class="copy-btn" id="copyBtn">Copy spec</button>
+				<p class="copy-note">Paste the copied line straight back into chat to lock the design.</p>
+				<div class="copy-out" id="copyOut"></div>
+			</div>
+		</aside>
+
+		<main class="preview">
+			<section class="stage" id="stageBaseline">
+				<div class="stage-label">
+					<h2>Baseline</h2><span class="tag">Current / untreated</span><span class="rule"></span>
+				</div>
+				<div class="col">
+					<div class="shorts-head"><h3>Latest Shorts</h3><span class="rule"></span></div>
+					<div class="row" id="rowBaseline"></div>
+					<div class="mm-wrap"><p class="mm-caption">Minimap &mdash; filmstrip V6 (current)</p><div id="mmBaseline"></div></div>
+				</div>
+			</section>
+
+			<section class="stage" id="stageLive">
+				<div class="stage-label">
+					<h2>Live preview</h2><span class="tag live" id="liveTag">baseline</span><span class="rule"></span>
+				</div>
+				<div class="col">
+					<div class="shorts-head"><h3>Latest Shorts</h3><span class="rule"></span></div>
+					<div class="row" id="rowLive"></div>
+					<div class="mm-wrap"><p class="mm-caption" id="mmCaption">Minimap</p><div id="mmLive"></div></div>
+				</div>
+			</section>
+		</main>
+	</div>
+
+<script>
+	// ---- real data (from src/data/youtubeShorts.ts) ----
+	var SHORTS = [
+		{ id: "YaoyTizlaE4", title: "Is it worth it Part 1", views: 243 },
+		{ id: "cgsF6B5eR98", title: "Magical CLI Tools - Part 1 #agenticcoding #coding #develop", views: 1015 },
+		{ id: "5mgQepVfcyc", title: "Day 3 -  Best tools for your tech stack - Part 1", views: 454 },
+		{ id: "UGgKyRGUwkE", title: "I see the issue now - Part 1", views: 959 },
+		{ id: "ueRlidFgFYY", title: "Agentic Coding - hello to Day 1 of 30", views: 743 }
+	];
+	var VISIBLE = SHORTS.slice(0, 3); // 3-up rail
+
+	function vurl(id){ return "https://i.ytimg.com/vi/" + id + "/oardefault.jpg"; }
+	function furl(id){ return "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg"; }
+	function views(n){ return n >= 1000 ? (n/1000).toFixed(1).replace(/\.0$/,"") + "K" : String(n); }
+
+	var GLYPH = '<svg class="glyph" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+		+ '<path fill="#FF0000" d="m18.931 9.99-1.441-.601 1.717-.913a4.48 4.48 0 0 0 1.874-6.078 4.506 4.506 0 0 0-6.09-1.874L4.792 5.929a4.504 4.504 0 0 0-2.402 4.193 4.521 4.521 0 0 0 2.666 3.904c.036.012 1.442.6 1.442.6l-1.706.901a4.51 4.51 0 0 0-2.369 3.967A4.528 4.528 0 0 0 6.93 24c.725 0 1.437-.174 2.08-.508l10.21-5.406a4.494 4.494 0 0 0 2.39-4.192 4.525 4.525 0 0 0-2.678-3.904Z"/>'
+		+ '<path fill="#FFFFFF" d="M9.597 15.19V8.824l6.007 3.184z"/></svg>';
+	var EYE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 5C5.5 5 1.7 10.6 1 12c.7 1.4 4.5 7 11 7s10.3-5.6 11-7c-.7-1.4-4.5-7-11-7zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9zm0-7.2A2.7 2.7 0 1 0 12 14.7a2.7 2.7 0 0 0 0-5.4z"/></svg>';
+
+	function imgTag(id, cls){
+		cls = cls || "";
+		return '<img class="' + cls + '" src="' + vurl(id) + '" alt="" draggable="false" '
+			+ 'onerror="if(this.dataset.fb){this.style.display=\'none\'}else{this.dataset.fb=1;this.src=\'' + furl(id) + '\'}" />';
+	}
+
+	// ---- one card ----
+	function card(short, role, heroT, blur, scrim, nophotoStyle){
+		var inner = "";
+		if (role === "baseline" || (role === "hero-tamed" && heroT === "as-is")) {
+			inner = '<div class="imgwrap">' + imgTag(short.id) + '</div>'
+				+ topOverlay(short) + GLYPH + viewsBar(short);
+		} else if (role === "hero-tamed") {
+			var wcls = "imgwrap t-" + (heroT === "grade-scrim" ? "grade" : heroT === "dark-scrim" ? "dark" : heroT);
+			var extra = "";
+			if (heroT === "duotone") extra = '<div class="duo-navy"></div>';
+			if (heroT === "grade-scrim" || heroT === "dark-scrim") extra = '<div class="scrim"></div>';
+			inner = '<div class="' + wcls + '">' + imgTag(short.id) + extra + '</div>'
+				+ topOverlay(short) + GLYPH + viewsBar(short);
+		} else if (role === "title-forward") {
+			var bpx = blur + "px";
+			inner = '<div class="imgwrap t-title" style="--scrim:' + (scrim/100) + '">'
+				+ imgTag(short.id).replace('<img ', '<img style="filter:blur(' + bpx + ')" ')
+				+ '<div class="scrim"></div></div>'
+				+ titleFace(short) + '<span class="glyph-holder">' + GLYPH.replace('class="glyph"','class="glyph small"') + '</span>'
+				+ viewsBar(short);
+		} else if (role === "no-photo") {
+			inner = '<div class="face-' + nophotoStyle + '"></div>'
+				+ titleFace(short) + '<span class="glyph-holder">' + GLYPH.replace('class="glyph"','class="glyph small"') + '</span>'
+				+ viewsBar(short);
+		}
+		return '<a class="short-card" href="https://www.youtube.com/shorts/' + short.id + '" target="_blank" rel="noopener noreferrer" draggable="false">'
+			+ '<div class="card-inner">' + inner + '</div></a>';
+	}
+
+	function topOverlay(short){
+		return '<div class="ov-top"><span class="avatar">AO</span><div class="meta">'
+			+ '<p class="title">' + esc(short.title) + '</p><p class="chan">Alper Ortac</p></div></div>';
+	}
+	function titleFace(short){
+		return '<div class="ov-titleface"><span class="avatar">AO</span>'
+			+ '<p class="title">' + esc(short.title) + '</p><p class="chan">Alper Ortac</p></div>';
+	}
+	function viewsBar(short){ return '<div class="ov-views">' + EYE + ' ' + views(short.views) + ' views</div>'; }
+	function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+	// ---- minimap ----
+	function minimap(kind, role, heroT, nophotoStyle){
+		if (kind === "removed") return '<div class="mm-removed">minimap removed</div>';
+		if (kind === "dots") {
+			var d = "";
+			for (var i=0;i<5;i++){ d += '<span class="dot ' + (i<3?'on':'') + (i===0?' wide':'') + '"></span>'; }
+			return '<div class="mm-dots">' + d + '</div>';
+		}
+		if (kind === "hairline") return '<div class="mm-hair"><span class="seg"></span></div>';
+
+		// filmstrip v6 or tamed
+		var tamed = (kind === "filmstrip-tamed");
+		var cellHTML = "";
+		for (var j=0;j<5;j++){
+			var s = SHORTS[j];
+			if (tamed && role === "no-photo") {
+				cellHTML += '<span class="mm-cell gen face-' + nophotoStyle + '" style="position:relative"></span>';
+			} else if (tamed && role === "hero-tamed" && heroT !== "as-is") {
+				var f = heroT === "grayscale" ? "grayscale(1) contrast(1.05)"
+					: heroT === "duotone" ? "grayscale(1) contrast(1.1)"
+					: heroT === "grade-scrim" ? "grayscale(0.34) saturate(0.72) contrast(0.95) sepia(0.12)"
+					: "brightness(0.8)";
+				cellHTML += imgTag(s.id, "mm-cell").replace('<img ', '<img style="filter:' + f + '" ');
+			} else {
+				cellHTML += imgTag(s.id, "mm-cell");
+			}
+		}
+		var offHTML = "";
+		for (var k=0;k<5;k++){ offHTML += imgTag(SHORTS[k].id, "mm-cell"); }
+		return '<div class="mm-filmstrip ' + (tamed?'tamed':'') + '">'
+			+ '<div class="mm-strip">' + cellHTML + '</div>'
+			+ (tamed ? '' : '<div class="mm-off">' + offHTML + '</div>')
+			+ '<div class="mm-window"></div></div>';
+	}
+
+	// ---- state + render ----
+	var state = { sky:"day", role:"baseline", heroTreatment:"as-is", blur:12, scrim:55, nophotoStyle:"solid", minimap:"filmstrip-v6" };
+
+	function renderBaseline(){
+		document.getElementById("rowBaseline").innerHTML = VISIBLE.map(function(s){ return card(s,"baseline"); }).join("");
+		document.getElementById("mmBaseline").innerHTML = minimap("filmstrip-v6","baseline");
+	}
+	function renderLive(){
+		document.getElementById("stageBaseline").className = "stage" + (state.sky==="night"?" night":"");
+		document.getElementById("stageLive").className = "stage" + (state.sky==="night"?" night":"");
+		document.getElementById("rowLive").innerHTML = VISIBLE.map(function(s){
+			return card(s, state.role, state.heroTreatment, state.blur, state.scrim, state.nophotoStyle);
+		}).join("");
+		document.getElementById("mmLive").innerHTML = minimap(state.minimap, state.role, state.heroTreatment, state.nophotoStyle);
+		document.getElementById("mmCaption").textContent = "Minimap — " + state.minimap;
+		// sub-control visibility
+		document.getElementById("sub-hero").hidden = state.role !== "hero-tamed";
+		document.getElementById("sub-title").hidden = state.role !== "title-forward";
+		document.getElementById("sub-nophoto").hidden = state.role !== "no-photo";
+		// live tag
+		var t = state.role;
+		if (state.role === "hero-tamed") t = "hero-tamed / " + state.heroTreatment;
+		else if (state.role === "title-forward") t = "title-forward";
+		else if (state.role === "no-photo") t = "no-photo / " + state.nophotoStyle;
+		document.getElementById("liveTag").textContent = t;
+		updateSpec();
+	}
+
+	function buildSpec(){
+		var parts = ["role: " + state.role];
+		if (state.role === "hero-tamed") parts.push("treatment: " + state.heroTreatment);
+		if (state.role === "title-forward") { parts.push("blur: " + state.blur + "px"); parts.push("scrim: " + state.scrim + "%"); }
+		if (state.role === "no-photo") parts.push("style: " + state.nophotoStyle);
+		parts.push("minimap: " + state.minimap);
+		return parts.join(" | ");
+	}
+	function updateSpec(){ document.getElementById("copyOut").textContent = buildSpec(); }
+
+	// ---- wiring ----
+	function segWire(id, key){
+		var box = document.getElementById(id);
+		box.addEventListener("click", function(e){
+			var b = e.target.closest("button"); if (!b) return;
+			var val = b.dataset.role || b.dataset.t || b.dataset.s || b.dataset.m;
+			state[key] = val;
+			Array.prototype.forEach.call(box.querySelectorAll("button"), function(x){ x.classList.remove("on"); });
+			b.classList.add("on");
+			renderLive();
+		});
+	}
+	segWire("role","role");
+	segWire("heroTreatment","heroTreatment");
+	segWire("nophotoStyle","nophotoStyle");
+	segWire("minimap","minimap");
+
+	document.getElementById("sky").addEventListener("click", function(e){
+		var b = e.target.closest("button"); if (!b) return;
+		state.sky = b.dataset.sky;
+		Array.prototype.forEach.call(this.querySelectorAll("button"), function(x){ x.classList.remove("on"); });
+		b.classList.add("on");
+		renderLive();
+	});
+	document.getElementById("blur").addEventListener("input", function(){
+		state.blur = +this.value; document.getElementById("blurVal").textContent = this.value + "px"; renderLive();
+	});
+	document.getElementById("scrim").addEventListener("input", function(){
+		state.scrim = +this.value; document.getElementById("scrimVal").textContent = this.value + "%"; renderLive();
+	});
+
+	document.getElementById("copyBtn").addEventListener("click", function(){
+		var spec = buildSpec();
+		var btn = this;
+		function done(){ var o=btn.textContent; btn.textContent="Copied ✓"; setTimeout(function(){ btn.textContent=o; }, 1400); }
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(spec).then(done, function(){ fallback(spec); done(); });
+		} else { fallback(spec); done(); }
+	});
+	function fallback(text){
+		var ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
+		ta.select(); try { document.execCommand("copy"); } catch(e){} document.body.removeChild(ta);
+	}
+
+	renderBaseline();
+	renderLive();
+</script>
+</body>
+</html>

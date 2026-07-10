@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Latest Shorts &mdash; per-card overlay palette (round 3)</title>
+<style>
+	* { box-sizing: border-box; }
+	html, body { margin: 0; padding: 0; }
+	body {
+		font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+		background: #e8eef2;
+		color: #0f172a;
+	}
+
+	/* ---------- page header ---------- */
+	.page-header {
+		padding: 18px 24px 14px;
+		border-bottom: 2px solid #0f172a;
+		background: #ffffff;
+	}
+	.page-header h1 {
+		margin: 0 0 5px; font-size: 15px; font-weight: 900;
+		text-transform: uppercase; letter-spacing: 0.14em;
+	}
+	.page-header p { margin: 0; font-size: 12.5px; color: #475569; max-width: 860px; line-height: 1.5; }
+	.page-header code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; background: #f1f5f9; padding: 1px 4px; }
+
+	.shell { display: flex; align-items: flex-start; gap: 0; }
+
+	/* ---------- control rail ---------- */
+	.controls {
+		flex: 0 0 320px; position: sticky; top: 0; align-self: flex-start;
+		max-height: 100vh; overflow-y: auto;
+		padding: 20px 20px 60px; border-right: 2px solid #0f172a; background: #ffffff;
+	}
+	.ctl-group { margin-bottom: 18px; }
+	.ctl-group > label.head {
+		display: block; font-size: 10.5px; font-weight: 900; text-transform: uppercase;
+		letter-spacing: 0.12em; color: #0f172a; margin-bottom: 8px;
+	}
+	.ctl-group .hint { font-size: 10.5px; color: #64748b; margin: 6px 0 0; line-height: 1.4; }
+	.section-rule { border: none; border-top: 2px solid #0f172a; margin: 22px 0 18px; }
+	.section-label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.16em; color: #ff0000; margin: 0 0 12px; }
+
+	/* locked summary */
+	.locked {
+		border: 2px solid #0f172a; background: #f8fafc; padding: 10px 11px; margin-bottom: 4px;
+	}
+	.locked h4 { margin: 0 0 7px; font-size: 9.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; color: #0f172a; }
+	.locked ul { margin: 0; padding: 0; list-style: none; }
+	.locked li {
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: #475569;
+		display: flex; justify-content: space-between; gap: 8px; padding: 1.5px 0;
+	}
+	.locked li b { color: #0f172a; font-weight: 800; }
+
+	/* segmented / radio-as-buttons */
+	.seg { display: flex; flex-direction: column; border: 2px solid #0f172a; }
+	.seg.horiz { flex-direction: row; }
+	.seg.horiz button { flex: 1; text-align: center; border-top: none; border-left: 2px solid #0f172a; }
+	.seg.horiz button:first-child { border-left: none; }
+	.seg button {
+		text-align: left; padding: 8px 10px; font-size: 11.5px; font-weight: 800;
+		background: #ffffff; color: #0f172a; border: none; border-top: 2px solid #0f172a;
+		cursor: pointer; line-height: 1.25; width: 100%;
+	}
+	.seg button:first-child { border-top: none; }
+	.seg button small { display: block; font-weight: 600; font-size: 10px; color: #64748b; margin-top: 2px; }
+	.seg button.on { background: #0f172a; color: #ffffff; }
+	.seg button.on small { color: #cbd5e1; }
+	.seg button:hover:not(.on) { background: #f1f5f9; }
+
+	/* swatch row inside palette radio */
+	.swrow { display: flex; gap: 0; margin-top: 6px; height: 16px; border: 1.5px solid rgba(15,23,42,0.35); }
+	.seg button.on .swrow { border-color: rgba(255,255,255,0.55); }
+	.swrow span { flex: 1; }
+
+	.slider-row { display: flex; align-items: center; gap: 10px; }
+	.slider-row .lab { font-size: 10px; font-weight: 800; min-width: 30px; }
+	.slider-row input[type=range] { flex: 1; accent-color: #ff0000; min-width: 0; }
+	.slider-row .val { font-size: 11px; font-weight: 900; min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+
+	.copy-wrap { margin-top: 10px; }
+	.copy-btn {
+		width: 100%; padding: 12px; font-size: 12px; font-weight: 900; text-transform: uppercase;
+		letter-spacing: 0.08em; background: #ff0000; color: #ffffff; border: 2px solid #0f172a;
+		box-shadow: 4px 4px 0 0 #0f172a; cursor: pointer;
+	}
+	.copy-btn:active { box-shadow: 0 0 0 0 #0f172a; transform: translate(4px, 4px); }
+	.copy-note { font-size: 10.5px; color: #64748b; margin: 8px 0 0; line-height: 1.45; }
+	.copy-out {
+		margin-top: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 10.5px; background: #0f172a; color: #f8fafc; padding: 8px 9px;
+		word-break: break-word; line-height: 1.6;
+	}
+
+	/* ---------- preview column ---------- */
+	.preview { flex: 1; min-width: 0; padding: 0 0 80px; }
+	.stage {
+		background: #87cbe8; padding: 26px 32px 34px; transition: background 200ms ease-out;
+		border-bottom: 2px solid rgba(15,23,42,0.25);
+	}
+	.stage.night { background: rgb(18, 12, 46); }
+	.stage-label { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+	.stage-label h2 { margin: 0; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.28em; color: #0f172a; opacity: 0.72; }
+	.stage.night .stage-label h2 { color: #f8fafc; }
+	.stage-label .tag {
+		font-size: 9.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;
+		padding: 3px 7px; border: 1.5px solid #0f172a; background: #fff; color: #0f172a; white-space: nowrap;
+	}
+	.stage-label .tag.live { background: #ff0000; color: #fff; border-color: #0f172a; }
+	.stage-label .rule { flex: 1; height: 1px; background: rgba(15,23,42,0.22); }
+	.stage.night .stage-label .rule { background: rgba(248,250,252,0.25); }
+	.hover-hint { font-size: 10.5px; font-weight: 700; color: rgba(15,23,42,0.6); margin: 0 0 12px; }
+	.stage.night .hover-hint { color: rgba(248,250,252,0.6); }
+
+	.col { max-width: 720px; }
+	.col.wide { max-width: 1180px; }
+	.shorts-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+	.shorts-head h3 { margin: 0; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3em; opacity: 0.7; }
+	.stage.night .shorts-head h3 { color: #f8fafc; }
+	.shorts-head .rule { flex: 1; height: 1px; background: rgba(15,23,42,0.2); }
+	.stage.night .shorts-head .rule { background: rgba(248,250,252,0.25); }
+
+	.row { display: flex; gap: 16px; padding: 6px; }
+
+	/* palette-walk strip: 10 cards, horizontal scroll */
+	.strip { display: flex; gap: 12px; padding: 6px 6px 12px; overflow-x: auto; }
+	.strip .cell { flex: 0 0 128px; display: flex; flex-direction: column; align-items: stretch; }
+	.strip .short-card { flex: 0 0 auto; }
+	.strip .hue-badge {
+		margin-top: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 9px; font-weight: 800; color: rgba(15,23,42,0.6); display: flex;
+		align-items: center; gap: 5px;
+	}
+	.stage.night .strip .hue-badge { color: rgba(248,250,252,0.65); }
+	.strip .hue-badge .chip { width: 11px; height: 11px; border: 1px solid rgba(15,23,42,0.4); flex-shrink: 0; }
+	.stage.night .strip .hue-badge .chip { border-color: rgba(248,250,252,0.4); }
+
+	/* ---------- brutalist short card (faithful to styles.css) ---------- */
+	.short-card {
+		flex: 0 0 calc((100% - 32px) / 3);
+		text-decoration: none; color: #0f172a;
+		border: 2px solid #0f172a; border-radius: 0;
+		box-shadow: 6px 6px 0 0 #0f172a; background: #ffffff; overflow: hidden;
+		display: flex; flex-direction: column;
+		transition: box-shadow 80ms ease-out, border-color 80ms ease-out;
+		cursor: pointer;
+	}
+	.short-card:hover { box-shadow: 4px 4px 0 0 #0f172a; border-color: #ff0000; }
+	.short-card:hover .card-inner { transform: translate(2px, 2px); }
+	.card-inner {
+		position: relative; aspect-ratio: 9 / 16; overflow: hidden; background: #0f172a;
+		transition: transform 80ms ease-out;
+	}
+
+	/* image layer */
+	.imgwrap { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+	.imgwrap img {
+		position: absolute; inset: -6%; width: 112%; height: 112%; object-fit: cover; display: block;
+		/* -6% bleed so the blur radius never exposes a soft transparent edge */
+	}
+
+	/* ---------- reveal-on-hover treatment (locked round-2 values via vars) ---------- */
+	.rev .imgwrap img {
+		filter: blur(var(--blur-rest));
+		transition: filter var(--dur) var(--ease);
+		will-change: filter;
+	}
+	.rev:hover .imgwrap img { filter: blur(var(--blur-hover)); }
+
+	.scrim {
+		position: absolute; inset: 0; z-index: 1; pointer-events: none;
+		background: rgb(15 23 42 / var(--scrim-rest));
+		transition: background var(--dur) var(--ease);
+	}
+	.rev:hover .scrim { background: rgb(15 23 42 / var(--scrim-hover)); }
+
+	/* ---------- per-card HUE gradient overlay (the round-3 subject) ---------- */
+	/* mechanism: --card-hue / --card-hue-dark are set INLINE per card; the mode
+	   class picks the gradient template that consumes them. Corner angle 135deg
+	   is locked from round 2. Shippable as plain CSS on the remote <img>. */
+	.grad {
+		position: absolute; inset: 0; z-index: 2; pointer-events: none;
+		opacity: var(--grad-rest);
+		transition: opacity var(--dur) var(--ease);
+	}
+	.rev:hover .grad { opacity: var(--grad-hover); }
+
+	.g-huefirst  .grad { background: linear-gradient(135deg, var(--card-hue) 0%, #0f172a 100%); }
+	.g-huesecond .grad { background: linear-gradient(135deg, #0f172a 0%, var(--card-hue) 100%); }
+	.g-selframp  .grad { background: linear-gradient(135deg, var(--card-hue) 0%, var(--card-hue-dark) 100%); }
+
+	/* ---------- top-anchored title band (locked round-2 sizing) ---------- */
+	.ov-top {
+		position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+		display: flex; align-items: flex-start; gap: 8px;
+		padding: var(--title-space);
+		padding-bottom: calc(var(--title-space) + 14px);
+		background: linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.34) 62%, rgba(0,0,0,0) 100%);
+	}
+	.avatar {
+		width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid #fff; flex-shrink: 0;
+		background: #475569; color: #fff; font-size: 9.5px; font-weight: 900;
+		display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+	}
+	.ov-top .meta { min-width: 0; }
+	.ov-top .title {
+		margin: 0; font-weight: 900; color: #fff; letter-spacing: -0.01em;
+		font-size: var(--title-size); line-height: 1.16;
+		display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+		text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+	}
+	.ov-top .chan {
+		margin: 5px 0 0; font-size: 9.5px; font-weight: 700; color: #fff; opacity: 0.92;
+		white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+	}
+	/* strip cards use a smaller title so the narrow cells stay readable */
+	.strip .ov-top { padding: 8px; padding-bottom: 20px; }
+	.strip .ov-top .title { font-size: 12px; -webkit-line-clamp: 2; }
+	.strip .ov-top .avatar { width: 22px; height: 22px; font-size: 8px; }
+	.strip .ov-top .chan { font-size: 8px; }
+
+	.glyph {
+		position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 4;
+		width: 58px; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.55));
+		transition: transform 120ms ease-out, opacity var(--dur) var(--ease);
+		opacity: 0.9;
+	}
+	.strip .glyph { width: 40px; }
+	.rev:hover .glyph { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+	.ov-views {
+		position: absolute; left: 0; right: 0; bottom: 0; z-index: 4;
+		display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.58);
+		padding: 6px 9px; font-size: 9.5px; font-weight: 800; color: #fff;
+	}
+	.ov-views svg { width: 11px; height: 11px; flex-shrink: 0; }
+	.strip .ov-views { padding: 4px 6px; font-size: 8.5px; }
+
+	/* ---------- baseline (round-1 current) card chrome ---------- */
+	.b-top {
+		position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+		display: flex; align-items: flex-start; gap: 7px; padding: 8px 9px 14px;
+		background: linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 65%, rgba(0,0,0,0) 100%);
+	}
+	.b-top .title {
+		margin: 0; font-size: 10.5px; font-weight: 800; line-height: 1.24; color: #fff;
+		display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+		text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+	}
+	.b-top .chan { margin: 2px 0 0; font-size: 9px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.b-top .avatar { width: 28px; height: 28px; }
+
+	/* ---------- minimap: hairline (LOCKED at 10px) ---------- */
+	.mm-wrap { max-width: 720px; margin-top: 12px; }
+	.mm-caption { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(15,23,42,0.55); margin: 0 0 6px; }
+	.stage.night .mm-caption { color: rgba(248,250,252,0.55); }
+	.mm-hair {
+		position: relative; height: var(--mm-h, 10px);
+		background: rgba(15,23,42,0.18);
+	}
+	.stage.night .mm-hair { background: rgba(248,250,252,0.2); }
+	.mm-hair .seg {
+		position: absolute; top: 0; bottom: 0; left: 8%; width: 60%;
+		background: #ff0000;
+		box-shadow: inset 0 0 0 1px rgba(15,23,42,0.35);
+	}
+	.mm-hair.base { --mm-h: 6px; }
+
+	.sky-toggle { display: inline-flex; border: 2px solid #0f172a; }
+	.sky-toggle button { padding: 7px 16px; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; background: #fff; color: #0f172a; border: none; cursor: pointer; }
+	.sky-toggle button:first-child { border-right: 2px solid #0f172a; }
+	.sky-toggle button.on { background: #0f172a; color: #fff; }
+	.sky-note { font-size: 10.5px; color: #64748b; margin: 7px 0 0; line-height: 1.4; }
+	.sky-note b { color: #ff0000; }
+
+	@media (prefers-reduced-motion: reduce) {
+		.rev .imgwrap img, .scrim, .grad, .glyph { transition: none; }
+	}
+</style>
+</head>
+<body>
+	<header class="page-header">
+		<h1>Latest Shorts &mdash; per-card overlay palette (round 3)</h1>
+		<p>Everything from the round-2 lock is <strong>baked in and fixed</strong> (reveal-on-hover, 62% rest scrim &rarr; 0% on hover, 3.5px rest blur, 20px title, 170ms snappy, 10px minimap). The one open knob: the corner gradient overlay is no longer navy-on-every-card. A designed <strong>10-color ramp alternates across the cards</strong> so the set reads as intentional rhythm instead of three accidental screenshot casts &mdash; unified by treatment, differentiated by hue. Ink navy is <code>#0f172a</code>, ember is <code>#C2410C</code> (HeroSubtitle SunsetUnderline), the sunset ramp runs <code>#D9530E&rarr;#5C1607</code>. Judge the full sequence in the <strong>Palette walk</strong> strip, then <em>Copy spec</em> and paste it back into chat.</p>
+	</header>
+
+	<div class="shell">
+		<aside class="controls">
+			<div class="ctl-group">
+				<label class="head">Sky &mdash; check BOTH</label>
+				<div class="sky-toggle" id="sky">
+					<button data-sky="day" class="on">Day</button>
+					<button data-sky="night">Night</button>
+				</div>
+				<p class="sky-note">Viewing mode only, not part of the spec. <b>A palette that sings on the day sky can die on the night one</b> &mdash; flip this before you lock.</p>
+			</div>
+
+			<hr class="section-rule" />
+			<div class="locked">
+				<h4>Locked (round 2) &mdash; baked, not editable</h4>
+				<ul>
+					<li>direction <b>reveal-on-hover</b></li>
+					<li>scrim rest / hover <b>62% / 0%</b></li>
+					<li>gradient angle <b>corner 135&deg;</b></li>
+					<li>blur rest / hover <b>3.5px / 0px</b></li>
+					<li>title size / space <b>20px / 14px</b></li>
+					<li>transition <b>170ms snappy</b></li>
+					<li>minimap <b>10px hairline</b></li>
+				</ul>
+			</div>
+
+			<hr class="section-rule" />
+			<p class="section-label">Palette (10-color ramp)</p>
+			<div class="ctl-group">
+				<div class="seg" id="paletteCtl"><!-- built in JS with swatch rows --></div>
+				<p class="hint">The 10 hues that walk across the cards. Compare the swatch rows, then read the walk strip below.</p>
+			</div>
+
+			<hr class="section-rule" />
+			<p class="section-label">Assignment</p>
+			<div class="ctl-group">
+				<div class="seg" id="assignment">
+					<button data-as="by-index" class="on">By index<small>card N &rarr; palette[N%10]. Smooth ramp as the rail scrubs.</small></button>
+					<button data-as="by-video-id">By video&nbsp;id<small>deterministic hash. Each short keeps one stable color identity.</small></button>
+				</div>
+				<p class="hint">Affects the live 3-up only. The walk strip below always shows all 10 in order.</p>
+			</div>
+
+			<hr class="section-rule" />
+			<p class="section-label">Hue strength</p>
+			<div class="ctl-group">
+				<div class="slider-row"><span class="lab">Loud</span><input type="range" id="hueStrength" min="0" max="100" step="1" value="46" /><span class="val" id="hueStrengthVal">46%</span></div>
+				<p class="hint">How loud the per-card hue sits over the 62% scrim at rest. Default is the locked gradient-opacity of 46%.</p>
+			</div>
+
+			<hr class="section-rule" />
+			<p class="section-label">Gradient second stop</p>
+			<div class="ctl-group">
+				<div class="seg" id="secondStop">
+					<button data-ss="hue-first" class="on">Hue &rarr; navy<small>hue at TL, ink navy at BR. Navy still anchors the set.</small></button>
+					<button data-ss="hue-second">Navy &rarr; hue<small>ink navy at TL, hue at BR. Hue resolves warm into the corner.</small></button>
+					<button data-ss="self-ramp">Hue self-ramp<small>hue &rarr; darkened hue. No navy at all &mdash; the card is pure color.</small></button>
+				</div>
+			</div>
+
+			<hr class="section-rule" />
+			<p class="section-label">Hue on hover</p>
+			<div class="ctl-group">
+				<div class="seg" id="hueHover">
+					<button data-hh="vanish" class="on">Vanish<small>hue leaves with the scrim &rarr; fully naked thumbnail.</small></button>
+					<button data-hh="residual">Residual tint<small>drops to a faint color signature so the card stays &ldquo;in the set.&rdquo;</small></button>
+					<button data-hh="full">Stay full<small>hue holds at full strength even hovered.</small></button>
+				</div>
+				<p class="hint">Scrim is locked to 0% on hover, so this alone decides whether the hovered card goes bare or keeps its color.</p>
+			</div>
+
+			<div class="ctl-group copy-wrap">
+				<button class="copy-btn" id="copyBtn">Copy spec</button>
+				<p class="copy-note">Paste the copied line straight back into chat to finalize the palette.</p>
+				<div class="copy-out" id="copyOut"></div>
+			</div>
+		</aside>
+
+		<main class="preview">
+			<section class="stage" id="stageBaseline">
+				<div class="stage-label"><h2>Baseline</h2><span class="tag">Current / untreated</span><span class="rule"></span></div>
+				<p class="hover-hint">Three unrelated screenshots &mdash; each thumbnail carries its own accidental color cast. This is the chaos the palette is meant to replace.</p>
+				<div class="col">
+					<div class="shorts-head"><h3>Latest Shorts</h3><span class="rule"></span></div>
+					<div class="row" id="rowBaseline"></div>
+					<div class="mm-wrap"><p class="mm-caption">Minimap &mdash; hairline (round-1 lock, 6px)</p><div class="mm-hair base"><span class="seg"></span></div></div>
+				</div>
+			</section>
+
+			<section class="stage" id="stageLive">
+				<div class="stage-label"><h2>Live preview</h2><span class="tag live">reveal + hue</span><span class="rule"></span></div>
+				<p class="hover-hint">&#8594; Hover a card: scrim &amp; blur drop; the hue behaves per your &ldquo;Hue on hover&rdquo; choice. Only samples 3 of 10 hues &mdash; use the walk strip below to judge the whole ramp.</p>
+				<div class="col">
+					<div class="shorts-head"><h3>Latest Shorts</h3><span class="rule"></span></div>
+					<div class="row" id="rowLive"></div>
+					<div class="mm-wrap"><p class="mm-caption">Minimap &mdash; hairline (10px lock)</p><div class="mm-hair" id="mmLive"><span class="seg"></span></div></div>
+				</div>
+			</section>
+
+			<section class="stage" id="stageStrip">
+				<div class="stage-label"><h2>Palette walk</h2><span class="tag live">all 10 hues</span><span class="rule"></span></div>
+				<p class="hover-hint">&#8594; The whole ramp in order (5 real thumbnails cycled across the 10 stops). <strong>This strip is what finalizes the decision</strong> &mdash; scan it as a sequence: does it read as one designed set, or as ten unrelated cards? Flip the sky.</p>
+				<div class="col wide">
+					<div class="strip" id="rowStrip"></div>
+				</div>
+			</section>
+		</main>
+	</div>
+
+<script>
+	// ---- real data (from src/data/youtubeShorts.ts) ----
+	var SHORTS = [
+		{ id: "YaoyTizlaE4", title: "Is it worth it Part 1", views: 243 },
+		{ id: "cgsF6B5eR98", title: "Magical CLI Tools - Part 1 #agenticcoding #coding #develop", views: 1015 },
+		{ id: "5mgQepVfcyc", title: "Day 3 -  Best tools for your tech stack - Part 1", views: 454 },
+		{ id: "UGgKyRGUwkE", title: "I see the issue now - Part 1", views: 959 },
+		{ id: "ueRlidFgFYY", title: "Agentic Coding - hello to Day 1 of 30", views: 743 }
+	];
+	var VISIBLE = SHORTS.slice(0, 3);
+
+	// ---- color helpers ----
+	function hslToHex(h, s, l){
+		s /= 100; l /= 100;
+		var c = (1 - Math.abs(2*l - 1)) * s;
+		var x = c * (1 - Math.abs(((h/60) % 2) - 1));
+		var m = l - c/2, r=0, g=0, b=0;
+		if (h < 60){ r=c; g=x; } else if (h < 120){ r=x; g=c; }
+		else if (h < 180){ g=c; b=x; } else if (h < 240){ g=x; b=c; }
+		else if (h < 300){ r=x; b=c; } else { r=c; b=x; }
+		function hx(v){ return ("0" + Math.round((v+m)*255).toString(16)).slice(-2); }
+		return "#" + hx(r) + hx(g) + hx(b);
+	}
+	function darken(hex, amt){ // mix toward black, amt 0..1
+		var n = parseInt(hex.slice(1), 16);
+		var r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+		r = Math.round(r * (1-amt)); g = Math.round(g * (1-amt)); b = Math.round(b * (1-amt));
+		function hx(v){ return ("0" + v.toString(16)).slice(-2); }
+		return "#" + hx(r) + hx(g) + hx(b);
+	}
+
+	// ---- the four candidate 10-color ramps ----
+	// full-spectrum generated at matched S/L for maximum differentiation
+	var FULL_SPECTRUM = [];
+	for (var i = 0; i < 10; i++){ FULL_SPECTRUM.push(hslToHex(i * 36, 52, 43)); }
+
+	var PALETTES = {
+		"sunset-ramp": {
+			label: "Sunset ramp",
+			note: "site sunset hues, warm monotone walk",
+			colors: ["#F97316","#EA640F","#D9530E","#C2410C","#AC370A","#992F09","#832507","#6E1D06","#5C1607","#4A1105"]
+		},
+		"ink-to-ember": {
+			label: "Ink &rarr; ember",
+			note: "navy through plum/rust to ember",
+			colors: ["#0F172A","#241F3B","#3A2743","#512D45","#6A3340","#853836","#9E3B27","#B33F17","#C2410C","#D9530E"]
+		},
+		"full-spectrum": {
+			label: "Full spectrum",
+			note: "10 hues, matched S/L, max differentiation",
+			colors: FULL_SPECTRUM
+		},
+		"duotone-pairs": {
+			label: "Duotone pairs",
+			note: "5 hues twice, warm/cool alternation",
+			colors: ["#0F172A","#C2410C","#1D4ED8","#9A3412","#6D28D9","#0F172A","#C2410C","#1D4ED8","#9A3412","#6D28D9"]
+		}
+	};
+	var PALETTE_ORDER = ["ink-to-ember","sunset-ramp","duotone-pairs","full-spectrum"];
+
+	function vurl(id){ return "https://i.ytimg.com/vi/" + id + "/oardefault.jpg"; }
+	function furl(id){ return "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg"; }
+	function views(n){ return n >= 1000 ? (n/1000).toFixed(1).replace(/\.0$/,"") + "K" : String(n); }
+
+	var GLYPH = '<svg class="glyph" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+		+ '<path fill="#FF0000" d="m18.931 9.99-1.441-.601 1.717-.913a4.48 4.48 0 0 0 1.874-6.078 4.506 4.506 0 0 0-6.09-1.874L4.792 5.929a4.504 4.504 0 0 0-2.402 4.193 4.521 4.521 0 0 0 2.666 3.904c.036.012 1.442.6 1.442.6l-1.706.901a4.51 4.51 0 0 0-2.369 3.967A4.528 4.528 0 0 0 6.93 24c.725 0 1.437-.174 2.08-.508l10.21-5.406a4.494 4.494 0 0 0 2.39-4.192 4.525 4.525 0 0 0-2.678-3.904Z"/>'
+		+ '<path fill="#FFFFFF" d="M9.597 15.19V8.824l6.007 3.184z"/></svg>';
+	var EYE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 5C5.5 5 1.7 10.6 1 12c.7 1.4 4.5 7 11 7s10.3-5.6 11-7c-.7-1.4-4.5-7-11-7zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9zm0-7.2A2.7 2.7 0 1 0 12 14.7a2.7 2.7 0 0 0 0-5.4z"/></svg>';
+
+	function imgTag(id){
+		return '<img src="' + vurl(id) + '" alt="" draggable="false" '
+			+ 'onerror="if(this.dataset.fb){this.style.display=\'none\'}else{this.dataset.fb=1;this.src=\'' + furl(id) + '\'}" />';
+	}
+	function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+	function viewsBar(short){ return '<div class="ov-views">' + EYE + ' ' + views(short.views) + ' views</div>'; }
+
+	var SNAPPY = "cubic-bezier(0.16, 1, 0.3, 1)";
+
+	// deterministic hash: video id -> palette index 0..9
+	function hashId(id){
+		var h = 0;
+		for (var i = 0; i < id.length; i++){ h = (h * 31 + id.charCodeAt(i)) >>> 0; }
+		return h % 10;
+	}
+
+	// ---- baseline card (round-1 current: raw thumbnail, small top title) ----
+	function baselineCard(short){
+		var inner = '<div class="imgwrap">' + imgTag(short.id) + '</div>'
+			+ '<div class="b-top"><span class="avatar">AO</span><div class="meta">'
+			+ '<p class="title">' + esc(short.title) + '</p><p class="chan">Alper Ortac</p></div></div>'
+			+ GLYPH + viewsBar(short);
+		return '<a class="short-card" href="https://www.youtube.com/shorts/' + short.id + '" target="_blank" rel="noopener noreferrer" draggable="false">'
+			+ '<div class="card-inner">' + inner + '</div></a>';
+	}
+
+	// ---- reveal + hue card ----
+	// hue is delivered as an INLINE custom property; the mode class picks the template.
+	function hueCard(short, hue){
+		var s = state;
+		var rest = s.hueStrength / 100;
+		var hover;
+		if (s.hueHover === "vanish") hover = 0;
+		else if (s.hueHover === "residual") hover = rest * 0.28; // faint signature
+		else hover = rest; // full
+
+		var vars = [
+			"--card-hue:" + hue,
+			"--card-hue-dark:" + darken(hue, 0.5),
+			// locked round-2 values, baked:
+			"--scrim-rest:0.62",
+			"--scrim-hover:0",
+			"--grad-rest:" + rest,
+			"--grad-hover:" + hover,
+			"--blur-rest:3.5px",
+			"--blur-hover:0px",
+			"--title-size:20px",
+			"--title-space:14px",
+			"--dur:170ms",
+			"--ease:" + SNAPPY
+		].join(";");
+
+		var inner = '<div class="imgwrap">' + imgTag(short.id) + '</div>'
+			+ '<div class="scrim"></div>'
+			+ '<div class="grad"></div>'
+			+ '<div class="ov-top"><span class="avatar">AO</span><div class="meta">'
+			+ '<p class="title">' + esc(short.title) + '</p><p class="chan">Alper Ortac</p></div></div>'
+			+ GLYPH + viewsBar(short);
+
+		return '<a class="short-card rev g-' + s.secondStop.replace(/-/g, "") + '" style="' + vars + '" href="https://www.youtube.com/shorts/' + short.id
+			+ '" target="_blank" rel="noopener noreferrer" draggable="false">'
+			+ '<div class="card-inner">' + inner + '</div></a>';
+	}
+
+	// ---- state ----
+	var state = {
+		sky: "day",
+		palette: "ink-to-ember",
+		assignment: "by-index",
+		hueStrength: 46,
+		secondStop: "hue-first",
+		hueHover: "vanish"
+	};
+
+	function currentColors(){ return PALETTES[state.palette].colors; }
+
+	// live 3-up: assignment decides which hue each card wears
+	function hueForLive(short, pos){
+		var colors = currentColors();
+		if (state.assignment === "by-video-id") return colors[hashId(short.id)];
+		return colors[pos % 10];
+	}
+
+	function renderBaseline(){
+		document.getElementById("rowBaseline").innerHTML = VISIBLE.map(baselineCard).join("");
+	}
+
+	function renderLive(){
+		document.getElementById("rowLive").innerHTML = VISIBLE.map(function(sh, i){ return hueCard(sh, hueForLive(sh, i)); }).join("");
+	}
+
+	// palette walk: always index-based, all 10 stops, cycle the 5 thumbnails
+	function renderStrip(){
+		var colors = currentColors();
+		var html = "";
+		for (var i = 0; i < 10; i++){
+			var sh = SHORTS[i % SHORTS.length];
+			html += '<div class="cell">' + hueCard(sh, colors[i])
+				+ '<div class="hue-badge"><span class="chip" style="background:' + colors[i] + '"></span>' + (i+1) + '. ' + colors[i] + '</div></div>';
+		}
+		document.getElementById("rowStrip").innerHTML = html;
+	}
+
+	function applySky(){
+		var cls = "stage" + (state.sky === "night" ? " night" : "");
+		document.getElementById("stageBaseline").className = cls;
+		document.getElementById("stageLive").className = cls;
+		document.getElementById("stageStrip").className = cls;
+	}
+
+	function renderAll(){
+		applySky();
+		renderLive();
+		renderStrip();
+		updateSpec();
+	}
+
+	// ---- palette radio built with swatch rows ----
+	function buildPaletteCtl(){
+		var box = document.getElementById("paletteCtl");
+		box.innerHTML = PALETTE_ORDER.map(function(key){
+			var p = PALETTES[key];
+			var sw = '<span class="swrow">' + p.colors.map(function(c){ return '<span style="background:' + c + '"></span>'; }).join("") + '</span>';
+			return '<button data-p="' + key + '"' + (key === state.palette ? ' class="on"' : '') + '>' + p.label
+				+ '<small>' + p.note + '</small>' + sw + '</button>';
+		}).join("");
+	}
+
+	// ---- spec ----
+	function buildSpec(){
+		return [
+			"palette: " + state.palette,
+			"assignment: " + state.assignment,
+			"hue-strength: " + state.hueStrength + "%",
+			"gradient-second-stop: " + state.secondStop,
+			"hue-on-hover: " + state.hueHover,
+			"palette-colors: " + currentColors().join(",")
+		].join(" | ");
+	}
+	function updateSpec(){ document.getElementById("copyOut").textContent = buildSpec(); }
+
+	// ---- wiring ----
+	function segWire(id, key, attr){
+		var box = document.getElementById(id);
+		box.addEventListener("click", function(e){
+			var b = e.target.closest("button"); if (!b) return;
+			state[key] = b.dataset[attr];
+			Array.prototype.forEach.call(box.querySelectorAll("button"), function(x){ x.classList.remove("on"); });
+			b.classList.add("on");
+			renderAll();
+		});
+	}
+	segWire("paletteCtl","palette","p");
+	segWire("assignment","assignment","as");
+	segWire("secondStop","secondStop","ss");
+	segWire("hueHover","hueHover","hh");
+
+	document.getElementById("sky").addEventListener("click", function(e){
+		var b = e.target.closest("button"); if (!b) return;
+		state.sky = b.dataset.sky;
+		Array.prototype.forEach.call(this.querySelectorAll("button"), function(x){ x.classList.remove("on"); });
+		b.classList.add("on");
+		renderAll();
+	});
+
+	document.getElementById("hueStrength").addEventListener("input", function(){
+		state.hueStrength = +this.value;
+		document.getElementById("hueStrengthVal").textContent = this.value + "%";
+		renderAll();
+	});
+
+	document.getElementById("copyBtn").addEventListener("click", function(){
+		var spec = buildSpec();
+		var btn = this;
+		function done(){ var o=btn.textContent; btn.textContent="Copied ✓"; setTimeout(function(){ btn.textContent=o; }, 1400); }
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(spec).then(done, function(){ fallback(spec); done(); });
+		} else { fallback(spec); done(); }
+	});
+	function fallback(text){
+		var ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
+		ta.select(); try { document.execCommand("copy"); } catch(e){} document.body.removeChild(ta);
+	}
+
+	buildPaletteCtl();
+	renderBaseline();
+	renderAll();
+</script>
+</body>
+</html>

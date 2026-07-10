@@ -5,7 +5,7 @@ import { YOUTUBE_SHORTS } from "../../../data/youtubeShorts";
 import { stubMatchMedia } from "../../../test/stubMatchMedia";
 import { stubSectionGeometry } from "../../../test/stubSectionGeometry";
 import { FindMeSection } from "../FindMeSection";
-import { viewsLabel } from "../social/ShortsCarousel";
+import { CARD_HUES, viewsLabel } from "../social/ShortsCarousel";
 import { SOCIAL_GROUPS, SOCIAL_LINKS } from "../social/socialLinks";
 
 // ---------------------------------------------------------------------------
@@ -389,6 +389,55 @@ describe("FindMeSection carousel", () => {
 			vi.advanceTimersByTime(0);
 		});
 		expect(vi.getTimerCount()).toBe(0);
+	});
+});
+
+// Reveal-on-hover card treatment (locked via the design-shorts-card-palette
+// prototype): each resting card stacks a blurred bleed thumbnail, an ink-navy
+// scrim, and a per-card duotone gradient driven by an inline --card-hue from
+// the 5-hue CARD_HUES cycle. The V6 filmstrip minimap is replaced by the 10px
+// hairline scrubber (bare track + red __thumb window).
+describe("ShortsCarousel card treatment", () => {
+	function railAnchors(container: HTMLElement): HTMLAnchorElement[] {
+		const rail = container.querySelector(".shorts-rail") as HTMLElement;
+		return Array.from(rail.querySelectorAll("a"));
+	}
+
+	it("each card carries --card-hue from the 5-hue cycle in data order, all five distinct", () => {
+		const { container } = render(<FindMeSection />);
+		const anchors = railAnchors(container);
+		expect(anchors.length).toBe(YOUTUBE_SHORTS.length);
+		const hues = anchors.map((a) => a.style.getPropertyValue("--card-hue"));
+		hues.forEach((hue, i) => {
+			expect(hue).toBe(CARD_HUES[i % CARD_HUES.length]);
+		});
+		expect(new Set(hues).size).toBe(CARD_HUES.length);
+	});
+
+	it("each card stacks exactly one imgwrap (with the treated .short-card__img thumbnail inside), one scrim, and one gradient layer, all aria-hidden overlays", () => {
+		const { container } = render(<FindMeSection />);
+		for (const card of railAnchors(container)) {
+			expect(card.querySelectorAll(".short-card__imgwrap").length).toBe(1);
+			const img = card.querySelector(".short-card__imgwrap img");
+			expect(img).toBeTruthy();
+			expect(img?.className).toContain("short-card__img");
+			expect(card.querySelectorAll(".short-card__scrim").length).toBe(1);
+			expect(card.querySelectorAll(".short-card__grad").length).toBe(1);
+			expect(
+				card.querySelector(".short-card__scrim")?.getAttribute("aria-hidden"),
+			).toBe("true");
+			expect(
+				card.querySelector(".short-card__grad")?.getAttribute("aria-hidden"),
+			).toBe("true");
+		}
+	});
+
+	it("the filmstrip minimap is gone: no __cell, __strip, or __off elements anywhere", () => {
+		const { container } = render(<FindMeSection />);
+		expect(container.querySelector(".shorts-scrollbar__cell")).toBeNull();
+		expect(container.querySelector(".shorts-scrollbar__strip")).toBeNull();
+		expect(container.querySelector(".shorts-scrollbar__off")).toBeNull();
+		expect(container.querySelector(".shorts-scrollbar__off-wrap")).toBeNull();
 	});
 });
 

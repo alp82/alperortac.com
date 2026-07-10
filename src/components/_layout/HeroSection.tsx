@@ -2,7 +2,7 @@ import { HeroSubtitle } from "./HeroSubtitle";
 
 export function HeroSection() {
 	return (
-		<section className="min-h-[70vh] flex flex-col items-center justify-center px-6 pt-24 pb-2 text-center">
+		<section className="min-h-[80vh] flex flex-col items-center justify-center px-6 pt-24 pb-48 text-center">
 			<img
 				src="/alper-avatar.webp"
 				alt="Alp portrait"

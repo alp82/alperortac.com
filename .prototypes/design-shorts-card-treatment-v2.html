@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Latest Shorts &mdash; reveal-on-hover treatment (round 2)</title>
+<style>
+	* { box-sizing: border-box; }
+	html, body { margin: 0; padding: 0; }
+	body {
+		font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+		background: #e8eef2;
+		color: #0f172a;
+	}
+
+	/* ---------- page header ---------- */
+	.page-header {
+		padding: 18px 24px 14px;
+		border-bottom: 2px solid #0f172a;
+		background: #ffffff;
+	}
+	.page-header h1 {
+		margin: 0 0 5px; font-size: 15px; font-weight: 900;
+		text-transform: uppercase; letter-spacing: 0.14em;
+	}
+	.page-header p { margin: 0; font-size: 12.5px; color: #475569; max-width: 820px; line-height: 1.5; }
+	.page-header code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; background: #f1f5f9; padding: 1px 4px; }
+
+	.shell { display: flex; align-items: flex-start; gap: 0; }
+
+	/* ---------- control rail ---------- */
+	.controls {
+		flex: 0 0 300px; position: sticky; top: 0; align-self: flex-start;
+		max-height: 100vh; overflow-y: auto;
+		padding: 20px 20px 60px; border-right: 2px solid #0f172a; background: #ffffff;
+	}
+	.ctl-group { margin-bottom: 18px; }
+	.ctl-group > label.head {
+		display: block; font-size: 10.5px; font-weight: 900; text-transform: uppercase;
+		letter-spacing: 0.12em; color: #0f172a; margin-bottom: 8px;
+	}
+	.ctl-group .hint { font-size: 10.5px; color: #64748b; margin: 6px 0 0; line-height: 1.4; }
+	.section-rule { border: none; border-top: 2px solid #0f172a; margin: 22px 0 18px; }
+	.section-label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.16em; color: #ff0000; margin: 0 0 12px; }
+
+	/* segmented / radio-as-buttons */
+	.seg { display: flex; flex-direction: column; border: 2px solid #0f172a; }
+	.seg.horiz { flex-direction: row; }
+	.seg.horiz button { flex: 1; text-align: center; border-top: none; border-left: 2px solid #0f172a; }
+	.seg.horiz button:first-child { border-left: none; }
+	.seg button {
+		text-align: left; padding: 8px 10px; font-size: 11.5px; font-weight: 800;
+		background: #ffffff; color: #0f172a; border: none; border-top: 2px solid #0f172a;
+		cursor: pointer; line-height: 1.25;
+	}
+	.seg button:first-child { border-top: none; }
+	.seg button small { display: block; font-weight: 600; font-size: 10px; color: #64748b; margin-top: 2px; }
+	.seg button.on { background: #0f172a; color: #ffffff; }
+	.seg button.on small { color: #cbd5e1; }
+	.seg button:hover:not(.on) { background: #f1f5f9; }
+
+	.slider-row { display: flex; align-items: center; gap: 10px; }
+	.slider-row .lab { font-size: 10px; font-weight: 800; min-width: 30px; }
+	.slider-row input[type=range] { flex: 1; accent-color: #ff0000; min-width: 0; }
+	.slider-row .val { font-size: 11px; font-weight: 900; min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+	.slider-row + .slider-row { margin-top: 8px; }
+
+	.copy-wrap { margin-top: 10px; }
+	.copy-btn {
+		width: 100%; padding: 12px; font-size: 12px; font-weight: 900; text-transform: uppercase;
+		letter-spacing: 0.08em; background: #ff0000; color: #ffffff; border: 2px solid #0f172a;
+		box-shadow: 4px 4px 0 0 #0f172a; cursor: pointer;
+	}
+	.copy-btn:active { box-shadow: 0 0 0 0 #0f172a; transform: translate(4px, 4px); }
+	.copy-note { font-size: 10.5px; color: #64748b; margin: 8px 0 0; line-height: 1.45; }
+	.copy-out {
+		margin-top: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 10.5px; background: #0f172a; color: #f8fafc; padding: 8px 9px;
+		word-break: break-word; line-height: 1.6;
+	}
+
+	/* ---------- preview column ---------- */
+	.preview { flex: 1; min-width: 0; padding: 0 0 80px; }
+	.stage {
+		background: #87cbe8; padding: 26px 32px 34px; transition: background 200ms ease-out;
+		border-bottom: 2px solid rgba(15,23,42,0.25);
+	}
+	.stage.night { background: rgb(18, 12, 46); }
+	.stage-label { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+	.stage-label h2 { margin: 0; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.28em; color: #0f172a; opacity: 0.72; }
+	.stage.night .stage-label h2 { color: #f8fafc; }
+	.stage-label .tag {
+		font-size: 9.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;
+		padding: 3px 7px; border: 1.5px solid #0f172a; background: #fff; color: #0f172a; white-space: nowrap;
+	}
+	.stage-label .tag.live { background: #ff0000; color: #fff; border-color: #0f172a; }
+	.stage-label .rule { flex: 1; height: 1px; background: rgba(15,23,42,0.22); }
+	.stage.night .stage-label .rule { background: rgba(248,250,252,0.25); }
+	.hover-hint { font-size: 10.5px; font-weight: 700; color: rgba(15,23,42,0.6); margin: 0 0 12px; }
+	.stage.night .hover-hint { color: rgba(248,250,252,0.6); }
+
+	.col { max-width: 720px; }
+	.shorts-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+	.shorts-head h3 { margin: 0; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3em; opacity: 0.7; }
+	.stage.night .shorts-head h3 { color: #f8fafc; }
+	.shorts-head .rule { flex: 1; height: 1px; background: rgba(15,23,42,0.2); }
+	.stage.night .shorts-head .rule { background: rgba(248,250,252,0.25); }
+
+	.row { display: flex; gap: 16px; padding: 6px; }
+
+	/* ---------- brutalist short card (faithful to styles.css) ---------- */
+	.short-card {
+		flex: 0 0 calc((100% - 32px) / 3);
+		text-decoration: none; color: #0f172a;
+		border: 2px solid #0f172a; border-radius: 0;
+		box-shadow: 6px 6px 0 0 #0f172a; background: #ffffff; overflow: hidden;
+		display: flex; flex-direction: column;
+		transition: box-shadow 80ms ease-out, border-color 80ms ease-out;
+		cursor: pointer;
+	}
+	.short-card:hover { box-shadow: 4px 4px 0 0 #0f172a; border-color: #ff0000; }
+	.short-card:hover .card-inner { transform: translate(2px, 2px); }
+	.card-inner {
+		position: relative; aspect-ratio: 9 / 16; overflow: hidden; background: #0f172a;
+		transition: transform 80ms ease-out;
+	}
+
+	/* image layer */
+	.imgwrap { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+	.imgwrap img {
+		position: absolute; inset: -6%; width: 112%; height: 112%; object-fit: cover; display: block;
+		/* -6% bleed so the blur radius never exposes a soft transparent edge */
+	}
+
+	/* ---------- reveal-on-hover treatment ---------- */
+	/* resting: pushed back (heavy scrim + gradient wash + blur); hover: comes forward */
+	.rev .imgwrap img {
+		filter: blur(var(--blur-rest));
+		transition: filter var(--dur) var(--ease);
+		will-change: filter;
+	}
+	.rev:hover .imgwrap img { filter: blur(var(--blur-hover)); }
+
+	.scrim {
+		position: absolute; inset: 0; z-index: 1; pointer-events: none;
+		background: rgb(15 23 42 / var(--scrim-rest));
+		transition: background var(--dur) var(--ease);
+	}
+	.rev:hover .scrim { background: rgb(15 23 42 / var(--scrim-hover)); }
+
+	.grad {
+		position: absolute; inset: 0; z-index: 2; pointer-events: none;
+		opacity: var(--grad-rest);
+		transition: opacity var(--dur) var(--ease);
+		/* background image set inline per variant + angle */
+	}
+	.rev:hover .grad { opacity: var(--grad-hover); }
+
+	/* ---------- top-anchored title band ---------- */
+	.ov-top {
+		position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+		display: flex; align-items: flex-start; gap: 8px;
+		padding: var(--title-space);
+		padding-bottom: calc(var(--title-space) + 14px);
+		background: linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.34) 62%, rgba(0,0,0,0) 100%);
+	}
+	.avatar {
+		width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid #fff; flex-shrink: 0;
+		background: #475569; color: #fff; font-size: 9.5px; font-weight: 900;
+		display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+	}
+	.ov-top .meta { min-width: 0; }
+	.ov-top .title {
+		margin: 0; font-weight: 900; color: #fff; letter-spacing: -0.01em;
+		font-size: var(--title-size); line-height: 1.16;
+		display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+		text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+	}
+	.ov-top .chan {
+		margin: 5px 0 0; font-size: 9.5px; font-weight: 700; color: #fff; opacity: 0.92;
+		white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+	}
+
+	.glyph {
+		position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 4;
+		width: 58px; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.55));
+		transition: transform 120ms ease-out, opacity var(--dur) var(--ease);
+		opacity: 0.9;
+	}
+	.rev:hover .glyph { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+	.ov-views {
+		position: absolute; left: 0; right: 0; bottom: 0; z-index: 4;
+		display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.58);
+		padding: 6px 9px; font-size: 9.5px; font-weight: 800; color: #fff;
+	}
+	.ov-views svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+	/* ---------- baseline (round-1 current) card chrome ---------- */
+	.b-top {
+		position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+		display: flex; align-items: flex-start; gap: 7px; padding: 8px 9px 14px;
+		background: linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 65%, rgba(0,0,0,0) 100%);
+	}
+	.b-top .title {
+		margin: 0; font-size: 10.5px; font-weight: 800; line-height: 1.24; color: #fff;
+		display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+		text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+	}
+	.b-top .chan { margin: 2px 0 0; font-size: 9px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.b-top .avatar { width: 28px; height: 28px; }
+
+	/* ---------- minimap: hairline (LOCKED) ---------- */
+	.mm-wrap { max-width: 720px; margin-top: 12px; }
+	.mm-caption { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(15,23,42,0.55); margin: 0 0 6px; }
+	.stage.night .mm-caption { color: rgba(248,250,252,0.55); }
+	.mm-hair {
+		position: relative; height: var(--mm-h, 9px);
+		background: rgba(15,23,42,0.18);
+		transition: height 120ms ease-out;
+	}
+	.stage.night .mm-hair { background: rgba(248,250,252,0.2); }
+	.mm-hair .seg {
+		position: absolute; top: 0; bottom: 0; left: 8%; width: 60%;
+		background: #ff0000;
+		box-shadow: inset 0 0 0 1px rgba(15,23,42,0.35);
+	}
+
+	/* baseline minimap uses fixed round-1 hairline height */
+	.mm-hair.base { --mm-h: 6px; }
+
+	.sky-toggle { display: inline-flex; border: 2px solid #0f172a; }
+	.sky-toggle button { padding: 6px 12px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; background: #fff; color: #0f172a; border: none; cursor: pointer; }
+	.sky-toggle button:first-child { border-right: 2px solid #0f172a; }
+	.sky-toggle button.on { background: #0f172a; color: #fff; }
+
+	@media (prefers-reduced-motion: reduce) {
+		.rev .imgwrap img, .scrim, .grad, .glyph { transition: none; }
+	}
+</style>
+</head>
+<body>
+	<header class="page-header">
+		<h1>Latest Shorts &mdash; reveal-on-hover treatment (round 2)</h1>
+		<p>One direction: the thumbnail is the card face but sits <strong>pushed back</strong> at rest (heavy scrim + navy&rarr;ember gradient wash + blur) and <strong>comes forward on hover</strong> (scrim lightens, blur drops, image reads clean). Mouse over one card in the live stage and watch it clarify while its neighbours stay calm &mdash; that contrast is the design. Top stage is the locked <strong>baseline (current)</strong>. Ember is the site sunset accent <code>#C2410C</code> (from HeroSubtitle&rsquo;s SunsetUnderline); navy is the ink <code>#0f172a</code>. Tune, hit <em>Copy spec</em>, paste it back into chat.</p>
+	</header>
+
+	<div class="shell">
+		<aside class="controls">
+			<div class="ctl-group">
+				<label class="head">Sky (preview both)</label>
+				<div class="sky-toggle" id="sky">
+					<button data-sky="day" class="on">Day</button>
+					<button data-sky="night">Night</button>
+				</div>
+				<p class="hint">Viewing mode only &mdash; not part of the spec. Both must stay legible.</p>
+			</div>
+
+			<hr class="section-rule" />
+			<p class="section-label">Scrim (recede &rarr; reveal)</p>
+			<div class="ctl-group">
+				<div class="slider-row"><span class="lab">Rest</span><input type="range" id="scrimRest" min="40" max="90" step="1" value="70" /><span class="val" id="scrimRestVal">70%</span></div>
+				<div class="slider-row"><span class="lab">Hover</span><input type="range" id="scrimHover" min="0" max="50" step="1" value="20" /><span class="val" id="scrimHoverVal">20%</span></div>
+				<p class="hint">Navy scrim opacity. Heavy at rest, light on hover.</p>
+			</div>
+
+			<hr class="section-rule" />
+			<p class="section-label">Gradient wash</p>
+			<div class="ctl-group">
+				<label class="head">Colors</label>
+				<div class="seg" id="gradient">
+					<button data-g="navy-ember" class="on">Navy &rarr; ember<small>The pick: ink top, sunset bottom</small></button>
+					<button data-g="navy-only">Navy only<small>Cool wash, no warmth</small></button>
+					<button data-g="ember-only">Ember only<small>Warm sunset wash</small></button>
+					<button data-g="none">None<small>Scrim alone, no gradient</small></button>
+				</div>
+			</div>
+			<div class="ctl-group">
+				<label class="head">Direction</label>
+				<div class="seg horiz" id="gradAngle">
+					<button data-a="vertical" class="on">Vertical<small>top&rarr;bottom</small></button>
+					<button data-a="corner">Corner<small>TL&rarr;BR 135&deg;</small></button>
+				</div>
+			</div>
+			<div class="ctl-group">
+				<div class="slider-row"><span class="lab">Loud</span><input type="range" id="gradOpacity" min="0" max="100" step="1" value="55" /><span class="val" id="gradOpacityVal">55%</span></div>
+				<p class="hint">How loud the gradient sits over the scrim (resting). It also eases down on hover.</p>
+			</div>
+
+			<hr class="section-rule" />
+			<p class="section-label">Blur (defocus &rarr; focus)</p>
+			<div class="ctl-group">
+				<div class="slider-row"><span class="lab">Rest</span><input type="range" id="blurRest" min="0" max="16" step="0.5" value="7" /><span class="val" id="blurRestVal">7px</span></div>
+				<div class="slider-row"><span class="lab">Hover</span><input type="range" id="blurHover" min="0" max="8" step="0.5" value="0" /><span class="val" id="blurHoverVal">0px</span></div>
+			</div>
+
+			<hr class="section-rule" />
+			<p class="section-label">Title (top-anchored)</p>
+			<div class="ctl-group">
+				<div class="slider-row"><span class="lab">Size</span><input type="range" id="titleSize" min="12" max="28" step="1" value="20" /><span class="val" id="titleSizeVal">20px</span></div>
+				<div class="slider-row"><span class="lab">Space</span><input type="range" id="titleSpace" min="8" max="28" step="1" value="14" /><span class="val" id="titleSpaceVal">14px</span></div>
+				<p class="hint">Avatar + &ldquo;Alper Ortac&rdquo; byline stay; the title dominates the top band.</p>
+			</div>
+
+			<hr class="section-rule" />
+			<p class="section-label">Transition</p>
+			<div class="ctl-group">
+				<div class="slider-row"><span class="lab">Speed</span><input type="range" id="transSpeed" min="80" max="400" step="10" value="170" /><span class="val" id="transSpeedVal">170ms</span></div>
+			</div>
+			<div class="ctl-group">
+				<label class="head">Easing</label>
+				<div class="seg" id="transEase">
+					<button data-e="snappy" class="on">Snappy<small>Fast out, crisp settle</small></button>
+					<button data-e="standard">Standard<small>Material-style ease</small></button>
+					<button data-e="soft">Soft<small>Gentle in-out glide</small></button>
+				</div>
+			</div>
+
+			<hr class="section-rule" />
+			<p class="section-label">Minimap (locked: hairline)</p>
+			<div class="ctl-group">
+				<div class="slider-row"><span class="lab">Height</span><input type="range" id="mmHeight" min="6" max="16" step="1" value="9" /><span class="val" id="mmHeightVal">9px</span></div>
+				<p class="hint">Hairline bar with red viewport window. Only the height is open.</p>
+			</div>
+
+			<div class="ctl-group copy-wrap">
+				<button class="copy-btn" id="copyBtn">Copy spec</button>
+				<p class="copy-note">Paste the copied line straight back into chat to lock the design.</p>
+				<div class="copy-out" id="copyOut"></div>
+			</div>
+		</aside>
+
+		<main class="preview">
+			<section class="stage" id="stageBaseline">
+				<div class="stage-label"><h2>Baseline</h2><span class="tag">Current / untreated</span><span class="rule"></span></div>
+				<div class="col">
+					<div class="shorts-head"><h3>Latest Shorts</h3><span class="rule"></span></div>
+					<div class="row" id="rowBaseline"></div>
+					<div class="mm-wrap"><p class="mm-caption">Minimap &mdash; hairline (round-1 lock, 6px)</p><div class="mm-hair base"><span class="seg"></span></div></div>
+				</div>
+			</section>
+
+			<section class="stage" id="stageLive">
+				<div class="stage-label"><h2>Live preview</h2><span class="tag live">reveal-on-hover</span><span class="rule"></span></div>
+				<p class="hover-hint">&#8594; Hover a single card: it clarifies while its neighbours stay scrimmed &amp; blurred.</p>
+				<div class="col">
+					<div class="shorts-head"><h3>Latest Shorts</h3><span class="rule"></span></div>
+					<div class="row" id="rowLive"></div>
+					<div class="mm-wrap"><p class="mm-caption" id="mmCaption">Minimap &mdash; hairline</p><div class="mm-hair" id="mmLive"><span class="seg"></span></div></div>
+				</div>
+			</section>
+		</main>
+	</div>
+
+<script>
+	// ---- real data (from src/data/youtubeShorts.ts) ----
+	var SHORTS = [
+		{ id: "YaoyTizlaE4", title: "Is it worth it Part 1", views: 243 },
+		{ id: "cgsF6B5eR98", title: "Magical CLI Tools - Part 1 #agenticcoding #coding #develop", views: 1015 },
+		{ id: "5mgQepVfcyc", title: "Day 3 -  Best tools for your tech stack - Part 1", views: 454 },
+		{ id: "UGgKyRGUwkE", title: "I see the issue now - Part 1", views: 959 },
+		{ id: "ueRlidFgFYY", title: "Agentic Coding - hello to Day 1 of 30", views: 743 }
+	];
+	var VISIBLE = SHORTS.slice(0, 3);
+
+	// site tokens
+	var NAVY = "#0f172a";
+	var EMBER = "#C2410C"; // HeroSubtitle SunsetUnderline stroke
+
+	function vurl(id){ return "https://i.ytimg.com/vi/" + id + "/oardefault.jpg"; }
+	function furl(id){ return "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg"; }
+	function views(n){ return n >= 1000 ? (n/1000).toFixed(1).replace(/\.0$/,"") + "K" : String(n); }
+
+	var GLYPH = '<svg class="glyph" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+		+ '<path fill="#FF0000" d="m18.931 9.99-1.441-.601 1.717-.913a4.48 4.48 0 0 0 1.874-6.078 4.506 4.506 0 0 0-6.09-1.874L4.792 5.929a4.504 4.504 0 0 0-2.402 4.193 4.521 4.521 0 0 0 2.666 3.904c.036.012 1.442.6 1.442.6l-1.706.901a4.51 4.51 0 0 0-2.369 3.967A4.528 4.528 0 0 0 6.93 24c.725 0 1.437-.174 2.08-.508l10.21-5.406a4.494 4.494 0 0 0 2.39-4.192 4.525 4.525 0 0 0-2.678-3.904Z"/>'
+		+ '<path fill="#FFFFFF" d="M9.597 15.19V8.824l6.007 3.184z"/></svg>';
+	var EYE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 5C5.5 5 1.7 10.6 1 12c.7 1.4 4.5 7 11 7s10.3-5.6 11-7c-.7-1.4-4.5-7-11-7zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9zm0-7.2A2.7 2.7 0 1 0 12 14.7a2.7 2.7 0 0 0 0-5.4z"/></svg>';
+
+	function imgTag(id){
+		return '<img src="' + vurl(id) + '" alt="" draggable="false" '
+			+ 'onerror="if(this.dataset.fb){this.style.display=\'none\'}else{this.dataset.fb=1;this.src=\'' + furl(id) + '\'}" />';
+	}
+	function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+	function viewsBar(short){ return '<div class="ov-views">' + EYE + ' ' + views(short.views) + ' views</div>'; }
+
+	var EASES = {
+		snappy: "cubic-bezier(0.16, 1, 0.3, 1)",
+		standard: "cubic-bezier(0.4, 0, 0.2, 1)",
+		soft: "cubic-bezier(0.45, 0.05, 0.55, 0.95)"
+	};
+
+	// gradient background string per variant + angle
+	function gradientCSS(variant, angle){
+		if (variant === "none") return "none";
+		var dir = angle === "corner" ? "135deg" : "180deg";
+		if (variant === "navy-only") return "linear-gradient(" + dir + ", " + NAVY + ", rgba(15,23,42,0.15))";
+		if (variant === "ember-only") return "linear-gradient(" + dir + ", rgba(194,65,12,0.15), " + EMBER + ")";
+		// navy-ember: ink at the start, sunset at the end
+		return "linear-gradient(" + dir + ", " + NAVY + " 0%, " + EMBER + " 100%)";
+	}
+
+	// ---- baseline card (round-1 current: raw thumbnail, small top title) ----
+	function baselineCard(short){
+		var inner = '<div class="imgwrap">' + imgTag(short.id) + '</div>'
+			+ '<div class="b-top"><span class="avatar">AO</span><div class="meta">'
+			+ '<p class="title">' + esc(short.title) + '</p><p class="chan">Alper Ortac</p></div></div>'
+			+ GLYPH + viewsBar(short);
+		return '<a class="short-card" href="https://www.youtube.com/shorts/' + short.id + '" target="_blank" rel="noopener noreferrer" draggable="false">'
+			+ '<div class="card-inner">' + inner + '</div></a>';
+	}
+
+	// ---- live reveal-on-hover card ----
+	function liveCard(short){
+		var s = state;
+		var gradHover = (s.gradOpacity * 0.4) / 100; // gradient eases down on hover
+		var vars = [
+			"--scrim-rest:" + (s.scrimRest/100),
+			"--scrim-hover:" + (s.scrimHover/100),
+			"--grad-rest:" + (s.gradOpacity/100),
+			"--grad-hover:" + gradHover,
+			"--blur-rest:" + s.blurRest + "px",
+			"--blur-hover:" + s.blurHover + "px",
+			"--title-size:" + s.titleSize + "px",
+			"--title-space:" + s.titleSpace + "px",
+			"--dur:" + s.transSpeed + "ms",
+			"--ease:" + EASES[s.transEase]
+		].join(";");
+
+		var gradStyle = gradientCSS(s.gradient, s.gradAngle);
+		var gradDiv = gradStyle === "none" ? "" : '<div class="grad" style="background:' + gradStyle + '"></div>';
+
+		var inner = '<div class="imgwrap">' + imgTag(short.id) + '</div>'
+			+ '<div class="scrim"></div>'
+			+ gradDiv
+			+ '<div class="ov-top"><span class="avatar">AO</span><div class="meta">'
+			+ '<p class="title">' + esc(short.title) + '</p><p class="chan">Alper Ortac</p></div></div>'
+			+ GLYPH + viewsBar(short);
+
+		return '<a class="short-card rev" style="' + vars + '" href="https://www.youtube.com/shorts/' + short.id
+			+ '" target="_blank" rel="noopener noreferrer" draggable="false">'
+			+ '<div class="card-inner">' + inner + '</div></a>';
+	}
+
+	// ---- state ----
+	var state = {
+		sky: "day",
+		scrimRest: 70, scrimHover: 20,
+		gradient: "navy-ember", gradAngle: "vertical", gradOpacity: 55,
+		blurRest: 7, blurHover: 0,
+		titleSize: 20, titleSpace: 14,
+		transSpeed: 170, transEase: "snappy",
+		mmHeight: 9
+	};
+
+	function renderBaseline(){
+		document.getElementById("rowBaseline").innerHTML = VISIBLE.map(baselineCard).join("");
+	}
+	function renderLive(){
+		document.getElementById("stageBaseline").className = "stage" + (state.sky==="night"?" night":"");
+		document.getElementById("stageLive").className = "stage" + (state.sky==="night"?" night":"");
+		document.getElementById("rowLive").innerHTML = VISIBLE.map(liveCard).join("");
+		document.getElementById("mmLive").style.setProperty("--mm-h", state.mmHeight + "px");
+		updateSpec();
+	}
+
+	function buildSpec(){
+		return [
+			"direction: reveal-on-hover",
+			"scrim-rest: " + state.scrimRest + "%",
+			"scrim-hover: " + state.scrimHover + "%",
+			"gradient: " + state.gradient,
+			"gradient-angle: " + state.gradAngle,
+			"gradient-opacity: " + state.gradOpacity + "%",
+			"blur-rest: " + state.blurRest + "px",
+			"blur-hover: " + state.blurHover + "px",
+			"title-size: " + state.titleSize + "px",
+			"title-space: " + state.titleSpace + "px",
+			"transition-speed: " + state.transSpeed + "ms",
+			"transition-ease: " + state.transEase,
+			"minimap-height: " + state.mmHeight + "px"
+		].join(" | ");
+	}
+	function updateSpec(){ document.getElementById("copyOut").textContent = buildSpec(); }
+
+	// ---- wiring ----
+	function segWire(id, key, attr){
+		var box = document.getElementById(id);
+		box.addEventListener("click", function(e){
+			var b = e.target.closest("button"); if (!b) return;
+			state[key] = b.dataset[attr];
+			Array.prototype.forEach.call(box.querySelectorAll("button"), function(x){ x.classList.remove("on"); });
+			b.classList.add("on");
+			renderLive();
+		});
+	}
+	segWire("gradient","gradient","g");
+	segWire("gradAngle","gradAngle","a");
+	segWire("transEase","transEase","e");
+
+	document.getElementById("sky").addEventListener("click", function(e){
+		var b = e.target.closest("button"); if (!b) return;
+		state.sky = b.dataset.sky;
+		Array.prototype.forEach.call(this.querySelectorAll("button"), function(x){ x.classList.remove("on"); });
+		b.classList.add("on");
+		renderLive();
+	});
+
+	function sliderWire(id, key, valId, unit){
+		document.getElementById(id).addEventListener("input", function(){
+			state[key] = +this.value;
+			document.getElementById(valId).textContent = this.value + unit;
+			renderLive();
+		});
+	}
+	sliderWire("scrimRest","scrimRest","scrimRestVal","%");
+	sliderWire("scrimHover","scrimHover","scrimHoverVal","%");
+	sliderWire("gradOpacity","gradOpacity","gradOpacityVal","%");
+	sliderWire("blurRest","blurRest","blurRestVal","px");
+	sliderWire("blurHover","blurHover","blurHoverVal","px");
+	sliderWire("titleSize","titleSize","titleSizeVal","px");
+	sliderWire("titleSpace","titleSpace","titleSpaceVal","px");
+	sliderWire("transSpeed","transSpeed","transSpeedVal","ms");
+	sliderWire("mmHeight","mmHeight","mmHeightVal","px");
+
+	document.getElementById("copyBtn").addEventListener("click", function(){
+		var spec = buildSpec();
+		var btn = this;
+		function done(){ var o=btn.textContent; btn.textContent="Copied ✓"; setTimeout(function(){ btn.textContent=o; }, 1400); }
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(spec).then(done, function(){ fallback(spec); done(); });
+		} else { fallback(spec); done(); }
+	});
+	function fallback(text){
+		var ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
+		ta.select(); try { document.execCommand("copy"); } catch(e){} document.body.removeChild(ta);
+	}
+
+	renderBaseline();
+	renderLive();
+</script>
+</body>
+</html>

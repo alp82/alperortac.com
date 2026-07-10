@@ -6,6 +6,18 @@ import { useShortsRail } from "./useShortsRail";
 const CHANNEL_NAME = "Alper Ortac";
 const CHANNEL_AVATAR_SRC = "/youtube-avatar.jpg";
 
+// Duotone-pairs palette (locked via .prototypes/design-shorts-card-palette.html):
+// five hues cycled by card index for the per-card corner gradient. #C2410C and
+// #A8380A are the ember and darkest sunset stop shared with SunsetUnderline in
+// HeroSubtitle.tsx (no central token file exists to host them).
+export const CARD_HUES = [
+	"#0F172A",
+	"#C2410C",
+	"#1D4ED8",
+	"#A8380A",
+	"#6D28D9",
+] as const;
+
 export function viewsLabel(n: number): string {
 	return n >= 1000
 		? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`
@@ -46,25 +58,7 @@ function EyeIcon() {
 	);
 }
 
-function FilmstripCell({ short }: { short: YoutubeShort }) {
-	const vertical = `https://i.ytimg.com/vi/${short.id}/oardefault.jpg`;
-	const fallback = `https://i.ytimg.com/vi/${short.id}/hqdefault.jpg`;
-	const [src, setSrc] = useState<string | null>(vertical);
-	if (!src)
-		return <span className="shorts-scrollbar__cell" aria-hidden="true" />;
-	return (
-		<img
-			className="shorts-scrollbar__cell"
-			src={src}
-			alt=""
-			loading="lazy"
-			draggable={false}
-			onError={() => setSrc((c) => (c === vertical ? fallback : null))}
-		/>
-	);
-}
-
-function ShortCard({ short }: { short: YoutubeShort }) {
+function ShortCard({ short, index }: { short: YoutubeShort; index: number }) {
 	const vertical = `https://i.ytimg.com/vi/${short.id}/oardefault.jpg`;
 	const fallback = `https://i.ytimg.com/vi/${short.id}/hqdefault.jpg`;
 	const [src, setSrc] = useState<string | null>(vertical);
@@ -72,6 +66,11 @@ function ShortCard({ short }: { short: YoutubeShort }) {
 	return (
 		<a
 			className="short-card group"
+			style={
+				{
+					"--card-hue": CARD_HUES[index % CARD_HUES.length],
+				} as React.CSSProperties
+			}
 			href={`https://www.youtube.com/shorts/${short.id}`}
 			target="_blank"
 			rel="noopener noreferrer"
@@ -79,19 +78,23 @@ function ShortCard({ short }: { short: YoutubeShort }) {
 			draggable={false}
 		>
 			<div className="short-card-inner relative aspect-[9/16] overflow-hidden bg-[#111111] shrink-0">
-				{src && (
-					<img
-						className="block w-full h-full object-cover"
-						src={src}
-						alt=""
-						loading="lazy"
-						draggable={false}
-						onError={() =>
-							setSrc((current) => (current === vertical ? fallback : null))
-						}
-					/>
-				)}
-				<div className="absolute top-0 left-0 right-0 z-[2] flex items-start gap-[min(3.65cqw,7px)] pt-[min(4.17cqw,8px)] pb-[min(7.29cqw,14px)] px-[min(4.69cqw,9px)] bg-[linear-gradient(to_bottom,rgba(0,0,0,0.78)_0%,rgba(0,0,0,0.42)_65%,rgba(0,0,0,0)_100%)]">
+				<div className="short-card__imgwrap">
+					{src && (
+						<img
+							className="short-card__img"
+							src={src}
+							alt=""
+							loading="lazy"
+							draggable={false}
+							onError={() =>
+								setSrc((current) => (current === vertical ? fallback : null))
+							}
+						/>
+					)}
+				</div>
+				<div className="short-card__scrim" aria-hidden="true" />
+				<div className="short-card__grad" aria-hidden="true" />
+				<div className="absolute top-0 left-0 right-0 z-[3] flex items-start gap-[min(3.65cqw,7px)] p-[min(7.29cqw,14px)] pb-[calc(min(7.29cqw,14px)+14px)] bg-[linear-gradient(to_bottom,rgba(0,0,0,0.78)_0%,rgba(0,0,0,0.42)_65%,rgba(0,0,0,0)_100%)]">
 					{!avatarFailed && (
 						<img
 							className="w-[min(12.5cqw,28px)] h-[min(12.5cqw,28px)] rounded-full border-[1.5px] border-white shrink-0 object-cover shadow-[0_1px_2px_rgba(0,0,0,0.5)] bg-[#666666]"
@@ -103,7 +106,7 @@ function ShortCard({ short }: { short: YoutubeShort }) {
 						/>
 					)}
 					<div className="min-w-0">
-						<p className="text-[clamp(8px,5.47cqw,10.5px)] font-extrabold leading-[1.24] text-white line-clamp-2 [text-shadow:0_1px_2px_rgba(0,0,0,0.7)]">
+						<p className="text-[clamp(13px,10.42cqw,20px)] font-black leading-[1.16] text-white line-clamp-2 [text-shadow:0_1px_2px_rgba(0,0,0,0.7)]">
 							{short.title}
 						</p>
 						<p className="mt-0.5 text-[clamp(7.5px,4.69cqw,9px)] font-semibold text-white whitespace-nowrap overflow-hidden text-ellipsis">
@@ -111,10 +114,10 @@ function ShortCard({ short }: { short: YoutubeShort }) {
 						</p>
 					</div>
 				</div>
-				<span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[2] w-[min(28.125cqw,60px)] drop-shadow-[0_3px_8px_rgba(0,0,0,0.55)] transition-transform duration-[120ms] ease-out group-hover:scale-[1.06] motion-reduce:transform-none">
+				<span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[4] w-[min(28.125cqw,60px)] drop-shadow-[0_3px_8px_rgba(0,0,0,0.55)] transition-transform duration-[120ms] ease-out group-hover:scale-[1.06] motion-reduce:transform-none">
 					<ShortsSGlyph />
 				</span>
-				<div className="absolute left-0 right-0 bottom-0 z-[2] flex items-center gap-[min(2.08cqw,4px)] bg-black/[.58] px-[min(4.69cqw,9px)] py-[min(3.125cqw,6px)] text-[clamp(7.5px,4.95cqw,9.5px)] font-extrabold text-white">
+				<div className="absolute left-0 right-0 bottom-0 z-[4] flex items-center gap-[min(2.08cqw,4px)] bg-black/[.58] px-[min(4.69cqw,9px)] py-[min(3.125cqw,6px)] text-[clamp(7.5px,4.95cqw,9.5px)] font-extrabold text-white">
 					<EyeIcon /> {viewsLabel(short.views)} views
 				</div>
 			</div>
@@ -128,7 +131,6 @@ export function ShortsCarousel({ isNight }: { isNight: boolean }) {
 		trackRef,
 		barRef,
 		thumbRef,
-		offWrapRef,
 		wrapProps,
 		railProps,
 		barProps,
@@ -148,31 +150,35 @@ export function ShortsCarousel({ isNight }: { isNight: boolean }) {
 				</h3>
 				<div className="flex-1 h-px bg-slate-900/20" />
 			</div>
-			<div className="flex gap-2 mb-3">
-				<button
-					type="button"
-					aria-label="Scroll to previous Short"
-					onClick={prev}
-					disabled={!canScroll}
-					className={arrowClass}
-				>
-					<ChevronLeft size={16} strokeWidth={3} />
-				</button>
-				<button
-					type="button"
-					aria-label="Scroll to next Short"
-					onClick={next}
-					disabled={!canScroll}
-					className={arrowClass}
-				>
-					<ChevronRight size={16} strokeWidth={3} />
-				</button>
-			</div>
-			<div className="shorts-rail" ref={railRef} {...railProps}>
-				<div className="shorts-track" ref={trackRef}>
-					{YOUTUBE_SHORTS.map((short) => (
-						<ShortCard key={short.id} short={short} />
-					))}
+			<div className="relative">
+				<div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 z-10">
+					<button
+						type="button"
+						aria-label="Scroll to previous Short"
+						onClick={prev}
+						disabled={!canScroll}
+						className={arrowClass}
+					>
+						<ChevronLeft size={16} strokeWidth={3} />
+					</button>
+				</div>
+				<div className="shorts-rail" ref={railRef} {...railProps}>
+					<div className="shorts-track" ref={trackRef}>
+						{YOUTUBE_SHORTS.map((short, i) => (
+							<ShortCard key={short.id} short={short} index={i} />
+						))}
+					</div>
+				</div>
+				<div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-10">
+					<button
+						type="button"
+						aria-label="Scroll to next Short"
+						onClick={next}
+						disabled={!canScroll}
+						className={arrowClass}
+					>
+						<ChevronRight size={16} strokeWidth={3} />
+					</button>
 				</div>
 			</div>
 			<div
@@ -183,18 +189,6 @@ export function ShortsCarousel({ isNight }: { isNight: boolean }) {
 				{...barProps}
 				className={`shorts-scrollbar${isNight ? " shorts-scrollbar--night" : ""}${barGrabbing ? " shorts-scrollbar--grabbing" : ""}`}
 			>
-				<div className="shorts-scrollbar__strip">
-					{YOUTUBE_SHORTS.map((short) => (
-						<FilmstripCell key={short.id} short={short} />
-					))}
-				</div>
-				<div ref={offWrapRef} className="shorts-scrollbar__off-wrap">
-					<div className="shorts-scrollbar__off">
-						{YOUTUBE_SHORTS.map((short) => (
-							<FilmstripCell key={short.id} short={short} />
-						))}
-					</div>
-				</div>
 				<div ref={thumbRef} className="shorts-scrollbar__thumb" />
 			</div>
 		</div>
