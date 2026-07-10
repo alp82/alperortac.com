@@ -40,3 +40,17 @@ A vertical scroll journey on the main path:
 
 - Mobile must work. Every desktop interaction needs a touch equivalent.
 - Reduced-motion preference is respected.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in the `alp82/alperortac.com` GitHub Issues, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default canonical roles, each label string equal to its name. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
