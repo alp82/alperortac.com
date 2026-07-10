@@ -139,9 +139,7 @@ export function ShortsCarousel({ isNight }: { isNight: boolean }) {
 		next,
 		canScroll,
 	} = useShortsRail();
-	const arrowClass = `btn-brutalist btn-brutalist--chip inline-flex items-center justify-center${
-		isNight ? " btn-brutalist--night" : ""
-	}`;
+	const navClass = `shorts-nav-btn${isNight ? " shorts-nav-btn--night" : ""}`;
 	return (
 		<div className="mb-12" {...wrapProps}>
 			<div className="flex items-center gap-3 mb-4">
@@ -150,46 +148,42 @@ export function ShortsCarousel({ isNight }: { isNight: boolean }) {
 				</h3>
 				<div className="flex-1 h-px bg-slate-900/20" />
 			</div>
-			<div className="relative">
-				<div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 z-10">
-					<button
-						type="button"
-						aria-label="Scroll to previous Short"
-						onClick={prev}
-						disabled={!canScroll}
-						className={arrowClass}
-					>
-						<ChevronLeft size={16} strokeWidth={3} />
-					</button>
-				</div>
-				<div className="shorts-rail" ref={railRef} {...railProps}>
-					<div className="shorts-track" ref={trackRef}>
-						{YOUTUBE_SHORTS.map((short, i) => (
-							<ShortCard key={short.id} short={short} index={i} />
-						))}
-					</div>
-				</div>
-				<div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-10">
-					<button
-						type="button"
-						aria-label="Scroll to next Short"
-						onClick={next}
-						disabled={!canScroll}
-						className={arrowClass}
-					>
-						<ChevronRight size={16} strokeWidth={3} />
-					</button>
+			<div className="shorts-rail" ref={railRef} {...railProps}>
+				<div className="shorts-track" ref={trackRef}>
+					{YOUTUBE_SHORTS.map((short, i) => (
+						<ShortCard key={short.id} short={short} index={i} />
+					))}
 				</div>
 			</div>
-			<div
-				ref={barRef}
-				role="presentation"
-				aria-hidden="true"
-				hidden
-				{...barProps}
-				className={`shorts-scrollbar${isNight ? " shorts-scrollbar--night" : ""}${barGrabbing ? " shorts-scrollbar--grabbing" : ""}`}
-			>
-				<div ref={thumbRef} className="shorts-scrollbar__thumb" />
+			<div className="shorts-controls">
+				<button
+					type="button"
+					aria-label="Scroll to previous Short"
+					onClick={prev}
+					disabled={!canScroll}
+					className={navClass}
+				>
+					<ChevronLeft size={12} strokeWidth={3} />
+				</button>
+				<div
+					ref={barRef}
+					role="presentation"
+					aria-hidden="true"
+					hidden
+					{...barProps}
+					className={`shorts-scrollbar${isNight ? " shorts-scrollbar--night" : ""}${barGrabbing ? " shorts-scrollbar--grabbing" : ""}`}
+				>
+					<div ref={thumbRef} className="shorts-scrollbar__thumb" />
+				</div>
+				<button
+					type="button"
+					aria-label="Scroll to next Short"
+					onClick={next}
+					disabled={!canScroll}
+					className={navClass}
+				>
+					<ChevronRight size={12} strokeWidth={3} />
+				</button>
 			</div>
 		</div>
 	);

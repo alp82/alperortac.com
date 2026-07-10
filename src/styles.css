@@ -837,20 +837,73 @@ body.panel-open nav {
 	}
 }
 
-/* Hairline minimap scrollbar (locked 10px): a hard-edged ink-bordered faint
-   track with a solid red window (__thumb) marking the visible-viewport span,
-   matching the site's brutalist border/flat-shadow vocabulary. Pressing the
-   track jumps the rail to that spot; grabbing the window scrubs it live
-   (useShortsRail's bar session), hence the grab/grabbing cursor pair. It
-   stays aria-hidden as a redundant pointer-only affordance - the rail itself
-   is the keyboard/AT surface. Window width is set at measure time; its
-   position glides per frame from the same spring-animated offset as the
-   track. Hidden by measure() whenever the content fits. */
+/* Control row: the prev/next nav buttons flank the scrollbar as equal-height
+   siblings (align-items: stretch), so the buttons take the bar's height rather
+   than being absolutely positioned against the card rail. The bar flexes to
+   fill the space between them. */
+.shorts-controls {
+	display: flex;
+	align-items: stretch;
+	gap: 8px;
+	margin-top: 10px;
+}
+
+/* Nav buttons in the scrollbar's own vocabulary (faint ink track, hard ink
+   border, no offset shadow) rather than the solid brutalist chips of the
+   external social links - they read as part of the scrub control, not another
+   link. Hover fills red to echo the bar's __thumb window. */
+.shorts-nav-btn {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 26px;
+	padding: 0;
+	color: #0f172a;
+	background: rgba(15, 23, 42, 0.18);
+	border: 2px solid #0f172a;
+	border-radius: 0;
+	cursor: pointer;
+	transition: background-color 80ms ease-out, color 80ms ease-out;
+}
+.shorts-nav-btn:hover:not(:disabled) {
+	background: #ff0000;
+	color: #ffffff;
+}
+.shorts-nav-btn:focus-visible {
+	outline: 3px solid #0f172a;
+	outline-offset: 2px;
+}
+.shorts-nav-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+.shorts-nav-btn--night {
+	color: #f8fafc;
+	background: rgba(248, 250, 252, 0.2);
+	border-color: #f8fafc;
+}
+.shorts-nav-btn--night:focus-visible {
+	outline-color: #f8fafc;
+}
+
+/* Hairline minimap scrollbar (16px, height-matched to its flanking nav
+   buttons): a hard-edged ink-bordered faint track with a solid red window
+   (__thumb) marking the visible-viewport span, matching the site's brutalist
+   border/flat-shadow vocabulary. Pressing the track jumps the rail to that
+   spot; grabbing the window scrubs it live (useShortsRail's bar session),
+   hence the grab/grabbing cursor pair. It stays aria-hidden as a redundant
+   pointer-only affordance - the rail itself is the keyboard/AT surface. Window
+   width is set at measure time; its position glides per frame from the same
+   spring-animated offset as the track. Hidden by measure() whenever the
+   content fits. */
 .shorts-scrollbar {
 	position: relative;
 	box-sizing: border-box;
-	height: 10px;
-	margin-top: 10px;
+	flex: 1 1 auto;
+	min-width: 0;
+	height: 16px;
 	cursor: grab;
 	touch-action: pan-y;
 	user-select: none;
