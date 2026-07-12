@@ -4,7 +4,7 @@ import { TOPICS } from "../../../../data/topics";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: collectible — "trading card."
+ * Inner: collectible - "trading card."
  *
  * A WIDE ornate trading-card panel: the rarity border frames a name banner
  * (card title + a holo type/rarity line as chrome) over a thin holo accent rail,
@@ -52,7 +52,7 @@ export function CollectibleCluster({
 						: null),
 				}}
 			>
-				{/* legendary holo strip — a thin iridescent gradient along the top */}
+				{/* legendary holo strip - a thin iridescent gradient along the top */}
 				{isLegendary && (
 					<span
 						className="absolute left-0 right-0 top-0 h-1"

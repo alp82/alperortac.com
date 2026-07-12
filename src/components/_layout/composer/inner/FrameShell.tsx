@@ -7,7 +7,7 @@
  * where the heading sits cleanly above the body; frames whose heading is
  * interleaved with chrome inline the same structure instead.
  *
- * ANCHOR-LESS by design — TopicComposition's neutral wrapper owns the
+ * ANCHOR-LESS by design - TopicComposition's neutral wrapper owns the
  * `<article id>` anchor. No `py-24` and no accent layout: those belong to
  * production's `SectionBody`, not here.
  *

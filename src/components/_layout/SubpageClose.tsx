@@ -2,7 +2,7 @@ import { ArrowLeft, X } from "lucide-react";
 
 // Viewport-pinned header controls for the scrollable detail subpages. Rendered
 // INSIDE each panel's dialog (so they stay in the dialog's focus trap and tab
-// order) but `position: fixed` so they never scroll away on a long subpage —
+// order) but `position: fixed` so they never scroll away on a long subpage -
 // always reachable in the header band. While a subpage is open the nav's center
 // items + Follow Me are hidden (styles.css), so these stand in: a centered Back
 // button and the close X at the top-right where Follow Me used to sit. Esc and

@@ -2,7 +2,7 @@ import type { InnerRenderProps } from "../types";
 import { DENSITY_GAP, DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: trail-signpost — "waypoint marker."
+ * Inner: trail-signpost - "waypoint marker."
  *
  * A trail waypoint is the frame: a diamond marker tops a wooden signpost board
  * carrying the heading as the route label, then the topic's REAL body (the
@@ -47,7 +47,7 @@ export function TrailSignpostCluster({
 				</div>
 			</div>
 
-			{/* The note pinned below the signpost — a kraft trail-register card so
+			{/* The note pinned below the signpost - a kraft trail-register card so
 			   the body reads on the dark stage and stays in the trail theme. */}
 			<div className="w-full">
 				<div

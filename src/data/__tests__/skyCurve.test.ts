@@ -151,7 +151,7 @@ describe("skyCurve", () => {
 			});
 		});
 
-		// Scenario 2: move past neighbor — push it
+		// Scenario 2: move past neighbor - push it
 		describe("move past neighbor", () => {
 			it("p1e: pushed past p2s -> p2s and p2e push forward", () => {
 				const out = applyMonotonicClamp("p1e", 0.7, base);

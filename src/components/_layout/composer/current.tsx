@@ -4,7 +4,7 @@ import { useSectionNightPhase } from "../SectionTitle";
 import { SectionBody } from "./SectionBody";
 
 /*
- * Baseline shell — the baseline look, reachable via the panel's Shipped-baseline
+ * Baseline shell - the baseline look, reachable via the panel's Shipped-baseline
  * toggle.
  *
  * Owns the topic's `<article>` shell (id anchor + vertical rhythm) and renders
@@ -25,7 +25,7 @@ type CurrentBlockProps = {
 export function CurrentBlock({ topic, lastTriggerRef }: CurrentBlockProps) {
 	const articleRef = useRef<HTMLElement>(null);
 	// ONE frozen phase for the whole topic section, measured at the article
-	// root — everything night-dependent inside agrees with it.
+	// root - everything night-dependent inside agrees with it.
 	const night = useSectionNightPhase(articleRef);
 	return (
 		<article ref={articleRef} id={topic.id}>

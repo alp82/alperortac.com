@@ -7,7 +7,7 @@ import { Route } from "../__root";
 // ---------------------------------------------------------------------------
 // Data-contract tests for the root route head() (SEO/OG/Twitter/JSON-LD).
 // Values are asserted against the imported data constants (HERO_SUMMARY,
-// CONTACT_EMAIL, SOCIAL_LINKS) — never hardcoded copy — so editing the data
+// CONTACT_EMAIL, SOCIAL_LINKS) - never hardcoded copy - so editing the data
 // files updates the tags without requiring a test edit (shape, not content).
 // ---------------------------------------------------------------------------
 

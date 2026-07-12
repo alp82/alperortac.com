@@ -6,9 +6,9 @@
    `_layout` stylesheet so the composed look is styled at first paint.
 
    Ships two kinds of rules:
-     • Global design tokens — `:root { --paper; --ink }` — available
+     • Global design tokens - `:root { --paper; --ink }` - available
        site-wide.
-     • Bespoke component classes — `.cmp-*` (composer layers) plus named
+     • Bespoke component classes - `.cmp-*` (composer layers) plus named
        utility classes such as `.signpost`, `.fossil`, `.specimen`,
        `.museum-plate`, `.strata-band`, `.polaroid`, `.star-glow`,
        `.journal-page`, etc.
@@ -55,7 +55,7 @@
    The seam slot takes ZERO normal-flow height so it never pushes the
    topics apart. Its tall child is absolutely positioned, horizontally centered
    on the page and vertically centered ON the seam, so it reaches UP into the
-   bottom of the topic above and DOWN into the top of the topic below — a
+   bottom of the topic above and DOWN into the top of the topic below - a
    continuous thread descending the journey. overflow:visible lets it bleed past
    the zero-height slot; z-index sits ABOVE the inner clusters' backdrops but the rail
    is pointer-events:none so it never blocks content clusters or their clicks. */
@@ -552,7 +552,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   ADDED INNER STYLES (Layer 2) — distinct centered clusters.
+   ADDED INNER STYLES (Layer 2) - distinct centered clusters.
    ════════════════════════════════════════════════════════════════════ */
 
 /* ── ticket-stub ── perforated event ticket ── */
@@ -1564,7 +1564,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   ENVIRONMENT INNER STYLES — night-sky / time-of-day / nature frames.
+   ENVIRONMENT INNER STYLES - night-sky / time-of-day / nature frames.
    ════════════════════════════════════════════════════════════════════ */
 
 /* ── aurora ── soft northern-lights curtains ── */

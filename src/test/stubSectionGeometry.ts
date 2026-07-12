@@ -11,7 +11,7 @@
  * Patches `HTMLElement.prototype.getBoundingClientRect` exactly once (shared
  * across every element in the tree for the lifetime of the stub) plus
  * window.scrollY / window.innerHeight / document.documentElement.scrollHeight
- * via Object.defineProperty — none of which vi.unstubAllGlobals() reverts, so
+ * via Object.defineProperty - none of which vi.unstubAllGlobals() reverts, so
  * callers MUST invoke the returned restore() in every test (mirroring the
  * afterEach convention in SectionTitle.render.test.tsx).
  */

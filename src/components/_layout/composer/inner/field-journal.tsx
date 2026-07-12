@@ -3,7 +3,7 @@ import type { InnerRenderProps } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: field-journal — "kraft journal spread."
+ * Inner: field-journal - "kraft journal spread."
  *
  * An aged kraft / graph-paper page is the frame: a stamped+handwritten field-note
  * title with a fig. number, a dashed field rule, then the topic's REAL body (the

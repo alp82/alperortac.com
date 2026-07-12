@@ -126,8 +126,8 @@ function LayoutHost() {
 
 	// Drive the live-landscape dive from the panel host. On open, aim the zoom at
 	// the trigger's on-screen center and push --dive-u to 1 (CSS transitions the
-	// per-layer zoom/blur). On close, ease --dive-u back to 0, then — after the
-	// return transition — drop body.dive-active (which holds the 3D context) and
+	// per-layer zoom/blur). On close, ease --dive-u back to 0, then - after the
+	// return transition - drop body.dive-active (which holds the 3D context) and
 	// clear the dive vars. M2 ships glide only; other techniques land in M3.
 	const onPanelChange = useCallback(
 		(info: {
@@ -224,7 +224,7 @@ function LayoutHost() {
 
 	// The design composition, pushed up from <DesignModeHost>. Seeded to the
 	// deterministic defaults so the server and the first client paint render the
-	// SAME composition — no hydration mismatch, and the band is at its settled
+	// SAME composition - no hydration mismatch, and the band is at its settled
 	// height from first paint (no baseline-then-swap growth after scroll
 	// restoration). This composed look is the default that ships to production;
 	// the panel stays mounted for live A/B tweaking.
@@ -232,7 +232,7 @@ function LayoutHost() {
 		useState<ComposerState>(DEFAULT_STATE);
 
 	// Paint the body background with the current sky color so the dive's 3D
-	// transform never reveals a white void at the landscape edges — any exposed
+	// transform never reveals a white void at the landscape edges - any exposed
 	// edge matches the sky/time-of-day (frozen while a subpage is open).
 	useEffect(() => {
 		document.body.style.backgroundColor = skyAt(
@@ -243,7 +243,7 @@ function LayoutHost() {
 
 	useEffect(() => {
 		const handleScroll = () => {
-			// Freeze the day/night driver while a detail subpage is open — the
+			// Freeze the day/night driver while a detail subpage is open - the
 			// subpage's own scroll must not advance the time of day.
 			if (panelOpenRef.current) return;
 			const winHeight = window.innerHeight;
@@ -257,7 +257,7 @@ function LayoutHost() {
 
 		// Seed the sky from the browser's restored scroll position once on mount,
 		// then track scrolling. The composition now SSRs at its settled height, so
-		// the document height is stable from first paint — the seed reads the right
+		// the document height is stable from first paint - the seed reads the right
 		// fraction in one shot and no height-change recompute (ResizeObserver /
 		// resize) is needed to correct it.
 		handleScroll();

@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Early Days — soft age timeline explorer</title>
+<title>Early Days - soft age timeline explorer</title>
 <!-- PROTOTYPE (throwaway). Question: how should the Early Days subpage present the
-     story as an age-anchored timeline — big half-transparent age numbers on the left?
+     story as an age-anchored timeline - big half-transparent age numbers on the left?
      Three structurally different variants, switchable via ?variant= / bottom pill / arrow keys.
-     PROSE IS DRAFT — Alper is still working the words; judge layout, not copy. -->
+     PROSE IS DRAFT - Alper is still working the words; judge layout, not copy. -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=VT323&display=swap" rel="stylesheet" />
@@ -65,7 +65,7 @@ h2{
 @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
 
 /* =========================================================
-   VARIANT A — Ghost margin: huge translucent numerals in a
+   VARIANT A - Ghost margin: huge translucent numerals in a
    left gutter, soft gradient spine, beats on the right.
    ========================================================= */
 .vA .era{
@@ -86,14 +86,9 @@ h2{
   user-select:none;
 }
 .vA .age .suffix{font-size:2.4rem;letter-spacing:0}
-.vA .dot{
-  position:absolute;left:3.6rem;top:3rem;width:9px;height:9px;border-radius:50%;
-  transform:translateX(-4px);
-  background:#fdba74;box-shadow:0 0 12px 2px rgba(253,186,116,0.45);
-}
 
 /* =========================================================
-   VARIANT B — CRT era screens: each age is a phosphor screen
+   VARIANT B - CRT era screens: each age is a phosphor screen
    with scanlines, pixel type, age as amber pixel numeral.
    ========================================================= */
 .vB .era{display:grid;grid-template-columns:6.5rem 1fr;gap:1.1rem;padding:1.4rem 0;align-items:start}
@@ -133,7 +128,7 @@ h2{
 @media (prefers-reduced-motion:reduce){.vB .cursor{animation:none}}
 
 /* =========================================================
-   VARIANT C — Backdrop chapters: no gutter; the numeral is a
+   VARIANT C - Backdrop chapters: no gutter; the numeral is a
    giant watermark BEHIND each chapter, dither seams between.
    ========================================================= */
 .vC .era{position:relative;padding:3.2rem 0 2.6rem}
@@ -214,10 +209,10 @@ const BEATS = [
     caption: "SELFHTML · floppies · FastTracker",
     prompt: "A:\\SELFHTML>",
     text: [
-      "Started to learn HTML and CSS when I was 16 and found my love for web development. No internet at home — my parents knew it would distract me from school, so I had to finish first.",
+      "Started to learn HTML and CSS when I was 16 and found my love for web development. No internet at home - my parents knew it would distract me from school, so I had to finish first.",
       "Used the school PCs to learn about SELFHTML, copied the pages to floppies to continue learning at home. Later JavaScript.",
-      "Loved exploring possibilities — broke DOS and Windows often to experiment with systems. Did music via FastTracker, loved it.",
-      "Got keys for the PC room at school. I was very responsible, and we played CS and StarCraft in the afternoons — my parents were proud that I was staying late at school because they thought I was learning."
+      "Loved exploring possibilities - broke DOS and Windows often to experiment with systems. Did music via FastTracker, loved it.",
+      "Got keys for the PC room at school. I was very responsible, and we played CS and StarCraft in the afternoons - my parents were proud that I was staying late at school because they thought I was learning."
     ]
   },
   {
@@ -247,7 +242,6 @@ const VARIANTS = {
       return `<div class="vA"><div class="timeline">` + BEATS.map(b => `
         <section class="era reveal">
           <div class="age">${b.age}<span class="suffix">${b.suffix}</span></div>
-          <div class="dot" aria-hidden="true"></div>
           <div>
             <p class="era-caption">${esc(b.caption)}</p>
             ${b.text.map(t => `<p class="beat-text">${esc(t)}</p>`).join("")}
@@ -296,7 +290,7 @@ function show(v) {
   url.searchParams.set("variant", v);
   history.replaceState(null, "", url);
   stage.innerHTML = VARIANTS[v].render();
-  label.textContent = `${v} — ${VARIANTS[v].name}`;
+  label.textContent = `${v} - ${VARIANTS[v].name}`;
   const io = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
   }), { threshold: 0.15 });

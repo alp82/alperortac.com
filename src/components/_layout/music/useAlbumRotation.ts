@@ -29,7 +29,7 @@ export function useAlbumRotation(
 } {
 	const {
 		visibleCount,
-		// flicker 200/340 unchanged — 2800ms cadence leaves 2260ms of slack;
+		// flicker 200/340 unchanged - 2800ms cadence leaves 2260ms of slack;
 		// keep in sync with AlbumShelf.tsx INTERVAL_MS and styles.css
 		intervalMs = 2800,
 		// keep in sync with .album-flick-out / .album-flick-in durations in styles.css
@@ -53,7 +53,7 @@ export function useAlbumRotation(
 	});
 	const [swap, setSwap] = useState<Swap>(null);
 	// Increments at every swap initiation (auto or manual) and every rotation
-	// (re)start — the component keys the progress fill on it.
+	// (re)start - the component keys the progress fill on it.
 	const [cycle, setCycle] = useState(0);
 	const [canPrev, setCanPrev] = useState(false);
 
@@ -71,7 +71,7 @@ export function useAlbumRotation(
 	const swapRef = useRef<Swap>(null);
 	const outTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const inTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	// Live interval id — manual nav restarts the clock through this ref; the
+	// Live interval id - manual nav restarts the clock through this ref; the
 	// effect cleanup MUST null it so a cleared interval never looks alive.
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 	// Undo stack for prev(): entries push at content-commit time only, so an
@@ -94,7 +94,7 @@ export function useAlbumRotation(
 			setSwap(outSwap);
 		});
 		outTimeoutRef.current = setTimeout(() => {
-			// Content swaps at the end of the OUT phase — history records the
+			// Content swaps at the end of the OUT phase - history records the
 			// displaced album here (commit time), never at initiation.
 			if (pushHistory) {
 				historyRef.current.push({
@@ -138,7 +138,7 @@ export function useAlbumRotation(
 	// restarted interval run the exact same body.
 	const tickRef = useRef<() => void>(() => {});
 	tickRef.current = () => {
-		if (swapRef.current) return; // a swap is in flight — no-op this tick
+		if (swapRef.current) return; // a swap is in flight - no-op this tick
 		const current = visibleRef.current;
 		const hidden = albumsRef.current.filter(
 			(a) => !current.some((v) => v.cover === a.cover),
@@ -151,17 +151,17 @@ export function useAlbumRotation(
 		beginSwapRef.current(cell, replacement, true);
 	};
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: outMs/inMs are read by the ref-held beginSwap — a change must still restart rotation (pre-existing contract, TC-ROT-12/13).
+	// biome-ignore lint/correctness/useExhaustiveDependencies: outMs/inMs are read by the ref-held beginSwap - a change must still restart rotation (pre-existing contract, TC-ROT-12/13).
 	useEffect(() => {
 		if (paused) return;
 
-		// Fresh (re)start of rotation: the progress bar restarts from zero —
+		// Fresh (re)start of rotation: the progress bar restarts from zero -
 		// honest, since a full interval runs after resume.
 		setCycle((c) => c + 1);
 		startInterval();
 
 		return () => {
-			// Clear via the REF, never a captured local id — next() may have
+			// Clear via the REF, never a captured local id - next() may have
 			// replaced the interval since this effect ran.
 			if (intervalRef.current !== null) clearInterval(intervalRef.current);
 			// Null the ref so a paused-state next() can never read a dead id as
@@ -189,7 +189,7 @@ export function useAlbumRotation(
 	}, []);
 
 	// Manual-nav interval-clock reset: gated on the paused FLAG (via
-	// pausedRef), never on intervalRef.current alone — while paused the manual
+	// pausedRef), never on intervalRef.current alone - while paused the manual
 	// swap runs but the interval stays stopped; the paused-reactivity effect
 	// restarts the clock on unpause.
 	const restartIntervalClock = useCallback(() => {
@@ -201,7 +201,7 @@ export function useAlbumRotation(
 	const next = useCallback(() => {
 		if (swapRef.current) return; // in-flight guard: ignore, no queue
 		tickRef.current();
-		if (!swapRef.current) return; // hidden set was empty — nothing swapped
+		if (!swapRef.current) return; // hidden set was empty - nothing swapped
 		restartIntervalClock();
 	}, [restartIntervalClock]);
 
@@ -224,7 +224,7 @@ export function useAlbumRotation(
 		}
 		setCanPrev(historyRef.current.length > 0);
 		if (!entry) return;
-		// No history push — no redo, prev is pure undo.
+		// No history push - no redo, prev is pure undo.
 		beginSwapRef.current(entry.cell, entry.previousAlbum, false);
 		restartIntervalClock();
 	}, [restartIntervalClock]);

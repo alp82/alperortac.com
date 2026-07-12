@@ -12,7 +12,7 @@ import {
 
 // Distance (% of minimap container height) over which the live-color band
 // fades into the surrounding sky-snapshot gradient at its top and bottom
-// edges. Tuned in the (now-deleted) /minimap-lab — ease-in-out at 20 lands
+// edges. Tuned in the (now-deleted) /minimap-lab - ease-in-out at 20 lands
 // the smoothest seam against the page sky.
 const TRANSITION_DISTANCE = 20;
 

@@ -29,7 +29,7 @@ import { TrailDashesLink } from "./links/trail-dashes";
 import type { InnerDef, InnerId, LinkDef, LinkId } from "./types";
 
 /*
- * Composer registries — the single source of truth for the two layers
+ * Composer registries - the single source of truth for the two layers
  * (inner / link). The panel reads these to build its radio lists + per-item
  * param controls; the dispatcher reads them to render the selected
  * composition.
@@ -89,7 +89,7 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 	constellation: {
 		id: "constellation",
 		label: "Constellation",
-		feel: "Night sky: a faint star field with a low connecting figure — delicate, the natural fit as the journey reaches night.",
+		feel: "Night sky: a faint star field with a low connecting figure - delicate, the natural fit as the journey reaches night.",
 		surface: "dark",
 		defaults: {
 			density: "roomy",
@@ -118,7 +118,7 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 	daybreak: {
 		id: "daybreak",
 		label: "Daybreak",
-		feel: "Time of day: a warm sky with a low sun + rays — dawn, golden hour or dusk via the sky knob.",
+		feel: "Time of day: a warm sky with a low sun + rays - dawn, golden hour or dusk via the sky knob.",
 		surface: "light",
 		defaults: { density: "roomy", rays: true, sky: "golden" },
 		Component: DaybreakCluster,
@@ -134,7 +134,7 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 	skyline: {
 		id: "skyline",
 		label: "Skyline",
-		feel: "Sky elements (birds / clouds / plane / kite / balloon) as light line-art over the existing sky — tune prominence, placement, variety + colour per element. No background of its own.",
+		feel: "Sky elements (birds / clouds / plane / kite / balloon) as light line-art over the existing sky - tune prominence, placement, variety + colour per element. No background of its own.",
 		surface: "plate",
 		defaults: {
 			density: "roomy",
@@ -190,7 +190,7 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 	blueprint: {
 		id: "blueprint",
 		label: "Blueprint",
-		feel: "Drafting sheet: a dimension-lined heading + grid; pick the print — cyanotype / white / charcoal.",
+		feel: "Drafting sheet: a dimension-lined heading + grid; pick the print - cyanotype / white / charcoal.",
 		surface: "dark",
 		defaults: { density: "roomy", grid: true, paper: "cyanotype" },
 		Component: BlueprintCluster,
@@ -265,7 +265,7 @@ export const LINKS: { [Id in LinkId]: LinkDef<Id> } = {
 	none: {
 		id: "none",
 		label: "None",
-		feel: "No connector — topics sit on their own with the natural seam.",
+		feel: "No connector - topics sit on their own with the natural seam.",
 		defaults: { ...LINK_BASE, color: "ink" },
 		Component: null,
 	},

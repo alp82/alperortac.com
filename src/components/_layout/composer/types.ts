@@ -42,7 +42,7 @@ export type InnerId =
 	| "summit"
 	| "skyline";
 
-/** Shared by every inside style — cluster scale / breathing room. */
+/** Shared by every inside style - cluster scale / breathing room. */
 export type InnerBase = {
 	density: "cozy" | "comfortable" | "roomy";
 };
@@ -55,7 +55,7 @@ export type DecoColor = "ink" | "tinted" | "vivid";
 /*
  * Per-inside-style params: the shared density plus THAT style's signature
  * toggle and one theming knob, so every style's controls move its own identity
- * — no generic color/motif grab-bag. Theming is data-driven in the components
+ * - no generic color/motif grab-bag. Theming is data-driven in the components
  * (inline), so these enums carry the whole look.
  */
 
@@ -148,7 +148,7 @@ export type SkylineParams = InnerBase & {
 	color: DecoColor;
 	drift: boolean;
 };
-/** parallax-depth — layered backdrop drifting under the cluster (ported stage). */
+/** parallax-depth - layered backdrop drifting under the cluster (ported stage). */
 export type ParallaxDepthParams = InnerBase & {
 	/** Which backdrop shape drifts behind the cluster. */
 	shape: "flourish" | "blob" | "rings" | "grid" | "strata";
@@ -157,7 +157,7 @@ export type ParallaxDepthParams = InnerBase & {
 	/** How many drifting planes behind the cluster. */
 	layers: 2 | 3;
 };
-/** floating-island — cluster on a floating slab (ported stage). */
+/** floating-island - cluster on a floating slab (ported stage). */
 export type FloatingIslandParams = InnerBase & {
 	/** Shadow throw + lift, 0..100. */
 	floatHeight: number;
@@ -201,9 +201,9 @@ export type AnyInnerParams = InnerParamsMap[InnerId];
 
 /**
  * How the topic body sits inside an inner frame. `plate` keeps the frosted
- * voice surface (translucent bg + left accent border — the production look, and
+ * voice surface (translucent bg + left accent border - the production look, and
  * fine for frames that sit straight on the landscape). `light` / `dark` render the
- * body BARE — transparent, no border, text tuned for a light or dark frame — so
+ * body BARE - transparent, no border, text tuned for a light or dark frame - so
  * the prose blends into the frame's own surface instead of floating in a card.
  */
 export type InnerSurface = "plate" | "light" | "dark";
@@ -219,7 +219,7 @@ export type LinkId =
 	| "constellation-starline";
 
 /**
- * Universal connector params — every connector is a stroked vertical rail, so
+ * Universal connector params - every connector is a stroked vertical rail, so
  * these line/rail knobs apply across the board. Each connector's signature
  * params extend this below.
  */
@@ -238,7 +238,7 @@ export type LinkBase = {
 
 /* Per-connector signature params on top of LinkBase. */
 
-/** none renders nothing — base only (unused). */
+/** none renders nothing - base only (unused). */
 export type NoneLinkParams = LinkBase;
 export type RuledSeamParams = LinkBase & {
 	/** End-cap shape. */
@@ -290,9 +290,9 @@ export type AnyLinkParams = LinkParamsMap[LinkId];
 /* ── Render contracts ───────────────────────────────────────────────────── */
 
 /**
- * Inner contract: a frame is a CONTAINER — it renders its themed heading +
+ * Inner contract: a frame is a CONTAINER - it renders its themed heading +
  * decoration and the topic's REAL body (`children`, the shared `TopicBody`)
- * inside it. No section framing, no own vertical padding — TopicComposition's
+ * inside it. No section framing, no own vertical padding - TopicComposition's
  * neutral centered `<article id>` wrapper owns height/anchor and renders this
  * inside it.
  */
@@ -340,7 +340,7 @@ export type LinkDef<Id extends LinkId = LinkId> = {
 
 /* ── Shared tokens / helpers (also used by the `current` baseline) ──────── */
 
-/** Per-topic pastel accent — shared by every layer that wants color. */
+/** Per-topic pastel accent - shared by every layer that wants color. */
 export const TOPIC_ACCENT: Record<TopicId, string> = {
 	coding: "#a7f3d0",
 	career: "#cbd5e1",

@@ -37,7 +37,7 @@ function Harness({ cardCount = 3 }: { cardCount?: number } = {}) {
 }
 
 // Minimal getBoundingClientRect stub, mirroring the shape jsdom itself
-// returns (all-zero) but with a real `left` — used for both the bar (unrelated
+// returns (all-zero) but with a real `left` - used for both the bar (unrelated
 // to this rect-left convention historically) and, once measure() switches the
 // card step to a rect-delta read, the two step-defining cards too.
 function stubRect(el: HTMLElement, left: number, width = 0) {
@@ -396,9 +396,9 @@ describe("useShortsRail scrollbar interaction", () => {
 // real 768px-viewport 9-card rail where 772px of usable width doesn't divide
 // evenly by 3 cards per screen. Geometry: rail clientWidth 768, track
 // scrollWidth 2312 (9 cards), maxOffset = 2312 - 768 = 1544. The two cards
-// that define the step get BOTH an offsetLeft pair (6, 263 — delta 257,
+// that define the step get BOTH an offsetLeft pair (6, 263 - delta 257,
 // integer, what the old code reads) AND a getBoundingClientRect pair
-// (6, 6 + 772/3 — delta 257.333..., fractional, what the new code reads).
+// (6, 6 + 772/3 - delta 257.333..., fractional, what the new code reads).
 // 257.333...  * 6 = 1544 exactly, so 6 ArrowRight presses land exactly on
 // maxOffset only when the fractional rect delta drives the step; the old
 // integer-delta step (257 * 6 = 1542) falls one card-step short and never

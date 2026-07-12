@@ -5,12 +5,12 @@ import { NIGHT_UI_THRESHOLD, sectionProgressAt } from "../../data/skyCurve";
 /*
  * Shared brutalist section heading: big uppercase h2 with the white drop
  * shadow, plus an optional accent underline. The night/day text color is
- * frozen once at mount from the section's own scroll position — no scroll
- * or resize listeners, no timers — so the heading never flips mid-scroll.
+ * frozen once at mount from the section's own scroll position - no scroll
+ * or resize listeners, no timers - so the heading never flips mid-scroll.
  *
  * Accepted: the frozen phase is measured once (mount + the fonts.ready
  * re-seed below) and does NOT re-measure on live DesignModeHost/composer
- * edits — inner/density/param changes that reflow articles won't retrigger
+ * edits - inner/density/param changes that reflow articles won't retrigger
  * this. Composer editing is a design-tooling interaction, not the visitor
  * flow, so this is intentional.
  */
@@ -23,12 +23,12 @@ export function useSectionNightPhase(
 	// biome-ignore lint/correctness/useExhaustiveDependencies: ref.current is read once on mount and never swaps; the ref attaches before effects run.
 	useEffect(() => {
 		// Override gate: when the caller supplies an explicit phase, skip the
-		// measurement path entirely — no geometry reads at all.
+		// measurement path entirely - no geometry reads at all.
 		if (!enabled) return;
 		const measure = () => {
 			// No panel-open guard here: this mount-time read is correct
 			// (untransformed) only because section mount effects run BEFORE
-			// PanelHost's panel-open toggle — guaranteed by PanelHost sitting
+			// PanelHost's panel-open toggle - guaranteed by PanelHost sitting
 			// after .main-shell in _layout.tsx's JSX (React commits/effects
 			// top-down). Reordering that JSX would make direct-URL subpage
 			// mounts read transformed rects here.
@@ -50,7 +50,7 @@ export function useSectionNightPhase(
 		// One-shot re-seed once web fonts land: font swap can reflow the page
 		// and shift the section's document position. Skipped while a subpage is
 		// open (body.panel-open transforms the main shell, so rects are wrong)
-		// and is NOT retried on panel-close — accepted limitation: on a
+		// and is NOT retried on panel-close - accepted limitation: on a
 		// direct-URL subpage load with uncached fonts, fonts.ready can resolve
 		// while the panel is open, so that section permanently keeps its
 		// pre-font-swap geometry. The failure window is narrow (a section

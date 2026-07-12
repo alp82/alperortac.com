@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 
 /*
- * FamilyContent tests — pins the sentence-cased verbatim prose, the Magic the
+ * FamilyContent tests - pins the sentence-cased verbatim prose, the Magic the
  * Gathering paragraph, and the manaschmiede trigger moved here from Games.
  *
  * FamilyContent uses TriggerCard which calls useNavigate() unconditionally, so
- * we must stub the router to prevent a crash on render — mirroring the
+ * we must stub the router to prevent a crash on render - mirroring the
  * GamesContent test pattern.
  */
 

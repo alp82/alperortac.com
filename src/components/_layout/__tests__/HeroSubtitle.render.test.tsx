@@ -65,7 +65,7 @@ describe("HeroSubtitle render (static summary model)", () => {
 		expect(span.className).toContain("Instrument_Serif");
 		expect(visibleText(lineTwo)).toBe(HERO_SUMMARY[1]);
 
-		// AC1 — base classes retained, size bumps 1.1em -> 1.25em
+		// AC1 - base classes retained, size bumps 1.1em -> 1.25em
 		expect(span.className).toContain("font-['Instrument_Serif']");
 		expect(span.className).toContain("font-extrabold");
 		expect(span.className).toContain("tracking-[0.08em]");
@@ -77,7 +77,7 @@ describe("HeroSubtitle render (static summary model)", () => {
 		expect(span.className).toContain("relative");
 		expect(span.className).toContain("pb-[0.08em]");
 
-		// AC2 — word fill is the exact sunset micro-ramp
+		// AC2 - word fill is the exact sunset micro-ramp
 		expect(span.className).toContain(
 			"bg-[linear-gradient(100deg,#D9530E,#C2410C,#A8380A)]",
 		);
@@ -94,7 +94,7 @@ describe("HeroSubtitle render (static summary model)", () => {
 		expect(cta?.querySelector("svg.hero-scroll-arrow")).not.toBeNull();
 	});
 
-	it("passion underline SVG — structure, geometry, positioning, a11y", () => {
+	it("passion underline SVG - structure, geometry, positioning, a11y", () => {
 		const { container } = render(<HeroSubtitle />);
 		const lineTwo = container.querySelector('[data-line="2"]')!;
 		const span = getPassionSpan(container);
@@ -128,7 +128,7 @@ describe("HeroSubtitle render (static summary model)", () => {
 		expect(path.getAttribute("pathLength")).toBe("1");
 	});
 
-	describe("dusk crossfade overlay — layered fill behind the sunset word", () => {
+	describe("dusk crossfade overlay - layered fill behind the sunset word", () => {
 		it("renders exactly one aria-hidden overlay span inside the passion span", () => {
 			const { container } = render(<HeroSubtitle />);
 			const span = getPassionSpan(container);
@@ -205,7 +205,7 @@ describe("HeroSubtitle render (static summary model)", () => {
 		});
 	});
 
-	describe("breathing underline — animation class coexists with static geometry attributes", () => {
+	describe("breathing underline - animation class coexists with static geometry attributes", () => {
 		it("underline path carries the hero-underline-breathe class", () => {
 			const { container } = render(<HeroSubtitle />);
 			const path = getPassionSvgPath(container);
@@ -219,7 +219,7 @@ describe("HeroSubtitle render (static summary model)", () => {
 		});
 	});
 
-	describe("reduced motion — dusk overlay and breathing underline are CSS-only gated", () => {
+	describe("reduced motion - dusk overlay and breathing underline are CSS-only gated", () => {
 		it("overlay is still present and still carries hero-passion-dusk under prefers-reduced-motion", () => {
 			stubMatchMedia(true);
 			const { container } = render(<HeroSubtitle />);
@@ -263,7 +263,7 @@ describe("HeroSubtitle render (static summary model)", () => {
 			expect(reducedPathClass).toBe(allowedPathClass);
 		});
 
-		it("no matchMedia stub — does not throw, and overlay + breathe classes are still present", () => {
+		it("no matchMedia stub - does not throw, and overlay + breathe classes are still present", () => {
 			let result: ReturnType<typeof render>;
 			expect(() => {
 				result = render(<HeroSubtitle />);
@@ -311,8 +311,8 @@ describe("HeroSubtitle render (static summary model)", () => {
 		});
 	});
 
-	describe("underline draw-in animation — 600ms ease-out, reduced-motion short-circuit", () => {
-		it("reduced-motion — strokeDashoffset is 0 (fully drawn) and no transition is set", () => {
+	describe("underline draw-in animation - 600ms ease-out, reduced-motion short-circuit", () => {
+		it("reduced-motion - strokeDashoffset is 0 (fully drawn) and no transition is set", () => {
 			stubMatchMedia(true);
 			const { container } = render(<HeroSubtitle />);
 			const path = getPassionSvgPath(container);
@@ -320,7 +320,7 @@ describe("HeroSubtitle render (static summary model)", () => {
 			expect(path.style.transition || "").toBe("");
 		});
 
-		it("motion-allowed — transition contains the stroke-dashoffset 600ms ease-out spec", () => {
+		it("motion-allowed - transition contains the stroke-dashoffset 600ms ease-out spec", () => {
 			stubMatchMedia(false);
 			const { container } = render(<HeroSubtitle />);
 			const path = getPassionSvgPath(container);
@@ -329,7 +329,7 @@ describe("HeroSubtitle render (static summary model)", () => {
 			);
 		});
 
-		it("no matchMedia stub — does not throw and settles to a valid strokeDashoffset", () => {
+		it("no matchMedia stub - does not throw and settles to a valid strokeDashoffset", () => {
 			let result: ReturnType<typeof render>;
 			expect(() => {
 				result = render(<HeroSubtitle />);

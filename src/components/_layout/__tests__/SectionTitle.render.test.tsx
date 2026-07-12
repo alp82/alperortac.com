@@ -9,7 +9,7 @@ import { AccentUnderline, SectionTitle } from "../SectionTitle";
 // Render tests for SectionTitle: the shared, brutalist-drop-shadow section
 // heading + optional accent underline used across the composer's ported
 // inners and top-level sections. The night/day color is frozen at mount from
-// the section's scroll position (no listeners, no timers) — Group F/G/H stub
+// the section's scroll position (no listeners, no timers) - Group F/G/H stub
 // getBoundingClientRect + window.scrollY/innerHeight + document scrollHeight
 // before render, using the shared stubSectionGeometry helper (extended from
 // this file's former local stubGeometry to support per-element rects for the
@@ -87,7 +87,7 @@ describe("AccentUnderline", () => {
 		expect(span.className).toContain("mt-4");
 		expect(span.className).toContain("block");
 		// jsdom/CSSOM serializes an assigned hex background to rgb() form, so
-		// "#ff0000" as input reads back as "rgb(255, 0, 0)" — never the hex.
+		// "#ff0000" as input reads back as "rgb(255, 0, 0)" - never the hex.
 		expect(span.style.background).toBe("rgb(255, 0, 0)");
 	});
 
@@ -126,7 +126,7 @@ describe("SectionTitle accent wiring", () => {
 		);
 		const span = container.querySelector('span[aria-hidden="true"]');
 		expect(span).not.toBeNull();
-		// rgb serialization of #123456 — jsdom never returns the hex form.
+		// rgb serialization of #123456 - jsdom never returns the hex form.
 		expect((span as HTMLSpanElement).style.background).toBe("rgb(18, 52, 86)");
 	});
 
@@ -238,7 +238,7 @@ describe("SectionTitle color frozen by section position at mount", () => {
 		restore();
 	});
 
-	// TC-18: bare jsdom (no stubs) — all-zero geometry → total<=0 guard → day.
+	// TC-18: bare jsdom (no stubs) - all-zero geometry → total<=0 guard → day.
 	it("bare jsdom with zero geometry defaults to day (text-slate-900)", () => {
 		const { container } = render(<SectionTitle>Title</SectionTitle>);
 		const h2 = container.querySelector("h2");
@@ -319,7 +319,7 @@ describe("SectionTitle SSR-safe default (useState(false) before the effect flush
 	// commit phase, no mount), so it renders exactly the useState(false)
 	// initial value. Geometry is stubbed to unambiguous night values (matching
 	// TC-16) to prove the day markup isn't merely a side effect of the
-	// geometry read never happening server-side — the component must default
+	// geometry read never happening server-side - the component must default
 	// to day regardless of what the geometry effect would later compute.
 	it("renderToStaticMarkup shows day (text-slate-900) even when geometry is stubbed to night", () => {
 		const restore = stubSectionGeometry({
@@ -378,7 +378,7 @@ describe("SectionTitle night prop override", () => {
 	});
 
 	// ST-N3: with `night` provided, the measurement path (getBoundingClientRect)
-	// is never invoked at all — the enabled=false gate skips it entirely.
+	// is never invoked at all - the enabled=false gate skips it entirely.
 	it("with night provided, getBoundingClientRect is never called (measurement gated off)", () => {
 		const spy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect");
 		render(<SectionTitle night={true}>Title</SectionTitle>);
@@ -434,7 +434,7 @@ describe("SectionTitle fonts.ready re-seed", () => {
 	});
 
 	// ST-N5: same setup, but with `panel-open` set on <body> before the
-	// promise resolves — the re-seed is skipped under the transform guard, so
+	// promise resolves - the re-seed is skipped under the transform guard, so
 	// the color stays day.
 	it("skips the re-seed when document.body has panel-open at resolution time", async () => {
 		const { resolve } = stubFontsReady();

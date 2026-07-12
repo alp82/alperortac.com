@@ -8,7 +8,7 @@ export type FitTextSpec = {
 // measured at the ceiling size, and the scalable portion (ghost minus the
 // size-invariant fixed pixels: gaps, padding) is shrunk proportionally to fit
 // the available width. The 24px soft floor from the design is a PREFERENCE
-// only and is deliberately NOT clamped here — single-line is the hard
+// only and is deliberately NOT clamped here - single-line is the hard
 // invariant, so sub-floor sizes are the intended behavior on the narrowest
 // phones. Only a 1px hard floor keeps the result positive and finite.
 export type Ceiling = { minWidth: number; px: number };

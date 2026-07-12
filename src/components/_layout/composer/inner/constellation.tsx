@@ -8,7 +8,7 @@ import { DENSITY_HEADING, DENSITY_MAXW } from "./shared";
  * thin connecting star-figure sitting RIGHT BELOW THE TITLE (in the gap before
  * the body), so the decoration reads without merging into the paragraph text.
  * Lines are hairline (vector-effect:non-scaling-stroke); nodes small + soft;
- * nothing paints a background — it floats over the landscape sky.
+ * nothing paints a background - it floats over the landscape sky.
  *
  * Signature toggle = the connecting lines; `tint` recolors lines/eyebrow/field;
  * `figure` swaps the star-pattern.
@@ -77,7 +77,7 @@ export function ConstellationCluster({
 
 	return (
 		<div className={`relative w-full ${DENSITY_MAXW[params.density]}`}>
-			{/* faint field stars — upper half only */}
+			{/* faint field stars - upper half only */}
 			<div
 				className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
 				aria-hidden="true"
@@ -111,7 +111,7 @@ export function ConstellationCluster({
 					{topic.heading}
 				</h2>
 
-				{/* connecting figure — compact band right below the title */}
+				{/* connecting figure - compact band right below the title */}
 				<svg
 					className="pointer-events-none h-12 w-full max-w-md"
 					viewBox="0 0 100 24"

@@ -4,7 +4,7 @@ import { useReducedMotion } from "./useReducedMotion";
 
 const JITTER_AMP = 0.4;
 
-// The ONLY rAF in the dive feature — drives the handheld technique's faint
+// The ONLY rAF in the dive feature - drives the handheld technique's faint
 // constant shake by writing --dive-jitter-x / --dive-jitter-y onto the scene
 // element. Honors reduced-motion (no rAF, vars stay at 0) and clears the vars
 // whenever it goes inactive so the scene is jitter-free at rest.

@@ -11,10 +11,10 @@ html { scrollbar-gutter: stable; }
 /* Non-modal frosted detail surface. Renders in normal flow (dialog.show()), NOT
    the browser top layer, so it composites in the same stacking context as the
    -z-10 dived scene and the translucent fill reveals the live zoomed landscape
-   behind it — not a UA ::backdrop. */
+   behind it - not a UA ::backdrop. */
 .panel-surface {
 	/* Full-viewport SCROLL CONTAINER (NOT a card): the page itself scrolls here,
-	   not the window, so window.scrollY — and thus the day/night scrollProgress —
+	   not the window, so window.scrollY - and thus the day/night scrollProgress -
 	   stays frozen while the subpage scrolls. The container is transparent so the
 	   dived -z-10 landscape shows through around the centered frosted column; the
 	   scrim that used to live here moved to .subpage-column. */
@@ -202,7 +202,7 @@ html { scrollbar-gutter: stable; }
 		0 0 50px 2px var(--glow-color-10, hsl(40deg 80% 80% / 10%));
 }
 
-/* Non-scrolling by design — .panel-surface stays the sole scroll container,
+/* Non-scrolling by design - .panel-surface stays the sole scroll container,
    keeping --subpage-scroll parallax + the sticky title bound to it. */
 .border-glow-inner {
 	display: flex;
@@ -278,7 +278,7 @@ html { scrollbar-gutter: stable; }
 /* The scrolling content (which hosts the clicked trigger card) recedes during a
    dive: a fast opacity fade plus a slight push-back. The fade (320ms) is
    intentionally quicker than the 760ms zoom so the clicked card vanishes before
-   the camera visibly chases it. Content stays mounted (focus/scroll survive) —
+   the camera visibly chases it. Content stays mounted (focus/scroll survive) -
    only opacity/transform change. At rest opacity:1 with no transform, so the
    transition is defined both ways and rest is identity. */
 .main-shell {
@@ -303,7 +303,7 @@ body.panel-open .main-shell {
 	   scrollTop in px, set on :root by JS on scroll (0 at rest) and inherited
 	   here. The drift is a slow fraction of that scroll on the `translate`
 	   longhand, which composes with each technique's `transform` instead of
-	   replacing it — so the held scene drifts a few px without touching
+	   replacing it - so the held scene drifts a few px without touching
 	   --dive-u, the technique, or the sky. */
 	translate: 0 calc(var(--subpage-scroll, 0) * -0.02px);
 	transition: transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -313,7 +313,7 @@ body.panel-open .main-shell {
 	transform-origin: var(--dive-origin, 50% 50%);
 	/* Continuous-depth zoom: --z grows with layer depth, scaled by per-layer gain
 	   (ported from the prototype). Blur grows with distance from the focal depth.
-	   At rest --dive-u is 0, so --z is 1 and --blur is 0 — identity. */
+	   At rest --dive-u is 0, so --z is 1 and --blur is 0 - identity. */
 	--z: calc(
 		1 + var(--layer-depth) * 4.6 * var(--dive-u, 0) * var(--dive-zoom-mul, 0.85)
 	);
@@ -340,7 +340,7 @@ body.dive-active .dive-scene {
 /* Per-technique scene transforms, all keyed off --dive-u (0->1) so the existing
    .dive-scene transition interpolates them. Magnitudes are HALVED from the
    prototype for subtlety. data-technique is only present during a dive, so at
-   rest there is no transform here — the scene stays identity.
+   rest there is no transform here - the scene stays identity.
    - glide: no scene transform (zoom lives in the per-layer scale).
    - swoop: arrives pitched, entering from the left.
    - bank-hold: slight persistent roll.
@@ -348,13 +348,13 @@ body.dive-active .dive-scene {
    - lens-warp: opt-in fisheye; never auto-selected by techniqueFor. */
 /* Scene overscan: the swoop translate and bank-hold roll can shift/rotate the
    fixed scene enough to expose its edge (the production landscape has no
-   oversized backdrop). A scale that grows with --dive-u covers that gap — at
+   oversized backdrop). A scale that grows with --dive-u covers that gap - at
    --dive-u=0 the factor is 1 (identity, rest preserved). It leads each
    technique's transform so it composes uniformly. bank-hold's rotated corners
    need more cover than swoop's translate, so it gets a larger factor. */
 body.dive-active .dive-scene[data-technique="swoop"] {
 	/* Pitch-dive only. The earlier lateral translate was keyed `(1 - u)`, so it
-	   was -10%/4.5% at u=0 — NOT identity. It never showed on open (rest has no
+	   was -10%/4.5% at u=0 - NOT identity. It never showed on open (rest has no
 	   transform, u jumps to 1 where it's 0), but on close the scene eased to that
 	   off-position then snapped back when the technique dropped: the "pan at the
 	   end". Dropping it makes swoop identity at u=0, so open and close are clean. */
@@ -376,7 +376,7 @@ body.dive-active .dive-scene[data-technique="lens-warp"] {
 	filter: url(#diveLensWarp);
 }
 /* transform + filter are gated on body.dive-active so that at rest the layers
-   carry NO transform and NO filter at all — no compositing layer, identical
+   carry NO transform and NO filter at all - no compositing layer, identical
    paint to pre-dive. The transition lives here too so the entrance/return ease. */
 body.dive-active .dive-layer {
 	transition:
@@ -386,7 +386,7 @@ body.dive-active .dive-layer {
 	filter: blur(var(--blur));
 }
 /* Stars + shooting stars are tiny box-shadow dots. ANY transform on this layer
-   — even the small per-layer dive scale — drops them entirely in the compositor
+   - even the small per-layer dive scale - drops them entirely in the compositor
    (the large moon survives), and the depth-blur would smear them too. Hold the
    layer fully static: no transform, no blur. Depth 0.05 barely zooms anyway, so
    the stars just stay put and crisp through the dive. */
@@ -471,6 +471,52 @@ body.panel-open nav {
 .panel-sticky-title.is-stuck {
 	opacity: 1;
 	pointer-events: auto;
+}
+
+/* Early Days era timeline: soft gutter spine + scroll reveal. */
+.era-spine {
+	position: relative;
+}
+.era-spine::before {
+	content: "";
+	position: absolute;
+	left: 3.6rem;
+	top: 0;
+	bottom: 0;
+	width: 1px;
+	background: linear-gradient(
+		180deg,
+		transparent,
+		rgba(255, 247, 237, 0.28) 12%,
+		rgba(255, 247, 237, 0.28) 88%,
+		transparent
+	);
+}
+.era-reveal {
+	opacity: 0;
+	transform: translateY(18px);
+	transition:
+		opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+		transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.era-reveal.is-revealed {
+	opacity: 1;
+	transform: none;
+}
+.era-reveal.era-reveal-instant {
+	transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+	.era-reveal {
+		opacity: 1;
+		transform: none;
+		transition: none;
+	}
+}
+@media (max-width: 640px) {
+	.era-spine::before {
+		left: 2.2rem;
+	}
 }
 
 /* Dual-handle range: two stacked sliders sharing a single track. */
@@ -1011,7 +1057,7 @@ body.panel-open nav {
    Two-phase swap on the AlbumShelf cells: a stepped flick-out like a failing
    light, then a strobing re-ignite fade-in (modeled on the alfredo landing
    h1 flicker). These classes animate box-shadow, so they run ONLY on the
-   inner element of a cell — never on the ring-bearing wrapper (Tailwind
+   inner element of a cell - never on the ring-bearing wrapper (Tailwind
    rings are box-shadow-based and would be stomped mid-strobe). */
 @keyframes album-flick-out {
 	0% { opacity: 1; }
@@ -1028,15 +1074,15 @@ body.panel-open nav {
 	100% { opacity: 1; filter: none; box-shadow: none; }
 }
 /* steps(3, jump-none) applies PER KEYFRAME SEGMENT, not across the whole
-   animation — the extra choppiness is intended (failing-light character);
+   animation - the extra choppiness is intended (failing-light character);
    fallback if it reads busy: bake the stepping into explicit keyframe
    percentages with linear timing. */
 .album-flick-out {
-	/* 200ms = outMs default in useAlbumRotation.ts — keep in sync */
+	/* 200ms = outMs default in useAlbumRotation.ts - keep in sync */
 	animation: album-flick-out 200ms steps(3, jump-none) both;
 }
 .album-flick-in {
-	/* 340ms = inMs default in useAlbumRotation.ts — keep in sync */
+	/* 340ms = inMs default in useAlbumRotation.ts - keep in sync */
 	animation: album-flick-in 340ms linear both;
 }
 @keyframes album-ring {
@@ -1044,7 +1090,7 @@ body.panel-open nav {
 	to { stroke-dashoffset: 0; }
 }
 .album-ring-fill {
-	/* duration is set inline from intervalMs in AlbumShelf.tsx — keep in sync */
+	/* duration is set inline from intervalMs in AlbumShelf.tsx - keep in sync */
 	stroke-dasharray: 1;
 	animation: album-ring linear forwards;
 }
@@ -1053,7 +1099,7 @@ body.panel-open nav {
 	.album-flick-in {
 		animation: none;
 	}
-	/* rotation is paused under reduced motion — the ring must not imply otherwise */
+	/* rotation is paused under reduced motion - the ring must not imply otherwise */
 	.album-ring-fill {
 		animation: none;
 	}

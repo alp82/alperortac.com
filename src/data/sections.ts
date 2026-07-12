@@ -9,7 +9,7 @@ export type PanelKey =
 	| "music";
 
 // Body class toggled while any panel (sky or detail) is open. Written by
-// PanelHost, read by SectionTitle's fonts.ready re-seed guard — shared here
+// PanelHost, read by SectionTitle's fonts.ready re-seed guard - shared here
 // so a rename can't silently desync the two. The CSS selectors in
 // styles.css (`.panel-open`) must keep matching this literal by hand; CSS
 // can't consume a JS constant.

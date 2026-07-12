@@ -2,24 +2,11 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Project } from "../../data/projects";
+import { installStubIntersectionObserver } from "../../test/stubIntersectionObserver";
 import { ProjectPanel } from "../ProjectPanel";
 
 beforeAll(() => {
-	if (typeof globalThis.IntersectionObserver === "undefined") {
-		class StubIntersectionObserver {
-			observe() {}
-			unobserve() {}
-			disconnect() {}
-			takeRecords() {
-				return [];
-			}
-			root = null;
-			rootMargin = "";
-			thresholds = [];
-		}
-		globalThis.IntersectionObserver =
-			StubIntersectionObserver as unknown as typeof IntersectionObserver;
-	}
+	installStubIntersectionObserver();
 });
 
 const mockVideoProject: Project = {

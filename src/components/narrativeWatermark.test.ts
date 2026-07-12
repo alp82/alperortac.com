@@ -36,7 +36,7 @@ describe("Constants", () => {
 		expect(LONGEST).toBe(7);
 	});
 
-	it("TC-C-02: edges — BUILD=left, EXPLORE=right; two words; every word has an edge", () => {
+	it("TC-C-02: edges - BUILD=left, EXPLORE=right; two words; every word has an edge", () => {
 		const byText = (t: string): WatermarkWord => {
 			const found = WORDS.find((w) => w.text === t);
 			if (!found) throw new Error(`Word "${t}" not in WORDS`);
@@ -59,7 +59,7 @@ describe("Constants", () => {
 		expect(WM.lineHeight).toBe(0.92);
 	});
 
-	it("TC-C-04: per-word colors — BUILD dark, EXPLORE light", () => {
+	it("TC-C-04: per-word colors - BUILD dark, EXPLORE light", () => {
 		const byText = (t: string): WatermarkWord => {
 			const found = WORDS.find((w) => w.text === t);
 			if (!found) throw new Error(`Word "${t}" not in WORDS`);
@@ -79,12 +79,12 @@ describe("letterSizePx", () => {
 		approxEq(letterSizePx(800, 1024), 560 / (7 * 0.92));
 	});
 
-	it("TC-L-02: floor engages — tiny winH clamps avail to 40", () => {
+	it("TC-L-02: floor engages - tiny winH clamps avail to 40", () => {
 		// padPx=(8+8)/100*50=8; travelPx=14/100*50=7; avail=50-8-7=35 → clamped to 40
 		approxEq(letterSizePx(50, 1024), 40 / (7 * 0.92));
 	});
 
-	it("TC-L-03: floor inactive — winH=600, avail=600-96-84=420", () => {
+	it("TC-L-03: floor inactive - winH=600, avail=600-96-84=420", () => {
 		// padPx=(8+8)/100*600=96; travelPx=14/100*600=84; avail=600-96-84=420
 		approxEq(letterSizePx(600, 1024), 420 / (7 * 0.92));
 	});
@@ -127,23 +127,23 @@ describe("letterSizePx", () => {
 // ---------------------------------------------------------------------------
 
 describe("wordHeightPx", () => {
-	it("TC-W-01: proportional — ratio of 5-letter to 3-letter word ≈ 5/3", () => {
+	it("TC-W-01: proportional - ratio of 5-letter to 3-letter word ≈ 5/3", () => {
 		approxEq(wordHeightPx(5, 800, 1024) / wordHeightPx(3, 800, 1024), 5 / 3);
 	});
 
-	it("TC-W-02: composition — wordHeightPx(4,800,1024,0.92) === 4*letterSizePx*lh", () => {
+	it("TC-W-02: composition - wordHeightPx(4,800,1024,0.92) === 4*letterSizePx*lh", () => {
 		expect(wordHeightPx(4, 800, 1024, 0.92)).toBe(
 			4 * letterSizePx(800, 1024, 0.92) * 0.92,
 		);
 	});
 
-	it("TC-W-03: mobile passthrough — ratio of mobile to desktop ≈ 0.78", () => {
+	it("TC-W-03: mobile passthrough - ratio of mobile to desktop ≈ 0.78", () => {
 		approxEq(wordHeightPx(4, 800, 400) / wordHeightPx(4, 800, 1024), 0.78);
 	});
 });
 
 // ---------------------------------------------------------------------------
-// zoneOpacity — synthetic zone {c:0.5, w:0.2, edge:"left"}
+// zoneOpacity - synthetic zone {c:0.5, w:0.2, edge:"left"}
 // ---------------------------------------------------------------------------
 
 describe("zoneOpacity", () => {
@@ -177,7 +177,7 @@ describe("zoneOpacity", () => {
 		approxEq(zoneOpacity(0.4, zone), 0.035);
 	});
 
-	it("TC-Z-08: symmetry sweep — zoneOpacity(c+d) === zoneOpacity(c-d)", () => {
+	it("TC-Z-08: symmetry sweep - zoneOpacity(c+d) === zoneOpacity(c-d)", () => {
 		const offsets = [0, 0.05, 0.1, 0.15, 0.2, 0.25];
 		const c = zone.c;
 		for (const d of offsets) {
@@ -189,7 +189,7 @@ describe("zoneOpacity", () => {
 		expect(zoneOpacity(0.5, zone, 0.15)).toBe(0.15);
 	});
 
-	it("TC-Z-10: degenerate w=0 — at center returns maxOpacity; off-center returns 0, no NaN", () => {
+	it("TC-Z-10: degenerate w=0 - at center returns maxOpacity; off-center returns 0, no NaN", () => {
 		const degen: Zone = { c: 0.5, w: 0, edge: "left" };
 		expect(zoneOpacity(0.5, degen)).toBe(0.07);
 		const offCenter = zoneOpacity(0.5001, degen);
@@ -199,7 +199,7 @@ describe("zoneOpacity", () => {
 });
 
 // ---------------------------------------------------------------------------
-// driftOffset — compute wordH explicitly before calling
+// driftOffset - compute wordH explicitly before calling
 // ---------------------------------------------------------------------------
 
 describe("driftOffset", () => {
@@ -213,7 +213,7 @@ describe("driftOffset", () => {
 		return { yMin, yMax, center: (yMin + yMax) / 2 };
 	}
 
-	it("TC-D-01: static when travelPx=0 — result equals center for all p", () => {
+	it("TC-D-01: static when travelPx=0 - result equals center for all p", () => {
 		const zone: Zone = { c: 0.5, w: 0.25, edge: "left" };
 		const winH = 800;
 		const wordH = wordHeightPx(5, winH, 1024);
@@ -249,7 +249,7 @@ describe("driftOffset", () => {
 		);
 	});
 
-	it("TC-D-04: monotonic non-increasing inside zone — sweep 200 p values", () => {
+	it("TC-D-04: monotonic non-increasing inside zone - sweep 200 p values", () => {
 		const zone: Zone = { c: 0.5, w: 0.25, edge: "left" };
 		const winH = 800;
 		const travelPx = 80;
@@ -267,7 +267,7 @@ describe("driftOffset", () => {
 		}
 	});
 
-	it("TC-D-05: output in [yMin, yMax] for all p∈[0,1] — winH=800 len=4 travelPx=80", () => {
+	it("TC-D-05: output in [yMin, yMax] for all p∈[0,1] - winH=800 len=4 travelPx=80", () => {
 		const zone: Zone = { c: 0.5, w: 0.25, edge: "left" };
 		const winH = 800;
 		const travelPx = 80;
@@ -280,7 +280,7 @@ describe("driftOffset", () => {
 		}
 	});
 
-	it("TC-D-06: output in bounds — short viewport winH=500 len=4 travelPx=40", () => {
+	it("TC-D-06: output in bounds - short viewport winH=500 len=4 travelPx=40", () => {
 		const zone: Zone = { c: 0.5, w: 0.25, edge: "left" };
 		const winH = 500;
 		const travelPx = 40;
@@ -293,7 +293,7 @@ describe("driftOffset", () => {
 		}
 	});
 
-	it("TC-D-07: output in bounds — tall viewport winH=1200 len=5 travelPx=100", () => {
+	it("TC-D-07: output in bounds - tall viewport winH=1200 len=5 travelPx=100", () => {
 		const zone: Zone = { c: 0.5, w: 0.25, edge: "left" };
 		const winH = 1200;
 		const travelPx = 100;
@@ -306,7 +306,7 @@ describe("driftOffset", () => {
 		}
 	});
 
-	it("TC-D-08: yMax<yMin guard — oversized word → result finite, equals yMin for all p", () => {
+	it("TC-D-08: yMax<yMin guard - oversized word → result finite, equals yMin for all p", () => {
 		const zone: Zone = { c: 0.5, w: 0.25, edge: "left" };
 		const winH = 100;
 		const travelPx = 5;
@@ -329,7 +329,7 @@ describe("driftOffset", () => {
 		approxEq(driftOffset(zone.c, zone, winH, wordH, travelPx), center);
 	});
 
-	it("TC-D-10: travelPx cap — huge travelPx, output still in [yMin, yMax]", () => {
+	it("TC-D-10: travelPx cap - huge travelPx, output still in [yMin, yMax]", () => {
 		const zone: Zone = { c: 0.5, w: 0.25, edge: "left" };
 		const winH = 200;
 		const travelPx = 9999;
@@ -398,7 +398,7 @@ describe("revealFactor", () => {
 		expect(revealFactor(1 + WM.revealRampVh * 3, 1)).toBe(1);
 	});
 
-	it("TC-R-07: explicit rampVh arg honored — midpoint ≈ 0.5", () => {
+	it("TC-R-07: explicit rampVh arg honored - midpoint ≈ 0.5", () => {
 		approxEq(revealFactor(1.25, 1, 0.5), 0.5);
 	});
 });

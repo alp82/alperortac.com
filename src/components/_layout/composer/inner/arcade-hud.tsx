@@ -2,12 +2,12 @@ import type { InnerRenderProps } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: arcade-hud — "HUD-framed panel."
+ * Inner: arcade-hud - "HUD-framed panel."
  *
  * A retro game HUD is the frame: a pixel-edged panel with a SCORE readout, an HP
  * bar and a LEVEL tag as chrome, the heading as "STAGE: <name>" in chunky pixel
  * type, then the topic's REAL body (the shared light plate) seated in the
- * play-area panel — dark HUD chrome around the light content card, NOT
+ * play-area panel - dark HUD chrome around the light content card, NOT
  * scanline-text content. Signature toggle (params.scanlines) = the CRT scanline
  * overlay; params.palette recolors the phosphor (chrome text + play-area border).
  */

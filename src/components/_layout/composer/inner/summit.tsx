@@ -5,7 +5,7 @@ import { DENSITY_HEADING, DENSITY_MAXW } from "./shared";
  * Inner: summit (nature)
  *
  * Layered mountain-ridge silhouettes under a graded sky sit at the foot of the
- * block — a far range (lighter) behind a near range (darker), for depth. The
+ * block - a far range (lighter) behind a near range (darker), for depth. The
  * `range` knob sets the sky/rock palette (dawn / dusk / night); the signature
  * toggle adds snow caps on the near peaks. Fits the high points of the journey.
  */

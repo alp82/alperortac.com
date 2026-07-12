@@ -6,7 +6,7 @@ import { DENSITY_HEADING, DENSITY_MAXW } from "./shared";
  *
  * A warm sky frame: a soft vertical sky gradient with a low sun glow and
  * optional radiating rays behind the cluster. The `sky` knob slides it across
- * the day — dawn (pink), golden hour (amber), or dusk (violet→orange) — so one
+ * the day - dawn (pink), golden hour (amber), or dusk (violet→orange) - so one
  * style covers several points in the scroll narrative. Light surface; dark text.
  *
  * Signature toggle = the rays (slow spin, reduced-motion safe via composer.css).

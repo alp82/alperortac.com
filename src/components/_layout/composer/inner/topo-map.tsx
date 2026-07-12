@@ -3,7 +3,7 @@ import { TOPICS } from "../../../../data/topics";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: topo-map — "topographic survey sheet."
+ * Inner: topo-map - "topographic survey sheet."
  *
  * A light parchment survey card that ties into the site's scroll-journey / dig
  * theme: the heading reads as a surveyed PLACE-LABEL with a benchmark elevation,
@@ -13,7 +13,7 @@ import { DENSITY_MAXW } from "./shared";
  * the parchment + ink + contour palette (forest / desert / alpine).
  */
 
-/* terrain → { paper, contour, ink } — parchment stock + elevation-line ink. */
+/* terrain → { paper, contour, ink } - parchment stock + elevation-line ink. */
 const TERRAIN: Record<
 	"forest" | "desert" | "alpine",
 	{ paper: string; contour: string; ink: string }
@@ -46,7 +46,7 @@ export function TopoMapCluster({
 					boxShadow: "2px 6px 20px -10px rgba(40,50,30,0.45)",
 				}}
 			>
-				{/* elevation lines — concentric irregular contour rings */}
+				{/* elevation lines - concentric irregular contour rings */}
 				{params.contours && (
 					<svg
 						className="absolute -right-12 -top-10 w-[120%] h-[140%]"

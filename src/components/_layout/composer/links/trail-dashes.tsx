@@ -5,7 +5,7 @@ import { railVars, useAspectViewBox, useDrawIn } from "./shared";
 /*
  * Link: trail-dashes (VERTICAL)
  *
- * A dashed footpath DESCENDING the page — the trail world's connective tissue.
+ * A dashed footpath DESCENDING the page - the trail world's connective tissue.
  * `curve` sets the meander; `dash` sets the dash rhythm (fine → bold);
  * `footprints` drops little prints alternating along the path. `animate` walks
  * the dashes on (wipes down). Shape-preserving viewBox so dashes keep a constant

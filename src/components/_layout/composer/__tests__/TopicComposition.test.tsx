@@ -11,27 +11,27 @@ import { TOPIC_ACCENT } from "../types";
 import { DEFAULT_INNER, defaultState } from "../useComposerControls";
 
 /*
- * TopicComposition — additive-port regression suite (WORKFLOW milestone loop).
+ * TopicComposition - additive-port regression suite (WORKFLOW milestone loop).
  *
  * This file was authored incrementally across the composer-stage-to-inside
  * refactor's three milestones; each milestone's round ADDED describe blocks
  * (never rewrote earlier ones), so the file accumulates the full contract:
  *
- *   Milestone 1 — additive port. "parallax-depth" and "floating-island"
+ *   Milestone 1 - additive port. "parallax-depth" and "floating-island"
  *     became plain InnerId entries in INNERS, prepended to INNER_ORDER. The
  *     stage layer (SECTIONS, TopicStage, DEFAULT_SECTION) still existed and
- *     was untouched at that point — kept OUT of that round's assertion
+ *     was untouched at that point - kept OUT of that round's assertion
  *     surface because it was deleted in milestone 2. Those blocks render the
  *     ported inners directly off the INNERS registry with InnerRenderProps,
  *     the same way every existing inner (skyline, minimal, ...) is
- *     exercised — no TopicComposition/Stage wiring.
- *   Milestone 2 — stage removal: single `<article id>` neutral-wrapper
+ *     exercised - no TopicComposition/Stage wiring.
+ *   Milestone 2 - stage removal: single `<article id>` neutral-wrapper
  *     assertions, DEFAULT_INNER flip, spec-emission guards. These blocks
  *     were authored red against the stage-era tree (plan steps 6-12 not yet
- *     applied at authoring time) — they render the REAL TopicComposition
+ *     applied at authoring time) - they render the REAL TopicComposition
  *     with defaultState() and assert the POST-removal contract; milestone 2
  *     applied the removal and turned them green.
- *   Milestone 3 — deco purge: final 8-entry INNER_ORDER, retired-id
+ *   Milestone 3 - deco purge: final 8-entry INNER_ORDER, retired-id
  *     absence, a render smoke pass over the 8 survivors, and a skyline
  *     render regression.
  */
@@ -93,13 +93,13 @@ function renderInner(
 	);
 }
 
-describe("Milestone 1 — ported inners registered in INNERS", () => {
+describe("Milestone 1 - ported inners registered in INNERS", () => {
 	afterEach(() => {
 		cleanup();
 	});
 
 	// TC-11 (M1 form): INNER_ORDER's first two entries are the ported pair, in
-	// order. Total count is NOT asserted here — it only lands at 8 in milestone 3.
+	// order. Total count is NOT asserted here - it only lands at 8 in milestone 3.
 	it("INNER_ORDER starts with parallax-depth then floating-island", () => {
 		expect(INNER_ORDER.slice(0, 2)).toEqual([
 			"parallax-depth",
@@ -116,7 +116,7 @@ describe("Milestone 1 — ported inners registered in INNERS", () => {
 	});
 
 	// TC-15: floating-island's defaults key-set is exactly
-	// density/floatHeight/bob/corners/tint — no height key.
+	// density/floatHeight/bob/corners/tint - no height key.
 	it("floating-island defaults expose exactly density/floatHeight/bob/corners/tint", () => {
 		const def = INNERS["floating-island"];
 		expect(Object.keys(def.defaults).sort()).toEqual(
@@ -170,7 +170,7 @@ describe("Milestone 1 — ported inners registered in INNERS", () => {
 	});
 });
 
-describe("Milestone 1 — parallax-depth cluster render", () => {
+describe("Milestone 1 - parallax-depth cluster render", () => {
 	afterEach(() => {
 		cleanup();
 	});
@@ -185,7 +185,7 @@ describe("Milestone 1 — parallax-depth cluster render", () => {
 	});
 });
 
-describe("Milestone 1 — floating-island cluster render", () => {
+describe("Milestone 1 - floating-island cluster render", () => {
 	afterEach(() => {
 		cleanup();
 	});
@@ -199,7 +199,7 @@ describe("Milestone 1 — floating-island cluster render", () => {
 	});
 
 	// TC-8: the old under-slab glow span (sections/floating-island.tsx old
-	// lines 85-91 — the blurred `<span>` with the `blur-md` class sitting under
+	// lines 85-91 - the blurred `<span>` with the `blur-md` class sitting under
 	// the slab) must NOT be ported.
 	it("does not render the retired under-slab glow element", () => {
 		const { container } = renderInner("floating-island");
@@ -208,12 +208,12 @@ describe("Milestone 1 — floating-island cluster render", () => {
 	});
 });
 
-describe("Milestone 1 — ported inners' Minimal-style chrome", () => {
+describe("Milestone 1 - ported inners' Minimal-style chrome", () => {
 	afterEach(() => {
 		cleanup();
 	});
 
-	// TC-9: both ported inners carry the Minimal style's chrome — an uppercase
+	// TC-9: both ported inners carry the Minimal style's chrome - an uppercase
 	// h2 showing topic.heading, and an accent-underline span whose background
 	// is the resolved accent.
 	it.each([
@@ -234,7 +234,7 @@ describe("Milestone 1 — ported inners' Minimal-style chrome", () => {
 	});
 });
 
-describe("Milestone 1 — existing inner regression", () => {
+describe("Milestone 1 - existing inner regression", () => {
 	afterEach(() => {
 		cleanup();
 	});
@@ -251,9 +251,9 @@ describe("Milestone 1 — existing inner regression", () => {
  * Milestone 2 blocks below render the REAL TopicComposition dispatcher (not
  * the renderInner registry shortcut above) with a full defaultState(), the
  * same way TopicArticle wires it in production. These assertions were
- * authored red against the stage-era tree — a `.cmp-stage` article with an
+ * authored red against the stage-era tree - a `.cmp-stage` article with an
  * inline minHeight style and "none"-source accent, plus constellation
- * chrome — and turned green once milestone 2 applied the stage removal.
+ * chrome - and turned green once milestone 2 applied the stage removal.
  */
 
 const codingTopic: Topic = {
@@ -275,7 +275,7 @@ function renderComposition(t: Topic = topic) {
 	);
 }
 
-describe("Milestone 2 — neutral wrapper replaces the stage", () => {
+describe("Milestone 2 - neutral wrapper replaces the stage", () => {
 	afterEach(() => {
 		cleanup();
 	});
@@ -283,7 +283,7 @@ describe("Milestone 2 — neutral wrapper replaces the stage", () => {
 	// TC-1/TC-2/TC-3: the default defaultState() render of one topic yields
 	// exactly one <article>, its id is the topic id, and its className
 	// carries the min-h-[90vh] Tailwind class (not an inline minHeight style
-	// — the stage-era article was `.cmp-stage` with an inline `minHeight`
+	// - the stage-era article was `.cmp-stage` with an inline `minHeight`
 	// style and no `min-h-[90vh]` class).
 	it("renders exactly one article, id=topic.id, className contains min-h-[90vh]", () => {
 		const { container } = renderComposition(topic);
@@ -294,7 +294,7 @@ describe("Milestone 2 — neutral wrapper replaces the stage", () => {
 		expect(article?.className).toContain("min-h-[90vh]");
 	});
 
-	// TC-5: the default render shows Parallax Depth chrome — an h2 containing
+	// TC-5: the default render shows Parallax Depth chrome - an h2 containing
 	// topic.heading, styled with SectionTitle's shared brutalist drop-shadow
 	// class (the stage-era DEFAULT_INNER was "constellation", whose h2 used a
 	// different text-shadow treatment; the ported inners' pre-SectionTitle
@@ -344,11 +344,11 @@ describe("Milestone 2 — neutral wrapper replaces the stage", () => {
  * INNER_ORDER lands at its final 8 entries; SkylineParams is rewired onto
  * the surviving DecoProminence/DecoPlacement/DecoColor aliases. TC-10/TC-12
  * are authored red against the current tree (the five deco ids are still in
- * INNER_ORDER/INNERS); TC-22/TC-29 are authorable green now — they guard the
+ * INNER_ORDER/INNERS); TC-22/TC-29 are authorable green now - they guard the
  * purge leaving the 8 survivors (and skyline's alias rewire) intact.
  */
 
-/** The final 8-entry INNER_ORDER this round lands on — kept literal so this
+/** The final 8-entry INNER_ORDER this round lands on - kept literal so this
  * test fails if a survivor is accidentally deleted along with the deco five. */
 const FINAL_INNER_ORDER = [
 	"parallax-depth",
@@ -391,7 +391,7 @@ function renderCompositionWithInner(id: InnerId, t: Topic = topic) {
 	);
 }
 
-describe("Milestone 3 — INNER_ORDER lands at its final 8 entries", () => {
+describe("Milestone 3 - INNER_ORDER lands at its final 8 entries", () => {
 	afterEach(() => {
 		cleanup();
 	});
@@ -401,7 +401,7 @@ describe("Milestone 3 — INNER_ORDER lands at its final 8 entries", () => {
 		expect(INNER_ORDER.length).toBe(8);
 	});
 
-	// TC-12: INNER_ORDER contains none of the retired ids — neither the four
+	// TC-12: INNER_ORDER contains none of the retired ids - neither the four
 	// never-ported stage variants nor the five deco inners.
 	it("contains none of the retired stage or deco ids", () => {
 		for (const id of [...RETIRED_STAGE_IDS, ...RETIRED_DECO_IDS]) {
@@ -410,7 +410,7 @@ describe("Milestone 3 — INNER_ORDER lands at its final 8 entries", () => {
 	});
 });
 
-describe("Milestone 3 — every surviving inner renders through TopicComposition", () => {
+describe("Milestone 3 - every surviving inner renders through TopicComposition", () => {
 	afterEach(() => {
 		cleanup();
 	});
@@ -427,14 +427,14 @@ describe("Milestone 3 — every surviving inner renders through TopicComposition
 	});
 });
 
-describe("Milestone 3 — skyline render regression", () => {
+describe("Milestone 3 - skyline render regression", () => {
 	afterEach(() => {
 		cleanup();
 	});
 
 	// TC-29: a skyline render regression guarding the SkylineParams alias
 	// rewire (DecoProminence/DecoPlacement/DecoColor) didn't break the
-	// component — skyline with its defaults renders without throwing and
+	// component - skyline with its defaults renders without throwing and
 	// shows its cluster.
 	it("renders skyline with its defaults without throwing and shows its cluster", () => {
 		const { container } = renderCompositionWithInner("skyline");
@@ -446,13 +446,13 @@ describe("Milestone 3 — skyline render regression", () => {
 
 /*
  * useRelativeScrollOffset (inner/shared-hooks.ts) never attaches its
- * scroll/resize listeners when the user prefers reduced motion — reduced-
+ * scroll/resize listeners when the user prefers reduced motion - reduced-
  * motion users get a static frame at offset 0. This block stubs
  * window.matchMedia to report prefers-reduced-motion: reduce and asserts
  * the static contract directly through the ported inners that consume the
  * hook, rather than through hook internals.
  */
-describe("useRelativeScrollOffset — reduced-motion guard", () => {
+describe("useRelativeScrollOffset - reduced-motion guard", () => {
 	afterEach(() => {
 		cleanup();
 		vi.unstubAllGlobals();
@@ -488,7 +488,7 @@ describe("useRelativeScrollOffset — reduced-motion guard", () => {
 /*
  * v4 whole-section day/night freeze: TopicComposition's rendered inners lose
  * their isNight prop (dropped above from renderComposition/
- * renderCompositionWithInner) — night is now derived once from the whole
+ * renderCompositionWithInner) - night is now derived once from the whole
  * <article id=topic.id> section's own scroll position, via the inner's
  * SectionTitle measuring the ARTICLE root, not its own wrapper.
  */
@@ -498,7 +498,7 @@ describe("TopicComposition whole-section day/night freeze", () => {
 		vi.unstubAllGlobals();
 	});
 
-	// TCM-N1: adversarial — the article (#travel) gets a NIGHT-side rect,
+	// TCM-N1: adversarial - the article (#travel) gets a NIGHT-side rect,
 	// while the DEFAULT rect (which the title's own wrapper receives, since
 	// it doesn't match "#travel") is far-DAY. The heading must still follow
 	// the ARTICLE's frozen phase (night), not its own rect.

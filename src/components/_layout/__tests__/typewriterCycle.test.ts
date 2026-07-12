@@ -8,7 +8,7 @@ import {
 } from "../typewriterCycle";
 
 // ---------------------------------------------------------------------------
-// Inline fixtures — no dependency on src/data/hero so this suite stays green
+// Inline fixtures - no dependency on src/data/hero so this suite stays green
 // even as hero.ts evolves (HERO_TIMING / HERO_ROLES / HERO_PHRASES relocated).
 // 5 roles and 5 phrases with DISTINCT LENGTHS so wrap tests (TC-PURE-11/12)
 // remain meaningful.
@@ -186,7 +186,7 @@ describe("typewriterCycle pure state machine (v3 two-index model)", () => {
 		expect(nextState.leftIndex).toBe(pushingLeftIndex);
 	});
 
-	// TC-PURE-09: SEQUENCE — first 5 dwell beats have (leftIndex,rightIndex) [[0,0],[0,1],[1,1],[1,2],[2,2]]
+	// TC-PURE-09: SEQUENCE - first 5 dwell beats have (leftIndex,rightIndex) [[0,0],[0,1],[1,1],[1,2],[2,2]]
 	it("TC-PURE-09: sequence of (leftIndex,rightIndex) at dwell beats is [[0,0],[0,1],[1,1],[1,2],[2,2]]", () => {
 		const samples: [number, number][] = [];
 		let state = INITIAL;
@@ -223,10 +223,10 @@ describe("typewriterCycle pure state machine (v3 two-index model)", () => {
 		]);
 	});
 
-	// TC-PURE-10: ALTERNATION invariant — leftIndex and rightIndex NEVER both change on the same tick;
+	// TC-PURE-10: ALTERNATION invariant - leftIndex and rightIndex NEVER both change on the same tick;
 	// leftIndex changes only when prev.phase==="dwell" && prev.turn==="left";
 	// rightIndex changes only when prev.phase==="backspacing" && prev.typed===""
-	it("TC-PURE-10: alternation invariant — indices never both change same tick; each changes only at the correct phase", () => {
+	it("TC-PURE-10: alternation invariant - indices never both change same tick; each changes only at the correct phase", () => {
 		// Drive enough to cross both wraps (both indices return to 0 at least once)
 		// Full cycle per index: each phrase is typed then backspaced, 5 phrases each
 		// Use a generous cap
@@ -276,7 +276,7 @@ describe("typewriterCycle pure state machine (v3 two-index model)", () => {
 		expect(rightWrapped).toBe(true);
 	});
 
-	// TC-PURE-11: WRAP — leftIndex wraps from 4 to 0 through a pushing beat
+	// TC-PURE-11: WRAP - leftIndex wraps from 4 to 0 through a pushing beat
 	it("TC-PURE-11: leftIndex wraps 4->0 on a dwell+turn:left -> pushing tick", () => {
 		// Construct a state with leftIndex=4 and advance through dwell+turn:left
 		const state: CycleState = {
@@ -291,7 +291,7 @@ describe("typewriterCycle pure state machine (v3 two-index model)", () => {
 		expect(pushing.leftIndex).toBe(0);
 	});
 
-	// TC-PURE-12: WRAP — rightIndex wraps from 4 to 0 through backspacing-empty
+	// TC-PURE-12: WRAP - rightIndex wraps from 4 to 0 through backspacing-empty
 	it("TC-PURE-12: rightIndex wraps 4->0 on backspacing+typed='' -> typing tick", () => {
 		const state: CycleState = {
 			leftIndex: 4,

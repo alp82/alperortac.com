@@ -6,8 +6,8 @@ import type { Topic } from "../../../../data/topics";
 
 /*
  * TopicBody is the shared topic body (the plate/bespoke-else-teaser dispatch).
- * It must keep its two branches' margins distinct — CustomContent plate = mt-6,
- * teaser plate = mt-3 — so the shipped card stays byte-identical.
+ * It must keep its two branches' margins distinct - CustomContent plate = mt-6,
+ * teaser plate = mt-3 - so the shipped card stays byte-identical.
  *
  * useTriggerNav() calls useNavigate() unconditionally, so we stub the router.
  * We control TOPIC_CONTENTS to exercise both branches without coupling to the

@@ -4,7 +4,7 @@ import { TopicBody } from "./TopicBody";
 import { flourishSrc, TOPIC_ACCENT } from "./types";
 
 /*
- * The shipped section card's CHROME — heading block + accent layout — wrapped
+ * The shipped section card's CHROME - heading block + accent layout - wrapped
  * around the shared `TopicBody`. Extracted out of `current.tsx` so production
  * `CurrentBlock` can wrap it in its `<article>` shell.
  *

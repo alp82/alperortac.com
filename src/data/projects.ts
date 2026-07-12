@@ -88,7 +88,7 @@ export const PROJECTS: Project[] = [
 		problem:
 			"The AI tool space ships ten new launches a day. Most directories are SEO farms; none help you compose a working stack.",
 		solution:
-			"A hand-curated catalogue grouped by what you actually do with it — research, build, ship — with honest notes on cost and lock-in.",
+			"A hand-curated catalogue grouped by what you actually do with it - research, build, ship - with honest notes on cost and lock-in.",
 		outcome:
 			"AIStack has become a reference list builders share when onboarding teammates to a new workflow.",
 		stack: ["React", "TypeScript", "Tailwind", "Vite"],
@@ -134,9 +134,9 @@ export const PROJECTS: Project[] = [
 			webm: "/videos/manaschmiede-deck-creation.webm",
 		},
 		problem:
-			"Creative tinkering needs a workshop that doesn't get in the way — most existing tools either lock you in or demand you build everything from zero.",
+			"Creative tinkering needs a workshop that doesn't get in the way - most existing tools either lock you in or demand you build everything from zero.",
 		solution:
-			"A growing collection of small, sharp tools and prototypes — card deck builders, generators, helpers — released openly so anyone can fork the pieces they need.",
+			"A growing collection of small, sharp tools and prototypes - card deck builders, generators, helpers - released openly so anyone can fork the pieces they need.",
 		outcome:
 			"Manaschmiede is the public bench where experiments live before they become projects of their own.",
 		stack: ["TypeScript", "React", "Open Source"],

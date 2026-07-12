@@ -6,7 +6,7 @@ import { railVars, useAspectViewBox, useDrawIn } from "./shared";
  * Link: constellation-starline (VERTICAL)
  *
  * A faint dotted star-path DESCENDING the page, with star nodes at the bends
- * that twinkle in — the celestial world's connective tissue. `curve` sets the
+ * that twinkle in - the celestial world's connective tissue. `curve` sets the
  * drift; `stars` sets the node count; `glow` sets their shine. Stars twinkle in
  * top→bottom when `animate` is on. Shape-preserving viewBox so nodes stay round.
  */

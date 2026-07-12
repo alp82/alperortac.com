@@ -9,8 +9,8 @@ import { DENSITY_HEADING, DENSITY_MAXW } from "./shared";
  * PER ELEMENT:
  *   - prominence : size + opacity (how dominant)
  *   - placement  : where + how many (local corner/cluster ↔ spread scatter/edges)
- *   - variety    : uniform vs mixed (jittered size + rotation) — only where it helps
- *   - color      : ink / tinted / vivid — only kite + balloon offer vivid fills
+ *   - variety    : uniform vs mixed (jittered size + rotation) - only where it helps
+ *   - color      : ink / tinted / vivid - only kite + balloon offer vivid fills
  * Stroke tone follows day↔night so it blends on any background.
  */
 
@@ -182,7 +182,7 @@ export function SkylineCluster({
 
 	return (
 		<div className={`relative w-full ${DENSITY_MAXW[params.density]}`}>
-			{/* line-art motifs over the existing sky — no background of its own */}
+			{/* line-art motifs over the existing sky - no background of its own */}
 			<div
 				className="pointer-events-none absolute inset-x-0 -top-8 h-[62%]"
 				style={{ opacity: prom.opacity }}

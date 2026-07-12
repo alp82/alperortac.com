@@ -22,12 +22,12 @@ import {
 } from "./composer/useComposerControls";
 
 /*
- * Composer panel — shipped to prod inside the `panel-dialog-modal` <dialog>.
+ * Composer panel - shipped to prod inside the `panel-dialog-modal` <dialog>.
  *
  * Renders so the live landscape stays visible. A top "Shipped baseline" toggle
  * bypasses the composer to A/B against the baseline. Below it, two tabbed
- * layers — a per-topic Inside style (chosen per topic via the topic selector)
- * plus a GLOBAL Connector (one pick) — each exposing the selected item's
+ * layers - a per-topic Inside style (chosen per topic via the topic selector)
+ * plus a GLOBAL Connector (one pick) - each exposing the selected item's
  * focused params. Spec readout + Copy spec + Reset at the bottom.
  */
 
@@ -231,7 +231,7 @@ function InsideSpecificControls({
 		}
 		case "terminal": {
 			const p = params as InnerParamsMap["terminal"];
-			// Blinking cursor locked on — toggle removed.
+			// Blinking cursor locked on - toggle removed.
 			return (
 				<Segmented
 					label="Scheme"
@@ -314,7 +314,7 @@ function InsideSpecificControls({
 		}
 		case "ticket-stub": {
 			const p = params as InnerParamsMap["ticket-stub"];
-			// Ticket color locked to crimson — segmented removed.
+			// Ticket color locked to crimson - segmented removed.
 			return (
 				<Toggle
 					label="Perforation"
@@ -636,7 +636,7 @@ function InsideSpecificControls({
 		}
 		case "parallax-depth": {
 			const p = params as InnerParamsMap["parallax-depth"];
-			// Backdrop shape (flourish) + layers (3) are locked — knobs removed.
+			// Backdrop shape (flourish) + layers (3) are locked - knobs removed.
 			return (
 				<Slider
 					label="Drift depth"
@@ -981,7 +981,7 @@ const TOPIC_CHIP = (selected: boolean) =>
 			: "bg-white text-slate-700 border-slate-300 hover:border-slate-900"
 	}`;
 
-/* Inside is per-topic, so its tab edits ONE topic at a time — or every topic
+/* Inside is per-topic, so its tab edits ONE topic at a time - or every topic
  * at once via the All chip. `isCustom`/`subtitle` reflect the per-topic
  * picks. */
 function TopicSelector({
@@ -1020,7 +1020,7 @@ function TopicSelector({
 							type="button"
 							onClick={() => onSelect(t.id)}
 							aria-pressed={selected}
-							title={`${t.heading} — ${subtitle(t.id)}`}
+							title={`${t.heading} - ${subtitle(t.id)}`}
 							className={TOPIC_CHIP(selected)}
 						>
 							{t.heading}
@@ -1082,7 +1082,7 @@ export function DesignPanel({
 			setCopied(true);
 			setTimeout(() => setCopied(false), 1500);
 		} catch {
-			// clipboard unavailable — user can still read the spec line below
+			// clipboard unavailable - user can still read the spec line below
 		}
 	};
 

@@ -13,7 +13,7 @@ import { DENSITY_MAXW } from "./shared";
  * polaroid; `tilt` rotates the pinned polaroid inline.
  */
 
-/* Kraft scrapbook board — paper grain + soft fibre speckle. */
+/* Kraft scrapbook board - paper grain + soft fibre speckle. */
 const BOARD_STYLE: React.CSSProperties = {
 	backgroundColor: "#e7dcc4",
 	backgroundImage:

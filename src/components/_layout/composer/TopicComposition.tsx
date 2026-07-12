@@ -31,12 +31,12 @@ export function TopicComposition({
 }: TopicCompositionProps) {
 	const articleRef = useRef<HTMLElement>(null);
 	// ONE frozen phase for the whole topic section, measured at the article
-	// root — everything night-dependent inside agrees with it.
+	// root - everything night-dependent inside agrees with it.
 	const night = useSectionNightPhase(articleRef);
 	// Accent always comes from the topic palette (the accent-source knob is gone).
 	const accent = TOPIC_ACCENT[topic.id];
 
-	// Cluster is local to each topic. The registry erases the id↔params link —
+	// Cluster is local to each topic. The registry erases the id↔params link -
 	// Component wants its cluster's exact param shape while state holds the
 	// union; the setters keep id + params in lockstep, so this widening cast is
 	// sound at runtime.
@@ -44,7 +44,7 @@ export function TopicComposition({
 	const inner = INNERS[cluster.id];
 	const Cluster = inner.Component as React.ComponentType<InnerRenderProps>;
 	// Every inner frame wraps the topic's REAL body (the shared TopicBody), so
-	// every topic — promoted or teaser-based — renders correctly under any inner.
+	// every topic - promoted or teaser-based - renders correctly under any inner.
 	// The frame declares its surface so the body blends in (bare) or keeps the
 	// frosted plate.
 	const body = (

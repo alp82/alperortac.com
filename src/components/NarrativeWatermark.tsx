@@ -81,7 +81,7 @@ export function NarrativeWatermark({
 					const wordH = len * fontPx * WM.lineHeight;
 					const padTopPx = (WM.padTopVh / 100) * dims.h;
 					const padBottomPx = (WM.padBottomVh / 100) * dims.h;
-					// Left word toward the TOP, right toward the BOTTOM — always.
+					// Left word toward the TOP, right toward the BOTTOM - always.
 					const ty =
 						word.zone.edge === "left"
 							? padTopPx
@@ -107,7 +107,7 @@ export function NarrativeWatermark({
 								lineHeight: WM.lineHeight,
 								fontSize: `${fontPx}px`,
 								// Subpage words must contrast the frozen sky, not BUILD/EXPLORE's
-								// fixed dark/light: light over a night sky, dark over day —
+								// fixed dark/light: light over a night sky, dark over day -
 								// otherwise the dark left word vanishes on a night subpage.
 								color: isNight ? "#f8fafc" : "#0f172a",
 								opacity: WM.opacity,

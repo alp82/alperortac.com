@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 // ---------------------------------------------------------------------------
 // Binary-contract tests for the built OG landing image (public/og/landing.png).
 // Verifies the PNG signature and IHDR dimensions directly from the file
-// bytes — no image library needed, no network fetch.
+// bytes - no image library needed, no network fetch.
 // ---------------------------------------------------------------------------
 
 const PNG_PATH = path.resolve(process.cwd(), "public/og/landing.png");

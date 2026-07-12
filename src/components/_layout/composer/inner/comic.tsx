@@ -2,7 +2,7 @@ import type { InnerRenderProps } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: comic — "comic page."
+ * Inner: comic - "comic page."
  *
  * A WIDE comic page: black gutters frame a title banner (the heading in a jagged
  * caption box) above one large panel with the thick comic border + a halftone bg

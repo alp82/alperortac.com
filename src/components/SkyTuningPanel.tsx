@@ -182,7 +182,7 @@ export function SkyTuningPanel({
 									Phase 1 · noon → dusk
 								</div>
 								<div className="text-[10px] font-bold tabular-nums opacity-80">
-									{state.curve.phase1[0].toFixed(3)} —{" "}
+									{state.curve.phase1[0].toFixed(3)} -{" "}
 									{state.curve.phase1[1].toFixed(3)}
 								</div>
 							</div>
@@ -206,7 +206,7 @@ export function SkyTuningPanel({
 									Phase 2 · dusk → night
 								</div>
 								<div className="text-[10px] font-bold tabular-nums opacity-80">
-									{state.curve.phase2[0].toFixed(3)} —{" "}
+									{state.curve.phase2[0].toFixed(3)} -{" "}
 									{state.curve.phase2[1].toFixed(3)}
 								</div>
 							</div>

@@ -7,14 +7,14 @@ import { TOPIC_ACCENT } from "./types";
 import { type ResolvedTrigger, useTriggerNav } from "./useTriggerNav";
 
 /*
- * The shipped topic BODY — the plate/bespoke-else-teaser dispatch, extracted
+ * The shipped topic BODY - the plate/bespoke-else-teaser dispatch, extracted
  * VERBATIM out of `SectionBody` so it can be rendered as the `children` of any
  * composer frame (inner style). Every inner is a CONTAINER that wraps this
  * real body.
  *
  * Resolves `accent` + `CustomContent` INTERNALLY from `topic.id`, so callers
  * can't pass a mismatched value. Carries no heading/accent layout/vertical
- * rhythm — those belong to the frame (or, in production, to `SectionBody`).
+ * rhythm - those belong to the frame (or, in production, to `SectionBody`).
  */
 
 function SidedCard({ resolved }: { resolved: ResolvedTrigger }) {

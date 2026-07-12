@@ -61,7 +61,7 @@ describe("buildComposerSpec", () => {
 
 	// Milestone 2 coverage: a per-topic inner deviation (id switch + a param
 	// tweak) emits that topic's inner.* keys, leaves untouched topics omitted,
-	// and never emits section.* — guarding the post-stage-removal state shape
+	// and never emits section.* - guarding the post-stage-removal state shape
 	// (buildComposerSpec's stage loop is deleted in milestone 2).
 	it("a deviated inner emits its topic's inner.* keys and no section.* keys", () => {
 		const base = defaultState();

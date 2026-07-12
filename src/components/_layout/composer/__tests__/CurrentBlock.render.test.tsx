@@ -9,8 +9,8 @@ import { CurrentBlock } from "../current";
 /*
  * CurrentBlock is the "shipped baseline" path (reached via TopicArticle's
  * composer.baseline branch, not exercised by TopicComposition.test.tsx). It
- * owns the ARTICLE root and measures its OWN frozen night phase there —
- * `const night = useSectionNightPhase(ref)` on `<article id={topic.id}>` —
+ * owns the ARTICLE root and measures its OWN frozen night phase there -
+ * `const night = useSectionNightPhase(ref)` on `<article id={topic.id}>` -
  * then passes `night` down to SectionBody (which forwards it, unmeasured,
  * into SectionTitle). No existing test renders CurrentBlock itself:
  * SectionBody.render.test.tsx renders SectionBody in isolation with an
@@ -45,7 +45,7 @@ afterEach(() => {
 });
 
 describe("CurrentBlock measures the article root, not the title's own rect", () => {
-	// CB-N1: adversarial — the article (#travel) gets a NIGHT-side rect, while
+	// CB-N1: adversarial - the article (#travel) gets a NIGHT-side rect, while
 	// the DEFAULT rect (which the title's own wrapper receives, since it
 	// doesn't match "#travel") is far-DAY. The heading must still follow the
 	// ARTICLE's frozen phase (night), not its own rect.
@@ -67,7 +67,7 @@ describe("CurrentBlock measures the article root, not the title's own rect", () 
 		restore();
 	});
 
-	// CB-N2: the day-direction mirror — the article (#travel) gets a DAY-side
+	// CB-N2: the day-direction mirror - the article (#travel) gets a DAY-side
 	// rect, while the DEFAULT rect (the title's own wrapper) is far-NIGHT. The
 	// heading must still follow the ARTICLE's frozen phase (day).
 	it("renders the heading day (text-slate-900) when the article root is day-side, even though the title's own rect is night-side", () => {

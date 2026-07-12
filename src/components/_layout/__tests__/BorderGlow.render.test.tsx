@@ -6,7 +6,7 @@ import { BorderGlow } from "../BorderGlow";
 describe("BorderGlow render", () => {
 	afterEach(cleanup);
 
-	// TC-01 — Default DOM structure
+	// TC-01 - Default DOM structure
 	it("renders .border-glow-card with edge-light and border-glow-inner holding children", () => {
 		const { container } = render(
 			<BorderGlow>
@@ -25,7 +25,7 @@ describe("BorderGlow render", () => {
 		).not.toBeNull();
 	});
 
-	// TC-02 — className merge
+	// TC-02 - className merge
 	it("merges className onto the card alongside border-glow-card", () => {
 		const { container } = render(
 			<BorderGlow className="subpage-column my-class" />,
@@ -36,14 +36,14 @@ describe("BorderGlow render", () => {
 		expect(cardEl.classList.contains("my-class")).toBe(true);
 	});
 
-	// TC-03 — Default --card-bg === #120F17
+	// TC-03 - Default --card-bg === #120F17
 	it("sets --card-bg to #120F17 by default", () => {
 		const { container } = render(<BorderGlow />);
 		const cardEl = container.querySelector(".border-glow-card") as HTMLElement;
 		expect(cardEl.style.getPropertyValue("--card-bg")).toBe("#120F17");
 	});
 
-	// TC-04 — Custom backgroundColor → --card-bg
+	// TC-04 - Custom backgroundColor → --card-bg
 	it("maps backgroundColor prop to --card-bg CSS var", () => {
 		const { container } = render(
 			<BorderGlow backgroundColor="rgba(15, 23, 42, 0.7)" />,
@@ -54,7 +54,7 @@ describe("BorderGlow render", () => {
 		);
 	});
 
-	// TC-05 — style passthrough
+	// TC-05 - style passthrough
 	it("merges style prop onto the card without evicting CSS vars", () => {
 		const { container } = render(<BorderGlow style={{ color: "red" }} />);
 		const cardEl = container.querySelector(".border-glow-card") as HTMLElement;
@@ -62,7 +62,7 @@ describe("BorderGlow render", () => {
 		expect(cardEl.style.getPropertyValue("--card-bg")).toBe("#120F17");
 	});
 
-	// TC-06 — Stock palette preserved: gradient vars carry the default colors
+	// TC-06 - Stock palette preserved: gradient vars carry the default colors
 	it("sets stock palette vars: --gradient-one, --gradient-base, --gradient-two contain default colors", () => {
 		const { container } = render(<BorderGlow />);
 		const cardEl = container.querySelector(".border-glow-card") as HTMLElement;
@@ -77,7 +77,7 @@ describe("BorderGlow render", () => {
 		);
 	});
 
-	// TC-07 — --glow-color contains 40deg 80% 80%
+	// TC-07 - --glow-color contains 40deg 80% 80%
 	it("sets --glow-color to a value containing 40deg 80% 80%", () => {
 		const { container } = render(<BorderGlow />);
 		const cardEl = container.querySelector(".border-glow-card") as HTMLElement;
@@ -86,14 +86,14 @@ describe("BorderGlow render", () => {
 		);
 	});
 
-	// TC-08 — Default render → no sweep-active
+	// TC-08 - Default render → no sweep-active
 	it("does not add sweep-active class on default render", () => {
 		const { container } = render(<BorderGlow />);
 		const cardEl = container.querySelector(".border-glow-card") as HTMLElement;
 		expect(cardEl.classList.contains("sweep-active")).toBe(false);
 	});
 
-	// TC-09 — Touch pointerMove writes nothing
+	// TC-09 - Touch pointerMove writes nothing
 	it("touch pointerMove leaves --cursor-angle and --edge-proximity empty", () => {
 		const { container } = render(<BorderGlow />);
 		const cardEl = container.querySelector(".border-glow-card") as HTMLElement;
@@ -106,7 +106,7 @@ describe("BorderGlow render", () => {
 		expect(cardEl.style.getPropertyValue("--edge-proximity")).toBe("");
 	});
 
-	// TC-10 — Mouse pointerMove writes the tracking vars
+	// TC-10 - Mouse pointerMove writes the tracking vars
 	it("mouse pointerMove sets --cursor-angle and --edge-proximity to non-empty values", () => {
 		const { container } = render(<BorderGlow />);
 		const cardEl = container.querySelector(".border-glow-card") as HTMLElement;
@@ -119,14 +119,14 @@ describe("BorderGlow render", () => {
 		expect(cardEl.style.getPropertyValue("--edge-proximity")).not.toBe("");
 	});
 
-	// TC-12 — Default render → root element is a div
+	// TC-12 - Default render → root element is a div
 	it("default render produces a div root (.border-glow-card tagName === DIV)", () => {
 		const { container } = render(<BorderGlow />);
 		const card = container.querySelector(".border-glow-card") as HTMLElement;
 		expect(card.tagName).toBe("DIV");
 	});
 
-	// TC-13 — as="button" → root is a button, inner structure preserved
+	// TC-13 - as="button" → root is a button, inner structure preserved
 	it('as="button" renders the root as a BUTTON and keeps edge-light / border-glow-inner children', () => {
 		const { container } = render(<BorderGlow as="button" />);
 		const card = container.querySelector(".border-glow-card") as HTMLElement;
@@ -139,7 +139,7 @@ describe("BorderGlow render", () => {
 		).not.toBeNull();
 	});
 
-	// TC-14 — as="button" forwards native props (type + onClick)
+	// TC-14 - as="button" forwards native props (type + onClick)
 	it('as="button" forwards type and onClick onto the root button', () => {
 		const spy = vi.fn();
 		const { container } = render(
@@ -178,7 +178,7 @@ describe("BorderGlow reduced-motion", () => {
 		});
 	});
 
-	// TC-11 — Reduced-motion + animated → no sweep
+	// TC-11 - Reduced-motion + animated → no sweep
 	it("does not add sweep-active when animated=true but reduced-motion is active", () => {
 		const { container } = render(<BorderGlow animated={true} />);
 		const cardEl = container.querySelector(".border-glow-card") as HTMLElement;

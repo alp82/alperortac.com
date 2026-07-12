@@ -2,12 +2,12 @@ import type { InnerRenderProps } from "../types";
 import { DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: chalkboard — "slate board."
+ * Inner: chalkboard - "slate board."
  *
  * A DARK slate board in a wooden frame is the frame: a chalk-dust wash (toggle),
  * a chalk-hand "today's lesson" eyebrow + the heading written in chalk, then the
  * topic's REAL body (the shared light plate) RESTING on the slate as a pinned
- * content card — dark slate chrome around the light card, NOT chalk-text content.
+ * content card - dark slate chrome around the light card, NOT chalk-text content.
  * A wooden chalk tray runs along the bottom. Signature toggle (params.dust) = the
  * chalk-dust smudge wash across the slate; params.chalk tints the chalk writing.
  */

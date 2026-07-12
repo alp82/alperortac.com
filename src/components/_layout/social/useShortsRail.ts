@@ -146,10 +146,10 @@ export function useShortsRail() {
 		const first = track.children[0] as HTMLElement | undefined;
 		const second = track.children[1] as HTMLElement | undefined;
 		// Fluid card widths are fractional, so integer offsetLeft deltas miss
-		// maxOffset by up to (N-3)*0.5px — outside atEnd's 1px hairline
-		// (railMotion.ts) — causing an end-of-rail double-press/dead-beat.
+		// maxOffset by up to (N-3)*0.5px - outside atEnd's 1px hairline
+		// (railMotion.ts) - causing an end-of-rail double-press/dead-beat.
 		// Rect deltas are fractional-exact and transform-invariant (the shared
-		// track translate cancels in the delta — never use an absolute .left).
+		// track translate cancels in the delta - never use an absolute .left).
 		const rawStep =
 			second && first
 				? second.getBoundingClientRect().left -

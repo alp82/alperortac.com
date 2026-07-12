@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 /*
- * PersonalPanel tests — music album shelf contract.
+ * PersonalPanel tests - music album shelf contract.
  *
  * PersonalPanel now takes `open: boolean` (replacing the deleted `teaser`
  * prop). The matchMedia stub is installed BEFORE every mount so the
@@ -26,7 +26,7 @@ const musicItem: Personal = {
 	panelFg: "#eef2ff",
 };
 
-describe("PersonalPanel — music album shelf", () => {
+describe("PersonalPanel - music album shelf", () => {
 	beforeEach(() => {
 		stubMatchMedia(false);
 	});
@@ -58,7 +58,7 @@ describe("PersonalPanel — music album shelf", () => {
 		const { container } = render(
 			<PersonalPanel item={musicItem} open={true} onClose={vi.fn()} />,
 		);
-		// Every <p> is either the verbatim intro line or an "Artist — Album"
+		// Every <p> is either the verbatim intro line or an "Artist - Album"
 		// caption; nothing else (i.e. no leftover free-form teaser paragraph).
 		const paragraphs = Array.from(container.querySelectorAll("p")).map(
 			(p) => p.textContent ?? "",
@@ -66,7 +66,7 @@ describe("PersonalPanel — music album shelf", () => {
 		for (const text of paragraphs) {
 			const isIntro =
 				text === "Some of my all-time and current favorites include:";
-			const isCaption = /^.+ — .+$/.test(text);
+			const isCaption = /^.+ - .+$/.test(text);
 			expect(
 				isIntro || isCaption,
 				`Unexpected paragraph text (possible teaser remnant): ${text}`,
@@ -86,7 +86,7 @@ describe("PersonalPanel — music album shelf", () => {
 	});
 
 	// TC-PP-05
-	it('captions each cover as "Artist — Album" (em dash), matching album data', () => {
+	it('captions each cover as "Artist - Album", matching album data', () => {
 		const { container } = render(
 			<PersonalPanel item={musicItem} open={true} onClose={vi.fn()} />,
 		);
@@ -98,7 +98,7 @@ describe("PersonalPanel — music album shelf", () => {
 			const albumEntry = ALBUMS.find((a) => a.cover === src);
 			expect(albumEntry, `No ALBUMS entry for src ${src}`).toBeDefined();
 			expect(
-				screen.getByText(`${albumEntry?.artist} — ${albumEntry?.album}`),
+				screen.getByText(`${albumEntry?.artist} - ${albumEntry?.album}`),
 			).not.toBeNull();
 		}
 	});
@@ -383,7 +383,7 @@ describe("PersonalPanel — music album shelf", () => {
 		const prevButton = screen.getByRole("button", { name: "Previous album" });
 
 		vi.advanceTimersByTime(2800); // default intervalMs
-		vi.advanceTimersByTime(200); // default outMs — content commits here
+		vi.advanceTimersByTime(200); // default outMs - content commits here
 		vi.advanceTimersByTime(340); // default inMs
 
 		expect((prevButton as HTMLButtonElement).disabled).toBe(false);
@@ -402,7 +402,7 @@ describe("PersonalPanel — music album shelf", () => {
 		const prevButton = screen.getByRole("button", { name: "Previous album" });
 
 		// The control bar (and its ring/buttons) must come AFTER the grid in
-		// DOM order — comparing document position confirms "following sibling"
+		// DOM order - comparing document position confirms "following sibling"
 		// (possibly nested inside a wrapper) rather than preceding it.
 		const position = (ul as Element).compareDocumentPosition(prevButton);
 		expect(Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
@@ -473,7 +473,7 @@ describe("PersonalPanel — music album shelf", () => {
 		expect(container.querySelectorAll(".album-flick-out").length).toBe(1);
 
 		fireEvent.click(nextButton);
-		// Still exactly one flicker in flight — the second click was a no-op.
+		// Still exactly one flicker in flight - the second click was a no-op.
 		expect(container.querySelectorAll(".album-flick-out").length).toBe(1);
 
 		vi.useRealTimers();
@@ -494,7 +494,7 @@ describe("PersonalPanel — music album shelf", () => {
 
 		const nextButton = screen.getByRole("button", { name: "Next album" });
 		fireEvent.click(nextButton);
-		vi.advanceTimersByTime(200); // default outMs — content commits
+		vi.advanceTimersByTime(200); // default outMs - content commits
 		vi.advanceTimersByTime(340); // default inMs
 
 		const prevButton = screen.getByRole("button", { name: "Previous album" });
@@ -543,7 +543,7 @@ describe("PersonalPanel — music album shelf", () => {
 			".album-ring-fill",
 		) as SVGCircleElement;
 		expect(fill).not.toBeNull();
-		// READ INLINE STYLE — jsdom has no cascade, getComputedStyle won't work.
+		// READ INLINE STYLE - jsdom has no cascade, getComputedStyle won't work.
 		expect(fill.style.animationPlayState).toBe("running");
 	});
 

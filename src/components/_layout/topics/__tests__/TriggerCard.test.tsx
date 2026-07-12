@@ -4,7 +4,7 @@
  * TriggerCard acceptance tests.
  *
  * TC-TR-03 asserts the focusable button IS the BorderGlow root (it carries the
- * `border-glow-card` class) — the glow card and the keyboard-focusable control
+ * `border-glow-card` class) - the glow card and the keyboard-focusable control
  * are one element, via GlowTrigger (BorderGlow as="button").
  *
  * A STABLE hoisted navigate spy is used (not `() => vi.fn()`) so the exact args
@@ -28,7 +28,7 @@ describe("TriggerCard", () => {
 		navigate.mockClear();
 	});
 
-	// TC-TR-01 — resolves a real button via role
+	// TC-TR-01 - resolves a real button via role
 	it("renders a button element accessible by role", () => {
 		const ref = createRef<HTMLElement | null>();
 		render(
@@ -40,7 +40,7 @@ describe("TriggerCard", () => {
 		expect(screen.getByRole("button")).not.toBeNull();
 	});
 
-	// TC-TR-02 — button has type="button" (not implicit submit)
+	// TC-TR-02 - button has type="button" (not implicit submit)
 	it('button element has getAttribute("type") === "button"', () => {
 		const ref = createRef<HTMLElement | null>();
 		render(
@@ -53,7 +53,7 @@ describe("TriggerCard", () => {
 		expect(button.getAttribute("type")).toBe("button");
 	});
 
-	// TC-TR-03 — button IS the glow card (carries border-glow-card class)
+	// TC-TR-03 - button IS the glow card (carries border-glow-card class)
 	// RED: today TriggerCard renders btn-brutalist--ghost; this fails until
 	// GlowTrigger (BorderGlow as="button") replaces the brutalist chrome.
 	it("the focusable button carries the border-glow-card class", () => {
@@ -68,7 +68,7 @@ describe("TriggerCard", () => {
 		expect(button.classList.contains("border-glow-card")).toBe(true);
 	});
 
-	// TC-TR-04 — click calls navigate with the correct route and params
+	// TC-TR-04 - click calls navigate with the correct route and params
 	it("click calls navigate once with the correct project route and slug", () => {
 		const ref = createRef<HTMLElement | null>();
 		render(
@@ -87,7 +87,7 @@ describe("TriggerCard", () => {
 		});
 	});
 
-	// TC-TR-05 — lastTriggerRef is null before click, equals button after click
+	// TC-TR-05 - lastTriggerRef is null before click, equals button after click
 	it("lastTriggerRef.current is null before click and is the button after click", () => {
 		const ref = createRef<HTMLElement | null>();
 		render(

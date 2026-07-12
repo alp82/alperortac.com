@@ -6,8 +6,8 @@
  * Uses vi.useFakeTimers() plus an injected, seeded, deterministic random
  * function so mount-time shuffle and interval-driven swaps are fully
  * reproducible. Swap-selection assertions (which cell, which replacement
- * album) are property-based — "a valid cell", "an album drawn from the
- * then-current hidden set" — rather than pinned to one exact algorithm,
+ * album) are property-based - "a valid cell", "an album drawn from the
+ * then-current hidden set" - rather than pinned to one exact algorithm,
  * since the plan does not pin an exact shuffle/pick algorithm; the initial
  * subset and per-swap cell/album pick are implementation details as long as
  * the initial subset is deterministic for a given seed and no swap ever
@@ -31,7 +31,7 @@ const MOCK_ALBUMS: TestAlbum[] = Array.from({ length: 15 }, (_, i) => ({
 	cover: `/albums/mock-${i}.jpg`,
 }));
 
-// Deterministic PRNG (mulberry32) — reproducible sequence from a seed.
+// Deterministic PRNG (mulberry32) - reproducible sequence from a seed.
 function createSeededRandom(seed: number): () => number {
 	let a = seed;
 	return () => {
@@ -211,7 +211,7 @@ describe("useAlbumRotation", () => {
 		// the prior cycle already consumed outMs + inMs of that period. This
 		// keeps hiddenBefore (captured while swap is null, at the top of the
 		// iteration) and the swap the assertion observes in the same
-		// reference frame — no unobserved free-running tick in between.
+		// reference frame - no unobserved free-running tick in between.
 		const NEXT_TICK_MS = DEFAULT_INTERVAL_MS - DEFAULT_OUT_MS - DEFAULT_IN_MS;
 
 		for (let cycle = 0; cycle < 4; cycle++) {
@@ -534,7 +534,7 @@ describe("useAlbumRotation", () => {
 		expect(result.current.swap).not.toBeNull();
 		expect(result.current.swap?.phase).toBe("out");
 		expect(typeof result.current.swap?.cell).toBe("number");
-		// Content hasn't committed yet — visible is unchanged mid out-phase.
+		// Content hasn't committed yet - visible is unchanged mid out-phase.
 		expect(coversOf(result.current.visible)).toEqual(before);
 	});
 
@@ -570,7 +570,7 @@ describe("useAlbumRotation", () => {
 		expect(result.current.swap).toBeNull();
 	});
 
-	// TC-ROT-18 (keyboard-path — not the hover-pause trap test below)
+	// TC-ROT-18 (keyboard-path - not the hover-pause trap test below)
 	it("next() resets the interval clock: no auto tick fires until a full intervalMs after the manual call", () => {
 		const { result } = renderHook(() =>
 			useAlbumRotation(MOCK_ALBUMS, {
@@ -579,7 +579,7 @@ describe("useAlbumRotation", () => {
 			}),
 		);
 
-		// Let the mount interval's deadline (t=2800) sit unfired in the background —
+		// Let the mount interval's deadline (t=2800) sit unfired in the background -
 		// next() below must reset it, not just append a second timer alongside it.
 		act(() => {
 			vi.advanceTimersByTime(1000);
@@ -729,7 +729,7 @@ describe("useAlbumRotation", () => {
 	});
 
 	// Mirror trap (challenger rider): the interval next() restarted WHILE
-	// running must still die cleanly when pause follows — catches clearing a
+	// running must still die cleanly when pause follows - catches clearing a
 	// captured interval id instead of the live ref.
 	it("MIRROR TRAP: next() while running restarts the clock, then pausing must kill that restarted interval too", () => {
 		const { result, rerender } = renderHook(
@@ -839,7 +839,7 @@ describe("useAlbumRotation", () => {
 		});
 		expect(result.current.swap).toBeNull();
 
-		// prev() pushes no new history entry — exactly one undo remains.
+		// prev() pushes no new history entry - exactly one undo remains.
 		expect(result.current.canPrev).toBe(true);
 
 		// Second prev() undoes swap 1.
@@ -915,8 +915,8 @@ describe("useAlbumRotation", () => {
 
 		// Two manual swaps at (likely) different cells build a two-deep history
 		// stack; whichever cells the seeded random lands on, the invariant under
-		// test — full LIFO unwind returns to the exact pre-swap state with no
-		// throw — holds regardless of the exact cells/covers involved.
+		// test - full LIFO unwind returns to the exact pre-swap state with no
+		// throw - holds regardless of the exact cells/covers involved.
 		act(() => {
 			result.current.next();
 		});
@@ -970,7 +970,7 @@ describe("useAlbumRotation", () => {
 		expect(result.current.canPrev).toBe(true);
 
 		// Walk the whole stack back with prev(); it must resolve after AT MOST
-		// 12 undos (the 13th swap's own displaced entry is one of the 12 kept —
+		// 12 undos (the 13th swap's own displaced entry is one of the 12 kept -
 		// the oldest of the 13 was discarded on push), never throwing and never
 		// exceeding the cap.
 		let undoCount = 0;
@@ -1087,7 +1087,7 @@ describe("useAlbumRotation", () => {
 		});
 		expect(result.current.swap?.phase).toBe("out");
 
-		// Pause before outMs elapses — aborts before content-commit.
+		// Pause before outMs elapses - aborts before content-commit.
 		act(() => {
 			rerender({ paused: true });
 		});
@@ -1101,8 +1101,8 @@ describe("useAlbumRotation", () => {
 		expect(result.current.canPrev).toBe(false);
 	});
 
-	// TC-ROT-32..36 — cycle counter. Assertions only check the counter changed
-	// / strictly increased — never exact deltas (per plan Testing note).
+	// TC-ROT-32..36 - cycle counter. Assertions only check the counter changed
+	// / strictly increased - never exact deltas (per plan Testing note).
 	describe("cycle counter", () => {
 		// TC-ROT-32
 		it("increments cycle when the rotation effect (re)starts", () => {

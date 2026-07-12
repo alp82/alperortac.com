@@ -6,14 +6,14 @@ import type { AnyInnerParams, AnyLinkParams, InnerId, LinkId } from "./types";
 /*
  * Composer state.
  *
- * Holds the full composition — a baseline bypass flag, one GLOBAL connector
+ * Holds the full composition - a baseline bypass flag, one GLOBAL connector
  * pick (with params), and a LOCAL cluster pick (with params) per topic. State
  * ALWAYS initializes to the deterministic defaults (no localStorage), so the
- * composition renders identically on the server and the first client paint —
+ * composition renders identically on the server and the first client paint -
  * no defaults-then-swap height growth after scroll restoration. Selections
  * live for the session only; they don't persist across reloads.
  *
- * Nothing is written onto <html> — the composition is threaded down to the
+ * Nothing is written onto <html> - the composition is threaded down to the
  * dispatcher as props, keeping LayoutHost free of any composer import.
  */
 
@@ -22,10 +22,10 @@ export type TopicCluster = { id: InnerId; params: AnyInnerParams };
 
 export type ComposerState = {
 	baseline: boolean;
-	// Connector is GLOBAL — one pick for the whole band.
+	// Connector is GLOBAL - one pick for the whole band.
 	link: LinkId;
 	linkParams: AnyLinkParams;
-	// Cluster is LOCAL — every topic picks its own (with params).
+	// Cluster is LOCAL - every topic picks its own (with params).
 	clusters: Record<TopicId, TopicCluster>;
 };
 
@@ -63,7 +63,7 @@ export function defaultState(): ComposerState {
  * Module-level singleton evaluated once. Both `_layout`'s `useState` seed and
  * the hook's `useState` seed reference this exact object, so `Object.is` returns
  * true and React bails the redundant subtree re-render on cold prod load.
- * Never mutated — every setter in `useComposerControls` spreads into a new object.
+ * Never mutated - every setter in `useComposerControls` spreads into a new object.
  * `reset` intentionally calls `defaultState()` (fresh object) instead of this.
  */
 export const DEFAULT_STATE: ComposerState = defaultState();
@@ -71,7 +71,7 @@ export const DEFAULT_STATE: ComposerState = defaultState();
 export function useComposerControls() {
 	// Always initialize to the deterministic defaults (no localStorage). The
 	// composition is the same on server and first client paint, so the band
-	// renders at its settled height immediately — no defaults-then-swap growth
+	// renders at its settled height immediately - no defaults-then-swap growth
 	// after the browser restores scroll. Live in-session editing still works via
 	// the setters below; selections just don't persist across reloads.
 	const [state, setState] = useState<ComposerState>(DEFAULT_STATE);

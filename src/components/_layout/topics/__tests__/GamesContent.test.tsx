@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 /*
- * GamesContent RED tests — written before the InlineLink internal/external
+ * GamesContent RED tests - written before the InlineLink internal/external
  * styling split and the "my rotation" href change.
  *
  * The current GamesContent points the "my rotation" InlineLink at the Spotify
@@ -10,7 +10,7 @@
  * GamesContent and InlineLink are updated.
  *
  * GamesContent uses TriggerCard which calls useNavigate() unconditionally, so
- * we must stub the router to prevent a crash on render — mirroring the
+ * we must stub the router to prevent a crash on render - mirroring the
  * CareerContent test pattern.
  */
 
@@ -36,21 +36,21 @@ describe("GamesContent", () => {
 		cleanup();
 	});
 
-	// TC-GC-01 — "my rotation" link points to the internal music anchor
+	// TC-GC-01 - "my rotation" link points to the internal music anchor
 	it("TC-GC-01: my rotation link has href #music", () => {
 		render(<GamesContent {...sharedProps} />);
 		const link = screen.getByRole("link", { name: /my rotation/i });
 		expect(link.getAttribute("href")).toBe("#music");
 	});
 
-	// TC-GC-02 — "my rotation" link is internal (no target)
+	// TC-GC-02 - "my rotation" link is internal (no target)
 	it("TC-GC-02: my rotation link does not have a target attribute", () => {
 		render(<GamesContent {...sharedProps} />);
 		const link = screen.getByRole("link", { name: /my rotation/i });
 		expect(link.hasAttribute("target")).toBe(false);
 	});
 
-	// TC-GC-03 — "my rotation" link carries internal styling classes
+	// TC-GC-03 - "my rotation" link carries internal styling classes
 	it("TC-GC-03: my rotation link has italic and decoration-wavy classes", () => {
 		render(<GamesContent {...sharedProps} />);
 		const link = screen.getByRole("link", { name: /my rotation/i });

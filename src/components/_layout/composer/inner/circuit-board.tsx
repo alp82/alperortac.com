@@ -2,12 +2,12 @@ import type { InnerRenderProps } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: circuit-board — "PCB panel."
+ * Inner: circuit-board - "PCB panel."
  *
  * A printed-circuit board is the frame: a tinted substrate with copper traces
  * (toggle) and corner solder-pads as chrome, a silkscreen IC carrying the
  * heading, then the topic's REAL body (the shared light plate) seated in a
- * routed area on the board — dark PCB chrome around the light content card.
+ * routed area on the board - dark PCB chrome around the light content card.
  * Signature toggle (`traces`) = the copper trace routing overlay; `mask`
  * recolors the substrate + silkscreen inline.
  */

@@ -39,7 +39,7 @@ export function AuroraCluster({
 
 	return (
 		<div className={`relative w-full ${DENSITY_MAXW[params.density]}`}>
-			{/* aurora curtains — blurred, behind content */}
+			{/* aurora curtains - blurred, behind content */}
 			<div
 				className="cmp-aurora pointer-events-none absolute -inset-x-10 -inset-y-12"
 				style={{ "--aur-a": a, "--aur-b": b } as React.CSSProperties}

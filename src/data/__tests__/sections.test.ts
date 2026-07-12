@@ -20,7 +20,7 @@ describe("sections topology", () => {
 		expect(MINIMAP_BOUNDARIES[0].id).toBe("socials");
 	});
 
-	// Regression guard: the rename only touches the ID VALUE, not the JS key —
+	// Regression guard: the rename only touches the ID VALUE, not the JS key -
 	// callers keep writing SECTION_IDS.findMe. This passes already and must
 	// keep passing after the rename.
 	it('SECTION_IDS keeps the "findMe" key (only the value renames, not the key)', () => {
@@ -69,7 +69,7 @@ describe("sections topology", () => {
 		expect(PANEL_KEY_TO_TOPIC_ID.manaschmiede).toBe("family");
 	});
 
-	// TC-11 — SECTION_IDS must not carry a "footer" key after the footer refactor
+	// TC-11 - SECTION_IDS must not carry a "footer" key after the footer refactor
 	it('SECTION_IDS does not carry a "footer" key', () => {
 		expect("footer" in SECTION_IDS).toBe(false);
 	});

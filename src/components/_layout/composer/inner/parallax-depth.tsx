@@ -8,12 +8,12 @@ import { DENSITY_GAP, DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 import { useRelativeScrollOffset } from "./shared-hooks";
 
 /*
- * Inner: parallax-depth — "layered depth drift." (ported from the retired
+ * Inner: parallax-depth - "layered depth drift." (ported from the retired
  * Layer-1 stage of the same name)
  *
  * A backdrop shape drifts slower than the cluster as it scrolls through the
  * viewport, giving real depth over the pixel world, with the Minimal style's
- * big uppercase heading + accent underline as the fixed chrome. Knob — `depth`
+ * big uppercase heading + accent underline as the fixed chrome. Knob - `depth`
  * scales the layer separation (0 = flat, 50 = today); shape (flourish) and
  * layers (3) ship locked in the panel. Reduced-motion users get a static frame
  * (the scroll listener never attaches).
@@ -109,7 +109,7 @@ export function ParallaxDepthCluster({
 
 	return (
 		<div ref={ref} className="relative w-full flex flex-col items-center">
-			{/* far background shape — drifts slowest */}
+			{/* far background shape - drifts slowest */}
 			<div
 				className="cmp-parallax-layer flex items-center justify-center"
 				style={{ transform: `translate3d(0, ${offset * -60 * k}px, 0)` }}
@@ -121,7 +121,7 @@ export function ParallaxDepthCluster({
 					accent={accent}
 				/>
 			</div>
-			{/* mid scrim band — only on the 3-layer setting */}
+			{/* mid scrim band - only on the 3-layer setting */}
 			{params.layers === 3 && (
 				<div
 					className="cmp-parallax-layer"
@@ -133,7 +133,7 @@ export function ParallaxDepthCluster({
 					aria-hidden="true"
 				/>
 			)}
-			{/* foreground cluster — drifts fastest (counter to scroll) */}
+			{/* foreground cluster - drifts fastest (counter to scroll) */}
 			<div
 				className="relative z-10 w-full flex flex-col items-center"
 				style={{ transform: `translate3d(0, ${offset * 36 * k}px, 0)` }}

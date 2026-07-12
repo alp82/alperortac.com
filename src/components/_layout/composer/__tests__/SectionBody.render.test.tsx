@@ -8,7 +8,7 @@ import { SectionBody } from "../SectionBody";
 
 /*
  * SectionBody keeps its EXISTING `isNight` prop (no new `night` prop of its
- * own) — it forwards `night={isNight}` to the SectionTitle calls in its
+ * own) - it forwards `night={isNight}` to the SectionTitle calls in its
  * header, so the caller's isNight decision wins over SectionTitle's own
  * (whole-section) measurement. Harness mirrors TopicComposition.test.tsx /
  * TopicBody.test.tsx: stub the router's useNavigate (useTriggerNav calls it
@@ -53,7 +53,7 @@ afterEach(() => {
 
 describe("SectionBody isNight overrides SectionTitle's own measurement", () => {
 	// SB-N1: isNight={true} under ALL-DAY stub geometry still renders the
-	// heading as night (text-white) — the isNight prop beats measurement.
+	// heading as night (text-white) - the isNight prop beats measurement.
 	it("isNight={true} under all-day geometry renders the heading text-white", () => {
 		const restore = stubSectionGeometry({
 			scrollHeight: 1800,
@@ -94,7 +94,7 @@ describe("SectionBody isNight overrides SectionTitle's own measurement", () => {
 	});
 
 	// SB-N3: same override behavior, but on the accent-bar (non-stamped)
-	// layout branch — isNight={true} under ALL-DAY stub geometry still
+	// layout branch - isNight={true} under ALL-DAY stub geometry still
 	// renders the heading text-white.
 	it("isNight={true} under all-day geometry renders the heading text-white on the accent-bar (non-stamped) branch", () => {
 		const restore = stubSectionGeometry({
@@ -118,7 +118,7 @@ describe("SectionBody isNight overrides SectionTitle's own measurement", () => {
 /*
  * The whole-section freeze is meant to keep the heading AND the topic PLATE
  * (TopicBody -> TopicPlate, rendered here through the real teaser branch
- * since `travel`/`coding` carry a truthy teaser) in ONE phase — both driven
+ * since `travel`/`coding` carry a truthy teaser) in ONE phase - both driven
  * by the same `isNight` prop SectionBody forwards. TCM-N1 and SB-N1/N2/N3
  * only ever assert the <h2>'s day/night class, never the plate's, so an
  * implementer who wired `isNight` into SectionTitle but left TopicPlate on

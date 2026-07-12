@@ -12,7 +12,7 @@ import { BorderGlow } from "../BorderGlow";
  * Reusable building blocks for per-topic content components.
  *
  * Each topic in src/components/_layout/topics/ composes these primitives into
- * a body unique to that topic — diverging visual treatments are expected as
+ * a body unique to that topic - diverging visual treatments are expected as
  * the personal-brand voice deepens. The outer shell (heading, accent, layout)
  * still lives in current.tsx so all topics share consistent chrome.
  */
@@ -26,8 +26,8 @@ export type TopicContentProps = {
 /**
  * The "voice surface" that wraps a topic's body.
  *
- * `surface` (default `plate`) keeps the frosted plate — translucent bg + left
- * accent border, inverting at night — the production look, used by the baseline
+ * `surface` (default `plate`) keeps the frosted plate - translucent bg + left
+ * accent border, inverting at night - the production look, used by the baseline
  * CurrentBlock dispatch. The DEV composer passes `light` / `dark` to render the
  * body BARE (transparent, no border, text tuned to the frame) so prose blends
  * into a themed inner frame instead of floating in a card.
@@ -45,7 +45,7 @@ export function TopicPlate({
 }) {
 	if (surface !== "plate") {
 		// Bare: blend into the frame's own surface. Text follows the frame, not
-		// the phase — dark text on a light frame, light text on a dark one.
+		// the phase - dark text on a light frame, light text on a dark one.
 		const text = surface === "dark" ? "text-slate-50" : "text-slate-900";
 		return <div className={`max-w-3xl ${text} ${className}`}>{children}</div>;
 	}

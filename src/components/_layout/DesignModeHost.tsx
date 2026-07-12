@@ -7,7 +7,7 @@ import {
 import { DesignPanel } from "./DesignPanel";
 
 /*
- * Composer host — ships to production.
+ * Composer host - ships to production.
  *
  * The composed look is the default layout, and this host stays mounted so the
  * design can be tweaked live (incl. the baseline toggle). It owns the

@@ -2,7 +2,7 @@ import type { InnerRenderProps } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: ticket-stub — "wide ticket."
+ * Inner: ticket-stub - "wide ticket."
  *
  * A WIDE event ticket: a bold stub forms a SIDE ACCENT RAIL (ADMIT ONE,
  * ticket no., a printed barcode), a perforated tear line divides it from the

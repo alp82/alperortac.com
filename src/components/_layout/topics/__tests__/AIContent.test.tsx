@@ -1,16 +1,16 @@
 // @vitest-environment jsdom
 
 /*
- * AIContent tests — pins the no-double-links invariant on the AI band: the
+ * AIContent tests - pins the no-double-links invariant on the AI band: the
  * alp-river GitHub card, the Discord card, and the aistack.to card are gone
  * (their links live on the subpages now); only the paragraph-4 aistack.to
  * InlineLink and the two subpage trigger buttons remain. The assumptions
- * paragraph moved onto the Alp-River subpage, so it must be absent here —
+ * paragraph moved onto the Alp-River subpage, so it must be absent here -
  * assertions are scoped to this rendered container because the identical
  * string ships in projects.ts extraSection.body.
  *
  * AIContent uses TriggerCard which calls useNavigate() unconditionally, so
- * we must stub the router to prevent a crash on render — mirroring the
+ * we must stub the router to prevent a crash on render - mirroring the
  * GamesContent test pattern.
  */
 

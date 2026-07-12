@@ -2,7 +2,7 @@ import { flourishSrc, type InnerRenderProps } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: seed-packet — "garden seed packet."
+ * Inner: seed-packet - "garden seed packet."
  *
  * A whimsical heirloom seed packet: an accent-tinted illustration band up top
  * (the topic flourish when params.illustration is on), a VARIETY eyebrow + the
@@ -12,7 +12,7 @@ import { DENSITY_MAXW } from "./shared";
  * (stock) = the packet's paper + ink (cream / kraft / sage).
  */
 
-/* stock → { paper, ink } — packet stock + printed ink. */
+/* stock → { paper, ink } - packet stock + printed ink. */
 const STOCK: Record<
 	"cream" | "kraft" | "sage",
 	{ paper: string; ink: string }
@@ -43,7 +43,7 @@ export function SeedPacketCluster({
 					boxShadow: "2px 6px 20px -10px rgba(50,40,20,0.5)",
 				}}
 			>
-				{/* illustration band — accent-tinted, flourish optional */}
+				{/* illustration band - accent-tinted, flourish optional */}
 				<div
 					className="flex items-center justify-center h-24 md:h-28"
 					style={{
@@ -87,7 +87,7 @@ export function SeedPacketCluster({
 					<div className="mt-5">{children}</div>
 				</div>
 
-				{/* sow-by strip — dashed ink divider */}
+				{/* sow-by strip - dashed ink divider */}
 				<div
 					className="px-6 md:px-8 py-3 font-mono text-[10px] uppercase tracking-[0.25em]"
 					style={{ color: s.ink, borderTop: `1px dashed ${s.ink}` }}

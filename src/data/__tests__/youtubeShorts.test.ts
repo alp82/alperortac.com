@@ -4,7 +4,7 @@ import { YOUTUBE_SHORTS } from "../youtubeShorts";
 // ---------------------------------------------------------------------------
 // Data-contract tests for the generated youtubeShorts.ts (build-time output
 // of scripts/generate-shorts-data.ts). This asserts SHAPE, not exact
-// contents — the entries are machine-written and refresh on every build, so
+// contents - the entries are machine-written and refresh on every build, so
 // pinning literal id/title/view values would break on every regeneration.
 // Mirrors src/data/__tests__/hero.test.ts's shape-not-values style.
 // ---------------------------------------------------------------------------

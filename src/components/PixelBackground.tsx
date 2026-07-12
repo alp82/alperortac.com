@@ -46,7 +46,7 @@ function Stars({
 		Math.max(0, (scrollProgress - s2) / dotsRange),
 	);
 
-	// Shooting-star lines only kick in once the sky is close to deep night —
+	// Shooting-star lines only kick in once the sky is close to deep night -
 	// ramps slowly from phase2 end to the bottom of the page.
 	const shootingRange = Math.max(1 - e2, 0.001);
 	const shootingOpacity = Math.min(
@@ -161,7 +161,7 @@ export function PixelBackground({
 	return (
 		<div className="dive-viewport fixed inset-y-0 left-0 right-0 md:right-20 -z-10">
 			{/* Opt-in fisheye filter for the lens-warp technique. techniqueFor never
-			    auto-selects lens-warp, so this stays OFF for every adaptive dive — it
+			    auto-selects lens-warp, so this stays OFF for every adaptive dive - it
 			    only engages if data-technique="lens-warp" is set explicitly. */}
 			<svg width="0" height="0" className="absolute" aria-hidden="true">
 				<defs>

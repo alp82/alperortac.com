@@ -44,7 +44,7 @@ describe("ALBUMS data", () => {
 		}
 	});
 
-	// TC-ALB-06b — spot-check the two tricky titles explicitly
+	// TC-ALB-06b - spot-check the two tricky titles explicitly
 	it('includes "Split The Atom" as entry #2 and "VOID" as entry #11', () => {
 		expect(ALBUMS[1]?.album).toBe("Split The Atom");
 		expect(ALBUMS[10]?.album).toBe("VOID");

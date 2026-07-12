@@ -4,7 +4,7 @@ import { HERO_CTA, HERO_SUMMARY } from "../hero";
 // ---------------------------------------------------------------------------
 // Data-contract tests for hero.ts (static two-line summary model).
 // HERO_SUMMARY holds the two static plain-text subtitle lines. This asserts
-// SHAPE, not exact contents — the lines are editable content and must not
+// SHAPE, not exact contents - the lines are editable content and must not
 // require a test edit (or risk being reverted) every time they change.
 // The animated typewriter pools (HERO_CURIOUS / HERO_OUTCOME / HERO_TIMING /
 // HERO_LEAD) and older models are deleted and guarded below.

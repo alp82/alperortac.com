@@ -5,7 +5,7 @@ import { railVars, useDrawIn, VBOX_H } from "./shared";
 /*
  * Link: ruled-seam (VERTICAL)
  *
- * A slim VERTICAL rule descending between two topics — a clean editorial
+ * A slim VERTICAL rule descending between two topics - a clean editorial
  * divider. `caps` sets the end treatment (round dot / bar tick / none); `double`
  * splits it into a parallel pair of rules. Straddles the seam, mask-faded ends.
  * Optional draw-in from the top down.

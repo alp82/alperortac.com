@@ -6,18 +6,18 @@ import { DENSITY_GAP, DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 import { useRelativeScrollOffset } from "./shared-hooks";
 
 /*
- * Inner: floating-island — "cluster on a floating slab." (ported from the
+ * Inner: floating-island - "cluster on a floating slab." (ported from the
  * retired Layer-1 stage of the same name)
  *
  * The cluster rests on a floating slab with a soft drop shadow; the slab bobs
  * gently as it scrolls through view, with the Minimal style's big uppercase
  * heading + accent underline as the fixed chrome. The scroll measurement ref
- * sits on an UNTRANSFORMED wrapper — getBoundingClientRect includes the
+ * sits on an UNTRANSFORMED wrapper - getBoundingClientRect includes the
  * element's own transform, so measuring the bobbing slab itself would feed the
  * bob back into its own input (the retired stage measured the untransformed
  * article).
  *
- * Knobs — `floatHeight` grows the shadow throw + lift; `bob` is the idle drift
+ * Knobs - `floatHeight` grows the shadow throw + lift; `bob` is the idle drift
  * amount (0 = still); `corners` sets the slab radius; `tint` is the slab surface
  * opacity (glassy → solid). Reduced-motion safe: the listener never attaches.
  */

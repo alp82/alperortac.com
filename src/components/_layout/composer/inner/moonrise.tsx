@@ -7,7 +7,7 @@ import { DENSITY_HEADING, DENSITY_MAXW } from "./shared";
  * A calm late-night frame: a glowing moon with a soft halo sits high to one
  * side, a few stars scattered around it, dark sky behind. `phase` carves the
  * moon (full / gibbous / crescent) via an inset terminator shadow; the signature
- * toggle is the surrounding stars. Static — no motion needed.
+ * toggle is the surrounding stars. Static - no motion needed.
  */
 
 const SKY = "#0b1020";

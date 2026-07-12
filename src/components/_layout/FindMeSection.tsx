@@ -71,7 +71,7 @@ export function FindMeSection() {
 	const sectionRef = useRef<HTMLElement>(null);
 	// ONE frozen phase for the whole section, measured at the section root:
 	// the heading, every chip, and the scrollbar must all agree. The title
-	// takes this phase via its `night` override rather than self-measuring —
+	// takes this phase via its `night` override rather than self-measuring -
 	// the section is ~1500-2000px tall, so title-center vs section-center
 	// differ by ~0.1 progress.
 	const night = useSectionNightPhase(sectionRef);

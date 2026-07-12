@@ -30,7 +30,7 @@ export type Topic = {
 	heading: string;
 	/**
 	 * Generic-renderer teaser. Omit for topics promoted to their own component
-	 * in `src/components/_layout/topics/` — the component owns the prose.
+	 * in `src/components/_layout/topics/` - the component owns the prose.
 	 * Multi-paragraph supported via `\n\n`.
 	 */
 	teaser?: string;
@@ -118,7 +118,7 @@ export const TOPICS: Topic[] = [
 ];
 
 /**
- * Resolve a trigger to its PanelKey — the key `deriveUrlPanel` (PanelHost)
+ * Resolve a trigger to its PanelKey - the key `deriveUrlPanel` (PanelHost)
  * produces from the URL. Career resolves to the literal "career"; every other
  * trigger resolves to its `slug`. Kept in lockstep with `useTriggerNav` (which
  * navigates by the same key) and `deriveUrlPanel` (which reads it back).

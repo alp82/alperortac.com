@@ -18,7 +18,7 @@ describe("FooterHeadline render", () => {
 
 	const closingStatement = `${FOOTER_ROLES[0]} ${FOOTER_PHRASES[0]}`;
 
-	it("reduced-motion — aria-label is the full closing statement and no .footer-cursor renders", () => {
+	it("reduced-motion - aria-label is the full closing statement and no .footer-cursor renders", () => {
 		stubMatchMedia(true);
 		const { container } = render(<FooterHeadline />);
 		const el = container.querySelector("[aria-label]");
@@ -30,7 +30,7 @@ describe("FooterHeadline render", () => {
 		expect(container.querySelector(".footer-cursor")).toBeNull();
 	});
 
-	it("reduced-motion — all inner spans are aria-hidden", () => {
+	it("reduced-motion - all inner spans are aria-hidden", () => {
 		stubMatchMedia(true);
 		const { container } = render(<FooterHeadline />);
 		const spans = Array.from(container.querySelectorAll("span"));
@@ -40,14 +40,14 @@ describe("FooterHeadline render", () => {
 		}
 	});
 
-	it("animated — .footer-cursor present after act flush", async () => {
+	it("animated - .footer-cursor present after act flush", async () => {
 		stubMatchMedia(false);
 		const { container } = render(<FooterHeadline />);
 		await act(() => {});
 		expect(container.querySelector(".footer-cursor")).not.toBeNull();
 	});
 
-	it("TC11 — labeled container has inline font-size of 60px (jsdom ceiling fallback, never NaN/0/empty)", () => {
+	it("TC11 - labeled container has inline font-size of 60px (jsdom ceiling fallback, never NaN/0/empty)", () => {
 		stubMatchMedia(true);
 		const { container } = render(<FooterHeadline />);
 		const el = container.querySelector("[aria-label]") as HTMLElement | null;
@@ -55,7 +55,7 @@ describe("FooterHeadline render", () => {
 		expect(el!.style.fontSize).toBe("60px");
 	});
 
-	it("TC12 — container reserves vertical space via minHeight tied to the ceiling", () => {
+	it("TC12 - container reserves vertical space via minHeight tied to the ceiling", () => {
 		stubMatchMedia(true);
 		const { container } = render(<FooterHeadline />);
 		const el = container.querySelector("[aria-label]") as HTMLElement | null;
@@ -64,7 +64,7 @@ describe("FooterHeadline render", () => {
 		expect(el!.style.minHeight).not.toBe("");
 	});
 
-	it("TC13 — exactly one aria-hidden ghost span exists as an invisible, absolutely positioned width marker", () => {
+	it("TC13 - exactly one aria-hidden ghost span exists as an invisible, absolutely positioned width marker", () => {
 		stubMatchMedia(true);
 		const { container } = render(<FooterHeadline />);
 		const ghosts = Array.from(
@@ -74,7 +74,7 @@ describe("FooterHeadline render", () => {
 		expect(ghosts[0]!.getAttribute("aria-hidden")).toBe("true");
 	});
 
-	it("TC15 — every span under the container is aria-hidden (role, phrase, cursor, ghost)", () => {
+	it("TC15 - every span under the container is aria-hidden (role, phrase, cursor, ghost)", () => {
 		stubMatchMedia(false);
 		const { container } = render(<FooterHeadline />);
 		const spans = Array.from(container.querySelectorAll("span"));
@@ -84,7 +84,7 @@ describe("FooterHeadline render", () => {
 		}
 	});
 
-	it("TC17 — reduced motion: no .footer-cursor, but container still has inline font-size 60px", () => {
+	it("TC17 - reduced motion: no .footer-cursor, but container still has inline font-size 60px", () => {
 		stubMatchMedia(true);
 		const { container } = render(<FooterHeadline />);
 		expect(container.querySelector(".footer-cursor")).toBeNull();
@@ -105,7 +105,7 @@ describe("FooterHeadline render", () => {
 		expect(containerClassName).not.toContain("md:text-5xl");
 		expect(containerClassName).not.toContain("lg:text-6xl");
 
-		// The visible (non-ghost) phrase span — a direct child of the labeled
+		// The visible (non-ghost) phrase span - a direct child of the labeled
 		// container, distinct from the ghost's own nested nowrap-mirroring span
 		// used only for measurement.
 		const phraseSpan = container.querySelector(
@@ -116,11 +116,11 @@ describe("FooterHeadline render", () => {
 	});
 });
 
-// GAP1 — CORE BEHAVIORAL GUARANTEE: useFitText is keyed on the FULL phrase
+// GAP1 - CORE BEHAVIORAL GUARANTEE: useFitText is keyed on the FULL phrase
 // (`${role} ${phrase}`), never the partially typed `text`. jsdom's default
 // zero-width layout makes fitFontSize short-circuit to the ceiling on every
 // call, which would let a regression keyed on `text` pass every other test
-// here unnoticed — so this stubs a realistic non-zero layout (mirroring
+// here unnoticed - so this stubs a realistic non-zero layout (mirroring
 // useShortsRail's Object.defineProperty(clientWidth) + rect-stub pattern) to
 // force a genuine, non-ceiling fitFontSize computation, and spies on the
 // ghost's getBoundingClientRect to count re-measurements.
@@ -194,7 +194,7 @@ describe("FooterHeadline font-size keyed on phrase, not partial text", () => {
 
 		// FOOTER_PHRASES[0] is initially typed out in full (phase="dwell",
 		// turn="right"); drive: dwell -> backspacing (len0+1 ticks) lands
-		// exactly on FOOTER_PHRASES[1]'s first typing tick — a genuine phrase
+		// exactly on FOOTER_PHRASES[1]'s first typing tick - a genuine phrase
 		// change (role+phrase key flips as soon as backspacing empties out,
 		// before any char of the new phrase is typed).
 		const phrase0Len = FOOTER_PHRASES[0]?.length ?? 0;
@@ -218,7 +218,7 @@ describe("FooterHeadline font-size keyed on phrase, not partial text", () => {
 		expect(rectSpy.mock.calls.length).toBe(callsAtPhrase1Start);
 
 		// Finish typing phrase1, dwell, push, dwell, then fully backspace
-		// phrase1 to land on phrase2's first typing tick — another genuine
+		// phrase1 to land on phrase2's first typing tick - another genuine
 		// phrase change. The measurement count must increase here, proving
 		// the hook isn't frozen forever, only held steady mid-phrase.
 		const phrase1Len = FOOTER_PHRASES[1]?.length ?? 0;
@@ -235,7 +235,7 @@ describe("FooterHeadline font-size keyed on phrase, not partial text", () => {
 	});
 });
 
-// GROUP B — breakpoint-aware ceiling wiring: measure() clamps fitFontSize's
+// GROUP B - breakpoint-aware ceiling wiring: measure() clamps fitFontSize's
 // result to resolveCeiling(window.innerWidth, FOOTER_CEILINGS), so the same
 // short phrase must resolve to a lower cap on mobile than on desktop.
 describe("FooterHeadline breakpoint-aware ceiling", () => {
@@ -256,7 +256,7 @@ describe("FooterHeadline breakpoint-aware ceiling", () => {
 		});
 	}
 
-	it("MOBILE CAP — a short phrase that would fit at 60px is capped down to resolveCeiling(375)=30px", () => {
+	it("MOBILE CAP - a short phrase that would fit at 60px is capped down to resolveCeiling(375)=30px", () => {
 		stubMatchMedia(true);
 		stubInnerWidth(375);
 		const { container } = render(<FooterHeadline />);
@@ -302,7 +302,7 @@ describe("FooterHeadline breakpoint-aware ceiling", () => {
 		expect(el.style.minHeight).not.toBe("75px");
 	});
 
-	it("DESKTOP UNCHANGED — a short phrase at the desktop breakpoint still resolves to the 60px ceiling", () => {
+	it("DESKTOP UNCHANGED - a short phrase at the desktop breakpoint still resolves to the 60px ceiling", () => {
 		stubMatchMedia(true);
 		stubInnerWidth(1024);
 		const { container } = render(<FooterHeadline />);

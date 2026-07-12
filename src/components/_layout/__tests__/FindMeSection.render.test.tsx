@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 // Anchors that live inside the rail belong to the carousel, not the chip
-// directory — used throughout to scope directory-only assertions.
+// directory - used throughout to scope directory-only assertions.
 function directoryAnchors(container: HTMLElement): HTMLAnchorElement[] {
 	const rail = container.querySelector(".shorts-rail");
 	return Array.from(container.querySelectorAll("a")).filter(
@@ -70,7 +70,7 @@ describe("FindMeSection directory", () => {
 	});
 
 	// The isNight-prop-driven chip night tests that used to live here were
-	// removed: FindMeSection no longer accepts an isNight prop — night is now
+	// removed: FindMeSection no longer accepts an isNight prop - night is now
 	// derived once from the whole section's own scroll position (the v4
 	// whole-section day/night freeze). See the geometry-driven
 	// "FindMeSection whole-section day/night freeze" describe block below for
@@ -103,7 +103,7 @@ describe("FindMeSection directory", () => {
 	});
 
 	// Regression pin: the widen must not collapse the chip rows back to a
-	// single line — every social group's chip row keeps wrapping.
+	// single line - every social group's chip row keeps wrapping.
 	it("every social group's chip row stays a flex-wrap gap-2 row", () => {
 		const { container } = render(<FindMeSection />);
 		const rows = Array.from(
@@ -118,7 +118,7 @@ describe("FindMeSection directory", () => {
 });
 
 describe("FindMeSection carousel", () => {
-	// Asserts PRESENCE of one card per YOUTUBE_SHORTS entry, not visibility —
+	// Asserts PRESENCE of one card per YOUTUBE_SHORTS entry, not visibility -
 	// only 3 cards are visible at a time (CSS clipping via the rail's
 	// hidden-overflow viewport), which is a manual/visual concern this test
 	// does not cover.
@@ -267,7 +267,7 @@ describe("FindMeSection carousel", () => {
 	});
 
 	// The isNight-prop-driven scrollbar night tests that used to live here
-	// were removed alongside the chip ones above — see the geometry-driven
+	// were removed alongside the chip ones above - see the geometry-driven
 	// "FindMeSection whole-section day/night freeze" describe block below.
 
 	it("focus on a card anchor neutralizes the browser's forced scroll on the hidden-overflow rail", () => {
@@ -443,8 +443,8 @@ describe("ShortsCarousel card treatment", () => {
 
 // v4 whole-section day/night freeze: FindMeSection no longer takes an
 // isNight prop. Instead, its own SectionTitle measures the SECTION root
-// (#socials) once at mount, and every night-dependent bit inside — the
-// heading, every chip, and the scrollbar indicator — must all agree with
+// (#socials) once at mount, and every night-dependent bit inside - the
+// heading, every chip, and the scrollbar indicator - must all agree with
 // that single section-level phase, even when adversarially given a
 // DIFFERENT rect on their own wrapper.
 describe("FindMeSection whole-section day/night freeze", () => {
@@ -481,7 +481,7 @@ describe("FindMeSection whole-section day/night freeze", () => {
 
 	// FM-N2: adversarial title-vs-section split, proving the heading follows
 	// the SECTION's frozen phase, not its own (title wrapper's) rect.
-	it("night side: section is night, title's own default rect is far-day — heading still follows the section (night)", () => {
+	it("night side: section is night, title's own default rect is far-day - heading still follows the section (night)", () => {
 		const restore = stubSectionGeometry({
 			scrollHeight: 10000,
 			innerHeight: 800,
@@ -499,9 +499,9 @@ describe("FindMeSection whole-section day/night freeze", () => {
 
 	// centerY(#socials) = 50 + 100/2 = 100; (100-400)/9200 < 0 → clamp01 → 0 (day).
 	// centerY(default/title) = 5860 + 800/2 = 6260; (6260-400)/9200 ≈ 0.637 ≥ 0.55
-	// (night) — so the title's OWN rect would say night, but the section says
+	// (night) - so the title's OWN rect would say night, but the section says
 	// day; the heading must still follow the section.
-	it("day side: section is day, title's own default rect is far-night — heading still follows the section (day)", () => {
+	it("day side: section is day, title's own default rect is far-night - heading still follows the section (day)", () => {
 		const restore = stubSectionGeometry({
 			scrollHeight: 10000,
 			innerHeight: 800,
@@ -517,7 +517,7 @@ describe("FindMeSection whole-section day/night freeze", () => {
 		restore();
 	});
 
-	// FM-N3: whole-section DAY consistency — no --night class anywhere.
+	// FM-N3: whole-section DAY consistency - no --night class anywhere.
 	it("uniform day geometry: no --night class anywhere, heading is text-slate-900", () => {
 		const restore = stubSectionGeometry({
 			scrollHeight: 10000,

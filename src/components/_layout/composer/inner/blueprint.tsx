@@ -3,12 +3,12 @@ import { TOPICS } from "../../../../data/topics";
 import { DENSITY_MAXW } from "./shared";
 
 /*
- * Inner: blueprint — "drafting sheet."
+ * Inner: blueprint - "drafting sheet."
  *
  * A DARK technical drawing is the frame: a grid on a tinted sheet, a title-block
  * row (fig. / scale), the heading drafted in technical mono/ink with a
  * tick-capped dimension line beneath it. The topic's REAL body (the shared light
- * plate) is FRAMED in the drawing area as the drawn artifact — dark drafting
+ * plate) is FRAMED in the drawing area as the drawn artifact - dark drafting
  * chrome around the light content card. Signature toggle (`grid`) = the grid +
  * dimension ticks overlay; `paper` recolors the sheet + ink inline.
  */
@@ -46,7 +46,7 @@ export function BlueprintCluster({
 						className="font-mono text-[10px] uppercase tracking-[0.3em]"
 						style={{ color: paper.line }}
 					>
-						fig. {String(index + 1).padStart(2, "0")} — rev. A
+						fig. {String(index + 1).padStart(2, "0")} - rev. A
 					</span>
 					<span
 						className="font-mono text-[10px] uppercase tracking-[0.3em]"

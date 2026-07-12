@@ -115,7 +115,7 @@ export function PanelHost({
 
 	// Click-out: the .panel-surface is a transparent full-viewport scroller, so a
 	// click landing on the scroller itself (the empty landscape around the frosted
-	// column, not the column content) dismisses — re-providing the click-outside
+	// column, not the column content) dismisses - re-providing the click-outside
 	// the non-modal dialog lost with the UA backdrop.
 	const onSurfaceClick = (e: React.MouseEvent<HTMLDialogElement>) => {
 		if (e.target === e.currentTarget) e.currentTarget.close();
@@ -128,7 +128,7 @@ export function PanelHost({
 			if (openPanel === key && !dialog.open) {
 				// The dev sky panel stays modal (it's a tool overlay). The detail
 				// panels open NON-modally so they composite in normal flow in the
-				// same stacking context as the -z-10 dived scene — a modal dialog
+				// same stacking context as the -z-10 dived scene - a modal dialog
 				// would paint in the browser top layer above the landscape and the
 				// frosted surface would reveal the UA backdrop, not the dived world.
 				if (key === "sky") {
@@ -145,7 +145,7 @@ export function PanelHost({
 
 	// Inert the nav and main-shell while a detail panel is open (non-modal) so
 	// background content is removed from both tab order and AT virtual-cursor.
-	// Sky panel stays modal (showModal provides its own inertness) — skip it.
+	// Sky panel stays modal (showModal provides its own inertness) - skip it.
 	useEffect(() => {
 		const isDetailOpen = openPanel !== null && openPanel !== "sky";
 		if (navRef?.current) navRef.current.inert = isDetailOpen;
@@ -222,7 +222,7 @@ export function PanelHost({
 	// Subtle scroll-parallax: while a detail panel is open, wire the panel-surface
 	// scroller's scrollTop to a CSS var on :root that the .dive-scene reads for a
 	// gentle drift (see .dive-scene `translate` in styles.css). It does NOT feed
-	// scrollProgress, so the sky/time-of-day stays frozen — only the held scene
+	// scrollProgress, so the sky/time-of-day stays frozen - only the held scene
 	// drifts. Reduced-motion is honored in CSS (translate pinned to none), so the
 	// var write is inert there; we still reset to 0 on close.
 	useEffect(() => {
@@ -257,7 +257,7 @@ export function PanelHost({
 					window.location.pathname !== "/"
 				) {
 					// URL still says THIS panel should be open, so the close came from
-					// user action (ESC/backdrop) — navigate home. If urlPanelRef has
+					// user action (ESC/backdrop) - navigate home. If urlPanelRef has
 					// moved to another panel (or null), the close was URL-driven and we
 					// must not clobber the incoming URL.
 					navigate({ to: "/", resetScroll: false });

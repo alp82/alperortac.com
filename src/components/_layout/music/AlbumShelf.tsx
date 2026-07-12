@@ -4,7 +4,7 @@ import type { Album } from "../../../data/personal";
 import { useReducedMotion } from "../dive/useReducedMotion";
 import { useAlbumRotation } from "./useAlbumRotation";
 
-// Rotation cadence — passed to the hook AND used as the countdown ring's
+// Rotation cadence - passed to the hook AND used as the countdown ring's
 // animation duration, so ring and cadence can never drift.
 const INTERVAL_MS = 2800;
 
@@ -17,7 +17,7 @@ const GHOST_BUTTON =
 
 // `active` is the panel-open signal threaded from PanelHost. PanelHost
 // renders every personal dialog at app start, so mount-time work would fire
-// during landing-page first paint — everything here is gated on activation.
+// during landing-page first paint - everything here is gated on activation.
 export function AlbumShelf({
 	albums,
 	active,
@@ -38,7 +38,7 @@ export function AlbumShelf({
 		},
 	);
 
-	// Preload all covers on FIRST activation only — never during landing-page
+	// Preload all covers on FIRST activation only - never during landing-page
 	// first paint, never re-fired on re-open (the browser cache holds them).
 	// This caches the off-shelf covers before their first swap so the flick-in
 	// never reveals an empty frame.
@@ -63,7 +63,7 @@ export function AlbumShelf({
 		>
 			<ul className="grid grid-cols-3 sm:grid-cols-4 gap-4">
 				{visible.map((album, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: key is the grid position by design — the element must persist across the content swap so each flicker phase's animation plays in place.
+					// biome-ignore lint/suspicious/noArrayIndexKey: key is the grid position by design - the element must persist across the content swap so each flicker phase's animation plays in place.
 					<li key={i}>
 						<div className="aspect-square rounded-md overflow-hidden ring-1 ring-white/10 transition duration-200 hover:scale-[1.03] hover:ring-white/30 hover:shadow-[0_0_20px_rgba(238,242,255,0.25)] motion-reduce:transform-none">
 							{/* Inner div carries the flick classes so the box-shadow-animating
@@ -86,7 +86,7 @@ export function AlbumShelf({
 							</div>
 						</div>
 						<p className="mt-2 text-xs opacity-80 leading-snug">
-							{album.artist} — {album.album}
+							{album.artist} - {album.album}
 						</p>
 					</li>
 				))}

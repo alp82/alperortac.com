@@ -11,14 +11,14 @@ import { FooterContact } from "../FooterContact";
 describe("FooterContact render", () => {
 	afterEach(cleanup);
 
-	// TC-01 — exactly one textarea and one anchor in the container
+	// TC-01 - exactly one textarea and one anchor in the container
 	it("renders exactly one textarea and one anchor", () => {
 		const { container } = render(<FooterContact />);
 		expect(container.querySelectorAll("textarea").length).toBe(1);
 		expect(container.querySelectorAll("a").length).toBe(1);
 	});
 
-	// TC-02 — textarea has id="contact-message" and the expected placeholder
+	// TC-02 - textarea has id="contact-message" and the expected placeholder
 	it('textarea has id "contact-message" and the placeholder constant', () => {
 		const { container } = render(<FooterContact />);
 		const textarea = container.querySelector("textarea")!;
@@ -26,7 +26,7 @@ describe("FooterContact render", () => {
 		expect(textarea.getAttribute("placeholder")).toBe(CONTACT_PLACEHOLDER);
 	});
 
-	// TC-03 — label[for="contact-message"] is present and has sr-only class
+	// TC-03 - label[for="contact-message"] is present and has sr-only class
 	it('has a label associated with the textarea that carries "sr-only"', () => {
 		const { container } = render(<FooterContact />);
 		const label = container.querySelector('label[for="contact-message"]');
@@ -34,14 +34,14 @@ describe("FooterContact render", () => {
 		expect(label!.className).toContain("sr-only");
 	});
 
-	// TC-04 — anchor text includes "Email me"
+	// TC-04 - anchor text includes "Email me"
 	it('anchor textContent includes "Email me"', () => {
 		const { container } = render(<FooterContact />);
 		const anchor = container.querySelector("a")!;
 		expect(anchor.textContent).toContain("Email me");
 	});
 
-	// TC-05 — initial anchor href equals the base mailto with empty body
+	// TC-05 - initial anchor href equals the base mailto with empty body
 	it("initial anchor href is the base mailto with empty body", () => {
 		const { container } = render(<FooterContact />);
 		const anchor = container.querySelector("a")!;
@@ -49,7 +49,7 @@ describe("FooterContact render", () => {
 		expect(anchor.getAttribute("href")).toBe(expected);
 	});
 
-	// TC-06 — after typing "Hello" body segment updates
+	// TC-06 - after typing "Hello" body segment updates
 	it('after typing "Hello" the anchor href ends with "body=Hello"', () => {
 		const { container } = render(<FooterContact />);
 		const textarea = container.querySelector("textarea")!;
@@ -58,7 +58,7 @@ describe("FooterContact render", () => {
 		expect(href.endsWith("body=Hello")).toBe(true);
 	});
 
-	// TC-07 — special characters are percent-encoded
+	// TC-07 - special characters are percent-encoded
 	it('after typing "Hello world & more" the body is percent-encoded', () => {
 		const { container } = render(<FooterContact />);
 		const textarea = container.querySelector("textarea")!;
@@ -67,7 +67,7 @@ describe("FooterContact render", () => {
 		expect(href.endsWith("body=Hello%20world%20%26%20more")).toBe(true);
 	});
 
-	// TC-08 — subject is preserved after a body change
+	// TC-08 - subject is preserved after a body change
 	it("subject segment is still present after a body change", () => {
 		const { container } = render(<FooterContact />);
 		const textarea = container.querySelector("textarea")!;
@@ -76,7 +76,7 @@ describe("FooterContact render", () => {
 		expect(href).toContain(`subject=${encodeURIComponent(CONTACT_SUBJECT)}`);
 	});
 
-	// TC-09 — second change replaces first; no residue of prior value
+	// TC-09 - second change replaces first; no residue of prior value
 	it("second change fully replaces the first value in the body", () => {
 		const { container } = render(<FooterContact />);
 		const textarea = container.querySelector("textarea")!;
@@ -89,7 +89,7 @@ describe("FooterContact render", () => {
 		expect(href).not.toContain("first");
 	});
 
-	// TC-10 — clearing the textarea resets body to empty
+	// TC-10 - clearing the textarea resets body to empty
 	it("clearing the textarea resets the body segment to empty", () => {
 		const { container } = render(<FooterContact />);
 		const textarea = container.querySelector("textarea")!;
@@ -99,7 +99,7 @@ describe("FooterContact render", () => {
 		expect(href.endsWith("body=")).toBe(true);
 	});
 
-	// TC-11 — fallback address is visible in textContent
+	// TC-11 - fallback address is visible in textContent
 	it("rendered textContent includes the CONTACT_EMAIL fallback address", () => {
 		const { container } = render(<FooterContact />);
 		expect(container.textContent).toContain(CONTACT_EMAIL);

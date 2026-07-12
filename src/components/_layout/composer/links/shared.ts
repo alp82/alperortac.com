@@ -24,15 +24,15 @@ export const VBOX_H = 300;
  *
  * useDrawIn() returns a ref + a `shown` flag that flips true once the seam
  * scrolls into view (when `enabled`). Connectors feed it into a top→bottom
- * reveal — stroke-dash along the vertical path, or a clip-path that wipes down
+ * reveal - stroke-dash along the vertical path, or a clip-path that wipes down
  * (revealStyle below). Respects prefers-reduced-motion (jumps straight to
  * shown). Ships as part of the composer subsystem (see types.ts).
  *
- * Reveal trigger: rails are now 90–150vh — TALLER than the viewport — so a
+ * Reveal trigger: rails are now 90–150vh - TALLER than the viewport - so a
  * "40% of the rail visible" threshold could never be met and the observer would
  * never fire (the connector would stay hidden forever). Instead we fire on mere
  * ENTRY with threshold 0 + a bottom rootMargin, so the reveal trips as soon as
- * the rail's top edge climbs ~20% up from the viewport bottom — reliable no
+ * the rail's top edge climbs ~20% up from the viewport bottom - reliable no
  * matter how tall the rail is.
  */
 
@@ -79,7 +79,7 @@ export function useDrawIn(enabled: boolean) {
  * Measures the rail SVG's real rendered box and returns a viewBox HEIGHT that
  * matches its true aspect ratio (width is fixed at SEAM_VIEWBOX_W = 100). With
  * that height fed to a `0 0 100 <viewBoxH>` viewBox under
- * preserveAspectRatio="none", x and y scale by the SAME factor — so DISCRETE
+ * preserveAspectRatio="none", x and y scale by the SAME factor - so DISCRETE
  * elements (round star/dot nodes, dashes) keep their shape and constant spacing
  * no matter how tall the rail grows: more dashes, not longer dashes; round
  * stars stay round. Continuous fills (ribbons, the strata core) don't need this
@@ -119,7 +119,7 @@ export function useAspectViewBox(
 /**
  * Vertical fade so a connector's TOP and BOTTOM ends melt into the topics above
  * and below instead of hard-stopping. Applied as both mask + -webkit-mask on
- * the rail wrapper (see .cmp-seam-rail) — kept here so connectors that fade an
+ * the rail wrapper (see .cmp-seam-rail) - kept here so connectors that fade an
  * inner element (e.g. river-ribbon's highlight) can reuse the exact stops.
  */
 export const VERTICAL_FADE_MASK =
