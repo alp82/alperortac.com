@@ -1006,3 +1006,55 @@ body.panel-open nav {
 		stroke-width: 5;
 	}
 }
+
+/* ---- Music album shelf flicker ----
+   Two-phase swap on the AlbumShelf cells: a stepped flick-out like a failing
+   light, then a strobing re-ignite fade-in (modeled on the alfredo landing
+   h1 flicker). These classes animate box-shadow, so they run ONLY on the
+   inner element of a cell — never on the ring-bearing wrapper (Tailwind
+   rings are box-shadow-based and would be stomped mid-strobe). */
+@keyframes album-flick-out {
+	0% { opacity: 1; }
+	30% { opacity: 0.15; }
+	55% { opacity: 0.8; filter: blur(1px); }
+	100% { opacity: 0; filter: blur(3px); }
+}
+@keyframes album-flick-in {
+	0% { opacity: 0; filter: blur(4px); box-shadow: 0 0 24px rgba(238, 242, 255, 0.45); }
+	25% { opacity: 0.9; box-shadow: 0 0 12px rgba(238, 242, 255, 0.25); }
+	40% { opacity: 0.2; }
+	60% { opacity: 1; box-shadow: 0 0 8px rgba(238, 242, 255, 0.15); }
+	75% { opacity: 0.55; }
+	100% { opacity: 1; filter: none; box-shadow: none; }
+}
+/* steps(3, jump-none) applies PER KEYFRAME SEGMENT, not across the whole
+   animation — the extra choppiness is intended (failing-light character);
+   fallback if it reads busy: bake the stepping into explicit keyframe
+   percentages with linear timing. */
+.album-flick-out {
+	/* 200ms = outMs default in useAlbumRotation.ts — keep in sync */
+	animation: album-flick-out 200ms steps(3, jump-none) both;
+}
+.album-flick-in {
+	/* 340ms = inMs default in useAlbumRotation.ts — keep in sync */
+	animation: album-flick-in 340ms linear both;
+}
+@keyframes album-ring {
+	from { stroke-dashoffset: 1; }
+	to { stroke-dashoffset: 0; }
+}
+.album-ring-fill {
+	/* duration is set inline from intervalMs in AlbumShelf.tsx — keep in sync */
+	stroke-dasharray: 1;
+	animation: album-ring linear forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+	.album-flick-out,
+	.album-flick-in {
+		animation: none;
+	}
+	/* rotation is paused under reduced motion — the ring must not imply otherwise */
+	.album-ring-fill {
+		animation: none;
+	}
+}

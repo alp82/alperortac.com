@@ -1,4 +1,5 @@
-import type { Personal } from "../../data/personal";
+import { ALBUMS, type Personal } from "../../data/personal";
+import { AlbumShelf } from "./music/AlbumShelf";
 import { SubpageClose } from "./SubpageClose";
 
 export const getPersonalPanelTitleId = (slug: string) =>
@@ -6,11 +7,11 @@ export const getPersonalPanelTitleId = (slug: string) =>
 
 type PersonalPanelProps = {
 	item: Personal;
-	teaser: string;
+	open: boolean;
 	onClose: () => void;
 };
 
-export function PersonalPanel({ item, teaser, onClose }: PersonalPanelProps) {
+export function PersonalPanel({ item, open, onClose }: PersonalPanelProps) {
 	const Icon = item.Icon;
 	const titleId = getPersonalPanelTitleId(item.slug);
 
@@ -35,28 +36,16 @@ export function PersonalPanel({ item, teaser, onClose }: PersonalPanelProps) {
 						{item.title}
 					</h2>
 
-					<PlaceholderBanner />
-
-					<p
-						className="mt-6 text-lg leading-relaxed"
-						style={{ color: item.panelFg }}
-					>
-						{teaser}
-					</p>
+					{item.slug === "music" && (
+						<>
+							<p className="mt-6 text-lg leading-relaxed">
+								Some of my all-time and current favorites include:
+							</p>
+							<AlbumShelf albums={ALBUMS} active={open} />
+						</>
+					)}
 				</div>
 			</div>
 		</>
-	);
-}
-
-export function PlaceholderBanner({
-	text = "PLACEHOLDER — content coming soon",
-}: {
-	text?: string;
-}) {
-	return (
-		<div className="mb-10 bg-yellow-300 text-slate-900 border-4 border-slate-900 p-4 font-black uppercase tracking-widest text-xs md:text-sm shadow-[6px_6px_0px_0px_rgba(255,255,255,0.25)]">
-			{text}
-		</div>
 	);
 }

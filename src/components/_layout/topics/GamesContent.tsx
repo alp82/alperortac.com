@@ -1,13 +1,6 @@
-import { SiGithub } from "@icons-pack/react-simple-icons";
-import {
-	ExternalCard,
-	InlineLink,
-	Paragraph,
-	type TopicContentProps,
-	TriggerCard,
-} from "./primitives";
+import { InlineLink, Paragraph, type TopicContentProps } from "./primitives";
 
-export function GamesContent({ lastTriggerRef, isNight }: TopicContentProps) {
+export function GamesContent(_: TopicContentProps) {
 	return (
 		<div className="space-y-5">
 			<Paragraph>
@@ -25,19 +18,16 @@ export function GamesContent({ lastTriggerRef, isNight }: TopicContentProps) {
 				.
 			</Paragraph>
 
-			<div className="space-y-3">
-				<ExternalCard
-					href="https://github.com/alp82/manaschmiede"
-					label="manaschmiede"
-					Icon={SiGithub}
-					brand="#181717"
-					isNight={isNight}
-				/>
-				<TriggerCard
-					trigger={{ kind: "project", slug: "manaschmiede" }}
-					lastTriggerRef={lastTriggerRef}
-				/>
-			</div>
+			<Paragraph>
+				I'm in the exploration phase to build the very first massive multiplayer
+				coop game. you build a pyramid together with thousands of other players.
+				it might it turn out that you were part of something very different.
+			</Paragraph>
+
+			<Paragraph>
+				currently playing Witcher 3 (yep i never finished it) and expedition 33.
+				next up is probably Baldurs gate 3
+			</Paragraph>
 		</div>
 	);
 }

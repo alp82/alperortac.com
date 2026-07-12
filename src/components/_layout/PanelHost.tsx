@@ -9,7 +9,7 @@ import {
 	type PanelKey,
 } from "../../data/sections";
 import { STORIES, type StorySlug } from "../../data/stories";
-import { type PersonalSlug, TOPICS } from "../../data/topics";
+import type { PersonalSlug } from "../../data/topics";
 import { CAREER_PANEL_TITLE_ID, CareerPanel } from "../CareerPanel";
 import { EarlyDaysPanel, getStoryPanelTitleId } from "../EarlyDaysPanel";
 import { getProjectPanelTitleId, ProjectPanel } from "../ProjectPanel";
@@ -25,18 +25,6 @@ const PERSONAL_ROUTE_TO_SLUG: Record<string, PersonalSlug> = Object.fromEntries(
 const STORY_ROUTE_TO_SLUG: Record<string, StorySlug> = Object.fromEntries(
 	STORIES.map((s) => [`/_layout/${s.slug}`, s.slug]),
 ) as Record<string, StorySlug>;
-
-// Build a lookup from PersonalSlug → teaser using TOPICS.
-// Personal-triggering topics always carry a teaser; the `?? ""` is a TS
-// formality since Topic.teaser is optional for promoted topics (which never
-// trigger personals).
-const PERSONAL_TEASER: Record<string, string> = Object.fromEntries(
-	TOPICS.flatMap((t) =>
-		t.triggers
-			.filter((tr) => tr.kind === "personal")
-			.map((tr) => [tr.slug, t.teaser ?? ""]),
-	),
-);
 
 function deriveUrlPanel(
 	matches: ReturnType<typeof useMatches>,
@@ -396,7 +384,7 @@ export function PanelHost({
 				>
 					<PersonalPanel
 						item={item}
-						teaser={PERSONAL_TEASER[item.slug] ?? ""}
+						open={openPanel === item.slug}
 						onClose={() => panelRefs[item.slug].current?.close()}
 					/>
 				</dialog>

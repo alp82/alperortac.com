@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Project } from "../../data/projects";
 import { ProjectPanel } from "../ProjectPanel";
@@ -99,5 +99,64 @@ describe("ProjectPanel video lazy-mount contract", () => {
 		} finally {
 			window.matchMedia = originalMatchMedia;
 		}
+	});
+});
+
+describe("ProjectPanel extraSection / extraLinks", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	const extraSection = {
+		heading: "How it works",
+		body: "Assumptions are not allowed, therefore every sessions starts with confirming my intent and interviewing me to actually understand the task at hand. Ideally, every goal is programmatically verifiable to guarantee success once it's done.",
+	};
+
+	it("renders extraSection heading and verbatim body after Outcome", () => {
+		const { container } = render(
+			<ProjectPanel
+				project={{ ...mockVideoProject, extraSection }}
+				open={true}
+				onClose={vi.fn()}
+			/>,
+		);
+		const headings = Array.from(container.querySelectorAll("h3")).map((h) =>
+			h.textContent?.trim(),
+		);
+		const outcomeIndex = headings.indexOf("Outcome");
+		const extraIndex = headings.indexOf("How it works");
+		expect(outcomeIndex).toBeGreaterThanOrEqual(0);
+		expect(extraIndex).toBe(outcomeIndex + 1);
+		expect(screen.getByText(extraSection.body)).not.toBeNull();
+	});
+
+	it("renders extraLinks as external anchors with target and rel", () => {
+		render(
+			<ProjectPanel
+				project={{
+					...mockVideoProject,
+					extraLinks: [
+						{ label: "Discord", href: "https://discord.gg/5y4fpyahaF" },
+					],
+				}}
+				open={true}
+				onClose={vi.fn()}
+			/>,
+		);
+		const link = screen.getByRole("link", { name: /Discord/i });
+		expect(link.getAttribute("href")).toBe("https://discord.gg/5y4fpyahaF");
+		expect(link.getAttribute("target")).toBe("_blank");
+		expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+	});
+
+	it("renders neither extraSection nor extraLinks when the fields are omitted", () => {
+		const { container } = render(
+			<ProjectPanel project={mockVideoProject} open={true} onClose={vi.fn()} />,
+		);
+		const headings = Array.from(container.querySelectorAll("h3")).map((h) =>
+			h.textContent?.trim(),
+		);
+		expect(headings).not.toContain("How it works");
+		expect(screen.queryByRole("link", { name: /Discord/i })).toBeNull();
 	});
 });

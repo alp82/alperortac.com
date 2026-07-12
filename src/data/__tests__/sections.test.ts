@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TOPIC_CONTENTS } from "../../components/_layout/topics/registry";
 import { MINIMAP_BOUNDARIES, PANEL_SIDES, SECTION_IDS } from "../sections";
-import { TOPICS } from "../topics";
+import { PANEL_KEY_TO_TOPIC_ID, TOPICS } from "../topics";
 
 describe("sections topology", () => {
 	it("MINIMAP_BOUNDARIES match SECTION_IDS for {socials, craft, contact}", () => {
@@ -61,6 +61,12 @@ describe("sections topology", () => {
 				`Missing TOPIC_CONTENTS entry for topic "${t.id}"`,
 			).toHaveProperty(t.id);
 		}
+	});
+
+	// Pin: the manaschmiede trigger moved Games -> Family, and the derived
+	// reverse lookup must repark direct /projects/manaschmiede loads at Family.
+	it('PANEL_KEY_TO_TOPIC_ID parks manaschmiede at "family"', () => {
+		expect(PANEL_KEY_TO_TOPIC_ID.manaschmiede).toBe("family");
 	});
 
 	// TC-11 — SECTION_IDS must not carry a "footer" key after the footer refactor

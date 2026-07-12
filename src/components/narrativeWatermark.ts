@@ -51,7 +51,7 @@ export const SUBPAGE_WORDS: Partial<
 export const LONGEST = WORDS.reduce((m, w) => Math.max(m, w.text.length), 0); // 7
 
 export const WM = {
-	opacity: 0.2,
+	opacity: 0.07,
 	padTopVh: 8,
 	padBottomVh: 8,
 	travelVh: 14,

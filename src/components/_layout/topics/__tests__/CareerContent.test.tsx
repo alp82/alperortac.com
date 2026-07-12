@@ -1,125 +1,130 @@
 // @vitest-environment jsdom
 
 /*
- * CareerContent RED tests — written before the timeline implementation.
+ * CareerContent tests — restored contract.
  *
- * The current component renders intro prose + a TriggerCard.  TriggerCard
- * calls useNavigate() unconditionally, so we must stub the router to prevent
- * a crash on render.  Once the implementation removes TriggerCard the stub
- * becomes a harmless no-op.
+ * The band contract is: the two-paragraph CAREER_TEASER prose (Paragraph
+ * primitive, CodingContent pattern) followed by a "See the work history"
+ * TriggerCard (trigger.kind "career") that dives to the CareerPanel
+ * subpage. There is no highlight strip and no timeline — the 7-entry
+ * work-history timeline lives only on the CareerPanel subpage (see
+ * CareerPanel.test.tsx).
  *
- * Timeline-content cases (TC-02 through TC-05, TC-09, TC-10) MUST fail until
- * the <ol> timeline is implemented.  TC-01, TC-06, TC-07, TC-08 should pass
- * against the current code.
+ * CareerContent uses TriggerCard which calls useNavigate() unconditionally,
+ * so we must stub the router to prevent a crash on render — mirroring the
+ * GamesContent test pattern.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { CAREER_TIMELINE } from "../../../../data/career";
-
-vi.mock("@tanstack/react-router", () => ({
-	useNavigate: () => vi.fn(),
-}));
+const navigate = vi.hoisted(() => vi.fn());
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
 import { CareerContent } from "../CareerContent";
 
-const sharedRef = createRef<HTMLElement | null>();
 const sharedProps = {
-	lastTriggerRef: sharedRef,
-	isNight: false,
-	accent: "#cbd5e1",
+	lastTriggerRef: createRef<HTMLElement | null>(),
 } as const;
 
 describe("CareerContent", () => {
 	afterEach(() => {
 		cleanup();
+		navigate.mockClear();
 	});
 
-	// TC-01 — Intro prose present
-	it("renders the intro prose paragraph", () => {
-		render(<CareerContent {...sharedProps} />);
-		expect(screen.getByText(/Professionally, I worked/)).not.toBeNull();
-	});
-
-	// TC-02 — Timeline <ol> has exactly CAREER_TIMELINE.length direct <li> items
-	it(`renders an <ol> with exactly ${CAREER_TIMELINE.length} direct <li> children`, () => {
+	// TC-CC-01 — no timeline <ol> anywhere in output
+	it("does not render an <ol> timeline", () => {
 		const { container } = render(<CareerContent {...sharedProps} />);
-		const ol = container.querySelector("ol");
-		expect(ol).not.toBeNull();
-		const directLis = ol!.querySelectorAll(":scope > li");
-		expect(directLis.length).toBe(CAREER_TIMELINE.length);
+		expect(container.querySelector("ol")).toBeNull();
 	});
 
-	// TC-03 — All company strings render
-	it.each(
-		CAREER_TIMELINE.map((entry) => [entry.company]),
-	)("renders company %s", (company) => {
-		render(<CareerContent {...sharedProps} />);
-		expect(screen.getByText(company)).not.toBeNull();
-	});
-
-	// TC-04 — Role "Lead Engineer" renders (DOM text, not CSS-uppercased)
-	it('renders the role "Lead Engineer"', () => {
-		render(<CareerContent {...sharedProps} />);
-		expect(screen.getByText("Lead Engineer")).not.toBeNull();
-	});
-
-	// TC-05 — Year "Since 2021" renders
-	it('renders the year "Since 2021"', () => {
-		render(<CareerContent {...sharedProps} />);
-		expect(screen.getByText("Since 2021")).not.toBeNull();
-	});
-
-	// TC-06 — Trigger button absent
-	it("does not render the career trigger button", () => {
-		render(<CareerContent {...sharedProps} />);
-		expect(screen.queryByText(/See the work history/i)).toBeNull();
-	});
-
-	// TC-07 — No example placeholder text
-	it("does not render placeholder text containing Tech Innovators", () => {
-		render(<CareerContent {...sharedProps} />);
-		expect(screen.queryByText(/Tech Innovators/i)).toBeNull();
-	});
-
-	// TC-08 — Night-mode smoke test
-	it("renders without throwing in night mode and retains intro prose", () => {
-		render(
-			<CareerContent
-				lastTriggerRef={createRef<HTMLElement | null>()}
-				isNight={true}
-				accent="#1e293b"
-			/>,
-		);
-		expect(screen.getByText(/Professionally, I worked/)).not.toBeNull();
-	});
-
-	// TC-09 — First entry's first stack tag renders
-	it(`renders the first stack tag "${CAREER_TIMELINE[0]!.stack[0]!}" from the first entry`, () => {
-		render(<CareerContent {...sharedProps} />);
-		expect(screen.getByText(CAREER_TIMELINE[0]!.stack[0]!)).not.toBeNull();
-	});
-
-	// TC-10 — First entry description renders
-	it('renders the description "Dynamic Sports Videos for Programmatic & Social."', () => {
+	// TC-CC-03a — first teaser paragraph's opening phrase renders
+	it("renders the career teaser's first paragraph opening phrase", () => {
 		render(<CareerContent {...sharedProps} />);
 		expect(
-			screen.getByText("Dynamic Sports Videos for Programmatic & Social."),
+			screen.getByText(/Professionally, I worked both in small startups/i),
 		).not.toBeNull();
 	});
 
-	// TC-11 — accent prop reaches timeline chip/dot as inline style
-	it("propagates the accent color to at least one rendered element as an inline style", () => {
-		const { container } = render(
-			<CareerContent
-				lastTriggerRef={createRef<HTMLElement | null>()}
-				isNight={false}
-				accent="rgb(7, 8, 9)"
-			/>,
-		);
-		const el = container.querySelector('[style*="rgb(7, 8, 9)"]');
-		expect(el).not.toBeNull();
+	// TC-CC-03b — second teaser paragraph's opening phrase renders
+	it("renders the career teaser's second paragraph opening phrase", () => {
+		render(<CareerContent {...sharedProps} />);
+		expect(screen.getByText(/I'm a freelance consultant/i)).not.toBeNull();
+	});
+
+	// TC-CC-04 — non-highlight companies do not leak into the band
+	it.each([
+		["Spirable"],
+		["enercast"],
+		["Joulex"],
+		["miobambino"],
+	])("does not render the non-highlight company %s", (company) => {
+		render(<CareerContent {...sharedProps} />);
+		expect(screen.queryByText(new RegExp(company))).toBeNull();
+	});
+
+	// TC-CC-05 — no stack chips
+	it('does not render the stack chip "Python"', () => {
+		render(<CareerContent {...sharedProps} />);
+		expect(screen.queryByText("Python")).toBeNull();
+	});
+
+	// TC-CC-06 — no year metadata
+	it('does not render the year "Since 2021"', () => {
+		render(<CareerContent {...sharedProps} />);
+		expect(screen.queryByText("Since 2021")).toBeNull();
+	});
+
+	// no highlight-strip <ul>, no strip labels on the band
+	it("does not render a highlight strip <ul>", () => {
+		const { container } = render(<CareerContent {...sharedProps} />);
+		expect(container.querySelector("ul")).toBeNull();
+	});
+
+	it.each([
+		["Genius Sports — Lead Engineer"],
+		["Cisco — Frontend Engineer"],
+		["Acama Systems — Founder"],
+	])('does not render the strip label "%s"', (label) => {
+		render(<CareerContent {...sharedProps} />);
+		expect(screen.queryByText(label)).toBeNull();
+	});
+
+	// TC-CC-13 — a single "See the work history" TriggerCard button renders
+	it('renders exactly one "See the work history" trigger button', () => {
+		render(<CareerContent {...sharedProps} />);
+		const buttons = screen.getAllByRole("button", {
+			name: /see the work history/i,
+		});
+		expect(buttons.length).toBe(1);
+	});
+
+	// TC-CC-14 — the trigger button appears after the second teaser paragraph in DOM order
+	it("renders the trigger button after the second teaser paragraph in document order", () => {
+		render(<CareerContent {...sharedProps} />);
+		const secondParagraph = screen.getByText(/I'm a freelance consultant/i);
+		const trigger = screen.getByRole("button", {
+			name: /see the work history/i,
+		});
+		// DOCUMENT_POSITION_FOLLOWING (4) set means `trigger` follows the paragraph.
+		const position = secondParagraph.compareDocumentPosition(trigger);
+		expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	});
+
+	// TC-CC-16 — clicking the trigger button navigates to /career and pins the ref
+	it('clicking "see the work history" navigates to /career with resetScroll false and sets lastTriggerRef', () => {
+		const ref = createRef<HTMLElement | null>();
+		render(<CareerContent {...sharedProps} lastTriggerRef={ref} />);
+		const button = screen.getByRole("button", {
+			name: /see the work history/i,
+		});
+		fireEvent.click(button);
+		expect(navigate).toHaveBeenCalledWith({
+			to: "/career",
+			resetScroll: false,
+		});
+		expect(ref.current).toBe(button);
 	});
 });

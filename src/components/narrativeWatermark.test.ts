@@ -51,7 +51,7 @@ describe("Constants", () => {
 	});
 
 	it("TC-C-03: WM constant fields match the locked spec", () => {
-		expect(WM.opacity).toBe(0.2);
+		expect(WM.opacity).toBe(0.07);
 		expect(WM.padTopVh).toBe(8);
 		expect(WM.padBottomVh).toBe(8);
 		expect(WM.travelVh).toBe(14);
@@ -149,8 +149,8 @@ describe("wordHeightPx", () => {
 describe("zoneOpacity", () => {
 	const zone: Zone = { c: 0.5, w: 0.2, edge: "left" };
 
-	it("TC-Z-01: peak at center → maxOpacity (default 0.20)", () => {
-		expect(zoneOpacity(0.5, zone)).toBe(0.2);
+	it("TC-Z-01: peak at center → maxOpacity (default 0.07)", () => {
+		expect(zoneOpacity(0.5, zone)).toBe(0.07);
 	});
 
 	it("TC-Z-02: right edge (p=0.7) → 0", () => {
@@ -169,12 +169,12 @@ describe("zoneOpacity", () => {
 		expect(zoneOpacity(0.1, zone)).toBe(0);
 	});
 
-	it("TC-Z-06: mid-slope right (p=0.6) → 0.10", () => {
-		approxEq(zoneOpacity(0.6, zone), 0.1);
+	it("TC-Z-06: mid-slope right (p=0.6) → 0.035", () => {
+		approxEq(zoneOpacity(0.6, zone), 0.035);
 	});
 
-	it("TC-Z-07: mid-slope left (p=0.4) → 0.10", () => {
-		approxEq(zoneOpacity(0.4, zone), 0.1);
+	it("TC-Z-07: mid-slope left (p=0.4) → 0.035", () => {
+		approxEq(zoneOpacity(0.4, zone), 0.035);
 	});
 
 	it("TC-Z-08: symmetry sweep — zoneOpacity(c+d) === zoneOpacity(c-d)", () => {
@@ -191,7 +191,7 @@ describe("zoneOpacity", () => {
 
 	it("TC-Z-10: degenerate w=0 — at center returns maxOpacity; off-center returns 0, no NaN", () => {
 		const degen: Zone = { c: 0.5, w: 0, edge: "left" };
-		expect(zoneOpacity(0.5, degen)).toBe(0.2);
+		expect(zoneOpacity(0.5, degen)).toBe(0.07);
 		const offCenter = zoneOpacity(0.5001, degen);
 		expect(Number.isNaN(offCenter)).toBe(false);
 		expect(offCenter).toBe(0);

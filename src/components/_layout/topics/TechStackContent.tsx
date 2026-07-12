@@ -1,4 +1,15 @@
 import {
+	SiConvex,
+	SiCoolify,
+	SiCratedb,
+	SiGrafana,
+	SiMongodb,
+	SiNamecheap,
+	SiPosthog,
+	SiRedis,
+} from "@icons-pack/react-simple-icons";
+import { Orbit, Wind } from "lucide-react";
+import {
 	BulletList,
 	InlineLink,
 	Paragraph,
@@ -19,17 +30,34 @@ export function TechStackContent({ isNight }: TopicContentProps) {
 
 			<BulletList
 				items={[
-					{ primary: "Coolify", secondary: "to spin up my web apps" },
+					{
+						primary: "Coolify",
+						secondary: "to spin up my web apps",
+						Icon: SiCoolify,
+					},
 					{
 						primary: "Windmill",
 						secondary:
 							"to orchestrate data pipelines (for millions of movies and tv shows)",
+						Icon: Wind,
 					},
-					{ primary: "CrateDB", secondary: "for big data" },
-					{ primary: "Convex", secondary: "for realtime data" },
-					{ primary: "MongoDB", secondary: "for raw data (from scraping)" },
-					{ primary: "Redis", secondary: "for Pub/Sub and caching" },
-					{ primary: "SpacetimeDB", secondary: "for my browser game" },
+					{ primary: "CrateDB", secondary: "for big data", Icon: SiCratedb },
+					{ primary: "Convex", secondary: "for realtime data", Icon: SiConvex },
+					{
+						primary: "MongoDB",
+						secondary: "for raw data (from scraping)",
+						Icon: SiMongodb,
+					},
+					{
+						primary: "Redis",
+						secondary: "for Pub/Sub and caching",
+						Icon: SiRedis,
+					},
+					{
+						primary: "SpacetimeDB",
+						secondary: "for my browser game",
+						Icon: Orbit,
+					},
 				]}
 			/>
 
@@ -37,9 +65,9 @@ export function TechStackContent({ isNight }: TopicContentProps) {
 
 			<BulletList
 				items={[
-					{ primary: "Posthog", secondary: "for analytics" },
-					{ primary: "Grafana", secondary: "for monitoring" },
-					{ primary: "Namecheap", secondary: "for Emails" },
+					{ primary: "Posthog", secondary: "for analytics", Icon: SiPosthog },
+					{ primary: "Grafana", secondary: "for monitoring", Icon: SiGrafana },
+					{ primary: "Namecheap", secondary: "for Emails", Icon: SiNamecheap },
 				]}
 			/>
 

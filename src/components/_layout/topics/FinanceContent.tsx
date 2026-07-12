@@ -12,6 +12,12 @@ export function FinanceContent({ isNight }: TopicContentProps) {
 			</Paragraph>
 
 			<Paragraph>
+				I believe in portfolio diversification. Got some bucks in ETF's, stocks
+				and crypto. I mostly invest in tech because i'm knowlegable in that
+				field, but also in other areas.
+			</Paragraph>
+
+			<Paragraph>
 				Even held a presentation about this topic, but beware - it's in German.
 			</Paragraph>
 

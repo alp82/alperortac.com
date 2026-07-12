@@ -4,6 +4,7 @@ export type CareerEntry = {
 	company: string;
 	desc: string;
 	stack: string[];
+	highlight?: { story: string };
 };
 
 export const CAREER_TIMELINE: CareerEntry[] = [
@@ -13,6 +14,10 @@ export const CAREER_TIMELINE: CareerEntry[] = [
 		company: "Genius Sports — London, UK (Remote from DE)",
 		desc: "Dynamic Sports Videos for Programmatic & Social.",
 		stack: ["Python", "TypeScript", "AWS", "Kubernetes"],
+		highlight: {
+			story:
+				"Technical leadership across data orchestration, live video rendering and internal tooling. People management focused on personal growth, team building and more satisfaction at work.",
+		},
 	},
 	{
 		year: "2021",
@@ -34,6 +39,10 @@ export const CAREER_TIMELINE: CareerEntry[] = [
 		company: "Cisco Systems — Kassel, Germany",
 		desc: "Business SPA for Asset Management.",
 		stack: ["Angular", "Vue.js", "GraphQL", "Highcharts", "D3"],
+		highlight: {
+			story:
+				"Owning a complex frontend app that manages an arbitrary number of business assets.",
+		},
 	},
 	{
 		year: "2012 — 2013",
@@ -48,6 +57,10 @@ export const CAREER_TIMELINE: CareerEntry[] = [
 		company: "Acama Systems",
 		desc: "Web agency building custom solutions.",
 		stack: ["JavaScript", "Java", "PHP", "MySQL"],
+		highlight: {
+			story:
+				"Building individual web solutions for customers across the automotive, finance and health sectors.",
+		},
 	},
 	{
 		year: "2005 — 2009",

@@ -49,7 +49,7 @@ export const CAREER_TEASER =
  * `CodingContent` component (so both render the same words).
  */
 export const CODING_TEASER =
-	"Nowadays I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up Tanstack and self-hosting it on one of my Hetzner VPS.";
+	"Nowadays I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up Tanstack and self-hosting it on one of my Hetzner VPS.\n\nEven in the age of LLM's I'm still driven by following good coding practices. The art of crafting an elegant solution to a complex problem just makes me happy. A good session is when I'm fully locked in and ship a new version at the end.";
 
 export const TOPICS: Topic[] = [
 	{
@@ -89,7 +89,7 @@ export const TOPICS: Topic[] = [
 		id: "family",
 		heading: "Family",
 		// Prose lives in src/components/_layout/topics/FamilyContent.tsx.
-		triggers: [],
+		triggers: [{ kind: "project", slug: "manaschmiede" }],
 	},
 	{
 		id: "travel",
@@ -107,7 +107,7 @@ export const TOPICS: Topic[] = [
 		id: "games",
 		heading: "Games",
 		// Prose lives in src/components/_layout/topics/GamesContent.tsx.
-		triggers: [{ kind: "project", slug: "manaschmiede" }],
+		triggers: [],
 	},
 	{
 		id: "music",

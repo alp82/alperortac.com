@@ -51,6 +51,11 @@ export function CareerPanel({ onClose }: CareerPanelProps) {
 											<p className="text-sm leading-relaxed mb-3">
 												{entry.desc}
 											</p>
+											{entry.highlight && (
+												<p className="text-sm leading-relaxed italic opacity-80 mb-3">
+													{entry.highlight.story}
+												</p>
+											)}
 											<ul
 												className={`flex flex-wrap gap-1.5 ${i % 2 === 0 ? "md:justify-end" : "md:justify-start"}`}
 											>

@@ -1,7 +1,4 @@
-import { SiDiscord, SiGithub } from "@icons-pack/react-simple-icons";
-import { Cpu } from "lucide-react";
 import {
-	ExternalCard,
 	InlineLink,
 	Paragraph,
 	type TopicContentProps,
@@ -28,25 +25,11 @@ export function AIContent({ lastTriggerRef, isNight }: TopicContentProps) {
 
 			<div className="space-y-3">
 				<p className="text-base md:text-lg font-medium">Check it out:</p>
-				<ExternalCard
-					href="https://github.com/alp82/alp-river"
-					label="alp-river"
-					Icon={SiGithub}
-					brand="#181717"
-					isNight={isNight}
-				/>
 				<TriggerCard
 					trigger={{ kind: "project", slug: "alpriver" }}
 					lastTriggerRef={lastTriggerRef}
 				/>
 			</div>
-
-			<Paragraph>
-				Assumptions are not allowed, therefore every sessions starts with
-				confirming my intent and interviewing me to actually understand the task
-				at hand. Ideally, every goal is programmatically verifiable to guarantee
-				success once it's done.
-			</Paragraph>
 
 			<Paragraph>
 				Claude Code is my main driver and it costs me $200 per month. It's well
@@ -58,26 +41,10 @@ export function AIContent({ lastTriggerRef, isNight }: TopicContentProps) {
 				). It grows into a nice community of like-minded builders.
 			</Paragraph>
 
-			<div className="space-y-3">
-				<ExternalCard
-					href="https://discord.gg/5y4fpyahaF"
-					label="Discord"
-					Icon={SiDiscord}
-					brand="#5865F2"
-					isNight={isNight}
-				/>
-				<ExternalCard
-					href="https://aistack.to"
-					label="aistack.to"
-					Icon={Cpu}
-					brand="#1e3a8a"
-					isNight={isNight}
-				/>
-				<TriggerCard
-					trigger={{ kind: "project", slug: "aistack" }}
-					lastTriggerRef={lastTriggerRef}
-				/>
-			</div>
+			<TriggerCard
+				trigger={{ kind: "project", slug: "aistack" }}
+				lastTriggerRef={lastTriggerRef}
+			/>
 		</div>
 	);
 }

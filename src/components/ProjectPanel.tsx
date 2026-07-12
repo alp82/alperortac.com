@@ -150,15 +150,28 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 							))}
 						</div>
 
-						<a
-							href={project.link}
-							target="_blank"
-							rel="noopener noreferrer"
-							aria-label={`Visit ${project.title}`}
-							className="inline-flex items-center gap-2 mb-12 bg-white text-slate-900 px-5 py-3 font-black uppercase text-sm tracking-widest hover:-translate-y-0.5 transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)]"
-						>
-							Visit Project <ExternalLink size={14} aria-hidden="true" />
-						</a>
+						<div className="flex flex-wrap gap-3 mb-12">
+							<a
+								href={project.link}
+								target="_blank"
+								rel="noopener noreferrer"
+								aria-label={`Visit ${project.title}`}
+								className="inline-flex items-center gap-2 bg-white text-slate-900 px-5 py-3 font-black uppercase text-sm tracking-widest hover:-translate-y-0.5 transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)]"
+							>
+								Visit Project <ExternalLink size={14} aria-hidden="true" />
+							</a>
+							{project.extraLinks?.map((extra) => (
+								<a
+									key={extra.href}
+									href={extra.href}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="inline-flex items-center gap-2 bg-white text-slate-900 px-5 py-3 font-black uppercase text-sm tracking-widest hover:-translate-y-0.5 transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)]"
+								>
+									{extra.label} <ExternalLink size={14} aria-hidden="true" />
+								</a>
+							))}
+						</div>
 
 						<section className="mb-10">
 							<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2">
@@ -180,6 +193,17 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 							</h3>
 							<p className="text-lg leading-relaxed">{project.outcome}</p>
 						</section>
+
+						{project.extraSection && (
+							<section className="mb-10">
+								<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2">
+									{project.extraSection.heading}
+								</h3>
+								<p className="text-lg leading-relaxed">
+									{project.extraSection.body}
+								</p>
+							</section>
+						)}
 
 						<section>
 							<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-3">

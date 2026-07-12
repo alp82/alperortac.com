@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Early Days — soft age timeline explorer</title>
+<!-- PROTOTYPE (throwaway). Question: how should the Early Days subpage present the
+     story as an age-anchored timeline — big half-transparent age numbers on the left?
+     Three structurally different variants, switchable via ?variant= / bottom pill / arrow keys.
+     PROSE IS DRAFT — Alper is still working the words; judge layout, not copy. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=VT323&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  color:#fff7ed;
+  /* dusk landscape stand-in: sky into dark ground, panel floats over it */
+  background:
+    linear-gradient(180deg,#1e2a4a 0%,#3b2f4e 30%,#6b3a3a 55%,#1c1917 78%,#0c0a09 100%) fixed;
+  min-height:100vh;
+}
+
+/* ---- the real subpage column: frosted scrim, max-w-3xl, 10vh margins ---- */
+.subpage-column{
+  background:rgba(15,23,42,0.7);
+  backdrop-filter:blur(10px) saturate(120%);
+  -webkit-backdrop-filter:blur(10px) saturate(120%);
+  width:100%;
+  max-width:48rem;
+  margin:10vh auto;
+  color:#fff7ed;
+}
+.panel-inner{padding:3rem 2.5rem}
+
+.tile{
+  width:6rem;height:6rem;margin-bottom:1.5rem;
+  display:flex;align-items:center;justify-content:center;
+  border:4px solid #0f172a;
+  box-shadow:6px 6px 0 0 rgba(255,255,255,0.25);
+  background:#ffedd5;color:#7c2d12;
+}
+.tile svg{width:48px;height:48px}
+
+h2{
+  font-size:clamp(2.25rem,6vw,3.75rem);
+  font-weight:900;text-transform:uppercase;letter-spacing:-0.05em;
+  margin:0 0 2rem;line-height:1;
+}
+
+.beat-text{font-size:1.125rem;line-height:1.75;margin:0}
+.beat-text + .beat-text{margin-top:0.9rem}
+
+.era-caption{
+  font-size:0.7rem;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;
+  color:rgba(255,247,237,0.45);margin:0 0 0.6rem;
+}
+
+/* soft reveal shared by all variants */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity 700ms ease,transform 700ms ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+
+/* =========================================================
+   VARIANT A — Ghost margin: huge translucent numerals in a
+   left gutter, soft gradient spine, beats on the right.
+   ========================================================= */
+.vA .era{
+  display:grid;grid-template-columns:7.5rem 1fr;gap:1.25rem;
+  position:relative;padding:2.2rem 0;
+}
+.vA .era + .era{border-top:0}
+.vA .timeline{position:relative}
+.vA .timeline::before{ /* soft spine down the gutter */
+  content:"";position:absolute;left:3.6rem;top:0;bottom:0;width:1px;
+  background:linear-gradient(180deg,transparent,rgba(255,247,237,0.28) 12%,rgba(255,247,237,0.28) 88%,transparent);
+}
+.vA .age{
+  font-size:5.5rem;font-weight:900;letter-spacing:-0.06em;line-height:1;
+  color:rgba(255,247,237,0.14);
+  text-align:right;padding-right:1.4rem;
+  align-self:start;position:sticky;top:1.5rem;
+  user-select:none;
+}
+.vA .age .suffix{font-size:2.4rem;letter-spacing:0}
+.vA .dot{
+  position:absolute;left:3.6rem;top:3rem;width:9px;height:9px;border-radius:50%;
+  transform:translateX(-4px);
+  background:#fdba74;box-shadow:0 0 12px 2px rgba(253,186,116,0.45);
+}
+
+/* =========================================================
+   VARIANT B — CRT era screens: each age is a phosphor screen
+   with scanlines, pixel type, age as amber pixel numeral.
+   ========================================================= */
+.vB .era{display:grid;grid-template-columns:6.5rem 1fr;gap:1.1rem;padding:1.4rem 0;align-items:start}
+.vB .age{
+  font-family:'VT323',monospace;font-size:5rem;line-height:0.9;
+  color:rgba(252,211,77,0.38);text-align:right;padding-right:0.4rem;
+  text-shadow:0 0 14px rgba(252,211,77,0.35);
+  align-self:start;position:sticky;top:1.5rem;user-select:none;
+}
+.vB .screen{
+  position:relative;border-radius:10px;overflow:hidden;
+  background:radial-gradient(120% 130% at 50% 10%,#102410 0%,#081408 70%,#050a05 100%);
+  border:2px solid rgba(255,247,237,0.12);
+  box-shadow:inset 0 0 40px rgba(0,0,0,0.7),0 4px 18px rgba(0,0,0,0.35);
+  padding:1.2rem 1.4rem 1.4rem;
+}
+.vB .screen::after{ /* scanlines */
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(0,0,0,0.28) 0 1px,transparent 1px 3px);
+  mix-blend-mode:multiply;
+}
+.vB .screen::before{ /* glass glare */
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(80% 40% at 30% 0%,rgba(255,255,255,0.08),transparent 70%);
+}
+.vB .prompt{
+  font-family:'VT323',monospace;font-size:1rem;color:rgba(134,239,172,0.6);
+  margin:0 0 0.5rem;letter-spacing:0.05em;
+}
+.vB .beat-text{
+  font-family:'VT323',monospace;font-size:1.45rem;line-height:1.45;
+  color:#bbf7d0;text-shadow:0 0 8px rgba(134,239,172,0.35);
+}
+.vB .cursor{display:inline-block;width:0.55em;height:1em;background:#bbf7d0;vertical-align:-0.15em;
+  animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.vB .cursor{animation:none}}
+
+/* =========================================================
+   VARIANT C — Backdrop chapters: no gutter; the numeral is a
+   giant watermark BEHIND each chapter, dither seams between.
+   ========================================================= */
+.vC .era{position:relative;padding:3.2rem 0 2.6rem}
+.vC .age{
+  position:absolute;top:50%;left:-1rem;transform:translateY(-50%);
+  font-size:15rem;font-weight:900;letter-spacing:-0.08em;line-height:1;
+  color:rgba(255,247,237,0.07);user-select:none;pointer-events:none;
+  z-index:0;
+}
+.vC .era-body{position:relative;z-index:1;max-width:34rem;margin-left:auto}
+.vC .era:nth-child(even) .age{left:auto;right:-1rem}
+.vC .era:nth-child(even) .era-body{margin-left:0;margin-right:auto}
+.vC .era + .era::before{ /* pixel dither seam */
+  content:"";position:absolute;top:0;left:8%;right:8%;height:6px;
+  background-image:
+    repeating-linear-gradient(90deg,rgba(255,247,237,0.22) 0 3px,transparent 3px 6px),
+    repeating-linear-gradient(90deg,transparent 0 2px,rgba(255,247,237,0.1) 2px 5px);
+  background-size:auto 3px;
+  background-position:0 0,1px 3px;
+  background-repeat:repeat-x;
+}
+
+/* ---------------- switcher pill (not part of the design) ---------------- */
+.switcher{
+  position:fixed;bottom:1.25rem;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:0.75rem;
+  background:#0f172a;color:#f8fafc;border:1px solid rgba(255,255,255,0.25);
+  border-radius:999px;padding:0.45rem 0.8rem;
+  box-shadow:0 6px 24px rgba(0,0,0,0.5);
+  font-size:0.85rem;font-weight:700;z-index:50;white-space:nowrap;
+}
+.switcher button{
+  background:none;border:0;color:#f8fafc;font-size:1rem;cursor:pointer;
+  padding:0.15rem 0.4rem;border-radius:999px;
+}
+.switcher button:hover{background:rgba(255,255,255,0.15)}
+.draft-tag{
+  position:fixed;top:0.9rem;right:1rem;z-index:50;
+  font-size:0.68rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;
+  color:rgba(255,247,237,0.55);border:1px solid rgba(255,247,237,0.3);
+  border-radius:4px;padding:0.25rem 0.5rem;background:rgba(15,23,42,0.6);
+}
+</style>
+</head>
+<body>
+<div class="draft-tag">prose = draft · judge layout</div>
+
+<div class="subpage-column">
+  <div class="panel-inner">
+    <div class="tile">
+      <!-- lucide clock -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <h2>The Early Days</h2>
+    <div id="stage"></div>
+  </div>
+</div>
+
+<div class="switcher" role="group" aria-label="Prototype variant switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span id="label"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+
+<script>
+const BEATS = [
+  {
+    age: "12", suffix: "",
+    caption: "QBasic · Turbo Pascal · Delphi",
+    prompt: "C:\\QB45>",
+    text: [
+      "I started coding with QBasic when I was 12. Built text adventures and generated PC speaker sounds.",
+      "Then started to do a little bit of graphics with Turbo Pascal. Tried Delphi."
+    ]
+  },
+  {
+    age: "16", suffix: "",
+    caption: "SELFHTML · floppies · FastTracker",
+    prompt: "A:\\SELFHTML>",
+    text: [
+      "Started to learn HTML and CSS when I was 16 and found my love for web development. No internet at home — my parents knew it would distract me from school, so I had to finish first.",
+      "Used the school PCs to learn about SELFHTML, copied the pages to floppies to continue learning at home. Later JavaScript.",
+      "Loved exploring possibilities — broke DOS and Windows often to experiment with systems. Did music via FastTracker, loved it.",
+      "Got keys for the PC room at school. I was very responsible, and we played CS and StarCraft in the afternoons — my parents were proud that I was staying late at school because they thought I was learning."
+    ]
+  },
+  {
+    age: "19", suffix: "",
+    caption: "56k · the whole world",
+    prompt: "C:\\>ppp connect",
+    text: [
+      "Then internet. Mind blown."
+    ]
+  },
+  {
+    age: "20", suffix: "s",
+    caption: "IRC · ICQ · LAN parties",
+    prompt: "/join #friends",
+    text: [
+      "Was admin in a forum for my friends, we chatted via IRC and later ICQ. Also gaming and LAN-parties. Lots of gaming. My digital life has begun."
+    ]
+  }
+];
+
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+
+const VARIANTS = {
+  A: {
+    name: "Ghost margin",
+    render() {
+      return `<div class="vA"><div class="timeline">` + BEATS.map(b => `
+        <section class="era reveal">
+          <div class="age">${b.age}<span class="suffix">${b.suffix}</span></div>
+          <div class="dot" aria-hidden="true"></div>
+          <div>
+            <p class="era-caption">${esc(b.caption)}</p>
+            ${b.text.map(t => `<p class="beat-text">${esc(t)}</p>`).join("")}
+          </div>
+        </section>`).join("") + `</div></div>`;
+    }
+  },
+  B: {
+    name: "CRT screens",
+    render() {
+      return `<div class="vB">` + BEATS.map((b, i) => `
+        <section class="era reveal">
+          <div class="age">${b.age}${b.suffix}</div>
+          <div class="screen">
+            <p class="prompt">${esc(b.prompt)}</p>
+            ${b.text.map((t, j) => `<p class="beat-text">${esc(t)}${i === BEATS.length-1 && j === b.text.length-1 ? ' <span class="cursor"></span>' : ""}</p>`).join("")}
+          </div>
+        </section>`).join("") + `</div>`;
+    }
+  },
+  C: {
+    name: "Backdrop chapters",
+    render() {
+      return `<div class="vC">` + BEATS.map(b => `
+        <section class="era reveal">
+          <div class="age" aria-hidden="true">${b.age}${b.suffix}</div>
+          <div class="era-body">
+            <p class="era-caption">${esc(b.caption)}</p>
+            ${b.text.map(t => `<p class="beat-text">${esc(t)}</p>`).join("")}
+          </div>
+        </section>`).join("") + `</div>`;
+    }
+  }
+};
+
+const KEYS = Object.keys(VARIANTS);
+const stage = document.getElementById("stage");
+const label = document.getElementById("label");
+
+function current() {
+  const v = new URLSearchParams(location.search).get("variant");
+  return KEYS.includes(v) ? v : "A";
+}
+function show(v) {
+  const url = new URL(location);
+  url.searchParams.set("variant", v);
+  history.replaceState(null, "", url);
+  stage.innerHTML = VARIANTS[v].render();
+  label.textContent = `${v} — ${VARIANTS[v].name}`;
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+  }), { threshold: 0.15 });
+  stage.querySelectorAll(".reveal").forEach(el => io.observe(el));
+}
+function step(d) {
+  show(KEYS[(KEYS.indexOf(current()) + d + KEYS.length) % KEYS.length]);
+}
+document.getElementById("prev").onclick = () => step(-1);
+document.getElementById("next").onclick = () => step(1);
+document.addEventListener("keydown", e => {
+  if (/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
+  if (e.key === "ArrowLeft") step(-1);
+  if (e.key === "ArrowRight") step(1);
+});
+show(current());
+</script>
+</body>
+</html>

@@ -16,6 +16,8 @@ export function TravelContent(_: TopicContentProps) {
 				and people. Geocaching is a great tool to find the best local spots -
 				even in your home town.
 			</Paragraph>
+
+			<Paragraph>Next destination: Japan 2027.</Paragraph>
 		</div>
 	);
 }

@@ -110,7 +110,11 @@ export function InlineLink({
 	);
 }
 
-export type BulletItem = { primary: string; secondary?: string };
+export type BulletItem = {
+	primary: string;
+	secondary?: string;
+	Icon?: ComponentType<{ size?: number; color?: string; className?: string }>;
+};
 
 export function BulletList({
 	label,
@@ -129,9 +133,20 @@ export function BulletList({
 			<ul className="space-y-2 text-base md:text-lg leading-relaxed">
 				{items.map((item) => (
 					<li key={item.primary} className="flex gap-3">
-						<span className="font-black opacity-60 shrink-0" aria-hidden="true">
-							›
-						</span>
+						{item.Icon ? (
+							<item.Icon
+								size={18}
+								className="shrink-0 opacity-70 mt-1"
+								aria-hidden="true"
+							/>
+						) : (
+							<span
+								className="font-black opacity-60 shrink-0"
+								aria-hidden="true"
+							>
+								›
+							</span>
+						)}
 						<span>
 							<span className="font-bold">{item.primary}</span>
 							{item.secondary && (

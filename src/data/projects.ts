@@ -40,6 +40,8 @@ export type Project = {
 	solution: string;
 	outcome: string;
 	stack: string[];
+	extraLinks?: { label: string; href: string }[];
+	extraSection?: { heading: string; body: string };
 };
 
 export const PROJECTS: Project[] = [
@@ -90,6 +92,7 @@ export const PROJECTS: Project[] = [
 		outcome:
 			"AIStack has become a reference list builders share when onboarding teammates to a new workflow.",
 		stack: ["React", "TypeScript", "Tailwind", "Vite"],
+		extraLinks: [{ label: "Discord", href: "https://discord.gg/5y4fpyahaF" }],
 	},
 	{
 		slug: "alpriver",
@@ -109,6 +112,10 @@ export const PROJECTS: Project[] = [
 		outcome:
 			"Alp-River is the substrate I lean on when prototyping new ideas, and the public repo invites others to riff on the same shape.",
 		stack: ["TypeScript", "Bun", "Open Source"],
+		extraSection: {
+			heading: "How it works",
+			body: "Assumptions are not allowed, therefore every sessions starts with confirming my intent and interviewing me to actually understand the task at hand. Ideally, every goal is programmatically verifiable to guarantee success once it's done.",
+		},
 	},
 	{
 		slug: "manaschmiede",
