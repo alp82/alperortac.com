@@ -81,7 +81,6 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 											className="w-full h-full object-cover"
 										/>
 									) : (
-										// TODO(alp): generate proper poster frames
 										<div
 											role="img"
 											aria-label={`${project.title} demo placeholder`}
@@ -111,6 +110,20 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 								)
 							) : null}
 						</div>
+					) : project.media.type === "image" ? (
+						<div
+							className="relative w-full h-[35vh] overflow-hidden"
+							style={{
+								backgroundColor: `color-mix(in srgb, ${project.panelColor} 20%, transparent)`,
+							}}
+						>
+							<img
+								src={project.media.src}
+								alt={project.media.alt ?? `${project.title} hero`}
+								loading="lazy"
+								className="w-full h-full object-contain"
+							/>
+						</div>
 					) : (
 						<div
 							className="relative w-full h-[35vh] grid place-items-center"
@@ -118,7 +131,6 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 								backgroundColor: `color-mix(in srgb, ${project.panelColor} 20%, transparent)`,
 							}}
 						>
-							{/* TODO(alp): swap for real Alp-River artwork */}
 							<div className="flex flex-col items-center gap-4 text-center">
 								<Icon size={120} />
 								<div className="text-xs font-black uppercase tracking-widest opacity-80">
@@ -199,6 +211,36 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 								<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2">
 									{project.extraSection.heading}
 								</h3>
+								{project.extraSection.stages &&
+									project.extraSection.stages.length > 0 && (
+										<ul className="flex flex-wrap items-center gap-2 mb-4">
+											{project.extraSection.stages.map((stage, index) => {
+												const spaceIndex = stage.indexOf(" ");
+												const emoji =
+													spaceIndex === -1
+														? stage
+														: stage.slice(0, spaceIndex);
+												const label =
+													spaceIndex === -1
+														? stage
+														: stage.slice(spaceIndex + 1);
+												return (
+													<li
+														key={stage}
+														className="px-3 py-1 bg-white/10 border border-white/30 text-xs font-bold tracking-wider"
+													>
+														{index > 0 && (
+															<span aria-hidden="true" className="opacity-50">
+																→{" "}
+															</span>
+														)}
+														<span aria-hidden="true">{emoji}</span>{" "}
+														<span>{label}</span>
+													</li>
+												);
+											})}
+										</ul>
+									)}
 								<p className="text-lg leading-relaxed">
 									{project.extraSection.body}
 								</p>

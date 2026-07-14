@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { TOPICS, type TopicId } from "../../../data/topics";
+import { IDENTITIES } from "./identities";
 import { INNERS, LINKS } from "./index";
 import type { AnyInnerParams, AnyLinkParams, InnerId, LinkId } from "./types";
 
@@ -32,13 +33,13 @@ export type ComposerState = {
 export const DEFAULT_INNER: InnerId = "parallax-depth";
 export const DEFAULT_LINK: LinkId = "none";
 
-/** Every topic starts on the default cluster (parallax-depth) with its defaults. */
+/** Every topic starts on its registry-locked cluster (see identities.ts). */
 function defaultClusters(): Record<TopicId, TopicCluster> {
 	const out = {} as Record<TopicId, TopicCluster>;
 	for (const t of TOPICS) {
 		out[t.id] = {
-			id: DEFAULT_INNER,
-			params: { ...INNERS[DEFAULT_INNER].defaults },
+			id: IDENTITIES[t.id].inner.id,
+			params: { ...IDENTITIES[t.id].inner.params },
 		};
 	}
 	return out;

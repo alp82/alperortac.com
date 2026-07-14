@@ -12,7 +12,7 @@ export const YOUTUBE_SHORTS: YoutubeShort[] = [
 	{
 		id: "YaoyTizlaE4",
 		title: "Is it worth it Part 1",
-		views: 243,
+		views: 245,
 		publishedAt: "2026-05-11T07:55:48+00:00",
 	},
 	{

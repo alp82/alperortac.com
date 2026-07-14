@@ -20,6 +20,7 @@ export type ProjectMedia =
 			webm: string;
 			poster?: string;
 	  }
+	| { type: "image"; src: string; alt?: string }
 	| { type: "illustration" };
 
 export type Project = {
@@ -41,7 +42,7 @@ export type Project = {
 	outcome: string;
 	stack: string[];
 	extraLinks?: { label: string; href: string }[];
-	extraSection?: { heading: string; body: string };
+	extraSection?: { heading: string; body: string; stages?: string[] };
 };
 
 export const PROJECTS: Project[] = [
@@ -55,16 +56,16 @@ export const PROJECTS: Project[] = [
 		iconKey: "PlaySquare",
 		panelColor: "#7f1d1d",
 		panelLight: "bg-red-100 text-red-900",
-		// TODO(alp): generate proper poster frames
 		media: {
 			type: "video",
 			mp4: "/videos/goodwatch-recommendation-flow.mp4",
 			webm: "/videos/goodwatch-recommendation-flow.webm",
+			poster: "/videos/goodwatch-recommendation-flow-poster.webp",
 		},
 		problem:
 			"Streaming is fragmented. Friends recommend titles you forget by Friday and surface-level ratings hide whether a show is actually for you.",
 		solution:
-			"A recommendation engine that blends critic scores, audience signals, and your own watch history into a single trustworthy pick. Lists, tracking, and sharing happen in one place.",
+			"A recommendation engine that understands your personal taste. It combines 70+ attributes like adrenaline, dark humor, dialog quality or cinematography into a unique fingerprint for each title. It blends critic scores, audience signals and your own watch history into trustworthy picks.",
 		outcome:
 			"GoodWatch ships continuously to a growing community of cinephiles who want fewer aggregators and better matches.",
 		stack: ["React", "Remix", "PostgreSQL", "TypeScript", "Tailwind"],
@@ -72,73 +73,84 @@ export const PROJECTS: Project[] = [
 	{
 		slug: "aistack",
 		title: "AIStack",
-		desc: "A curated directory and stack of the best AI tools and resources.",
+		desc: "Community-driven AI stacks: what people use, how they work and what it costs.",
 		link: "https://aistack.to",
-		tags: ["AI", "Directory"],
+		tags: ["AI", "Community"],
 		color: "bg-blue-100 text-blue-800",
 		iconKey: "Cpu",
 		panelColor: "#1e3a8a",
 		panelLight: "bg-blue-100 text-blue-900",
-		// TODO(alp): generate proper poster frames
 		media: {
 			type: "video",
 			mp4: "/videos/aistack-hero.mp4",
 			webm: "/videos/aistack-hero.webm",
+			poster: "/videos/aistack-hero-poster.webp",
 		},
 		problem:
 			"The AI tool space ships ten new launches a day. Most directories are SEO farms; none help you compose a working stack.",
 		solution:
-			"A hand-curated catalogue grouped by what you actually do with it - research, build, ship - with honest notes on cost and lock-in.",
-		outcome:
-			"AIStack has become a reference list builders share when onboarding teammates to a new workflow.",
+			"AIStack is community-driven: everyone shares their stack, how they orchestrate their agents and what it costs them per month. You learn about the most cost-effective ways to get best out of popular tools for your own setup.",
+		outcome: "A growing community of agentic shippers.",
 		stack: ["React", "TypeScript", "Tailwind", "Vite"],
 		extraLinks: [{ label: "Discord", href: "https://discord.gg/5y4fpyahaF" }],
 	},
 	{
 		slug: "alpriver",
 		title: "Alp-River",
-		desc: "An open-source project exploring unique data flows and architecture.",
+		desc: "Complexity-aware agentic coding pipeline for Claude Code.",
 		link: "https://github.com/alp82/alp-river",
-		tags: ["Open Source", "GitHub"],
+		tags: ["Claude Code", "Open Source"],
 		color: "bg-emerald-100 text-emerald-800",
 		iconKey: "Code2",
 		panelColor: "#065f46",
 		panelLight: "bg-emerald-100 text-emerald-900",
-		media: { type: "illustration" },
+		media: {
+			type: "image",
+			src: "/projects/alp-river-hero.png",
+			alt: "Alp-River pipeline example in Claude Code",
+		},
 		problem:
-			"Most data flow tooling forces you to choose between rigid pipelines and unstructured glue code. Iteration is slow and observability comes last.",
+			"Coding agents misunderstand your intent, make wrong assumptions and write buggy code.",
 		solution:
-			"An open-source primitive for composing typed, stream-shaped flows with replay and inspection baked in from day one.",
+			"I open sourced my Claude Code setup as a plugin because I genuinely think it has some unique qualities. It automatically classifies each task by complexity: S, M, L or XL. It then spawns an appropriate number of subagents to do research, planning, execution and reviewing.",
 		outcome:
-			"Alp-River is the substrate I lean on when prototyping new ideas, and the public repo invites others to riff on the same shape.",
+			"The implementation results are way better, more accurate and match your actual intentions. Due to the amount of ceremony, time to finish and token usage both increase slightly.",
 		stack: ["TypeScript", "Bun", "Open Source"],
 		extraSection: {
 			heading: "How it works",
 			body: "Assumptions are not allowed, therefore every sessions starts with confirming my intent and interviewing me to actually understand the task at hand. Ideally, every goal is programmatically verifiable to guarantee success once it's done.",
+			stages: [
+				"🔎 Intent",
+				"🧭 Scout",
+				"📐 Blueprint",
+				"🧪 Tests",
+				"🔨 Build",
+				"🔬 Review",
+				"🚀 Ship",
+			],
 		},
 	},
 	{
 		slug: "manaschmiede",
 		title: "Manaschmiede",
-		desc: "Open-source creative and development tools repository.",
+		desc: "Magic: The Gathering deck builder and print assistant",
 		link: "https://github.com/alp82/manaschmiede",
-		tags: ["Open Source", "Tooling"],
+		tags: ["MTG", "Print & Play"],
 		color: "bg-purple-100 text-purple-800",
 		iconKey: "Palette",
 		panelColor: "#4c1d95",
 		panelLight: "bg-purple-100 text-purple-900",
-		// TODO(alp): generate proper poster frames
 		media: {
 			type: "video",
 			mp4: "/videos/manaschmiede-deck-creation.mp4",
 			webm: "/videos/manaschmiede-deck-creation.webm",
+			poster: "/videos/manaschmiede-deck-creation-poster.webp",
 		},
-		problem:
-			"Creative tinkering needs a workshop that doesn't get in the way - most existing tools either lock you in or demand you build everything from zero.",
+		problem: "Deck building takes time and needs expertise.",
 		solution:
-			"A growing collection of small, sharp tools and prototypes - card deck builders, generators, helpers - released openly so anyone can fork the pieces they need.",
+			"You choose the strategy, archetypes and core cards, and an agent helps you build a balanced deck.",
 		outcome:
-			"Manaschmiede is the public bench where experiments live before they become projects of their own.",
+			"An easy and pleasant user experience to go quickly from a deck idea to a full PDF printout so that I can try different strategies with my kids.",
 		stack: ["TypeScript", "React", "Open Source"],
 	},
 ];
