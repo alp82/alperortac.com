@@ -174,9 +174,10 @@ export function useComposerControls() {
  * Single-line copy-spec string, namespaced per layer. The inner/link.* keys
  * are whatever the SELECTED style exposes (per-style params, emitted in
  * defaults order), so the line self-describes which knobs are live. Per-topic
- * inner.<topic> blocks are emitted only for topics that deviate from the default
- * cluster (DEFAULT_INNER + its default params); link.* drops entirely when
- * link === none. Baseline on → just `baseline: on`.
+ * inner.<topic> blocks are emitted only for topics that deviate from their
+ * LOCKED identity (IDENTITIES[topic].inner - see identities.ts), so an
+ * all-at-lock composition emits exactly `link: none`; link.* drops entirely
+ * when link === none. Baseline on → just `baseline: on`.
  *
  * e.g. `inner.coding: comic | inner.coding.density: roomy |
  * inner.coding.halftone: on | inner.coding.palette: classic |
@@ -188,20 +189,17 @@ export function buildComposerSpec(state: ComposerState): string {
 
 	const parts: string[] = [];
 
-	// Clusters are per-topic; emit only topics that DEVIATE from the default
-	// cluster (DEFAULT_INNER with its default params). A topic left untouched on
-	// the default is omitted; any id switch or param tweak makes it emit.
-	const innerDefaults = INNERS[DEFAULT_INNER].defaults as Record<
-		string,
-		unknown
-	>;
+	// Clusters are per-topic; emit only topics that DEVIATE from their LOCKED
+	// identity (IDENTITIES[topic].inner). A topic left at its lock is omitted;
+	// any id switch or param tweak away from the lock makes it emit.
 	for (const t of TOPICS) {
 		const c = state.clusters[t.id];
 		const cp = c.params as Record<string, unknown>;
-		if (
-			c.id === DEFAULT_INNER &&
-			Object.keys(innerDefaults).every((k) => cp[k] === innerDefaults[k])
-		) {
+		const lock = IDENTITIES[t.id].inner;
+		const lp = lock.params as Record<string, unknown>;
+		// Deliberate: lock-side keys only - foreign keys merged via patchAllInnerParams
+		// do not render and must not resurrect a topic into the spec. Not a deep-equal.
+		if (c.id === lock.id && Object.keys(lp).every((k) => cp[k] === lp[k])) {
 			continue;
 		}
 		parts.push(`inner.${t.id}: ${c.id}`);

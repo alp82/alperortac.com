@@ -396,17 +396,132 @@ describe("Milestone 3 - INNER_ORDER lands at its final 8 entries", () => {
 		cleanup();
 	});
 
-	// TC-10: INNER_ORDER has exactly 8 entries.
-	it("has exactly 8 entries", () => {
-		expect(INNER_ORDER.length).toBe(8);
+	// TC-10: INNER_ORDER now has exactly 12 entries (the 8-survivor guard plus
+	// the four new ephemera frames, appended - never rewritten in place).
+	it("has exactly 12 entries", () => {
+		expect(INNER_ORDER.length).toBe(12);
 	});
 
-	// TC-12: INNER_ORDER contains none of the retired ids - neither the four
-	// never-ported stage variants nor the five deco inners.
+	// C2: the first 8 entries are unchanged and in original order - still equal
+	// to the FINAL_INNER_ORDER survivor literal. This is the deco-purge guard
+	// surviving the growth to 12: rewriting FINAL_INNER_ORDER itself (instead
+	// of appending here) would silently defeat this assertion.
+	it("first 8 entries still equal the FINAL_INNER_ORDER survivor literal", () => {
+		expect(INNER_ORDER.slice(0, 8)).toEqual([...FINAL_INNER_ORDER]);
+	});
+
+	// C3: the last 4 entries are the four new ephemera frames, in order,
+	// appended after the survivors (not interleaved) - this is exactly what
+	// keeps the Milestone 1 slice(0,2) test at the top of this file green.
+	it("last 4 entries are timecard, nameplate, punch-card, offer-letter in order", () => {
+		expect(INNER_ORDER.slice(8)).toEqual([
+			"timecard",
+			"nameplate",
+			"punch-card",
+			"offer-letter",
+		]);
+	});
+
+	// C4: no duplicate ids anywhere in INNER_ORDER.
+	it("contains no duplicate ids", () => {
+		expect(new Set(INNER_ORDER).size).toBe(INNER_ORDER.length);
+	});
+
+	// C-8: the retired conference-badge id is gone from INNER_ORDER (reshaped
+	// into nameplate in place - no dangling reference survives).
+	it("does not contain conference-badge", () => {
+		expect(INNER_ORDER).not.toContain("conference-badge");
+	});
+
+	// TC-12 / C5: INNER_ORDER contains none of the retired ids - neither the
+	// four never-ported stage variants nor the five deco inners.
 	it("contains none of the retired stage or deco ids", () => {
 		for (const id of [...RETIRED_STAGE_IDS, ...RETIRED_DECO_IDS]) {
 			expect(INNER_ORDER).not.toContain(id);
 		}
+	});
+
+	// C6: every id in INNER_ORDER has a matching INNERS registry entry.
+	it("every id in INNER_ORDER has an INNERS entry", () => {
+		for (const id of INNER_ORDER) {
+			expect(INNERS[id]).toBeDefined();
+			expect(INNERS[id].id).toBe(id);
+		}
+	});
+});
+
+/*
+ * Four ephemera frames (timecard, nameplate, punch-card, offer-letter)
+ * join the picker as a SEPARATE literal beside FINAL_INNER_ORDER - not folded
+ * into it - so the 8-entry deco-purge survivor guard above stays untouched by
+ * construction (plan v2's structural note). This is authored red: none of the
+ * four ids exist in INNERS/INNER_ORDER yet.
+ */
+const EPHEMERA_IDS = [
+	"timecard",
+	"nameplate",
+	"punch-card",
+	"offer-letter",
+] as const;
+
+describe("ephemera inners render through TopicComposition", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	// D4/D5: each new id renders via renderCompositionWithInner with its own
+	// registry defaults without throwing, and produces exactly one <article>.
+	it.each(EPHEMERA_IDS)("renders exactly one article for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const articles = container.querySelectorAll("article");
+		expect(articles.length).toBe(1);
+	});
+
+	// D6: each renders correctly at index 0 and at a later index (the
+	// padStart microcopy boundary - "01" at index 0 vs a two-digit index).
+	it.each(
+		EPHEMERA_IDS,
+	)("renders without throwing at index 0 and at a later index for %s", (id) => {
+		const state0 = defaultState();
+		state0.clusters[topic.id] = { id, params: { ...INNERS[id].defaults } };
+		const first = render(
+			<TopicComposition
+				state={state0}
+				topic={topic}
+				index={0}
+				lastTriggerRef={lastTriggerRef}
+			/>,
+		);
+		expect(first.container.querySelectorAll("article").length).toBe(1);
+		cleanup();
+
+		const state9 = defaultState();
+		state9.clusters[topic.id] = { id, params: { ...INNERS[id].defaults } };
+		const later = render(
+			<TopicComposition
+				state={state9}
+				topic={topic}
+				index={9}
+				lastTriggerRef={lastTriggerRef}
+			/>,
+		);
+		expect(later.container.querySelectorAll("article").length).toBe(1);
+	});
+
+	// D7: the real TopicBody (children) is present and seated inside the
+	// frame's DOM tree. Under this suite's `../../topics/registry` mock,
+	// TOPIC_CONTENTS is empty, so TopicBody (TopicBody.tsx:112-124) falls back
+	// to rendering topic.teaser verbatim - and this file's `topic` fixture sets
+	// teaser: "ignored". Asserting that literal string proves the real body
+	// was seated inside the frame, not merely that the frame's own chrome
+	// (e.g. "Travel", "EMPLOYEE NO. 01") produced non-empty text.
+	it.each(
+		EPHEMERA_IDS,
+	)("seats the real TopicBody children inside the frame for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const article = container.querySelector("article");
+		expect(article).not.toBeNull();
+		expect(article?.textContent).toContain("ignored");
 	});
 });
 

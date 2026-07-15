@@ -50,6 +50,15 @@ const LOCKED_INNER = {
 	params: { density: "roomy", shape: "flourish", depth: 50, layers: 3 },
 };
 
+/** Career's locked identity (wayfinder plan-career-nameplate-lock) - the one
+ * topic that diverges from the shared parallax-depth seed. */
+const CAREER_LOCK = {
+	id: "nameplate" as const,
+	params: { density: "roomy", screws: false, role: "title" },
+};
+
+const NON_CAREER_TOPICS = TOPICS.filter((t) => t.id !== "career");
+
 describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
 	it("has an entry for every TOPICS id", () => {
 		for (const t of TOPICS) {
@@ -67,19 +76,40 @@ describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
 	});
 });
 
-describe("zero-visual-change lock (TC-B1, TC-B2, TC-B3)", () => {
-	it("every topic's inner deep-equals the locked parallax-depth cluster", () => {
-		for (const t of TOPICS) {
-			expect(IDENTITIES[t.id].inner).toEqual(LOCKED_INNER);
-		}
+describe("first divergent lock: career is nameplate, the other nine stay the seed (TC-B1-B5)", () => {
+	it("TC-B1: career's inner deep-equals the exact nameplate lock, no extra keys", () => {
+		expect(IDENTITIES.career.inner).toEqual(CAREER_LOCK);
+		expect(Object.keys(IDENTITIES.career.inner)).toEqual(
+			Object.keys(CAREER_LOCK),
+		);
+		expect(Object.keys(IDENTITIES.career.inner.params)).toEqual(
+			Object.keys(CAREER_LOCK.params),
+		);
 	});
 
-	it("every topic's inner.params deep-equals the live parallax-depth defaults", () => {
-		for (const t of TOPICS) {
-			expect(IDENTITIES[t.id].inner.params).toEqual(
-				INNERS["parallax-depth"].defaults,
-			);
-		}
+	it("TC-B2: career's media note is the verbatim lock string", () => {
+		expect(IDENTITIES.career.media).toBe("none - the frame is the visual");
+	});
+
+	it("TC-B5: career's params carry no depth/shape/layers keys (not a parallax-depth cluster)", () => {
+		const params = IDENTITIES.career.inner.params as Record<string, unknown>;
+		expect(params).not.toHaveProperty("depth");
+		expect(params).not.toHaveProperty("shape");
+		expect(params).not.toHaveProperty("layers");
+	});
+
+	it.each(
+		NON_CAREER_TOPICS.map((t) => [t.id, t] as const),
+	)("TC-B3: %s's inner deep-equals the locked parallax-depth cluster", (_id, t) => {
+		expect(IDENTITIES[t.id].inner).toEqual(LOCKED_INNER);
+	});
+
+	it.each(
+		NON_CAREER_TOPICS.map((t) => [t.id, t] as const),
+	)("TC-B4: %s's inner.params deep-equals the live parallax-depth defaults", (_id, t) => {
+		expect(IDENTITIES[t.id].inner.params).toEqual(
+			INNERS["parallax-depth"].defaults,
+		);
 	});
 
 	it("buildComposerSpec(defaultState()) emits exactly `link: none`", () => {
@@ -87,15 +117,20 @@ describe("zero-visual-change lock (TC-B1, TC-B2, TC-B3)", () => {
 	});
 });
 
-describe("registry wiring - defaultClusters()/defaultState() read the registry (TC-C1-C4)", () => {
-	it("defaultState().clusters[topic] deep-equals IDENTITIES[topic].inner", () => {
+describe("registry wiring - defaultClusters()/defaultState() read the registry (TC-D1, TC-D2, TC-D3, TC-D4, TC-D5, TC-D7)", () => {
+	it("TC-D1: defaultState().clusters.career deep-equals IDENTITIES.career.inner", () => {
 		const state = defaultState();
-		for (const t of TOPICS) {
-			expect(state.clusters[t.id]).toEqual(IDENTITIES[t.id].inner);
-		}
+		expect(state.clusters.career).toEqual(IDENTITIES.career.inner);
 	});
 
-	it("two calls to defaultState() return distinct-but-equal params objects", () => {
+	it.each(
+		NON_CAREER_TOPICS.map((t) => [t.id, t] as const),
+	)("TC-D2: defaultState().clusters.%s deep-equals IDENTITIES.%s.inner", (_id, t) => {
+		const state = defaultState();
+		expect(state.clusters[t.id]).toEqual(IDENTITIES[t.id].inner);
+	});
+
+	it("TC-D3: two calls to defaultState() return distinct-but-equal params objects, including career's nameplate shape", () => {
 		const a = defaultState();
 		const b = defaultState();
 		for (const t of TOPICS) {
@@ -104,15 +139,25 @@ describe("registry wiring - defaultClusters()/defaultState() read the registry (
 		}
 	});
 
-	it("mutating a consumer's copy never mutates the registry", () => {
+	it("TC-D4: mutating a consumer's copy never mutates the registry (coding, params.depth)", () => {
 		const state = defaultState();
-		const topicId = TOPICS[0]?.id ?? "career";
+		const topicId = "coding" as const;
 		const before = IDENTITIES[topicId].inner.params.depth;
 
 		// biome-ignore lint/suspicious/noExplicitAny: intentional mutation of a copy to prove isolation
 		(state.clusters[topicId].params as any).depth = 999;
 
 		expect(IDENTITIES[topicId].inner.params.depth).toBe(before);
+	});
+
+	it("TC-D5: mutating a consumer's copy of career's nameplate params never mutates the registry (screws)", () => {
+		const state = defaultState();
+		const before = IDENTITIES.career.inner.params.screws;
+
+		// biome-ignore lint/suspicious/noExplicitAny: intentional mutation of a copy to prove isolation
+		(state.clusters.career.params as any).screws = true;
+
+		expect(IDENTITIES.career.inner.params.screws).toBe(before);
 	});
 
 	it("setInner/patchInnerParams override the registry value for live in-session edits", () => {
@@ -127,7 +172,7 @@ describe("registry wiring - defaultClusters()/defaultState() read the registry (
 		);
 
 		act(() => {
-			result.current.patchInnerParams("career", { depth: 99 } as never);
+			result.current.patchInnerParams("career", { screws: true });
 		});
 		expect(result.current.state.clusters.career.params).not.toEqual(
 			IDENTITIES.career.inner.params,
@@ -135,13 +180,13 @@ describe("registry wiring - defaultClusters()/defaultState() read the registry (
 	});
 });
 
-describe("SSR determinism preserved (TC-D3, TC-D4)", () => {
-	it("DEFAULT_STATE stays a module-level singleton (Object.is across imports)", async () => {
+describe("SSR determinism preserved (TC-E1, TC-E2)", () => {
+	it("TC-E1: DEFAULT_STATE stays a module-level singleton (Object.is across imports)", async () => {
 		const mod = await import("../useComposerControls");
 		expect(Object.is(mod.DEFAULT_STATE, DEFAULT_STATE)).toBe(true);
 	});
 
-	it("defaultState() is pure - two calls yield deep-equal results for every topic", () => {
+	it("TC-E2: defaultState() is pure - two calls yield deep-equal results for every topic, including career's nameplate shape", () => {
 		const first = defaultState();
 		const second = defaultState();
 		expect(first).toEqual(second);
@@ -151,8 +196,36 @@ describe("SSR determinism preserved (TC-D3, TC-D4)", () => {
 	});
 });
 
-describe("DesignPanel reset targets the locked composition (TC-E1, TC-E2, TC-E4)", () => {
-	it("reset() restores every topic's cluster to IDENTITIES[topic].inner, not just the mutated one", () => {
+describe("DesignPanel reset targets the locked composition - THE trap (TC-F1, TC-F2, TC-F3, TC-F4, TC-F5)", () => {
+	it("TC-F1/TC-F2: after mutating career away, reset() restores it to the LOCK, not the plain nameplate defaults", () => {
+		const { result } = renderHook(() => useComposerControls());
+
+		act(() => {
+			result.current.setInner("career", "floating-island");
+		});
+		expect(result.current.state.clusters.career.id).toBe("floating-island");
+
+		act(() => {
+			result.current.reset();
+		});
+
+		// TC-F1: restored to the exact lock.
+		expect(result.current.state.clusters.career).toEqual(
+			IDENTITIES.career.inner,
+		);
+		// TC-F2 (load-bearing negative): reset must restore the LOCK's screws:false,
+		// not the plain nameplate factory default (screws:true) - a reset that
+		// silently reverted to INNERS.nameplate.defaults would still pass TC-F1's
+		// id check alone, so this proves the params came from the registry lock.
+		expect(result.current.state.clusters.career.params).not.toEqual(
+			INNERS.nameplate.defaults,
+		);
+		expect(result.current.state.clusters.career.params).toEqual(
+			expect.objectContaining({ screws: false }),
+		);
+	});
+
+	it("TC-F3: reset() restores every topic's cluster to IDENTITIES[topic].inner, not just the mutated one", () => {
 		const { result } = renderHook(() => useComposerControls());
 
 		act(() => {
@@ -171,7 +244,7 @@ describe("DesignPanel reset targets the locked composition (TC-E1, TC-E2, TC-E4)
 		}
 	});
 
-	it("reset() restores baseline/link/linkParams to defaultState()'s values", () => {
+	it("TC-F4: reset() restores baseline/link/linkParams to defaultState()'s values", () => {
 		const { result } = renderHook(() => useComposerControls());
 
 		act(() => {
@@ -191,7 +264,7 @@ describe("DesignPanel reset targets the locked composition (TC-E1, TC-E2, TC-E4)
 		expect(result.current.state.linkParams).toEqual(fresh.linkParams);
 	});
 
-	it("reset() at defaults is a no-op observably", () => {
+	it("TC-F5: reset() at defaults is a no-op observably", () => {
 		const { result } = renderHook(() => useComposerControls());
 
 		expect(() => {

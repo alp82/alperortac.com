@@ -11,14 +11,18 @@ import { FieldJournalCluster } from "./inner/field-journal";
 import { FloatingIslandCluster } from "./inner/floating-island";
 import { MinimalCluster } from "./inner/minimal";
 import { MoonriseCluster } from "./inner/moonrise";
+import { NameplateCluster } from "./inner/nameplate";
 import { NeonSignCluster } from "./inner/neon-sign";
+import { OfferLetterCluster } from "./inner/offer-letter";
 import { ParallaxDepthCluster } from "./inner/parallax-depth";
 import { PolaroidCluster } from "./inner/polaroid";
+import { PunchCardCluster } from "./inner/punch-card";
 import { SeedPacketCluster } from "./inner/seed-packet";
 import { SkylineCluster } from "./inner/skyline";
 import { SummitCluster } from "./inner/summit";
 import { TerminalCluster } from "./inner/terminal";
 import { TicketStubCluster } from "./inner/ticket-stub";
+import { TimecardCluster } from "./inner/timecard";
 import { TopoMapCluster } from "./inner/topo-map";
 import { TrailSignpostCluster } from "./inner/trail-signpost";
 import { BotanicalVineLink } from "./links/botanical-vine";
@@ -243,6 +247,38 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 		defaults: { density: "roomy", illustration: true, stock: "cream" },
 		Component: SeedPacketCluster,
 	},
+	timecard: {
+		id: "timecard",
+		label: "Timecard",
+		feel: "Punch-clock card: an EMPLOYEE NO. eyebrow, printed rows and inked IN / OUT stamps on a chosen paper stock. Workday ephemera.",
+		surface: "light",
+		defaults: { density: "roomy", stamps: true, stock: "manila" },
+		Component: TimecardCluster,
+	},
+	nameplate: {
+		id: "nameplate",
+		label: "Nameplate",
+		feel: "Engraved door plate: an accent-tinted band with a big engraved title over a dark role line, held by four corner screws.",
+		surface: "light",
+		defaults: { density: "roomy", screws: true, role: "title" },
+		Component: NameplateCluster,
+	},
+	"punch-card": {
+		id: "punch-card",
+		label: "Punch Card",
+		feel: "80-column IBM card: a clipped corner, printed digit bands and a row of punched holes on a chosen card stock.",
+		surface: "light",
+		defaults: { density: "roomy", holes: true, stock: "manila" },
+		Component: PunchCardCluster,
+	},
+	"offer-letter": {
+		id: "offer-letter",
+		label: "Offer Letter",
+		feel: "Cream letterhead: an embossed monogram, a dated subject line and a signed-off scrawl at the foot. Quietly formal.",
+		surface: "light",
+		defaults: { density: "roomy", scrawl: true, stock: "cream" },
+		Component: OfferLetterCluster,
+	},
 };
 
 export const INNER_ORDER: InnerId[] = [
@@ -254,6 +290,10 @@ export const INNER_ORDER: InnerId[] = [
 	"ticket-stub",
 	"arcade-hud",
 	"seed-packet",
+	"timecard",
+	"nameplate",
+	"punch-card",
+	"offer-letter",
 ];
 
 /* ── LINKS (between-topic connectors) ───────────────────────────────────── */

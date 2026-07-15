@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { TOPICS, type TopicId } from "../../data/topics";
 import { Segmented, Slider, Swatches, Toggle } from "./composer/DesignControls";
+import { IDENTITIES } from "./composer/identities";
 import { INNER_ORDER, INNERS, LINK_ORDER, LINKS } from "./composer/index";
 import {
 	SKYLINE_COLOR_OPTS,
@@ -18,7 +19,6 @@ import type {
 import {
 	buildComposerSpec,
 	type ComposerState,
-	DEFAULT_INNER,
 } from "./composer/useComposerControls";
 
 /*
@@ -476,6 +476,94 @@ function InsideSpecificControls({
 						label="Illustration"
 						checked={p.illustration}
 						onChange={(illustration) => patch({ illustration })}
+					/>
+				</>
+			);
+		}
+		case "timecard": {
+			const p = params as InnerParamsMap["timecard"];
+			return (
+				<>
+					<Segmented
+						label="Stock"
+						value={p.stock}
+						options={[
+							{ value: "manila", label: "Manila" },
+							{ value: "buff", label: "Buff" },
+							{ value: "ledger", label: "Ledger" },
+						]}
+						onChange={(stock) => patch({ stock })}
+					/>
+					<Toggle
+						label="Time stamps"
+						checked={p.stamps}
+						onChange={(stamps) => patch({ stamps })}
+					/>
+				</>
+			);
+		}
+		case "nameplate": {
+			const p = params as InnerParamsMap["nameplate"];
+			return (
+				<>
+					<Segmented
+						label="Role"
+						value={p.role}
+						options={[
+							{ value: "title", label: "Title" },
+							{ value: "tenure", label: "Tenure" },
+							{ value: "focus", label: "Focus" },
+						]}
+						onChange={(role) => patch({ role })}
+					/>
+					<Toggle
+						label="Screws"
+						checked={p.screws}
+						onChange={(screws) => patch({ screws })}
+					/>
+				</>
+			);
+		}
+		case "punch-card": {
+			const p = params as InnerParamsMap["punch-card"];
+			return (
+				<>
+					<Segmented
+						label="Stock"
+						value={p.stock}
+						options={[
+							{ value: "manila", label: "Manila" },
+							{ value: "salmon", label: "Salmon" },
+							{ value: "mint", label: "Mint" },
+						]}
+						onChange={(stock) => patch({ stock })}
+					/>
+					<Toggle
+						label="Punched holes"
+						checked={p.holes}
+						onChange={(holes) => patch({ holes })}
+					/>
+				</>
+			);
+		}
+		case "offer-letter": {
+			const p = params as InnerParamsMap["offer-letter"];
+			return (
+				<>
+					<Segmented
+						label="Stock"
+						value={p.stock}
+						options={[
+							{ value: "cream", label: "Cream" },
+							{ value: "ivory", label: "Ivory" },
+							{ value: "dove", label: "Dove" },
+						]}
+						onChange={(stock) => patch({ stock })}
+					/>
+					<Toggle
+						label="Signature"
+						checked={p.scrawl}
+						onChange={(scrawl) => patch({ scrawl })}
 					/>
 				</>
 			);
@@ -1132,7 +1220,9 @@ export function DesignPanel({
 							<TopicSelector
 								label="Editing inside for"
 								active={activeTopic}
-								isCustom={(t) => state.clusters[t].id !== DEFAULT_INNER}
+								isCustom={(t) =>
+									state.clusters[t].id !== IDENTITIES[t].inner.id
+								}
 								subtitle={(t) => INNERS[state.clusters[t].id].label}
 								onSelect={setActiveTopic}
 							/>

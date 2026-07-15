@@ -21,10 +21,10 @@ export type TopicIdentity = { inner: IdentityCluster; media: string };
 export const IDENTITIES = {
 	career: {
 		inner: {
-			id: "parallax-depth",
-			params: { density: "roomy", shape: "flourish", depth: 50, layers: 3 },
+			id: "nameplate",
+			params: { density: "roomy", screws: false, role: "title" },
 		},
-		media: "default - no per-topic treatment yet",
+		media: "none - the frame is the visual",
 	},
 	coding: {
 		inner: {

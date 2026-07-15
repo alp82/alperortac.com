@@ -40,7 +40,11 @@ export type InnerId =
 	| "moonrise"
 	| "daybreak"
 	| "summit"
-	| "skyline";
+	| "skyline"
+	| "timecard"
+	| "nameplate"
+	| "punch-card"
+	| "offer-letter";
 
 /** Shared by every inside style - cluster scale / breathing room. */
 export type InnerBase = {
@@ -124,6 +128,22 @@ export type SeedPacketParams = InnerBase & {
 	illustration: boolean;
 	stock: "cream" | "kraft" | "sage";
 };
+export type TimecardParams = InnerBase & {
+	stamps: boolean;
+	stock: "manila" | "buff" | "ledger";
+};
+export type NameplateParams = InnerBase & {
+	screws: boolean;
+	role: "title" | "tenure" | "focus";
+};
+export type PunchCardParams = InnerBase & {
+	holes: boolean;
+	stock: "manila" | "salmon" | "mint";
+};
+export type OfferLetterParams = InnerBase & {
+	scrawl: boolean;
+	stock: "cream" | "ivory" | "dove";
+};
 export type AuroraParams = InnerBase & {
 	stars: boolean;
 	hue: "emerald" | "violet" | "teal";
@@ -189,6 +209,10 @@ export type InnerParamsMap = {
 	chalkboard: ChalkboardParams;
 	"topo-map": TopoMapParams;
 	"seed-packet": SeedPacketParams;
+	timecard: TimecardParams;
+	nameplate: NameplateParams;
+	"punch-card": PunchCardParams;
+	"offer-letter": OfferLetterParams;
 	aurora: AuroraParams;
 	moonrise: MoonriseParams;
 	daybreak: DaybreakParams;
