@@ -44,7 +44,12 @@ export type InnerId =
 	| "timecard"
 	| "nameplate"
 	| "punch-card"
-	| "offer-letter";
+	| "offer-letter"
+	| "code-editor"
+	| "pull-request"
+	| "commit-graph"
+	| "man-page"
+	| "keycaps";
 
 /** Shared by every inside style - cluster scale / breathing room. */
 export type InnerBase = {
@@ -144,6 +149,26 @@ export type OfferLetterParams = InnerBase & {
 	scrawl: boolean;
 	stock: "cream" | "ivory" | "dove";
 };
+export type CodeEditorParams = InnerBase & {
+	gutter: boolean;
+	theme: "onedark" | "nord" | "monokai";
+};
+export type PullRequestParams = InnerBase & {
+	checks: boolean;
+	state: "open" | "merged" | "draft";
+};
+export type CommitGraphParams = InnerBase & {
+	refs: boolean;
+	stock: "white" | "cream" | "mist";
+};
+export type ManPageParams = InnerBase & {
+	tractor: boolean;
+	stock: "white" | "greenbar" | "aged";
+};
+export type KeycapsParams = InnerBase & {
+	backlight: boolean;
+	colorway: "beige" | "graphite" | "milkshake";
+};
 export type AuroraParams = InnerBase & {
 	stars: boolean;
 	hue: "emerald" | "violet" | "teal";
@@ -213,6 +238,11 @@ export type InnerParamsMap = {
 	nameplate: NameplateParams;
 	"punch-card": PunchCardParams;
 	"offer-letter": OfferLetterParams;
+	"code-editor": CodeEditorParams;
+	"pull-request": PullRequestParams;
+	"commit-graph": CommitGraphParams;
+	"man-page": ManPageParams;
+	keycaps: KeycapsParams;
 	aurora: AuroraParams;
 	moonrise: MoonriseParams;
 	daybreak: DaybreakParams;

@@ -22,25 +22,6 @@
 	--ink: #0f172a;
 }
 
-/* ── shared cluster CTA (minimal + any style that wants a clean button) ── */
-.cmp-cta {
-	color: #0f172a;
-	background: var(--cmp-cta-bg, #fff);
-	border: 2px solid rgba(255, 255, 255, 0.85);
-	box-shadow: 0 6px 24px -8px rgba(0, 0, 0, 0.7);
-	transition:
-		transform 120ms ease-out,
-		box-shadow 120ms ease-out;
-}
-.cmp-cta:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.85);
-}
-.cmp-cta:focus-visible {
-	outline: 3px solid #fff;
-	outline-offset: 4px;
-}
-
 /* ── inner: parallax-depth ──────────────────────────────────────────── */
 .cmp-parallax-layer {
 	position: absolute;
@@ -330,32 +311,63 @@
 	outline: none;
 }
 
-/* ── terminal ── dark translucent pane + blinking cursor ── */
+/* ── terminal ── scheme-driven pane (--term-* inline vars) + blinking cursor ──
+   The component sets --term-bg/--term-ink/--term-glyph/--term-glow inline
+   (timecard --tc-* convention); every color below reads ONLY those vars. */
 .terminal-pane {
-	background: rgba(12, 16, 24, 0.94);
-	border: 1px solid #2b3648;
+	background: var(--term-bg);
+	color: var(--term-ink);
+	border: 1px solid color-mix(in srgb, var(--term-glyph) 35%, transparent);
 	border-radius: 8px;
 	box-shadow:
 		0 18px 40px -18px rgba(0, 0, 0, 0.85),
+		0 0 36px -14px var(--term-glow),
 		inset 0 1px 0 rgba(255, 255, 255, 0.05);
 	backdrop-filter: blur(4px);
 	-webkit-backdrop-filter: blur(4px);
 	overflow: hidden;
 }
 .terminal-bar {
-	background: #11161f;
-	border-bottom: 1px solid #2b3648;
+	background: color-mix(in srgb, var(--term-bg) 84%, white);
+	border-bottom: 1px solid
+		color-mix(in srgb, var(--term-glyph) 25%, transparent);
+	/* 1px top highlight so the bar reads as a raised lid */
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
-.repl-run:focus-visible {
-	outline: 2px solid #34d399;
-	outline-offset: 2px;
+.terminal-glyph {
+	color: var(--term-glyph);
+}
+.terminal-rule {
+	color: color-mix(in srgb, var(--term-ink) 40%, transparent);
+}
+/* static inset vignette - depth without motion */
+.terminal-vignette {
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(
+		ellipse at center,
+		transparent 55%,
+		rgba(0, 0, 0, 0.35) 100%
+	);
+}
+/* faint static raster texture - ~3% ink scanlines, no animation */
+.terminal-raster {
+	position: absolute;
+	inset: 0;
+	background: repeating-linear-gradient(
+		to bottom,
+		color-mix(in srgb, var(--term-ink) 3%, transparent) 0,
+		color-mix(in srgb, var(--term-ink) 3%, transparent) 1px,
+		transparent 1px,
+		transparent 3px
+	);
 }
 .terminal-cursor {
 	display: inline-block;
 	width: 9px;
 	height: 1.05em;
 	vertical-align: text-bottom;
-	background: #34d399;
+	background: var(--term-glyph);
 	animation: terminal-blink 1.05s step-end infinite;
 }
 @keyframes terminal-blink {
@@ -535,7 +547,6 @@
 	.specimen,
 	.fossil,
 	.sticky-note,
-	.cmp-cta,
 	.collectible-ability,
 	.comic-action,
 	.star-glow {
@@ -1749,6 +1760,317 @@
 	font-weight: 700;
 	color: color-mix(in srgb, var(--ol-ink) 85%, transparent);
 	opacity: 0.9;
+}
+
+/* ── code-editor ── Modern IDE window (--ed-* inline vars) ──
+   Every paper/ink surface reads the theme-driven --ed-bg / --ed-ink /
+   --ed-muted / --ed-keyword the component sets inline (timecard --tc-*
+   convention), so the chrome tracks onedark / nord / monokai - never the
+   global --paper / --ink, never a color literal. --ed-muted paints only
+   decorative chrome (ghost tab, gutter numbers, status bar). All decoration
+   is static - no animation, no transition. */
+.editor-pane {
+	background: var(--ed-bg);
+	color: var(--ed-ink);
+	border: 1px solid color-mix(in srgb, var(--ed-ink) 22%, transparent);
+	border-radius: 8px;
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.6);
+	overflow: hidden;
+}
+.editor-tabs {
+	background: color-mix(in srgb, var(--ed-ink) 8%, var(--ed-bg));
+	border-bottom: 1px solid color-mix(in srgb, var(--ed-ink) 16%, transparent);
+}
+.editor-tab-active {
+	background: var(--ed-bg);
+	color: var(--ed-ink);
+}
+.editor-tab-ghost {
+	color: var(--ed-muted);
+}
+.editor-heading-hash {
+	color: var(--ed-keyword);
+}
+.editor-gutter {
+	color: var(--ed-muted);
+}
+.editor-gutter-rule {
+	display: block;
+	width: 1px;
+	background: color-mix(in srgb, var(--ed-muted) 45%, transparent);
+	/* aligns the rule under the gutter's number column */
+	margin-left: 0.65rem;
+}
+.editor-status {
+	color: var(--ed-muted);
+	background: color-mix(in srgb, var(--ed-ink) 6%, var(--ed-bg));
+	border-top: 1px solid color-mix(in srgb, var(--ed-muted) 35%, transparent);
+}
+
+/* ── pull-request ── review card (fixed --pr-paper / --pr-ink constants) ──
+   STATE-driven, not stock-driven: the card's paper/ink are fixed constants
+   set inline as --pr-paper / --pr-ink (with the diff tints riding along as
+   fixed --pr-add / --pr-del), and the state badge colors are record-driven
+   inline in the component - the same deliberate J3 carve-out nameplate gets
+   for being accent-driven. Stat counts/squares, word-diff tints, and stage
+   bubbles all read those vars. All decoration is static - no animation, no
+   transition. */
+.pr-card {
+	background: var(--pr-paper);
+	color: var(--pr-ink);
+	border: 1px solid color-mix(in srgb, var(--pr-ink) 16%, transparent);
+	border-radius: 10px;
+	box-shadow: 0 16px 36px -20px rgba(15, 23, 42, 0.4);
+	overflow: hidden;
+}
+.pr-head {
+	border-bottom: 1px solid color-mix(in srgb, var(--pr-ink) 12%, transparent);
+}
+.pr-branch-chip {
+	padding: 2px 8px;
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--pr-ink) 7%, var(--pr-paper));
+	border: 1px solid color-mix(in srgb, var(--pr-ink) 14%, transparent);
+}
+.pr-state-badge {
+	padding: 2px 10px;
+	border-radius: 999px;
+	letter-spacing: 0.04em;
+}
+.pr-number {
+	color: color-mix(in srgb, var(--pr-ink) 70%, transparent);
+}
+.pr-stat-count {
+	font-weight: 700;
+}
+.pr-stat-count--add {
+	/* raw --pr-add on --pr-paper is 3.02:1 - too low for 12px text (needs 4.5:1).
+	   Mixed 70% toward --pr-ink lands at ~4.8:1; squares below stay raw (3:1 floor,
+	   non-text decoration, and the meter's color identity). */
+	color: color-mix(in srgb, var(--pr-add) 70%, var(--pr-ink));
+}
+.pr-stat-count--del {
+	color: var(--pr-del);
+}
+.pr-stat-squares {
+	display: inline-flex;
+	gap: 3px;
+}
+.pr-stat-sq {
+	display: inline-block;
+	width: 9px;
+	height: 9px;
+	border-radius: 2px;
+}
+.pr-stat-sq--add {
+	background: var(--pr-add);
+}
+.pr-stat-sq--del {
+	background: var(--pr-del);
+}
+.pr-stat-sq--neutral {
+	background: color-mix(in srgb, var(--pr-ink) 16%, transparent);
+}
+/* word-diff: struck joke token (faint red) right before the survivor word
+   (faint green) - tints stay delicate, readability wins */
+.pr-wd-del {
+	text-decoration: line-through;
+	text-decoration-color: color-mix(in srgb, var(--pr-del) 55%, transparent);
+	color: color-mix(in srgb, var(--pr-del) 62%, var(--pr-ink));
+	background: color-mix(in srgb, var(--pr-del) 8%, transparent);
+	border-radius: 3px;
+	padding: 0 2px;
+	font-weight: 500;
+}
+.pr-wd-add {
+	color: color-mix(in srgb, var(--pr-add) 60%, var(--pr-ink));
+	background: color-mix(in srgb, var(--pr-add) 10%, transparent);
+	border-radius: 3px;
+	padding: 0 2px;
+}
+.pr-checks {
+	border-top: 1px solid color-mix(in srgb, var(--pr-ink) 12%, transparent);
+	color: color-mix(in srgb, var(--pr-ink) 80%, transparent);
+}
+/* connected pipeline stages: bubble + label per check, thin connector between */
+.pr-stage {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 5px;
+}
+.pr-stage-bubble {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 1.5px solid var(--pr-add);
+	background: color-mix(in srgb, var(--pr-add) 14%, var(--pr-paper));
+	color: color-mix(in srgb, var(--pr-add) 80%, var(--pr-ink));
+	font-size: 10px;
+	font-weight: 900;
+}
+.pr-stage-lbl {
+	font-size: 10.5px;
+	color: color-mix(in srgb, var(--pr-ink) 65%, transparent);
+}
+.pr-stage-connector {
+	width: 34px;
+	height: 1.5px;
+	background: color-mix(in srgb, var(--pr-add) 55%, transparent);
+	margin: 9px 2px 0;
+	align-self: flex-start;
+}
+
+/* ── commit-graph ── commit-log card on paper stock (--cg-* inline vars) ──
+   Every paper/ink surface reads the stock-driven --cg-paper / --cg-ink the
+   component sets inline (timecard --tc- convention), so the chrome tracks
+   white / cream / mist - never the global --paper / --ink, never a color
+   literal. The lane graph's strokes and accent nodes are inline SVG
+   attributes in the component, not CSS. All decoration is static - no
+   animation, no transition. */
+.cg-card {
+	background: var(--cg-paper);
+	color: var(--cg-ink);
+	border: 1px solid color-mix(in srgb, var(--cg-ink) 18%, transparent);
+	border-radius: 10px;
+	box-shadow: 0 16px 36px -20px rgba(15, 23, 42, 0.4);
+	overflow: hidden;
+}
+.cg-band {
+	border-bottom: 1px solid color-mix(in srgb, var(--cg-ink) 12%, transparent);
+}
+.cg-sha-col {
+	color: color-mix(in srgb, var(--cg-ink) 70%, transparent);
+}
+.cg-foot {
+	border-top: 1px solid color-mix(in srgb, var(--cg-ink) 12%, transparent);
+}
+.cg-ref {
+	padding: 2px 10px;
+	border-radius: 999px;
+	border: 1px solid color-mix(in srgb, var(--cg-ink) 45%, transparent);
+	color: color-mix(in srgb, var(--cg-ink) 85%, transparent);
+}
+
+/* ── man-page ── dot-matrix printout on paper stock (--mp-* inline vars) ──
+   Every paper/ink surface reads the stock-driven --mp-paper / --mp-ink the
+   component sets inline (timecard --tc- convention), so the page tracks
+   white / greenbar / aged - never the global --paper / --ink. TWO deliberate
+   neutral-shading carve-outs, exempted BY RULE in
+   composer.css.coding.test.ts's J3 guard: the sprocket-hole edge strips
+   (.manpage-tractor-left / -right) punch their holes with neutral black
+   rgba() shading - hole depth, not paper or ink color - and the greenbar
+   banding (.manpage-greenbar) is listed beside it even though its bands are
+   a color-mix of the section's own --mp-ink into --mp-paper. All decoration
+   is static - no animation, no transition. */
+.manpage-sheet {
+	border: 1px solid color-mix(in srgb, var(--mp-ink) 30%, transparent);
+	border-radius: 2px;
+	box-shadow: 0 16px 36px -20px rgba(40, 45, 35, 0.5);
+}
+.manpage-greenbar {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: repeating-linear-gradient(
+		180deg,
+		color-mix(in srgb, var(--mp-ink) 8%, var(--mp-paper)) 0 22px,
+		var(--mp-paper) 22px 44px
+	);
+}
+.manpage-tractor-left,
+.manpage-tractor-right {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 1.6rem;
+	pointer-events: none;
+	background-image: radial-gradient(
+		circle at 50% 13px,
+		rgba(0, 0, 0, 0.22) 3px,
+		rgba(0, 0, 0, 0.06) 4px,
+		transparent 5px
+	);
+	background-size: 100% 26px;
+}
+.manpage-tractor-left {
+	left: 0;
+	border-right: 1px dashed color-mix(in srgb, var(--mp-ink) 35%, transparent);
+}
+.manpage-tractor-right {
+	right: 0;
+	border-left: 1px dashed color-mix(in srgb, var(--mp-ink) 35%, transparent);
+}
+.manpage-header-line {
+	display: flex;
+	justify-content: center;
+	color: color-mix(in srgb, var(--mp-ink) 85%, transparent);
+}
+.manpage-accent-rule {
+	display: block;
+	height: 2px;
+	margin-top: 0.5rem;
+	opacity: 0.75;
+}
+.manpage-eyebrow {
+	color: color-mix(in srgb, var(--mp-ink) 85%, transparent);
+}
+.manpage-footer {
+	display: flex;
+	justify-content: center;
+	color: color-mix(in srgb, var(--mp-ink) 85%, transparent);
+}
+
+/* ── keycaps ── mechanical-keycap heading tiles (--kc-* inline vars) ──
+   Every cap/legend surface reads the colorway-driven --kc-cap / --kc-ink the
+   component sets inline (timecard --tc- convention), so the caps track
+   beige / graphite / milkshake - never the global --paper / --ink, never a
+   color literal. ONE deliberate neutral-shading carve-out, exempted BY RULE
+   in composer.css.coding.test.ts's J3 guard: the keycap BEVEL edges
+   (.keycap-bevel, plus the spacebar rule's matching insets) are carved with
+   neutral white/black rgba() box-shadow shading - cap depth, not paper or
+   ink color. The bevel lives on its own .keycap-bevel layer under each tile
+   because the accent under-glow is an INLINE box-shadow on .keycap-tile
+   (sourced from --kc-glow when backlight is on) and would override a CSS
+   bevel declared on the same element. All decoration is static - no
+   animation, no transition. */
+.keycap-tile {
+	background: var(--kc-cap);
+	color: var(--kc-ink);
+	border-radius: 9px;
+}
+.keycap-bevel {
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	pointer-events: none;
+	box-shadow:
+		inset 0 2px 0 rgba(255, 255, 255, 0.4),
+		inset 0 -3px 0 rgba(0, 0, 0, 0.18),
+		inset 2px 0 0 rgba(255, 255, 255, 0.12),
+		inset -2px 0 0 rgba(0, 0, 0, 0.1);
+}
+.keycap-legend {
+	position: relative;
+	color: var(--kc-ink);
+	line-height: 1;
+}
+.keycap-spacer {
+	display: inline-block;
+	width: 1.25rem;
+}
+.keycap-rule {
+	display: block;
+	height: 8px;
+	width: 44%;
+	border-radius: 5px;
+	background: var(--kc-cap);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.4),
+		inset 0 -2px 0 rgba(0, 0, 0, 0.16);
 }
 
 /* ════════════════════════════════════════════════════════════════════

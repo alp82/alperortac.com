@@ -6,7 +6,9 @@ import type { InnerId, InnerParamsMap } from "./types";
  *
  * One row per Craft-band topic pins that topic's inner frame (id + params)
  * plus a media treatment note. Follow-up per-topic tickets edit exactly one
- * row here to give a topic its own locked look. Every row is a literal (no
+ * row here to give a topic its own locked look - career (nameplate) and
+ * coding (pull-request) are locked so far; the remaining eight hold the
+ * shared parallax-depth seed. Every row is a literal (no
  * spreads of INNERS[...].defaults) so each stays independently hand-editable,
  * and the file holds only static literals - SSR-deterministic, no runtime deps.
  */
@@ -28,10 +30,10 @@ export const IDENTITIES = {
 	},
 	coding: {
 		inner: {
-			id: "parallax-depth",
-			params: { density: "roomy", shape: "flourish", depth: 50, layers: 3 },
+			id: "pull-request",
+			params: { density: "roomy", checks: true, state: "merged" },
 		},
-		media: "default - no per-topic treatment yet",
+		media: "none - the PR card is the visual",
 	},
 	"tech-stack": {
 		inner: {

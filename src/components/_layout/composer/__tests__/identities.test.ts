@@ -57,7 +57,20 @@ const CAREER_LOCK = {
 	params: { density: "roomy", screws: false, role: "title" },
 };
 
+/** Coding's locked identity (wayfinder plan-pr-frame-spec, TC-LOCK) - the
+ * second topic that diverges from the shared parallax-depth seed. */
+const CODING_LOCK = {
+	id: "pull-request" as const,
+	params: { density: "roomy", checks: true, state: "merged" },
+};
+
 const NON_CAREER_TOPICS = TOPICS.filter((t) => t.id !== "career");
+
+/** The seed list: every topic except the two locks (career, coding) - these
+ * eight still deep-equal the shared parallax-depth defaults (TC-LOCK-4/5). */
+const NON_LOCKED_TOPICS = TOPICS.filter(
+	(t) => t.id !== "career" && t.id !== "coding",
+);
 
 describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
 	it("has an entry for every TOPICS id", () => {
@@ -76,7 +89,7 @@ describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
 	});
 });
 
-describe("first divergent lock: career is nameplate, the other nine stay the seed (TC-B1-B5)", () => {
+describe("two divergent locks: career is nameplate, coding is pull-request, the other eight stay the seed (TC-B1-B5, TC-LOCK-1-6)", () => {
 	it("TC-B1: career's inner deep-equals the exact nameplate lock, no extra keys", () => {
 		expect(IDENTITIES.career.inner).toEqual(CAREER_LOCK);
 		expect(Object.keys(IDENTITIES.career.inner)).toEqual(
@@ -98,14 +111,41 @@ describe("first divergent lock: career is nameplate, the other nine stay the see
 		expect(params).not.toHaveProperty("layers");
 	});
 
+	it("TC-LOCK-1: coding's inner deep-equals the exact pull-request lock, no extra keys", () => {
+		expect(IDENTITIES.coding.inner).toEqual(CODING_LOCK);
+		expect(Object.keys(IDENTITIES.coding.inner)).toEqual(
+			Object.keys(CODING_LOCK),
+		);
+		expect(Object.keys(IDENTITIES.coding.inner.params)).toEqual(
+			Object.keys(CODING_LOCK.params),
+		);
+	});
+
+	it("TC-LOCK-2: coding's media note is the verbatim lock string", () => {
+		expect(IDENTITIES.coding.media).toBe("none - the PR card is the visual");
+	});
+
+	it("TC-LOCK-3: coding's params carry no depth/shape/layers keys (not a parallax-depth cluster)", () => {
+		const params = IDENTITIES.coding.inner.params as Record<string, unknown>;
+		expect(params).not.toHaveProperty("depth");
+		expect(params).not.toHaveProperty("shape");
+		expect(params).not.toHaveProperty("layers");
+	});
+
+	it("TC-LOCK-4/5: the non-locked list has exactly eight entries containing neither career nor coding", () => {
+		expect(NON_LOCKED_TOPICS.length).toBe(8);
+		expect(NON_LOCKED_TOPICS.some((t) => t.id === "career")).toBe(false);
+		expect(NON_LOCKED_TOPICS.some((t) => t.id === "coding")).toBe(false);
+	});
+
 	it.each(
-		NON_CAREER_TOPICS.map((t) => [t.id, t] as const),
+		NON_LOCKED_TOPICS.map((t) => [t.id, t] as const),
 	)("TC-B3: %s's inner deep-equals the locked parallax-depth cluster", (_id, t) => {
 		expect(IDENTITIES[t.id].inner).toEqual(LOCKED_INNER);
 	});
 
 	it.each(
-		NON_CAREER_TOPICS.map((t) => [t.id, t] as const),
+		NON_LOCKED_TOPICS.map((t) => [t.id, t] as const),
 	)("TC-B4: %s's inner.params deep-equals the live parallax-depth defaults", (_id, t) => {
 		expect(IDENTITIES[t.id].inner.params).toEqual(
 			INNERS["parallax-depth"].defaults,
@@ -130,6 +170,11 @@ describe("registry wiring - defaultClusters()/defaultState() read the registry (
 		expect(state.clusters[t.id]).toEqual(IDENTITIES[t.id].inner);
 	});
 
+	it("TC-LOCK-8: defaultState().clusters.coding deep-equals IDENTITIES.coding.inner", () => {
+		const state = defaultState();
+		expect(state.clusters.coding).toEqual(IDENTITIES.coding.inner);
+	});
+
 	it("TC-D3: two calls to defaultState() return distinct-but-equal params objects, including career's nameplate shape", () => {
 		const a = defaultState();
 		const b = defaultState();
@@ -139,9 +184,9 @@ describe("registry wiring - defaultClusters()/defaultState() read the registry (
 		}
 	});
 
-	it("TC-D4: mutating a consumer's copy never mutates the registry (coding, params.depth)", () => {
+	it("TC-D4/TC-LOCK-6: mutating a consumer's copy never mutates the registry (tech-stack, params.depth - moved off coding, which no longer has a depth param under the pull-request lock)", () => {
 		const state = defaultState();
-		const topicId = "coding" as const;
+		const topicId = "tech-stack" as const;
 		const before = IDENTITIES[topicId].inner.params.depth;
 
 		// biome-ignore lint/suspicious/noExplicitAny: intentional mutation of a copy to prove isolation
@@ -242,6 +287,24 @@ describe("DesignPanel reset targets the locked composition - THE trap (TC-F1, TC
 				IDENTITIES[t.id].inner,
 			);
 		}
+	});
+
+	it("TC-LOCK-9: after setInner('coding', 'floating-island'), reset() restores coding to the pull-request lock, sourced from the registry", () => {
+		const { result } = renderHook(() => useComposerControls());
+
+		act(() => {
+			result.current.setInner("coding", "floating-island");
+		});
+		expect(result.current.state.clusters.coding.id).toBe("floating-island");
+
+		act(() => {
+			result.current.reset();
+		});
+
+		expect(result.current.state.clusters.coding).toEqual(CODING_LOCK);
+		expect(result.current.state.clusters.coding).toEqual(
+			IDENTITIES.coding.inner,
+		);
 	});
 
 	it("TC-F4: reset() restores baseline/link/linkParams to defaultState()'s values", () => {

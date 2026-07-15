@@ -568,6 +568,116 @@ function InsideSpecificControls({
 				</>
 			);
 		}
+		case "code-editor": {
+			const p = params as InnerParamsMap["code-editor"];
+			return (
+				<>
+					<Segmented
+						label="Theme"
+						value={p.theme}
+						options={[
+							{ value: "onedark", label: "One Dark" },
+							{ value: "nord", label: "Nord" },
+							{ value: "monokai", label: "Monokai" },
+						]}
+						onChange={(theme) => patch({ theme })}
+					/>
+					<Toggle
+						label="Line numbers"
+						checked={p.gutter}
+						onChange={(gutter) => patch({ gutter })}
+					/>
+				</>
+			);
+		}
+		case "pull-request": {
+			const p = params as InnerParamsMap["pull-request"];
+			return (
+				<>
+					<Segmented
+						label="State"
+						value={p.state}
+						options={[
+							{ value: "open", label: "Open" },
+							{ value: "merged", label: "Merged" },
+							{ value: "draft", label: "Draft" },
+						]}
+						onChange={(state) => patch({ state })}
+					/>
+					<Toggle
+						label="CI checks"
+						checked={p.checks}
+						onChange={(checks) => patch({ checks })}
+					/>
+				</>
+			);
+		}
+		case "commit-graph": {
+			const p = params as InnerParamsMap["commit-graph"];
+			return (
+				<>
+					<Segmented
+						label="Stock"
+						value={p.stock}
+						options={[
+							{ value: "white", label: "White" },
+							{ value: "cream", label: "Cream" },
+							{ value: "mist", label: "Mist" },
+						]}
+						onChange={(stock) => patch({ stock })}
+					/>
+					<Toggle
+						label="Ref chips"
+						checked={p.refs}
+						onChange={(refs) => patch({ refs })}
+					/>
+				</>
+			);
+		}
+		case "man-page": {
+			const p = params as InnerParamsMap["man-page"];
+			return (
+				<>
+					<Segmented
+						label="Stock"
+						value={p.stock}
+						options={[
+							{ value: "white", label: "White" },
+							{ value: "greenbar", label: "Greenbar" },
+							{ value: "aged", label: "Aged" },
+						]}
+						onChange={(stock) => patch({ stock })}
+					/>
+					<Toggle
+						label="Tractor feed"
+						checked={p.tractor}
+						onChange={(tractor) => patch({ tractor })}
+					/>
+				</>
+			);
+		}
+		case "keycaps": {
+			const p = params as InnerParamsMap["keycaps"];
+			return (
+				<>
+					<Segmented
+						label="Colorway"
+						value={p.colorway}
+						options={[
+							{ value: "beige", label: "Beige" },
+							{ value: "graphite", label: "Graphite" },
+							{ value: "milkshake", label: "Milkshake" },
+						]}
+						onChange={(colorway) => patch({ colorway })}
+					/>
+					<Toggle
+						label="Backlight"
+						checked={p.backlight}
+						onChange={(backlight) => patch({ backlight })}
+					/>
+				</>
+			);
+		}
 		case "aurora": {
 			const p = params as InnerParamsMap["aurora"];
 			return (

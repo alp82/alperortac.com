@@ -3,12 +3,16 @@ import { AuroraCluster } from "./inner/aurora";
 import { BlueprintCluster } from "./inner/blueprint";
 import { ChalkboardCluster } from "./inner/chalkboard";
 import { CircuitBoardCluster } from "./inner/circuit-board";
+import { CodeEditorCluster } from "./inner/code-editor";
 import { CollectibleCluster } from "./inner/collectible";
 import { ComicCluster } from "./inner/comic";
+import { CommitGraphCluster } from "./inner/commit-graph";
 import { ConstellationCluster } from "./inner/constellation";
 import { DaybreakCluster } from "./inner/daybreak";
 import { FieldJournalCluster } from "./inner/field-journal";
 import { FloatingIslandCluster } from "./inner/floating-island";
+import { KeycapsCluster } from "./inner/keycaps";
+import { ManPageCluster } from "./inner/man-page";
 import { MinimalCluster } from "./inner/minimal";
 import { MoonriseCluster } from "./inner/moonrise";
 import { NameplateCluster } from "./inner/nameplate";
@@ -16,6 +20,7 @@ import { NeonSignCluster } from "./inner/neon-sign";
 import { OfferLetterCluster } from "./inner/offer-letter";
 import { ParallaxDepthCluster } from "./inner/parallax-depth";
 import { PolaroidCluster } from "./inner/polaroid";
+import { PullRequestCluster } from "./inner/pull-request";
 import { PunchCardCluster } from "./inner/punch-card";
 import { SeedPacketCluster } from "./inner/seed-packet";
 import { SkylineCluster } from "./inner/skyline";
@@ -279,6 +284,46 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 		defaults: { density: "roomy", scrawl: true, stock: "cream" },
 		Component: OfferLetterCluster,
 	},
+	"code-editor": {
+		id: "code-editor",
+		label: "Code Editor",
+		feel: "Editor window: tab bar, line-number gutter and a markdown H1 heading in a chosen syntax theme. Modern IDE.",
+		surface: "dark",
+		defaults: { density: "roomy", gutter: true, theme: "onedark" },
+		Component: CodeEditorCluster,
+	},
+	"pull-request": {
+		id: "pull-request",
+		label: "Pull Request",
+		feel: "Review card: mono branch chips, a state badge, an honest +/- stat bar and connected pipeline stage bubbles framing the heading as a PR title. Delicate and clear.",
+		surface: "light",
+		defaults: { density: "roomy", checks: true, state: "merged" },
+		Component: PullRequestCluster,
+	},
+	"commit-graph": {
+		id: "commit-graph",
+		label: "Commit Graph",
+		feel: "Commit-log card: an SVG lane graph + fake short SHAs framing the heading as the HEAD commit subject, with optional ref chips. Version control.",
+		surface: "light",
+		defaults: { density: "roomy", refs: true, stock: "white" },
+		Component: CommitGraphCluster,
+	},
+	"man-page": {
+		id: "man-page",
+		label: "Man Page",
+		feel: "Dot-matrix manual page: a mono NAME / DESCRIPTION layout with sprocket-hole tractor edges on a chosen printout stock. Retro hacker.",
+		surface: "light",
+		defaults: { density: "roomy", tractor: true, stock: "greenbar" },
+		Component: ManPageCluster,
+	},
+	keycaps: {
+		id: "keycaps",
+		label: "Keycaps",
+		feel: "Mechanical keyboard: the heading spelled in rounded keycap tiles with an optional accent backlight, closed by a slim spacebar rule. Tactile hardware.",
+		surface: "plate",
+		defaults: { density: "roomy", backlight: true, colorway: "beige" },
+		Component: KeycapsCluster,
+	},
 };
 
 export const INNER_ORDER: InnerId[] = [
@@ -294,6 +339,11 @@ export const INNER_ORDER: InnerId[] = [
 	"nameplate",
 	"punch-card",
 	"offer-letter",
+	"code-editor",
+	"pull-request",
+	"commit-graph",
+	"man-page",
+	"keycaps",
 ];
 
 /* ── LINKS (between-topic connectors) ───────────────────────────────────── */

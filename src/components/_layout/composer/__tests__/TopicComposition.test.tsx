@@ -4,6 +4,7 @@ import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Topic } from "../../../../data/topics";
 import { stubSectionGeometry } from "../../../../test/stubSectionGeometry";
+import { IDENTITIES } from "../identities";
 import { INNER_ORDER, INNERS } from "../index";
 import { TopicComposition } from "../TopicComposition";
 import type { InnerId, InnerRenderProps } from "../types";
@@ -396,11 +397,9 @@ describe("Milestone 3 - INNER_ORDER lands at its final 8 entries", () => {
 		cleanup();
 	});
 
-	// TC-10: INNER_ORDER now has exactly 12 entries (the 8-survivor guard plus
-	// the four new ephemera frames, appended - never rewritten in place).
-	it("has exactly 12 entries", () => {
-		expect(INNER_ORDER.length).toBe(12);
-	});
+	// TC-10: superseded by the M2 "has exactly 14 entries" pin below (Milestone
+	// 2 bumps this in place rather than duplicating it) - the 12-count is still
+	// exercised via the first-8/last-4 slices immediately below.
 
 	// C2: the first 8 entries are unchanged and in original order - still equal
 	// to the FINAL_INNER_ORDER survivor literal. This is the deco-purge guard
@@ -414,7 +413,7 @@ describe("Milestone 3 - INNER_ORDER lands at its final 8 entries", () => {
 	// appended after the survivors (not interleaved) - this is exactly what
 	// keeps the Milestone 1 slice(0,2) test at the top of this file green.
 	it("last 4 entries are timecard, nameplate, punch-card, offer-letter in order", () => {
-		expect(INNER_ORDER.slice(8)).toEqual([
+		expect(INNER_ORDER.slice(8, 12)).toEqual([
 			"timecard",
 			"nameplate",
 			"punch-card",
@@ -645,5 +644,193 @@ describe("TopicComposition whole-section day/night freeze", () => {
 		expect(heading?.textContent).toBe(topic.heading);
 		expect(heading?.className).toContain("text-white");
 		restore();
+	});
+});
+
+/*
+ * Milestone 2 (wayfinder plan-coding-frames) - code-editor + pull-request
+ * join INNER_ORDER as a SEPARATE literal beside FINAL_INNER_ORDER, exactly
+ * like the ephemera round's EPHEMERA_IDS block above (plan v2's structural
+ * note) - so the 8-entry deco-purge survivor guard stays untouched by
+ * construction. Authored red: none of the four ids exist in
+ * INNERS/INNER_ORDER yet.
+ *
+ * Milestone 3 note: commit-graph + man-page are appended to this SAME literal
+ * (never a second separate one) and the M2 `toBe(14)` pin is bumped to 16 IN
+ * PLACE, per plan v2's growth note - the slice(12) pin below covers all four
+ * coding ids in registration order across both milestones.
+ *
+ * Milestone 4 note (final): keycaps is appended to this SAME literal (still
+ * never a second separate one) and the M3 `toBe(16)` pin is bumped to 17 IN
+ * PLACE - CODING_INNER_ORDER is now the full, final five-id coding roster in
+ * registration order, reconciled in place per this build's growth
+ * convention rather than adding a fresh describe block.
+ */
+const CODING_INNER_ORDER = [
+	"code-editor",
+	"pull-request",
+	"commit-graph",
+	"man-page",
+	"keycaps",
+] as const;
+
+describe("Milestone 4 (coding frames, final) - INNER_ORDER grows to 17", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	// TC-ORDER-3 (M4 final checkpoint): INNER_ORDER now has exactly 17 entries
+	// (12 + the five coding frames, appended - never rewritten in place).
+	it("has exactly 17 entries", () => {
+		expect(INNER_ORDER.length).toBe(17);
+	});
+
+	it("first 12 entries are unchanged", () => {
+		expect(INNER_ORDER.slice(0, 12)).toEqual([
+			"parallax-depth",
+			"floating-island",
+			"constellation",
+			"skyline",
+			"terminal",
+			"ticket-stub",
+			"arcade-hud",
+			"seed-packet",
+			"timecard",
+			"nameplate",
+			"punch-card",
+			"offer-letter",
+		]);
+	});
+
+	it("slice(12) equals the final five coding ids in order: code-editor, pull-request, commit-graph, man-page, keycaps", () => {
+		expect(INNER_ORDER.slice(12)).toEqual([...CODING_INNER_ORDER]);
+	});
+
+	// TC-ORDER-4: no duplicate ids anywhere in INNER_ORDER at the final
+	// 17-entry state.
+	it("contains no duplicate ids at the final 17-entry state", () => {
+		expect(new Set(INNER_ORDER).size).toBe(INNER_ORDER.length);
+	});
+
+	// TC-ORDER-5: every id in the final INNER_ORDER has a matching INNERS
+	// entry whose own .id matches.
+	it("every id in the final INNER_ORDER has a matching INNERS entry whose .id matches", () => {
+		for (const id of INNER_ORDER) {
+			expect(INNERS[id]).toBeDefined();
+			expect(INNERS[id].id).toBe(id);
+		}
+	});
+});
+
+describe("coding inners render through TopicComposition", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	// TC-RENDER-1: each new id renders via renderCompositionWithInner with its
+	// own registry defaults without throwing, and produces exactly one
+	// <article>.
+	it.each(CODING_INNER_ORDER)("renders exactly one article for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const articles = container.querySelectorAll("article");
+		expect(articles.length).toBe(1);
+	});
+
+	// TC-RENDER-2: renders without throwing at index 0 and at a later index.
+	it.each(
+		CODING_INNER_ORDER,
+	)("renders without throwing at index 0 and at a later index for %s", (id) => {
+		const state0 = defaultState();
+		state0.clusters[topic.id] = { id, params: { ...INNERS[id].defaults } };
+		const first = render(
+			<TopicComposition
+				state={state0}
+				topic={topic}
+				index={0}
+				lastTriggerRef={lastTriggerRef}
+			/>,
+		);
+		expect(first.container.querySelectorAll("article").length).toBe(1);
+		cleanup();
+
+		const state9 = defaultState();
+		state9.clusters[topic.id] = { id, params: { ...INNERS[id].defaults } };
+		const later = render(
+			<TopicComposition
+				state={state9}
+				topic={topic}
+				index={9}
+				lastTriggerRef={lastTriggerRef}
+			/>,
+		);
+		expect(later.container.querySelectorAll("article").length).toBe(1);
+	});
+
+	// TC-RENDER-3: the real TopicBody (children) is present and seated inside
+	// the frame's DOM tree - the fallback teaser text ("ignored", per this
+	// file's `topic` fixture) proves the real body was seated, not merely
+	// that the frame's own chrome produced non-empty text.
+	it.each(
+		CODING_INNER_ORDER,
+	)("seats the real TopicBody children inside the frame for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const article = container.querySelector("article");
+		expect(article).not.toBeNull();
+		expect(article?.textContent).toContain("ignored");
+	});
+});
+
+/*
+ * Milestone 4 (final sweep) - out-of-scope regression guards, wayfinder
+ * plan-coding-frames' Out of Scope list: the coding identity lock is a later
+ * HITL resolution (wayfinder #12), and none of the 15 deliberately-pruned
+ * INNERS-but-not-INNER_ORDER frames may be re-exposed by this build. Both
+ * checks are cheap and, per the plan, expected to already hold - they pin
+ * behavior this build must not accidentally disturb.
+ */
+
+// The 15 frames that exist as INNERS entries but were deliberately pruned
+// out of INNER_ORDER (never appended to the picker) ahead of this round -
+// kept as a literal, independent of INNER_ORDER, so a future accidental
+// re-addition to INNER_ORDER trips this guard rather than silently updating
+// alongside it.
+const PRUNED_NOT_IN_ORDER_IDS = [
+	"minimal",
+	"trail-signpost",
+	"field-journal",
+	"aurora",
+	"moonrise",
+	"daybreak",
+	"summit",
+	"polaroid",
+	"collectible",
+	"comic",
+	"blueprint",
+	"circuit-board",
+	"neon-sign",
+	"chalkboard",
+	"topo-map",
+] as const;
+
+describe("Milestone 4 (final sweep) - the coding lock landed, other out-of-scope regression guards hold", () => {
+	// TC-SCOPE-1: this build IS the later HITL lock step this pin was
+	// guarding for - the Coding identity is now honestly locked to
+	// pull-request (wayfinder plan-pr-frame-spec), no longer parallax-depth.
+	it("TC-SCOPE-1: IDENTITIES.coding.inner.id is locked to pull-request", () => {
+		expect(IDENTITIES.coding.inner.id).toBe("pull-request");
+	});
+
+	// TC-SCOPE-3: none of the 15 previously-pruned INNERS-but-not-INNER_ORDER
+	// frames reappear in INNER_ORDER at the final 17-entry state.
+	it("TC-SCOPE-3: none of the 15 previously-pruned frames reappear in INNER_ORDER", () => {
+		for (const id of PRUNED_NOT_IN_ORDER_IDS) {
+			expect(INNER_ORDER).not.toContain(id);
+		}
+	});
+
+	it("TC-SCOPE-3b (regression guard): all 15 pruned ids are still registered in INNERS itself (pruned from the picker, not deleted from the registry)", () => {
+		for (const id of PRUNED_NOT_IN_ORDER_IDS) {
+			expect(INNERS[id as InnerId]).toBeDefined();
+		}
 	});
 });

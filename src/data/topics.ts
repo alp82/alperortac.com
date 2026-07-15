@@ -25,6 +25,17 @@ export type TopicId =
 	| "games"
 	| PersonalSlug;
 
+/**
+ * One word-diff replacement point for the pull-request frame. Contract:
+ * one line per replacement, `anchor` = exact word in the topic body the
+ * struck-out `strike` precedes, first occurrence wins, data order need not
+ * follow text order, unmatched anchors degrade silently.
+ */
+export type PrDiffReplacement = { strike: string; anchor: string };
+
+/** `number` = vanity PR number (falls back to band index + 1). */
+export type PrDiff = { number?: number; replacements: PrDiffReplacement[] };
+
 export type Topic = {
 	id: TopicId;
 	heading: string;
@@ -35,6 +46,8 @@ export type Topic = {
 	 */
 	teaser?: string;
 	triggers: Trigger[];
+	/** Pull-request frame word-diff data - see the PrDiffReplacement contract. */
+	prDiff?: PrDiff;
 };
 
 /**
@@ -63,6 +76,15 @@ export const TOPICS: Topic[] = [
 		heading: "Coding",
 		teaser: CODING_TEASER,
 		triggers: [{ kind: "story", slug: "early-days" }],
+		prDiff: {
+			number: 7,
+			replacements: [
+				{ strike: "jQuery", anchor: "Typescript" },
+				{ strike: "leveraging synergies", anchor: "elegant" },
+				{ strike: "// TODO: fix later", anchor: "self-hosting" },
+				{ strike: "10x rockstar ninja", anchor: "ship" },
+			],
+		},
 	},
 	{
 		id: "tech-stack",

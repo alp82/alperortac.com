@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PR frame - Coding band identity picker (round 2)</title>
+<style>
+  /* ---- prototype shell (throwaway; not shipped) ---- */
+  :root {
+    --mint: #a7f3d0;           /* locked Coding accent (not a variable here) */
+    --pr-paper: #f6f8fa;       /* fixed card constant (from pull-request.tsx) */
+    --pr-ink: #1f2328;         /* fixed card constant */
+    --stat-green: #2da44e;
+    --stat-red: #cf222e;
+    --badge-merged: #8250df;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #e5e7eb;
+    background:
+      radial-gradient(1200px 600px at 70% -10%, #1e3a34 0%, transparent 60%),
+      linear-gradient(180deg, #0f172a 0%, #111827 60%, #0b1220 100%);
+    min-height: 100vh;
+  }
+  .wrap {
+    display: grid;
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap: 0;
+    align-items: start;
+    min-height: 100vh;
+  }
+  /* ---- control rail ---- */
+  .rail {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 22px 20px 40px;
+    background: rgba(2, 6, 23, 0.72);
+    backdrop-filter: blur(8px);
+    border-right: 1px solid rgba(148, 163, 184, 0.16);
+  }
+  .rail h1 {
+    font-size: 15px;
+    line-height: 1.35;
+    margin: 0 0 2px;
+    letter-spacing: 0.01em;
+  }
+  .rail .sub {
+    font-size: 12px;
+    color: #94a3b8;
+    margin: 0 0 18px;
+    line-height: 1.45;
+  }
+  .field { margin-bottom: 18px; }
+  .field > label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #93c5aa;
+    margin-bottom: 7px;
+    font-weight: 700;
+  }
+  .field .hint {
+    font-size: 11px;
+    color: #7c899c;
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+  /* locked-parameter note (ci_style is no longer a control) */
+  .locked-note {
+    font-size: 11px;
+    color: #7c899c;
+    margin: 0 0 18px;
+    padding: 9px 11px;
+    line-height: 1.5;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px dashed rgba(148, 163, 184, 0.22);
+    border-radius: 8px;
+  }
+  .locked-note b { color: #93c5aa; font-weight: 700; }
+  /* segmented control */
+  .seg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 9px;
+    padding: 4px;
+  }
+  .seg button {
+    flex: 1 1 auto;
+    min-width: 62px;
+    appearance: none;
+    border: 0;
+    border-radius: 6px;
+    padding: 7px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #cbd5e1;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .seg button:hover { background: rgba(148, 163, 184, 0.12); }
+  .seg button[aria-pressed="true"] {
+    background: var(--mint);
+    color: #06281c;
+  }
+  .copy-block {
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
+  }
+  .copy-btn {
+    width: 100%;
+    appearance: none;
+    border: 0;
+    border-radius: 9px;
+    padding: 12px;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: #06281c;
+    background: var(--mint);
+    cursor: pointer;
+  }
+  .copy-btn:active { transform: translateY(1px); }
+  .copy-note {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 9px;
+    line-height: 1.5;
+  }
+  .spec-preview {
+    margin-top: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    color: #93c5aa;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 7px;
+    padding: 9px 10px;
+    word-break: break-word;
+    line-height: 1.6;
+  }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--mint);
+    color: #06281c;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 50;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---- stage (landscape-ish backdrop the composer sits over) ---- */
+  .stage {
+    padding: 56px 40px 80px;
+    display: flex;
+    justify-content: center;
+  }
+  .stage-inner { width: 100%; max-width: 48rem; } /* roomy density = max-w-3xl */
+
+  /* =========================================================
+     FAITHFUL PR CARD REPRODUCTION
+     (mirrors pull-request.tsx markup + composer.css `.pr-*`)
+     ========================================================= */
+  .pr-card {
+    background: var(--pr-paper);
+    color: var(--pr-ink);
+    border: 1px solid color-mix(in srgb, var(--pr-ink) 16%, transparent);
+    border-radius: 10px;
+    box-shadow: 0 16px 36px -20px rgba(15, 23, 42, 0.4);
+    overflow: hidden;
+    text-align: left;
+    /* locked Coding accent: one delicate mint hairline at the card's top edge */
+    border-top: 2px solid var(--mint);
+  }
+  .pr-head {
+    padding: 20px 32px 16px;
+    border-bottom: 1px solid color-mix(in srgb, var(--pr-ink) 12%, transparent);
+  }
+  .pr-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .pr-branch-chip {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--pr-ink) 7%, var(--pr-paper));
+    border: 1px solid color-mix(in srgb, var(--pr-ink) 14%, transparent);
+  }
+  .pr-state-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+    background: var(--badge-merged);
+    color: #fff;
+  }
+  .pr-title-row {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 12px;
+  }
+  .pr-heading { font-weight: 700; font-size: 48px; line-height: 1.1; margin: 0; }
+  .pr-number {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 24px;
+    color: color-mix(in srgb, var(--pr-ink) 70%, transparent);
+  }
+
+  /* ---- stat bar treatments (github + inline only) ---- */
+  .stat-wrap { margin-top: 14px; }
+  /* base thin segment meter (used by inline) */
+  .stat-seg {
+    display: flex;
+    height: 6px;
+    width: 96px;
+    overflow: hidden;
+    border-radius: 999px;
+  }
+  .stat-seg .add { flex: 3; background: var(--stat-green); }
+  .stat-seg .del { flex: 1; background: var(--stat-red); }
+  .stat-inline { display: flex; align-items: center; gap: 12px; }
+  .stat-count {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .stat-count.add { color: var(--stat-green); }
+  .stat-count.del { color: var(--stat-red); }
+  /* github style: text + 5-square meter */
+  .stat-github { display: flex; align-items: center; gap: 10px; }
+  .stat-squares { display: inline-flex; gap: 3px; }
+  .stat-squares i {
+    width: 9px; height: 9px; border-radius: 2px; display: inline-block;
+  }
+  .stat-squares i.g { background: var(--stat-green); }
+  .stat-squares i.r { background: var(--stat-red); }
+  .stat-squares i.n { background: color-mix(in srgb, var(--pr-ink) 16%, transparent); }
+
+  /* ---- content region ---- */
+  .pr-content { padding: 24px 32px; }
+
+  /* the topic body plate (faithful-enough frosted plate) */
+  .body-plate {
+    background: color-mix(in srgb, var(--pr-ink) 3%, var(--pr-paper));
+    border: 1px solid color-mix(in srgb, var(--pr-ink) 9%, transparent);
+    border-radius: 10px;
+    padding: 22px 24px;
+    font-size: 18px;
+    line-height: 1.6;
+    font-weight: 500;
+  }
+  .body-plate p { margin: 0; }
+  .body-plate p + p { margin-top: 14px; }
+
+  /* ---- diff_style: words (inline word-diff inside the prose) ---- */
+  /* deletion: struck joke token, faint red tint + line-through. Subtle. */
+  .wd-del {
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in srgb, var(--stat-red) 55%, transparent);
+    color: color-mix(in srgb, var(--stat-red) 62%, var(--pr-ink));
+    background: color-mix(in srgb, var(--stat-red) 8%, transparent);
+    border-radius: 3px;
+    padding: 0 2px;
+    font-weight: 500;
+  }
+  /* addition: the real (survivor) word, faint green tint. Readability wins. */
+  .wd-add {
+    color: color-mix(in srgb, var(--stat-green) 60%, var(--pr-ink));
+    background: color-mix(in srgb, var(--stat-green) 10%, transparent);
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+
+  /* ---- diff_style: lines (diff-hunk paragraph) ---- */
+  .diff-hunk {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 14.5px;
+    line-height: 1.55;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--pr-ink) 10%, transparent);
+  }
+  .diff-line {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 3px 14px;
+  }
+  .diff-line .gutter { flex: 0 0 auto; font-weight: 800; width: 10px; text-align: center; }
+  .diff-line.add {
+    background: color-mix(in srgb, var(--stat-green) 10%, var(--pr-paper));
+    color: color-mix(in srgb, var(--stat-green) 42%, var(--pr-ink));
+  }
+  .diff-line.add .gutter { color: var(--stat-green); }
+  .diff-line.del {
+    background: color-mix(in srgb, var(--stat-red) 9%, var(--pr-paper));
+    color: color-mix(in srgb, var(--stat-red) 58%, var(--pr-ink));
+  }
+  .diff-line.del .gutter { color: var(--stat-red); }
+  .diff-line.del .body { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--stat-red) 50%, transparent); }
+
+  /* ---- footer / CI region (locked to stages) ---- */
+  .pr-checks {
+    padding: 12px 32px;
+    border-top: 1px solid color-mix(in srgb, var(--pr-ink) 12%, transparent);
+    color: color-mix(in srgb, var(--pr-ink) 80%, transparent);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+  }
+  /* CI: stages (GitLab connected bubbles) - LOCKED */
+  .ci-stages { display: inline-flex; align-items: center; }
+  .ci-stages .stage-node { display: inline-flex; flex-direction: column; align-items: center; gap: 5px; }
+  .ci-stages .bubble {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 1.5px solid var(--stat-green);
+    background: color-mix(in srgb, var(--stat-green) 14%, var(--pr-paper));
+    color: color-mix(in srgb, var(--stat-green) 80%, #000);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 900;
+  }
+  .ci-stages .lbl { font-size: 10.5px; color: color-mix(in srgb, var(--pr-ink) 65%, transparent); }
+  .ci-stages .connector {
+    width: 34px; height: 1.5px;
+    background: color-mix(in srgb, var(--stat-green) 55%, transparent);
+    margin: 0 2px; align-self: flex-start; margin-top: 9px;
+  }
+
+  .stage-caption {
+    max-width: 48rem;
+    margin: 22px auto 0;
+    font-size: 12px;
+    color: #64748b;
+    text-align: center;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- ================= CONTROL RAIL ================= -->
+  <aside class="rail">
+    <h1>Pull-request frame - Coding band identity (round 2)</h1>
+    <p class="sub">Locked base: roomy width, merged violet badge, mint hairline, fixed paper/ink, verbatim body, no animation. The strikes now live inside the prose like a real diff - his real words survive (green), the jokes get deleted (red).</p>
+
+    <p class="locked-note"><b>CI checks: locked to stages</b> - GitLab-style connected bubbles, always rendered.</p>
+
+    <div class="field" data-param="stat_bar">
+      <label>Stat bar</label>
+      <div class="seg" role="group">
+        <button data-val="github">+adds -dels</button>
+        <button data-val="inline">inline meter</button>
+      </div>
+      <p class="hint">How the +adds / -dels diff summary reads. Both derive from the live diff below.</p>
+    </div>
+
+    <div class="field" data-param="number">
+      <label>PR number</label>
+      <div class="seg" role="group">
+        <button data-val="index">index</button>
+        <button data-val="lucky">lucky</button>
+        <button data-val="raw">raw</button>
+      </div>
+      <p class="hint">index = #<span id="h-idx"></span> (real band position). lucky = #<span id="h-lucky"></span> (hand-picked vanity number). raw = #<span id="h-raw"></span> (body char count).</p>
+    </div>
+
+    <div class="field" data-param="diff_style">
+      <label>Diff style</label>
+      <div class="seg" role="group">
+        <button data-val="words">inline words</button>
+        <button data-val="lines">diff hunk</button>
+      </div>
+      <p class="hint">words = struck joke sits right before the real word it "replaced" (real word tinted green). lines = the paragraph becomes a hunk, real sentences are green + lines with red - joke lines between them.</p>
+    </div>
+
+    <div class="field" data-param="strike_density">
+      <label>Strike density</label>
+      <div class="seg" role="group">
+        <button data-val="subtle">subtle (2)</button>
+        <button data-val="playful">playful (4)</button>
+      </div>
+      <p class="hint">How many joke deletions to sprinkle in. Prose readability always wins.</p>
+    </div>
+
+    <div class="copy-block">
+      <button class="copy-btn" id="copyBtn">Copy spec</button>
+      <p class="copy-note">Paste the copied line back into chat so the design gets locked.</p>
+      <div class="spec-preview" id="specPreview"></div>
+    </div>
+  </aside>
+
+  <!-- ================= STAGE ================= -->
+  <main class="stage">
+    <div class="stage-inner">
+      <div class="pr-card">
+        <!-- header band -->
+        <div class="pr-head">
+          <div class="pr-row">
+            <span class="pr-branch-chip">alp:feat/coding &rarr; main</span>
+            <span class="pr-state-badge">Merged</span>
+          </div>
+          <div class="pr-title-row">
+            <h2 class="pr-heading">Coding</h2>
+            <span class="pr-number" id="prNumber">#7</span>
+          </div>
+          <div class="stat-wrap" id="statWrap"></div>
+        </div>
+
+        <!-- content: the diff now lives inside the prose -->
+        <div class="pr-content">
+          <div class="body-plate" id="bodyPlate"></div>
+        </div>
+
+        <!-- footer / CI - locked to stages -->
+        <div class="pr-checks">
+          <div id="ciSlot"></div>
+        </div>
+      </div>
+      <p class="stage-caption">Faithful static reproduction of the real <code>pull-request.tsx</code> frame (mirrors <code>.pr-*</code> in composer.css). The prose is verbatim <code>CODING_TEASER</code>; only struck jokes are added on top. Throwaway prototype - the real build reads these choices as a spec.</p>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast">Spec copied</div>
+
+<script>
+  // ---- real Coding-band body (verbatim from data/topics.ts CODING_TEASER) ----
+  var BODY_PARAS = [
+    "Nowadays I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up Tanstack and self-hosting it on one of my Hetzner VPS.",
+    "Even in the age of LLM's I'm still driven by following good coding practices. The art of crafting an elegant solution to a complex problem just makes me happy. A good session is when I'm fully locked in and ship a new version at the end."
+  ];
+  var BODY_TEXT = BODY_PARAS.join("\n\n");
+  var RAW_COUNT = BODY_TEXT.length;                       // deterministic body size (= 469)
+  var TOPIC_INDEX = 2;                                    // coding is the 2nd band (real position)
+  var LUCKY = 7;                                          // hand-picked vanity number per topic
+
+  // ---- word-diff replacement points ----------------------------------------
+  // Each: which paragraph, a verbatim anchor word (the survivor, tinted green),
+  // and the struck joke token that pretends to have preceded it. Ordered so the
+  // first two (subtle) and all four (playful) each mix the three content sets:
+  //   set: buzzword purge | abandoned tech | dev-habit confessions
+  var WORD_DIFFS = [
+    { para: 0, anchor: "Typescript",  joke: "jQuery",              set: "tech" },
+    { para: 1, anchor: "elegant",     joke: "leveraging synergies", set: "buzzword" },
+    { para: 0, anchor: "self-hosting", joke: "// TODO: fix later",  set: "habits" },
+    { para: 1, anchor: "ship",        joke: "10x rockstar ninja",   set: "buzzword" }
+  ];
+
+  // ---- line-diff joke "-" lines (drawn from all three sets) -----------------
+  var LINE_JOKES = [
+    "passionate rockstar ninja engineer, leveraging synergies",     // buzzword
+    "still maintaining jQuery, PHP 5, and IE11 support",            // tech
+    'console.log("here"); // TODO: fix this later',                  // habits
+    "certified 10x developer, disrupting paradigms daily"           // buzzword
+  ];
+
+  // ---- state (defaults show the new inline word-diff at full sprinkle) ------
+  var state = {
+    stat_bar: "github",
+    number: "lucky",
+    diff_style: "words",
+    strike_density: "playful"
+  };
+  var ORDER = ["stat_bar", "number", "diff_style", "strike_density"];
+
+  function densityCount() { return state.strike_density === "subtle" ? 2 : 4; }
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&"); }
+
+  // ---- honesty counts: linked to what is actually marked in the body -------
+  // -dels = total struck characters. +adds = total green-marked characters.
+  function activeWordDiffs() { return WORD_DIFFS.slice(0, densityCount()); }
+  function activeLineJokes() { return LINE_JOKES.slice(0, densityCount()); }
+
+  function counts() {
+    var add = 0, del = 0;
+    if (state.diff_style === "words") {
+      activeWordDiffs().forEach(function (d) {
+        del += d.joke.replace(/\s+/g, "").length;   // struck characters
+        add += d.anchor.replace(/\s+/g, "").length; // green survivor characters
+      });
+    } else {
+      // lines: every real sentence is a green + line; jokes are red - lines
+      del = activeLineJokes().reduce(function (n, j) { return n + j.replace(/\s+/g, "").length; }, 0);
+      add = BODY_TEXT.replace(/\s+/g, "").length;   // all prose survives, tinted green
+    }
+    return { add: add, del: del };
+  }
+
+  function numberText() {
+    if (state.number === "index") return "#" + TOPIC_INDEX;
+    if (state.number === "lucky") return "#" + LUCKY;
+    return "#" + RAW_COUNT; // raw body char count
+  }
+
+  function statBarHTML() {
+    var c = counts(), a = c.add, d = c.del;
+    if (state.stat_bar === "github") {
+      var total = 5;
+      var g = Math.max(1, Math.min(4, Math.round(total * a / (a + d))));
+      var r = Math.max(1, Math.min(total - g, Math.round(total * d / (a + d))));
+      var n = total - g - r;
+      var sq = "";
+      for (var i = 0; i < g; i++) sq += '<i class="g"></i>';
+      for (var j = 0; j < r; j++) sq += '<i class="r"></i>';
+      for (var k = 0; k < n; k++) sq += '<i class="n"></i>';
+      return '<div class="stat-github">' +
+        '<span class="stat-count add">+' + a + '</span>' +
+        '<span class="stat-count del">-' + d + '</span>' +
+        '<span class="stat-squares">' + sq + '</span>' +
+      '</div>';
+    }
+    // inline meter
+    return '<div class="stat-inline">' +
+      '<span class="stat-seg"><span class="add"></span><span class="del"></span></span>' +
+      '<span class="stat-count add">+' + a + '</span>' +
+      '<span class="stat-count del">-' + d + '</span>' +
+    '</div>';
+  }
+
+  // ---- diff_style: words - inject struck joke before the anchor survivor ----
+  function bodyWordsHTML() {
+    var active = activeWordDiffs();
+    return BODY_PARAS.map(function (para, pi) {
+      var html = esc(para);
+      active.filter(function (d) { return d.para === pi; }).forEach(function (d) {
+        // replace the first bare occurrence of the (HTML-safe) anchor word
+        var re = new RegExp("\\b" + escRe(esc(d.anchor)) + "\\b");
+        var replacement =
+          '<span class="wd-del">' + esc(d.joke) + '</span> ' +
+          '<span class="wd-add">' + esc(d.anchor) + '</span>';
+        html = html.replace(re, replacement);
+      });
+      return "<p>" + html + "</p>";
+    }).join("");
+  }
+
+  // ---- diff_style: lines - real sentences as + lines, joke - lines between --
+  function bodyLinesHTML() {
+    var sentences = [];
+    BODY_PARAS.forEach(function (para) {
+      para.split(/(?<=\.)\s+/).forEach(function (s) { if (s.trim()) sentences.push(s.trim()); });
+    });
+    var jokes = activeLineJokes();
+    var every = Math.max(1, Math.floor(sentences.length / (jokes.length + 1)));
+    var out = [];
+    var ji = 0;
+    sentences.forEach(function (s, i) {
+      out.push('<div class="diff-line add"><span class="gutter">+</span><span class="body">' + esc(s) + '</span></div>');
+      if (ji < jokes.length && (i + 1) % every === 0 && i < sentences.length - 1) {
+        out.push('<div class="diff-line del"><span class="gutter">-</span><span class="body">' + esc(jokes[ji++]) + '</span></div>');
+      }
+    });
+    while (ji < jokes.length) {
+      out.push('<div class="diff-line del"><span class="gutter">-</span><span class="body">' + esc(jokes[ji++]) + '</span></div>');
+    }
+    return '<div class="diff-hunk">' + out.join("") + '</div>';
+  }
+
+  function bodyHTML() {
+    return state.diff_style === "words" ? bodyWordsHTML() : bodyLinesHTML();
+  }
+
+  // CI is locked to stages (GitLab connected bubbles)
+  function ciHTML() {
+    var names = ["ci", "lint", "tests"];
+    return '<div class="ci-stages">' + names.map(function (n, i) {
+      return (i > 0 ? '<span class="connector"></span>' : "") +
+        '<span class="stage-node"><span class="bubble">&#10003;</span>' +
+        '<span class="lbl">' + n + '</span></span>';
+    }).join("") + '</div>';
+  }
+
+  function specString() {
+    var s = ORDER.map(function (k) { return k + ": " + state[k]; }).join(" | ");
+    return s + " | ci: stages";  // record the locked CI decision alongside the picks
+  }
+
+  function render() {
+    document.getElementById("prNumber").textContent = numberText();
+    document.getElementById("statWrap").innerHTML = statBarHTML();
+    document.getElementById("bodyPlate").innerHTML = bodyHTML();
+    // when in lines mode the plate frames the hunk; drop the frosted padding feel
+    document.getElementById("bodyPlate").style.padding = state.diff_style === "lines" ? "14px" : "22px 24px";
+    document.getElementById("ciSlot").innerHTML = ciHTML();
+    document.getElementById("specPreview").textContent = specString();
+
+    document.querySelectorAll(".field[data-param]").forEach(function (field) {
+      var param = field.getAttribute("data-param");
+      field.querySelectorAll(".seg button").forEach(function (btn) {
+        btn.setAttribute("aria-pressed", String(btn.getAttribute("data-val") === state[param]));
+      });
+    });
+  }
+
+  // wire controls
+  document.querySelectorAll(".field[data-param]").forEach(function (field) {
+    var param = field.getAttribute("data-param");
+    field.querySelectorAll(".seg button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state[param] = btn.getAttribute("data-val");
+        render();
+      });
+    });
+  });
+
+  // copy
+  var toast = document.getElementById("toast");
+  document.getElementById("copyBtn").addEventListener("click", function () {
+    var s = specString();
+    function done() {
+      toast.classList.add("show");
+      setTimeout(function () { toast.classList.remove("show"); }, 1400);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(s).then(done, function () {
+        window.prompt("Copy this spec:", s);
+      });
+    } else {
+      window.prompt("Copy this spec:", s);
+    }
+  });
+
+  document.getElementById("h-idx").textContent = TOPIC_INDEX;
+  document.getElementById("h-lucky").textContent = LUCKY;
+  document.getElementById("h-raw").textContent = RAW_COUNT;
+  render();
+</script>
+</body>
+</html>
