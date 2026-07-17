@@ -65,7 +65,8 @@ if (typeof window !== "undefined" && !window.matchMedia) {
 // Wayfinder #17 note: the fixture moved travel → games IN PLACE - the
 // defaultState()-driven Milestone 2 assertions below expect the shared
 // parallax-depth seed chrome, and travel is now locked to ticket-stub;
-// games is one of the three topics still on the seed.
+// games is one of the two topics still on the seed (movies-tv locked to
+// streaming-billboard in #18).
 const topic: Topic = {
 	id: "games",
 	heading: "Games",

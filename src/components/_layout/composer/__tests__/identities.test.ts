@@ -109,11 +109,20 @@ const TRAVEL_LOCK = {
 	params: { density: "roomy", perforation: true, color: "crimson" },
 };
 
+/** Movies & TV's locked identity (wayfinder #18) - the eighth topic that
+ * diverges from the shared parallax-depth seed: the streaming-billboard
+ * primary won the live walk in crimson (badges on), a Netflix-style
+ * featured-title screen whose chrome is the whole visual. */
+const MOVIES_TV_LOCK = {
+	id: "streaming-billboard" as const,
+	params: { density: "roomy", badges: true, glow: "crimson" },
+};
+
 const NON_CAREER_TOPICS = TOPICS.filter((t) => t.id !== "career");
 
-/** The seed list: every topic except the seven locks (career, coding,
- * tech-stack, ai, finance, family, travel) - these three still deep-equal
- * the shared parallax-depth defaults (TC-LOCK-4/5). */
+/** The seed list: every topic except the eight locks (career, coding,
+ * tech-stack, ai, finance, family, travel, movies-tv) - these two still
+ * deep-equal the shared parallax-depth defaults (TC-LOCK-4/5). */
 const NON_LOCKED_TOPICS = TOPICS.filter(
 	(t) =>
 		t.id !== "career" &&
@@ -122,7 +131,8 @@ const NON_LOCKED_TOPICS = TOPICS.filter(
 		t.id !== "ai" &&
 		t.id !== "finance" &&
 		t.id !== "family" &&
-		t.id !== "travel",
+		t.id !== "travel" &&
+		t.id !== "movies-tv",
 );
 
 describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
@@ -142,7 +152,7 @@ describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
 	});
 });
 
-describe("seven divergent locks: career is nameplate, coding is pull-request, tech-stack is server-rack, ai is agent-console, finance is ticker-tape, family is polaroid, travel is ticket-stub, the other three stay the seed (TC-B1-B5, TC-LOCK-1-6)", () => {
+describe("eight divergent locks: career is nameplate, coding is pull-request, tech-stack is server-rack, ai is agent-console, finance is ticker-tape, family is polaroid, travel is ticket-stub, movies-tv is streaming-billboard, the other two stay the seed (TC-B1-B5, TC-LOCK-1-6)", () => {
 	it("TC-B1: career's inner deep-equals the exact nameplate lock, no extra keys", () => {
 		expect(IDENTITIES.career.inner).toEqual(CAREER_LOCK);
 		expect(Object.keys(IDENTITIES.career.inner)).toEqual(
@@ -299,8 +309,34 @@ describe("seven divergent locks: career is nameplate, coding is pull-request, te
 		expect(params).not.toHaveProperty("layers");
 	});
 
-	it("TC-LOCK-4/5: the non-locked list has exactly three entries containing none of the seven locked ids", () => {
-		expect(NON_LOCKED_TOPICS.length).toBe(3);
+	it("TC-MTV-1: movies-tv's inner deep-equals the exact streaming-billboard lock, no extra keys", () => {
+		expect(IDENTITIES["movies-tv"].inner).toEqual(MOVIES_TV_LOCK);
+		expect(Object.keys(IDENTITIES["movies-tv"].inner)).toEqual(
+			Object.keys(MOVIES_TV_LOCK),
+		);
+		expect(Object.keys(IDENTITIES["movies-tv"].inner.params)).toEqual(
+			Object.keys(MOVIES_TV_LOCK.params),
+		);
+	});
+
+	it("TC-MTV-2: movies-tv's media note is the verbatim lock string", () => {
+		expect(IDENTITIES["movies-tv"].media).toBe(
+			"none - the billboard chrome is the visual",
+		);
+	});
+
+	it("TC-MTV-3: movies-tv's params carry no depth/shape/layers keys (not a parallax-depth cluster)", () => {
+		const params = IDENTITIES["movies-tv"].inner.params as Record<
+			string,
+			unknown
+		>;
+		expect(params).not.toHaveProperty("depth");
+		expect(params).not.toHaveProperty("shape");
+		expect(params).not.toHaveProperty("layers");
+	});
+
+	it("TC-LOCK-4/5: the non-locked list has exactly two entries containing none of the eight locked ids", () => {
+		expect(NON_LOCKED_TOPICS.length).toBe(2);
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "career")).toBe(false);
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "coding")).toBe(false);
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "tech-stack")).toBe(false);
@@ -308,6 +344,7 @@ describe("seven divergent locks: career is nameplate, coding is pull-request, te
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "finance")).toBe(false);
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "family")).toBe(false);
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "travel")).toBe(false);
+		expect(NON_LOCKED_TOPICS.some((t) => t.id === "movies-tv")).toBe(false);
 	});
 
 	it.each(

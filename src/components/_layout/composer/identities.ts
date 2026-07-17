@@ -8,8 +8,9 @@ import type { InnerId, InnerParamsMap } from "./types";
  * plus a media treatment note. Follow-up per-topic tickets edit exactly one
  * row here to give a topic its own locked look - career (nameplate),
  * coding (pull-request), tech-stack (server-rack), ai (agent-console),
- * finance (ticker-tape), family (polaroid) and travel (ticket-stub) are
- * locked so far; the remaining three hold the shared parallax-depth seed. Every row is a literal (no
+ * finance (ticker-tape), family (polaroid), travel (ticket-stub) and
+ * movies-tv (streaming-billboard) are locked so far; the remaining two
+ * hold the shared parallax-depth seed. Every row is a literal (no
  * spreads of INNERS[...].defaults) so each stays independently hand-editable,
  * and the file holds only static literals - SSR-deterministic, no runtime deps.
  */
@@ -75,10 +76,10 @@ export const IDENTITIES = {
 	},
 	"movies-tv": {
 		inner: {
-			id: "parallax-depth",
-			params: { density: "roomy", shape: "flourish", depth: 50, layers: 3 },
+			id: "streaming-billboard",
+			params: { density: "roomy", badges: true, glow: "crimson" },
 		},
-		media: "default - no per-topic treatment yet",
+		media: "none - the billboard chrome is the visual",
 	},
 	games: {
 		inner: {
