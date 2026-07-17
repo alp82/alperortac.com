@@ -16,10 +16,12 @@ import { DaybreakCluster } from "./inner/daybreak";
 import { FieldJournalCluster } from "./inner/field-journal";
 import { FloatingIslandCluster } from "./inner/floating-island";
 import { KeycapsCluster } from "./inner/keycaps";
+import { LetterboxCluster } from "./inner/letterbox";
 import { ManPageCluster } from "./inner/man-page";
 import { MinimalCluster } from "./inner/minimal";
 import { ModelCardCluster } from "./inner/model-card";
 import { MoonriseCluster } from "./inner/moonrise";
+import { MoviePosterCluster } from "./inner/movie-poster";
 import { NameplateCluster } from "./inner/nameplate";
 import { NeonSignCluster } from "./inner/neon-sign";
 import { NeuralNetCluster } from "./inner/neural-net";
@@ -28,10 +30,12 @@ import { ParallaxDepthCluster } from "./inner/parallax-depth";
 import { PolaroidCluster } from "./inner/polaroid";
 import { PullRequestCluster } from "./inner/pull-request";
 import { PunchCardCluster } from "./inner/punch-card";
+import { ScoreCardCluster } from "./inner/score-card";
 import { SeedPacketCluster } from "./inner/seed-packet";
 import { ServerRackCluster } from "./inner/server-rack";
 import { SkylineCluster } from "./inner/skyline";
 import { StatusPageCluster } from "./inner/status-page";
+import { StreamingBillboardCluster } from "./inner/streaming-billboard";
 import { SummitCluster } from "./inner/summit";
 import { TerminalCluster } from "./inner/terminal";
 import { TickerTapeCluster } from "./inner/ticker-tape";
@@ -41,6 +45,7 @@ import { TokenStreamCluster } from "./inner/token-stream";
 import { TopoMapCluster } from "./inner/topo-map";
 import { TradingAppCluster } from "./inner/trading-app";
 import { TrailSignpostCluster } from "./inner/trail-signpost";
+import { TrailerPlayerCluster } from "./inner/trailer-player";
 import { BotanicalVineLink } from "./links/botanical-vine";
 import { ConstellationStarlineLink } from "./links/constellation-starline";
 import { FlowingCurveLink } from "./links/flowing-curve";
@@ -433,6 +438,46 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 		defaults: { density: "roomy", grid: true, stock: "white" },
 		Component: CandlestickCluster,
 	},
+	"streaming-billboard": {
+		id: "streaming-billboard",
+		label: "Streaming Billboard",
+		feel: "Streaming app billboard: category pills, the heading as tonight's featured title over a glow wash, \"#1 in Series Today\" / match / 4K / year badges, a Play / More Info row and a progress strip. Couch-ready.",
+		surface: "dark",
+		defaults: { density: "roomy", badges: true, glow: "crimson" },
+		Component: StreamingBillboardCluster,
+	},
+	"movie-poster": {
+		id: "movie-poster",
+		label: "Movie Poster",
+		feel: "One-sheet poster: a COMING SOON strip, the heading as the big condensed title over gradient key art, a cert badge and a compressed-caps billing block at the foot.",
+		surface: "dark",
+		defaults: { density: "roomy", billing: true, art: "dusk" },
+		Component: MoviePosterCluster,
+	},
+	"trailer-player": {
+		id: "trailer-player",
+		label: "Trailer Player",
+		feel: "Paused trailer: player viewport with an OFFICIAL TRAILER eyebrow, the body as the frozen frame, and a scrub bar with buffered range, timestamp and transport glyphs.",
+		surface: "dark",
+		defaults: { density: "roomy", controls: true, skin: "onyx" },
+		Component: TrailerPlayerCluster,
+	},
+	"score-card": {
+		id: "score-card",
+		label: "Score Card",
+		feel: "Review aggregator: a critic score ring and audience score beside the heading, the body as the review, a one-line critics consensus with review counts. The verdict sets the tone.",
+		surface: "light",
+		defaults: { density: "roomy", consensus: true, verdict: "fresh" },
+		Component: ScoreCardCluster,
+	},
+	letterbox: {
+		id: "letterbox",
+		label: "Letterbox",
+		feel: "Cinematic 21:9 letterbox: black bars, a graded stage with subtle film grain, and a subtitle caption line. The most minimal.",
+		surface: "dark",
+		defaults: { density: "roomy", subtitles: true, grade: "silver" },
+		Component: LetterboxCluster,
+	},
 };
 
 export const INNER_ORDER: InnerId[] = [
@@ -492,6 +537,13 @@ export const INNER_ORDER: InnerId[] = [
 	// convention (never interleaved); ticket-stub (the primary) and topo-map
 	// are already pickable.
 	"field-journal",
+	// wayfinder #18 (movies-tv candidates): five new modern screen frames,
+	// appended per the growth convention (never interleaved).
+	"streaming-billboard",
+	"movie-poster",
+	"trailer-player",
+	"score-card",
+	"letterbox",
 ];
 
 /* ── LINKS (between-topic connectors) ───────────────────────────────────── */

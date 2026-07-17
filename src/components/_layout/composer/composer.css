@@ -3217,3 +3217,266 @@
 		animation: none;
 	}
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   MOVIES & TV CANDIDATE FRAMES (wayfinder #18) - modern screen chrome.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── streaming-billboard ── featured-title billboard (--sbb-* inline vars) ──
+   The billboard wash reads the glow-knob-driven --sbb-glow / --sbb-soft /
+   --sbb-btn the component sets inline (rack --rack-* convention); the shell
+   itself is a fixed dark app surface (trading-app precedent - the knob moves
+   the wash, never the shell). All chrome strings are fixed decorative
+   constants. Fully static - no keyframes. */
+.sbb {
+	background:
+		radial-gradient(
+			120% 90% at 18% 0%,
+			color-mix(in srgb, var(--sbb-glow) 55%, transparent),
+			transparent 60%
+		),
+		linear-gradient(180deg, var(--sbb-soft), #07090d 78%);
+	border-radius: 14px;
+	border: 1px solid color-mix(in srgb, var(--sbb-glow) 35%, #1a1f28);
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+	overflow: hidden;
+	color: #f1f5f9;
+}
+.sbb-nav {
+	color: rgba(241, 245, 249, 0.55);
+}
+.sbb-pill {
+	padding: 3px 10px;
+	border-radius: 999px;
+}
+.sbb-pill--on {
+	color: #f8fafc;
+	background: rgba(248, 250, 252, 0.12);
+}
+.sbb-title {
+	color: #f8fafc;
+	text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+}
+.sbb-match {
+	color: #4ade80;
+}
+.sbb-tag {
+	padding: 1px 6px;
+	border: 1px solid rgba(241, 245, 249, 0.35);
+	border-radius: 3px;
+	color: rgba(241, 245, 249, 0.75);
+}
+.sbb-top {
+	color: color-mix(in srgb, var(--sbb-btn) 75%, #f8fafc);
+}
+.sbb-btn-play {
+	padding: 7px 22px;
+	border-radius: 6px;
+	color: #f8fafc;
+	background: var(--sbb-btn);
+}
+.sbb-btn-info {
+	padding: 7px 18px;
+	border-radius: 6px;
+	color: rgba(241, 245, 249, 0.9);
+	background: rgba(248, 250, 252, 0.14);
+}
+.sbb-progress {
+	height: 3px;
+	border-radius: 999px;
+	background: rgba(248, 250, 252, 0.2);
+	overflow: hidden;
+}
+.sbb-progress-fill {
+	display: block;
+	height: 100%;
+	/* fixed 62% watched - decorative theater, never computed */
+	width: 62%;
+	background: var(--sbb-btn);
+}
+
+/* ── movie-poster ── theatrical one-sheet (--poster-* inline vars) ──
+   Every art surface reads the art-knob-driven --poster-sky / --poster-ground
+   / --poster-ink / --poster-accent the component sets inline (rack --rack-*
+   convention). The body sits on a near-solid scrim so the key art fades
+   behind the text block - readability over chrome. Fully static. */
+.poster {
+	background: linear-gradient(
+		180deg,
+		var(--poster-sky),
+		var(--poster-ground) 82%
+	);
+	border-radius: 10px;
+	border: 1px solid color-mix(in srgb, var(--poster-ink) 22%, transparent);
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+	overflow: hidden;
+	color: var(--poster-ink);
+}
+.poster-strip {
+	color: color-mix(in srgb, var(--poster-accent) 80%, var(--poster-ink));
+}
+.poster-title {
+	color: var(--poster-ink);
+	letter-spacing: -0.01em;
+	text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+}
+.poster-cert {
+	border: 1px solid color-mix(in srgb, var(--poster-ink) 55%, transparent);
+	color: color-mix(in srgb, var(--poster-ink) 80%, transparent);
+}
+.poster-body {
+	/* near-solid scrim - the art fades behind the text block */
+	background: color-mix(in srgb, var(--poster-ground) 72%, transparent);
+	border-radius: 8px;
+}
+.poster-rule {
+	width: 64px;
+	height: 1px;
+	background: color-mix(in srgb, var(--poster-ink) 35%, transparent);
+}
+.poster-credits {
+	color: color-mix(in srgb, var(--poster-ink) 55%, transparent);
+	letter-spacing: 0.04em;
+}
+
+/* ── trailer-player ── paused video player (--tplr-* inline vars) ──
+   The viewport reads the skin-knob-driven --tplr-shell / --tplr-bar /
+   --tplr-ink the component sets inline (rack --rack-* convention). The
+   viewport is CONTENT-HEIGHT chrome - it grows with the prose; no
+   aspect-ratio, no overflow crop of real content. The played range keeps a
+   fixed player-red - transport color is chrome, not theme. Fully static. */
+.tplr {
+	background: var(--tplr-shell);
+	border-radius: 14px;
+	border: 1px solid color-mix(in srgb, var(--tplr-ink) 16%, transparent);
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+	overflow: hidden;
+}
+.tplr-eyebrow {
+	color: color-mix(in srgb, var(--tplr-ink) 55%, transparent);
+}
+.tplr-title {
+	color: var(--tplr-ink);
+}
+.tplr-transport {
+	background: var(--tplr-bar);
+	border-top: 1px solid color-mix(in srgb, var(--tplr-ink) 12%, transparent);
+	color: var(--tplr-ink);
+}
+.tplr-play {
+	color: var(--tplr-ink);
+}
+.tplr-track {
+	display: block;
+	height: 4px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--tplr-ink) 18%, transparent);
+}
+.tplr-buffered {
+	position: absolute;
+	inset: 0 auto 0 0;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--tplr-ink) 35%, transparent);
+}
+.tplr-played {
+	position: absolute;
+	inset: 0 auto 0 0;
+	border-radius: 999px;
+	background: #ef4444;
+}
+.tplr-playhead {
+	position: absolute;
+	top: 50%;
+	width: 11px;
+	height: 11px;
+	border-radius: 50%;
+	transform: translate(-50%, -50%);
+	background: #ef4444;
+	box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+}
+.tplr-time {
+	color: color-mix(in srgb, var(--tplr-ink) 65%, transparent);
+}
+.tplr-glyphs {
+	color: color-mix(in srgb, var(--tplr-ink) 60%, transparent);
+}
+.tplr-cc {
+	border: 1px solid color-mix(in srgb, var(--tplr-ink) 45%, transparent);
+	border-radius: 3px;
+}
+
+/* ── score-card ── review-aggregator card (fixed --score-paper / --score-ink) ──
+   The pull-request / status-page carve-out: the card is VERDICT-driven, not
+   stock-driven, so paper/ink are fixed constants set inline by the component
+   and the verdict knob only moves --score-tone (ring, badge, dips). Fully
+   static - the ring's dasharray is a module-scope constant. */
+.score-card {
+	background: var(--score-paper);
+	color: var(--score-ink);
+	border-radius: 14px;
+	border: 1px solid color-mix(in srgb, var(--score-ink) 14%, transparent);
+	box-shadow: 0 16px 36px -22px rgba(15, 23, 42, 0.45);
+	overflow: hidden;
+}
+.score-head {
+	border-bottom: 1px solid color-mix(in srgb, var(--score-ink) 10%, transparent);
+}
+.score-ring-track {
+	stroke: color-mix(in srgb, var(--score-ink) 12%, transparent);
+}
+.score-ring-arc {
+	stroke: var(--score-tone);
+}
+.score-ring-num {
+	fill: var(--score-ink);
+	font-weight: 800;
+	font-size: 17px;
+}
+.score-label {
+	color: color-mix(in srgb, var(--score-ink) 55%, transparent);
+}
+.score-aud-num {
+	color: var(--score-tone);
+}
+.score-foot {
+	border-top: 1px solid color-mix(in srgb, var(--score-ink) 10%, transparent);
+	background: color-mix(in srgb, var(--score-ink) 3%, var(--score-paper));
+}
+.score-blurb {
+	color: color-mix(in srgb, var(--score-ink) 80%, transparent);
+}
+.score-meta {
+	color: color-mix(in srgb, var(--score-ink) 50%, transparent);
+}
+
+/* ── letterbox ── cinematic 21:9 illusion (--lbx-* inline vars) ──
+   The stage reads the grade-knob-driven --lbx-wash / --lbx-ink the component
+   sets inline (rack --rack-* convention). The bars are fixed near-black
+   strips and the film grain a static feTurbulence data-URI at low opacity -
+   both neutral shading, not theme colors (the terminal-vignette exemption
+   spirit), and the grain sits on the BACKGROUND layer, always behind the
+   body text. Bars + stage are content-height chrome: the stage grows with
+   the prose - no aspect-ratio, no overflow crop. Fully static. */
+.lbx {
+	border-radius: 10px;
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+	overflow: hidden;
+}
+.lbx-bar {
+	height: 26px;
+	background: #050505;
+}
+.lbx-stage {
+	background-color: var(--lbx-wash);
+	/* static film grain - background layer only, never over the text */
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.07'/%3E%3C/svg%3E");
+	color: var(--lbx-ink);
+}
+.lbx-title {
+	color: color-mix(in srgb, var(--lbx-ink) 85%, transparent);
+}
+.lbx-subtitle {
+	/* classic subtitle yellow-white - fixed chrome, not a theme color */
+	color: #fdf2c9;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}

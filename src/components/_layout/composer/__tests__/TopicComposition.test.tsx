@@ -706,8 +706,12 @@ describe("Milestone 4 (coding frames, final) - INNER_ORDER grows to 17", () => {
 	// Wayfinder #17 note: bumped to 35 IN PLACE - field-journal (travel
 	// identity shortlisted alternate) restored from the pruned list, appended
 	// after polaroid (see the TRAVEL_CANDIDATE_IDS block below).
-	it("has exactly 35 entries", () => {
-		expect(INNER_ORDER.length).toBe(35);
+	// Wayfinder #18 note: bumped to 40 IN PLACE - five new Movies & TV
+	// candidate frames (streaming-billboard, movie-poster, trailer-player,
+	// score-card, letterbox) appended after field-journal (see the
+	// MOVIES_TV_CANDIDATE_IDS block below).
+	it("has exactly 40 entries", () => {
+		expect(INNER_ORDER.length).toBe(40);
 	});
 
 	it("first 12 entries are unchanged", () => {
@@ -1136,8 +1140,10 @@ describe("Wayfinder #17 (travel candidates) - INNER_ORDER grows to 35", () => {
 		cleanup();
 	});
 
-	it("slice(34) equals the restored travel candidate id: field-journal", () => {
-		expect(INNER_ORDER.slice(34)).toEqual([...TRAVEL_CANDIDATE_IDS]);
+	// Wayfinder #18 note: slice(34) narrowed to slice(34, 35) IN PLACE - the
+	// five movies-tv candidates now append after field-journal.
+	it("slice(34, 35) equals the restored travel candidate id: field-journal", () => {
+		expect(INNER_ORDER.slice(34, 35)).toEqual([...TRAVEL_CANDIDATE_IDS]);
 	});
 
 	it("every candidate id has a matching INNERS entry whose .id matches", () => {
@@ -1169,6 +1175,65 @@ describe("travel candidate inners render through TopicComposition", () => {
 
 	it.each(
 		TRAVEL_CANDIDATE_IDS,
+	)("seats the real TopicBody children inside the frame for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const article = container.querySelector("article");
+		expect(article).not.toBeNull();
+		expect(article?.textContent).toContain("ignored");
+	});
+});
+
+/*
+ * Wayfinder #18 (movies-tv candidates) - the Movies & TV identity walk's
+ * five new frames (streaming-billboard, movie-poster, trailer-player,
+ * score-card, letterbox), all newly built for this round, appended after
+ * field-journal per the growth convention (append, never interleave). The
+ * `toBe(35)` pin above is bumped to 40 IN PLACE. No lock happens this round
+ * (Movies & TV stays on parallax-depth per intent.md/plan.md) - so, unlike
+ * the tech-stack/AI/finance/family/travel blocks above, there is deliberately
+ * NO `IDENTITIES["movies-tv"]` pin here, matching the family round's
+ * pre-lock precedent (the lock lands on the live walk, not this build).
+ */
+const MOVIES_TV_CANDIDATE_IDS = [
+	"streaming-billboard",
+	"movie-poster",
+	"trailer-player",
+	"score-card",
+	"letterbox",
+] as const;
+
+describe("Wayfinder #18 (movies-tv candidates) - INNER_ORDER grows to 40", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it("slice(35, 40) equals the five movies-tv candidate ids in order: streaming-billboard, movie-poster, trailer-player, score-card, letterbox", () => {
+		expect(INNER_ORDER.slice(35, 40)).toEqual([...MOVIES_TV_CANDIDATE_IDS]);
+	});
+
+	it("every candidate id has a matching INNERS entry whose .id matches", () => {
+		for (const id of MOVIES_TV_CANDIDATE_IDS) {
+			expect(INNERS[id]).toBeDefined();
+			expect(INNERS[id].id).toBe(id);
+		}
+	});
+});
+
+describe("movies-tv candidate inners render through TopicComposition", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it.each(
+		MOVIES_TV_CANDIDATE_IDS,
+	)("renders exactly one article for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const articles = container.querySelectorAll("article");
+		expect(articles.length).toBe(1);
+	});
+
+	it.each(
+		MOVIES_TV_CANDIDATE_IDS,
 	)("seats the real TopicBody children inside the frame for %s", (id) => {
 		const { container } = renderCompositionWithInner(id);
 		const article = container.querySelector("article");

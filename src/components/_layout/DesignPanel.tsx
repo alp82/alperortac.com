@@ -953,6 +953,116 @@ function InsideSpecificControls({
 				</>
 			);
 		}
+		case "streaming-billboard": {
+			const p = params as InnerParamsMap["streaming-billboard"];
+			return (
+				<>
+					<Segmented
+						label="Glow"
+						value={p.glow}
+						options={[
+							{ value: "crimson", label: "Crimson" },
+							{ value: "indigo", label: "Indigo" },
+							{ value: "ember", label: "Ember" },
+						]}
+						onChange={(glow) => patch({ glow })}
+					/>
+					<Toggle
+						label="Badges"
+						checked={p.badges}
+						onChange={(badges) => patch({ badges })}
+					/>
+				</>
+			);
+		}
+		case "movie-poster": {
+			const p = params as InnerParamsMap["movie-poster"];
+			return (
+				<>
+					<Segmented
+						label="Art"
+						value={p.art}
+						options={[
+							{ value: "dusk", label: "Dusk" },
+							{ value: "neon", label: "Neon" },
+							{ value: "noir", label: "Noir" },
+						]}
+						onChange={(art) => patch({ art })}
+					/>
+					<Toggle
+						label="Billing block"
+						checked={p.billing}
+						onChange={(billing) => patch({ billing })}
+					/>
+				</>
+			);
+		}
+		case "trailer-player": {
+			const p = params as InnerParamsMap["trailer-player"];
+			return (
+				<>
+					<Segmented
+						label="Skin"
+						value={p.skin}
+						options={[
+							{ value: "onyx", label: "Onyx" },
+							{ value: "cinema", label: "Cinema" },
+							{ value: "slate", label: "Slate" },
+						]}
+						onChange={(skin) => patch({ skin })}
+					/>
+					<Toggle
+						label="Controls"
+						checked={p.controls}
+						onChange={(controls) => patch({ controls })}
+					/>
+				</>
+			);
+		}
+		case "score-card": {
+			const p = params as InnerParamsMap["score-card"];
+			return (
+				<>
+					<Segmented
+						label="Verdict"
+						value={p.verdict}
+						options={[
+							{ value: "acclaimed", label: "Acclaimed" },
+							{ value: "fresh", label: "Fresh" },
+							{ value: "mixed", label: "Mixed" },
+						]}
+						onChange={(verdict) => patch({ verdict })}
+					/>
+					<Toggle
+						label="Consensus"
+						checked={p.consensus}
+						onChange={(consensus) => patch({ consensus })}
+					/>
+				</>
+			);
+		}
+		case "letterbox": {
+			const p = params as InnerParamsMap["letterbox"];
+			return (
+				<>
+					<Segmented
+						label="Grade"
+						value={p.grade}
+						options={[
+							{ value: "silver", label: "Silver" },
+							{ value: "amber", label: "Amber" },
+							{ value: "teal", label: "Teal" },
+						]}
+						onChange={(grade) => patch({ grade })}
+					/>
+					<Toggle
+						label="Subtitles"
+						checked={p.subtitles}
+						onChange={(subtitles) => patch({ subtitles })}
+					/>
+				</>
+			);
+		}
 		case "moonrise": {
 			const p = params as InnerParamsMap["moonrise"];
 			return (

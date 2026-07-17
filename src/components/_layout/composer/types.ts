@@ -60,7 +60,12 @@ export type InnerId =
 	| "neural-net"
 	| "ticker-tape"
 	| "trading-app"
-	| "candlestick";
+	| "candlestick"
+	| "streaming-billboard"
+	| "movie-poster"
+	| "trailer-player"
+	| "score-card"
+	| "letterbox";
 
 /** Shared by every inside style - cluster scale / breathing room. */
 export type InnerBase = {
@@ -230,6 +235,26 @@ export type CandlestickParams = InnerBase & {
 	grid: boolean;
 	stock: "white" | "cream" | "mist";
 };
+export type StreamingBillboardParams = InnerBase & {
+	badges: boolean;
+	glow: "crimson" | "indigo" | "ember";
+};
+export type MoviePosterParams = InnerBase & {
+	billing: boolean;
+	art: "dusk" | "neon" | "noir";
+};
+export type TrailerPlayerParams = InnerBase & {
+	controls: boolean;
+	skin: "onyx" | "cinema" | "slate";
+};
+export type ScoreCardParams = InnerBase & {
+	consensus: boolean;
+	verdict: "acclaimed" | "fresh" | "mixed";
+};
+export type LetterboxParams = InnerBase & {
+	subtitles: boolean;
+	grade: "silver" | "amber" | "teal";
+};
 export type MoonriseParams = InnerBase & {
 	stars: boolean;
 	phase: "full" | "gibbous" | "crescent";
@@ -311,6 +336,11 @@ export type InnerParamsMap = {
 	"ticker-tape": TickerTapeParams;
 	"trading-app": TradingAppParams;
 	candlestick: CandlestickParams;
+	"streaming-billboard": StreamingBillboardParams;
+	"movie-poster": MoviePosterParams;
+	"trailer-player": TrailerPlayerParams;
+	"score-card": ScoreCardParams;
+	letterbox: LetterboxParams;
 	aurora: AuroraParams;
 	moonrise: MoonriseParams;
 	daybreak: DaybreakParams;
