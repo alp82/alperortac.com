@@ -2,7 +2,7 @@
 import { cleanup, render } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Topic } from "../../../../data/topics";
+import { TOPICS, type Topic } from "../../../../data/topics";
 import { stubSectionGeometry } from "../../../../test/stubSectionGeometry";
 import { IDENTITIES } from "../identities";
 import { INNER_ORDER, INNERS } from "../index";
@@ -62,14 +62,13 @@ if (typeof window !== "undefined" && !window.matchMedia) {
 	}));
 }
 
-// Wayfinder #17 note: the fixture moved travel → games IN PLACE - the
-// defaultState()-driven Milestone 2 assertions below expect the shared
-// parallax-depth seed chrome, and travel is now locked to ticket-stub;
-// games is one of the two topics still on the seed (movies-tv locked to
-// streaming-billboard in #18).
+// Wayfinder #19 note: the fixture moved games → music IN PLACE (as #17 moved
+// travel → games) - the defaultState()-driven Milestone 2 assertions below
+// expect the shared parallax-depth seed chrome, and games is now locked to
+// quest-log; music is the last topic still on the seed.
 const topic: Topic = {
-	id: "games",
-	heading: "Games",
+	id: "music",
+	heading: "Music",
 	teaser: "ignored",
 	triggers: [],
 };
@@ -327,10 +326,10 @@ describe("Milestone 2 - neutral wrapper replaces the stage", () => {
 	// TC-23: --cmp-accent reflects each topic's own palette across at least
 	// two different topics (same "none"-source stage-era reason as TC-4).
 	it("reflects each topic's own accent across multiple topics", () => {
-		const { container: gamesContainer } = renderComposition(topic);
-		const gamesArticle = gamesContainer.querySelector("article");
-		expect(gamesArticle?.style.getPropertyValue("--cmp-accent")).toBe(
-			TOPIC_ACCENT.games,
+		const { container: musicContainer } = renderComposition(topic);
+		const musicArticle = musicContainer.querySelector("article");
+		expect(musicArticle?.style.getPropertyValue("--cmp-accent")).toBe(
+			TOPIC_ACCENT.music,
 		);
 		cleanup();
 
@@ -339,7 +338,7 @@ describe("Milestone 2 - neutral wrapper replaces the stage", () => {
 		expect(codingArticle?.style.getPropertyValue("--cmp-accent")).toBe(
 			TOPIC_ACCENT.coding,
 		);
-		expect(TOPIC_ACCENT.games).not.toBe(TOPIC_ACCENT.coding);
+		expect(TOPIC_ACCENT.music).not.toBe(TOPIC_ACCENT.coding);
 	});
 });
 
@@ -617,13 +616,13 @@ describe("TopicComposition whole-section day/night freeze", () => {
 		vi.unstubAllGlobals();
 	});
 
-	// TCM-N1: adversarial - the article (#games) gets a NIGHT-side rect,
+	// TCM-N1: adversarial - the article (#music) gets a NIGHT-side rect,
 	// while the DEFAULT rect (which the title's own wrapper receives, since
-	// it doesn't match "#games") is far-DAY. The heading must still follow
+	// it doesn't match "#music") is far-DAY. The heading must still follow
 	// the ARTICLE's frozen phase (night), not its own rect. (Fixture moved
-	// travel → games with the wayfinder #17 travel lock - see the fixture
+	// games → music with the wayfinder #19 games lock - see the fixture
 	// note at the top of the file.)
-	it("the Games heading follows the article's frozen night phase, not its own rect", () => {
+	it("the Music heading follows the article's frozen night phase, not its own rect", () => {
 		// The reduced-motion describe block above unstubs the module-level
 		// matchMedia stub set at import time; re-stub it here (a real
 		// prefers-reduced-motion: reduce mismatch, matches:false) so the
@@ -641,7 +640,7 @@ describe("TopicComposition whole-section day/night freeze", () => {
 		const restore = stubSectionGeometry({
 			scrollHeight: 10000,
 			innerHeight: 800,
-			rects: [{ match: "#games", top: 5860, height: 1800 }],
+			rects: [{ match: "#music", top: 5860, height: 1800 }],
 			rect: { top: 100, height: 100 },
 		});
 		const { container } = renderCompositionWithInner("parallax-depth", topic);
@@ -711,8 +710,15 @@ describe("Milestone 4 (coding frames, final) - INNER_ORDER grows to 17", () => {
 	// candidate frames (streaming-billboard, movie-poster, trailer-player,
 	// score-card, letterbox) appended after field-journal (see the
 	// MOVIES_TV_CANDIDATE_IDS block below).
-	it("has exactly 40 entries", () => {
-		expect(INNER_ORDER.length).toBe(40);
+	// Wayfinder #19 note: bumped to 41 IN PLACE - collectible (games identity
+	// shortlisted alternate) restored from the pruned list, appended after
+	// letterbox (arcade-hud, the primary, is already pickable above).
+	// Wayfinder #19 round two: bumped to 45 IN PLACE - the retro shortlist was
+	// passed over on the live walk (modern ask), so four modern game-UI
+	// candidate frames (steam-library, achievement, quest-log,
+	// continue-playing) were built and appended after collectible.
+	it("has exactly 45 entries", () => {
+		expect(INNER_ORDER.length).toBe(45);
 	});
 
 	it("first 12 entries are unchanged", () => {
@@ -839,13 +845,15 @@ describe("coding inners render through TopicComposition", () => {
 // Wayfinder #17 note: field-journal left this list DELIBERATELY - it is a
 // shortlisted alternate for the Travel identity walk and was restored to
 // the picker; the remaining 8 stay pruned.
+// Wayfinder #19 note: collectible left this list DELIBERATELY - it is the
+// Games identity ticket's shortlisted alternate and was restored to the
+// picker for the live walk; the remaining 7 stay pruned.
 const PRUNED_NOT_IN_ORDER_IDS = [
 	"minimal",
 	"trail-signpost",
 	"moonrise",
 	"daybreak",
 	"summit",
-	"collectible",
 	"comic",
 	"neon-sign",
 ] as const;
@@ -860,13 +868,13 @@ describe("Milestone 4 (final sweep) - the coding lock landed, other out-of-scope
 
 	// TC-SCOPE-3: none of the still-pruned INNERS-but-not-INNER_ORDER
 	// frames reappear in INNER_ORDER.
-	it("TC-SCOPE-3: none of the 8 still-pruned frames reappear in INNER_ORDER", () => {
+	it("TC-SCOPE-3: none of the 7 still-pruned frames reappear in INNER_ORDER", () => {
 		for (const id of PRUNED_NOT_IN_ORDER_IDS) {
 			expect(INNER_ORDER).not.toContain(id);
 		}
 	});
 
-	it("TC-SCOPE-3b (regression guard): all 8 pruned ids are still registered in INNERS itself (pruned from the picker, not deleted from the registry)", () => {
+	it("TC-SCOPE-3b (regression guard): all 7 pruned ids are still registered in INNERS itself (pruned from the picker, not deleted from the registry)", () => {
 		for (const id of PRUNED_NOT_IN_ORDER_IDS) {
 			expect(INNERS[id as InnerId]).toBeDefined();
 		}
@@ -1237,6 +1245,123 @@ describe("movies-tv candidate inners render through TopicComposition", () => {
 		MOVIES_TV_CANDIDATE_IDS,
 	)("seats the real TopicBody children inside the frame for %s", (id) => {
 		const { container } = renderCompositionWithInner(id);
+		const article = container.querySelector("article");
+		expect(article).not.toBeNull();
+		expect(article?.textContent).toContain("ignored");
+	});
+});
+
+/*
+ * Wayfinder #19 (games candidates) - the Games identity walk.
+ *
+ * Round one restored collectible (the shortlisted alternate) from the pruned
+ * list to sit beside arcade-hud (the shortlisted primary, already pickable);
+ * the `toBe(40)` pin above was bumped to 41 IN PLACE. On the live walk the
+ * retro shortlist was passed over ("more gaming related designs, modern
+ * ideally"), so round two BUILT four modern game-UI candidate frames
+ * (steam-library, achievement, quest-log, continue-playing) and appended them
+ * after collectible per the growth convention (append, never interleave); the
+ * pin was bumped to 45 IN PLACE. No lock happens this round (Games stays on
+ * parallax-depth until the pick lands on the walk) - so, like the family and
+ * movies-tv pre-lock rounds, there is deliberately NO `IDENTITIES.games` pin
+ * here (the lock lands on the walk, not this build).
+ */
+const GAMES_CANDIDATE_IDS = [
+	"steam-library",
+	"achievement",
+	"quest-log",
+	"continue-playing",
+] as const;
+
+describe("Wayfinder #19 round two (games modern candidates) - INNER_ORDER grows to 45", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it("slice(41, 45) equals the four modern games candidate ids in order: steam-library, achievement, quest-log, continue-playing", () => {
+		expect(INNER_ORDER.slice(41, 45)).toEqual([...GAMES_CANDIDATE_IDS]);
+	});
+
+	it("collectible sits at index 40, restored ahead of the modern four", () => {
+		expect(INNER_ORDER[40]).toBe("collectible");
+	});
+
+	it("every games candidate id has a matching INNERS entry whose .id matches", () => {
+		for (const id of GAMES_CANDIDATE_IDS) {
+			expect(INNERS[id]).toBeDefined();
+			expect(INNERS[id].id).toBe(id);
+		}
+	});
+});
+
+describe("games modern candidate inners render through TopicComposition", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it.each(GAMES_CANDIDATE_IDS)("renders exactly one article for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const articles = container.querySelectorAll("article");
+		expect(articles.length).toBe(1);
+	});
+
+	it.each(
+		GAMES_CANDIDATE_IDS,
+	)("seats the real TopicBody children inside the frame for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const article = container.querySelector("article");
+		expect(article).not.toBeNull();
+		expect(article?.textContent).toContain("ignored");
+	});
+});
+
+/*
+ * Wayfinder #19 walk rework - the quest-log frame won and was reworked to read
+ * the topic's own `questLog` data (real objectives / skills / party for Games,
+ * a generic fallback for any other topic). These guard the data wiring: the
+ * real Games content lives in topics.ts (source of truth), the frame renders it
+ * above the prose, and a questLog-less topic still renders via the fallback.
+ */
+describe("quest-log reads topic.questLog (Games real content)", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	const gamesTopic = TOPICS.find((t) => t.id === "games");
+
+	it("the Games topic carries honest questLog content (real party roster)", () => {
+		expect(gamesTopic?.questLog).toBeDefined();
+		expect(gamesTopic?.questLog?.party).toContain("Gordon Freeman");
+		expect(gamesTopic?.questLog?.objectives.length).toBeGreaterThan(0);
+		expect(gamesTopic?.questLog?.skills.length).toBeGreaterThan(0);
+	});
+
+	it("renders the topic's real objectives + party above/around the prose", () => {
+		const games: Topic = {
+			id: "games",
+			heading: "Games",
+			teaser: "ignored",
+			triggers: [],
+			...(gamesTopic?.questLog ? { questLog: gamesTopic.questLog } : {}),
+		};
+		const { container } = renderCompositionWithInner("quest-log", games);
+		const text = container.querySelector("article")?.textContent ?? "";
+		// a real objective, a party member, and the completion label all render
+		expect(text).toContain("Witcher 3");
+		expect(text).toContain("Kerrigan");
+		expect(text).toContain("Backlog cleared");
+		// prose still seated inside the frame
+		expect(text).toContain("ignored");
+	});
+
+	it("falls back to generic journal chrome when a topic has no questLog", () => {
+		const bare: Topic = {
+			id: "games",
+			heading: "Games",
+			teaser: "ignored",
+			triggers: [],
+		};
+		const { container } = renderCompositionWithInner("quest-log", bare);
 		const article = container.querySelector("article");
 		expect(article).not.toBeNull();
 		expect(article?.textContent).toContain("ignored");

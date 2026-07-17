@@ -1,3 +1,4 @@
+import { AchievementCluster } from "./inner/achievement";
 import { AgentConsoleCluster } from "./inner/agent-console";
 import { ArcadeHudCluster } from "./inner/arcade-hud";
 import { AuroraCluster } from "./inner/aurora";
@@ -12,6 +13,7 @@ import { CollectibleCluster } from "./inner/collectible";
 import { ComicCluster } from "./inner/comic";
 import { CommitGraphCluster } from "./inner/commit-graph";
 import { ConstellationCluster } from "./inner/constellation";
+import { ContinuePlayingCluster } from "./inner/continue-playing";
 import { DaybreakCluster } from "./inner/daybreak";
 import { FieldJournalCluster } from "./inner/field-journal";
 import { FloatingIslandCluster } from "./inner/floating-island";
@@ -30,11 +32,13 @@ import { ParallaxDepthCluster } from "./inner/parallax-depth";
 import { PolaroidCluster } from "./inner/polaroid";
 import { PullRequestCluster } from "./inner/pull-request";
 import { PunchCardCluster } from "./inner/punch-card";
+import { QuestLogCluster } from "./inner/quest-log";
 import { ScoreCardCluster } from "./inner/score-card";
 import { SeedPacketCluster } from "./inner/seed-packet";
 import { ServerRackCluster } from "./inner/server-rack";
 import { SkylineCluster } from "./inner/skyline";
 import { StatusPageCluster } from "./inner/status-page";
+import { SteamLibraryCluster } from "./inner/steam-library";
 import { StreamingBillboardCluster } from "./inner/streaming-billboard";
 import { SummitCluster } from "./inner/summit";
 import { TerminalCluster } from "./inner/terminal";
@@ -441,7 +445,7 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 	"streaming-billboard": {
 		id: "streaming-billboard",
 		label: "Streaming Billboard",
-		feel: "Streaming app billboard: category pills, the heading as tonight's featured title over a glow wash, \"#1 in Series Today\" / match / 4K / year badges, a Play / More Info row and a progress strip. Couch-ready.",
+		feel: 'Streaming app billboard: category pills, the heading as tonight\'s featured title over a glow wash, "#1 in Series Today" / match / 4K / year badges, a Play / More Info row and a progress strip. Couch-ready.',
 		surface: "dark",
 		defaults: { density: "roomy", badges: true, glow: "crimson" },
 		Component: StreamingBillboardCluster,
@@ -477,6 +481,38 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 		surface: "dark",
 		defaults: { density: "roomy", subtitles: true, grade: "silver" },
 		Component: LetterboxCluster,
+	},
+	"steam-library": {
+		id: "steam-library",
+		label: "Steam Library",
+		feel: 'PC game-client library page: a capsule art strip, the heading as the game title, a green PLAY button beside "247 hrs on record" + a 92% achievement bar, and an optional friends-playing footer. On your shelf.',
+		surface: "dark",
+		defaults: { density: "roomy", friends: true, shelf: "steam" },
+		Component: SteamLibraryCluster,
+	},
+	achievement: {
+		id: "achievement",
+		label: "Achievement",
+		feel: 'Console trophy unlock: a trophy medallion, "ACHIEVEMENT UNLOCKED", the heading as the trophy name + tier chip, an optional rarity line, and a gamerscore foot. Celebratory.',
+		surface: "dark",
+		defaults: { density: "roomy", rarity: true, tier: "platinum" },
+		Component: AchievementCluster,
+	},
+	"quest-log": {
+		id: "quest-log",
+		label: "Quest Log",
+		feel: 'RPG quest journal: a "MAIN QUEST" eyebrow + level chip, the heading as the quest name, an optional tracked-objectives checklist, and a reward + difficulty footer. Witcher / BG3 flavor.',
+		surface: "dark",
+		defaults: { density: "roomy", objectives: true, journal: "arcane" },
+		Component: QuestLogCluster,
+	},
+	"continue-playing": {
+		id: "continue-playing",
+		label: "Continue Playing",
+		feel: 'Current-gen console dashboard tile: a "CONTINUE PLAYING" eyebrow, the heading as the game title, a 68% progress bar, a Resume / Add-to-library row, and an optional focus spotlight. Couch-ready.',
+		surface: "dark",
+		defaults: { density: "roomy", spotlight: true, console: "onyx" },
+		Component: ContinuePlayingCluster,
 	},
 };
 
@@ -544,6 +580,18 @@ export const INNER_ORDER: InnerId[] = [
 	"trailer-player",
 	"score-card",
 	"letterbox",
+	// wayfinder #19 (games candidates): collectible (the shortlisted alternate)
+	// restored from the pruned list, appended per the growth convention (never
+	// interleaved); arcade-hud (the primary) is already pickable above.
+	"collectible",
+	// wayfinder #19 round two: the retro shortlist was passed over on the live
+	// walk ("more gaming related designs, modern ideally"), so four modern
+	// game-UI candidate frames were built and appended per the growth
+	// convention (never interleaved).
+	"steam-library",
+	"achievement",
+	"quest-log",
+	"continue-playing",
 ];
 
 /* ── LINKS (between-topic connectors) ───────────────────────────────────── */

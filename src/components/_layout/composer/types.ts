@@ -65,7 +65,11 @@ export type InnerId =
 	| "movie-poster"
 	| "trailer-player"
 	| "score-card"
-	| "letterbox";
+	| "letterbox"
+	| "steam-library"
+	| "achievement"
+	| "quest-log"
+	| "continue-playing";
 
 /** Shared by every inside style - cluster scale / breathing room. */
 export type InnerBase = {
@@ -255,6 +259,22 @@ export type LetterboxParams = InnerBase & {
 	subtitles: boolean;
 	grade: "silver" | "amber" | "teal";
 };
+export type SteamLibraryParams = InnerBase & {
+	friends: boolean;
+	shelf: "steam" | "midnight" | "slate";
+};
+export type AchievementParams = InnerBase & {
+	rarity: boolean;
+	tier: "platinum" | "gold" | "bronze";
+};
+export type QuestLogParams = InnerBase & {
+	objectives: boolean;
+	journal: "arcane" | "ember" | "verdant";
+};
+export type ContinuePlayingParams = InnerBase & {
+	spotlight: boolean;
+	console: "onyx" | "azure" | "violet";
+};
 export type MoonriseParams = InnerBase & {
 	stars: boolean;
 	phase: "full" | "gibbous" | "crescent";
@@ -341,6 +361,10 @@ export type InnerParamsMap = {
 	"trailer-player": TrailerPlayerParams;
 	"score-card": ScoreCardParams;
 	letterbox: LetterboxParams;
+	"steam-library": SteamLibraryParams;
+	achievement: AchievementParams;
+	"quest-log": QuestLogParams;
+	"continue-playing": ContinuePlayingParams;
 	aurora: AuroraParams;
 	moonrise: MoonriseParams;
 	daybreak: DaybreakParams;

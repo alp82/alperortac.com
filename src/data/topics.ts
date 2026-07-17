@@ -36,6 +36,41 @@ export type PrDiffReplacement = { strike: string; anchor: string };
 /** `number` = vanity PR number (falls back to band index + 1). */
 export type PrDiff = { number?: number; replacements: PrDiffReplacement[] };
 
+/**
+ * Quest-log frame data - the topic rendered as an RPG quest journal. All of
+ * this is honest, playful shorthand for the topic's own prose (the objectives
+ * are real ambitions, the party is the real roster of favourite characters),
+ * never invented lore. Read by inner/quest-log.tsx; absent topics fall back to
+ * generic journal chrome.
+ *
+ *   objective.status  "done" struck + checked · "active" the current quest ·
+ *                     "todo" the open box.
+ *   skill.level       0..100 bar fill (playful self-assessment).
+ *   party             collected-character names shown as inventory slots.
+ */
+export type QuestObjective = {
+	label: string;
+	status: "done" | "active" | "todo";
+};
+export type QuestSkill = {
+	label: string;
+	level: number;
+	/** Buff-tile glyph (one emoji/char), WoW-style. Falls back to the label initial. */
+	icon?: string;
+};
+export type QuestLog = {
+	/** Character level chip (falls back to 20). */
+	level?: number;
+	/** "hours played" stat string, hand-written (e.g. "9,999+"). */
+	hours: string;
+	/** The completion bar lifted from steam-library: a label + 0..100 percent. */
+	completion: { label: string; pct: number };
+	objectives: QuestObjective[];
+	skills: QuestSkill[];
+	/** Collected characters, shown as inventory slots. */
+	party: string[];
+};
+
 export type Topic = {
 	id: TopicId;
 	heading: string;
@@ -48,6 +83,8 @@ export type Topic = {
 	triggers: Trigger[];
 	/** Pull-request frame word-diff data - see the PrDiffReplacement contract. */
 	prDiff?: PrDiff;
+	/** Quest-log frame data - see the QuestLog contract. */
+	questLog?: QuestLog;
 };
 
 /**
@@ -130,6 +167,42 @@ export const TOPICS: Topic[] = [
 		heading: "Games",
 		// Prose lives in src/components/_layout/topics/GamesContent.tsx.
 		triggers: [],
+		// Quest-log frame data - honest shorthand for the GamesContent prose:
+		// the objectives are real (every genre played; Witcher 3 still unfinished;
+		// the pyramid co-op MMO is the exploration-phase dream), the skills nod to
+		// the genres + the running "never finished it" joke, and the party is the
+		// real roster of favourites from the prose. Hand-edited here alongside
+		// GamesContent.tsx.
+		questLog: {
+			level: 20,
+			hours: "9,999+",
+			completion: { label: "Backlog cleared", pct: 34 },
+			objectives: [
+				{
+					label: "Master every genre — sims, arcade, shooters, RTS, indie",
+					status: "done",
+				},
+				{ label: "Finally finish Witcher 3", status: "active" },
+				{
+					label: "Build the first co-op pyramid MMO with thousands of players",
+					status: "todo",
+				},
+			],
+			skills: [
+				{ label: "Real-Time Strategy", level: 90, icon: "⚔" },
+				{ label: "Shooters", level: 85, icon: "🎯" },
+				{ label: "Point & Click", level: 80, icon: "🗝" },
+				{ label: "Finishing RPGs", level: 30, icon: "🐌" },
+			],
+			party: [
+				"Duke Nukem",
+				"Gordon Freeman",
+				"Jade",
+				"Kerrigan",
+				"Guybrush",
+				"Scorpion",
+			],
+		},
 	},
 	{
 		id: "music",

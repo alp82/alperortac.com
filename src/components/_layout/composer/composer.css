@@ -3480,3 +3480,411 @@
 	color: #fdf2c9;
 	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
+
+/* ── steam-library ── PC game-client library page (--stl-* inline vars) ──────
+   Client shell is a fixed dark surface; the shelf knob moves the capsule wash
+   + the green PLAY ink (--stl-shell / --stl-soft / --stl-play). All chrome
+   strings are fixed decorative constants. Fully static - no keyframes. */
+.stl {
+	background: linear-gradient(180deg, var(--stl-shell), var(--stl-soft) 88%);
+	border-radius: 14px;
+	border: 1px solid color-mix(in srgb, var(--stl-shell) 60%, #05070b);
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+	overflow: hidden;
+	color: #e6edf3;
+}
+.stl-capsule {
+	height: 88px;
+	background:
+		radial-gradient(
+			120% 160% at 82% -20%,
+			color-mix(in srgb, var(--stl-play) 45%, transparent),
+			transparent 60%
+		),
+		linear-gradient(
+			110deg,
+			color-mix(in srgb, var(--stl-shell) 40%, #05070b),
+			var(--stl-shell)
+		);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.stl-capsule-tag {
+	position: absolute;
+	left: 1.5rem;
+	bottom: 0.6rem;
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.24em;
+	color: rgba(230, 237, 243, 0.55);
+}
+.stl-title {
+	color: #ffffff;
+}
+.stl-play {
+	padding: 0.4rem 1.1rem;
+	border-radius: 4px;
+	background: var(--stl-play);
+	color: #06210a;
+	white-space: nowrap;
+	box-shadow: 0 6px 16px -8px var(--stl-play);
+}
+.stl-hours {
+	color: rgba(230, 237, 243, 0.62);
+}
+.stl-ach {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	color: rgba(230, 237, 243, 0.62);
+}
+.stl-ach-bar {
+	position: relative;
+	display: inline-block;
+	width: 96px;
+	height: 6px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.1);
+	overflow: hidden;
+}
+.stl-ach-fill {
+	position: absolute;
+	inset: 0 8% 0 0;
+	background: var(--stl-play);
+}
+.stl-friends {
+	padding-top: 0.75rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.07);
+	color: rgba(230, 237, 243, 0.6);
+}
+.stl-friends-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 999px;
+	background: var(--stl-play);
+	box-shadow: 0 0 8px var(--stl-play);
+}
+.stl-friends-avatars {
+	display: inline-flex;
+}
+.stl-friends-avatar {
+	display: inline-grid;
+	place-items: center;
+	width: 22px;
+	height: 22px;
+	margin-left: -6px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--stl-shell) 50%, #0b0f16);
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	font-size: 9px;
+	font-weight: 800;
+	color: rgba(230, 237, 243, 0.8);
+}
+.stl-friends-avatar:first-child {
+	margin-left: 0;
+}
+
+/* ── achievement ── console trophy unlock (--ach-* inline vars) ──────────────
+   Fixed dark banner; the tier knob moves the medallion metal + faded wash
+   (--ach-metal / --ach-soft). All chrome strings fixed. Static - no keyframes. */
+.ach {
+	background: linear-gradient(180deg, var(--ach-soft), #080a0f 82%);
+	border-radius: 14px;
+	border: 1px solid color-mix(in srgb, var(--ach-metal) 22%, #1a1f28);
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+	overflow: hidden;
+	color: #eef2f7;
+}
+.ach-banner {
+	background: radial-gradient(
+		120% 140% at 8% 0%,
+		color-mix(in srgb, var(--ach-metal) 22%, transparent),
+		transparent 55%
+	);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.ach-medallion {
+	display: grid;
+	place-items: center;
+	width: 52px;
+	height: 52px;
+	flex: none;
+	border-radius: 999px;
+	font-size: 24px;
+	background: radial-gradient(
+		circle at 32% 28%,
+		color-mix(in srgb, var(--ach-metal) 85%, #ffffff),
+		color-mix(in srgb, var(--ach-metal) 55%, #10141c)
+	);
+	box-shadow:
+		0 0 0 3px color-mix(in srgb, var(--ach-metal) 30%, transparent),
+		0 8px 18px -8px color-mix(in srgb, var(--ach-metal) 60%, transparent);
+}
+.ach-eyebrow {
+	color: color-mix(in srgb, var(--ach-metal) 75%, #ffffff);
+}
+.ach-title {
+	color: #ffffff;
+}
+.ach-tier {
+	padding: 0.12rem 0.6rem;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 800;
+	color: #10141c;
+	background: color-mix(in srgb, var(--ach-metal) 80%, #ffffff);
+}
+.ach-rarity {
+	font-size: 11px;
+	font-weight: 700;
+	color: rgba(238, 242, 247, 0.6);
+}
+.ach-score {
+	color: rgba(238, 242, 247, 0.72);
+}
+.ach-score-g {
+	display: grid;
+	place-items: center;
+	width: 18px;
+	height: 18px;
+	border-radius: 4px;
+	background: #16a34a;
+	color: #ffffff;
+	font-weight: 900;
+	font-size: 11px;
+}
+
+/* ── quest-log ── RPG quest journal (--qlog-* inline vars) ───────────────────
+   Fixed dark journal; the journal knob moves the accent ink + hairline
+   (--qlog-ink / --qlog-soft / --qlog-line). All chrome strings fixed. Static. */
+.qlog {
+	background: linear-gradient(180deg, var(--qlog-soft), #090b12 85%);
+	border-radius: 14px;
+	border: 1px solid var(--qlog-line);
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+	overflow: hidden;
+	color: #e8ecf4;
+}
+.qlog-eyebrow {
+	color: var(--qlog-ink);
+}
+.qlog-diamond {
+	color: var(--qlog-ink);
+}
+.qlog-level {
+	padding: 0.1rem 0.55rem;
+	border-radius: 4px;
+	border: 1px solid var(--qlog-line);
+	color: var(--qlog-ink);
+	background: color-mix(in srgb, var(--qlog-ink) 12%, transparent);
+}
+.qlog-title {
+	color: #ffffff;
+}
+/* small-caps section header, shared by Objectives / Skills / Party */
+.qlog-section-label {
+	display: block;
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: color-mix(in srgb, var(--qlog-ink) 70%, #94a3b8);
+}
+/* stats strip - hours played + completion bar */
+.qlog-hours {
+	color: rgba(232, 236, 244, 0.72);
+}
+.qlog-completion {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	color: rgba(232, 236, 244, 0.72);
+}
+/* shared meter - completion + every skill row */
+.qlog-bar {
+	position: relative;
+	display: inline-block;
+	width: 88px;
+	height: 6px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.1);
+	overflow: hidden;
+	vertical-align: middle;
+}
+.qlog-bar-fill {
+	position: absolute;
+	inset: 0 auto 0 0;
+	height: 100%;
+	background: var(--qlog-ink);
+}
+.qlog-objectives {
+	list-style: none;
+}
+.qlog-obj {
+	color: rgba(232, 236, 244, 0.85);
+}
+.qlog-obj--active {
+	color: #ffffff;
+}
+.qlog-obj--done {
+	color: rgba(232, 236, 244, 0.48);
+	text-decoration: line-through;
+	text-decoration-color: color-mix(in srgb, var(--qlog-ink) 55%, transparent);
+}
+.qlog-check {
+	color: var(--qlog-ink);
+	font-size: 14px;
+	width: 1.1em;
+	text-align: center;
+}
+.qlog-obj--active .qlog-check {
+	filter: drop-shadow(0 0 5px var(--qlog-ink));
+}
+.qlog-foot {
+	border-top: 1px solid var(--qlog-line);
+}
+/* WoW-style buff tiles - square icon, level as the stack count */
+.qlog-buff {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.35rem;
+	width: 58px;
+}
+.qlog-buff-tile {
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: 44px;
+	height: 44px;
+	border-radius: 6px;
+	border: 1px solid color-mix(in srgb, var(--qlog-ink) 55%, #10131f);
+	background:
+		radial-gradient(
+			120% 120% at 30% 22%,
+			color-mix(in srgb, var(--qlog-ink) 34%, transparent),
+			transparent 65%
+		),
+		linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--qlog-ink) 18%, #141828),
+			#0c0f1a
+		);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.12),
+		0 3px 8px -4px rgba(0, 0, 0, 0.8);
+}
+.qlog-buff-icon {
+	font-size: 19px;
+	line-height: 1;
+	filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
+}
+/* stack count - bottom-right corner, white bold over a dark chip (WoW idiom) */
+.qlog-buff-count {
+	position: absolute;
+	right: 2px;
+	bottom: 1px;
+	padding: 0 3px;
+	border-radius: 3px;
+	background: rgba(0, 0, 0, 0.72);
+	font-size: 10px;
+	font-weight: 900;
+	color: #ffffff;
+	font-variant-numeric: tabular-nums;
+	text-shadow: 0 1px 1px rgba(0, 0, 0, 0.9);
+}
+.qlog-buff-label {
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	text-align: center;
+	line-height: 1.25;
+	color: rgba(232, 236, 244, 0.62);
+}
+/* party inventory slots - collected characters */
+.qlog-slot {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.2rem 0.55rem 0.2rem 0.25rem;
+	border-radius: 6px;
+	border: 1px solid var(--qlog-line);
+	background: color-mix(in srgb, var(--qlog-ink) 8%, transparent);
+	font-size: 11px;
+	font-weight: 600;
+	color: rgba(232, 236, 244, 0.85);
+}
+.qlog-slot-mark {
+	display: grid;
+	place-items: center;
+	width: 18px;
+	height: 18px;
+	border-radius: 4px;
+	background: color-mix(in srgb, var(--qlog-ink) 26%, #10131f);
+	color: var(--qlog-ink);
+	font-weight: 900;
+	font-size: 10px;
+}
+
+/* ── continue-playing ── console dashboard tile (--cpl-* inline vars) ────────
+   Fixed dark tile; the console knob moves the focus glow + resume-button ink
+   (--cpl-glow / --cpl-soft / --cpl-btn). The spotlight toggle adds the focus
+   ring. All chrome strings fixed. Static - no keyframes. */
+.cpl {
+	background:
+		radial-gradient(
+			130% 90% at 15% 0%,
+			color-mix(in srgb, var(--cpl-glow) 40%, transparent),
+			transparent 62%
+		),
+		linear-gradient(180deg, var(--cpl-soft), #05070c 82%);
+	border-radius: 16px;
+	border: 1px solid color-mix(in srgb, var(--cpl-glow) 30%, #12161e);
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+	overflow: hidden;
+	color: #eaf0f7;
+}
+.cpl--spot {
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--cpl-glow) 45%, transparent),
+		0 0 42px -10px color-mix(in srgb, var(--cpl-glow) 70%, transparent),
+		0 18px 40px -20px rgba(0, 0, 0, 0.7);
+}
+.cpl-eyebrow {
+	color: color-mix(in srgb, var(--cpl-btn) 80%, #ffffff);
+}
+.cpl-title {
+	color: #ffffff;
+}
+.cpl-progress {
+	height: 6px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.1);
+	overflow: hidden;
+}
+.cpl-progress-fill {
+	position: absolute;
+	inset: 0 32% 0 0;
+	background: var(--cpl-btn);
+}
+.cpl-progress-pct {
+	position: absolute;
+	right: 0;
+	top: -1.35rem;
+	font-size: 11px;
+	font-weight: 800;
+	color: rgba(234, 240, 247, 0.7);
+}
+.cpl-btn-resume {
+	padding: 0.45rem 1.25rem;
+	border-radius: 6px;
+	background: var(--cpl-btn);
+	color: #06121f;
+	box-shadow: 0 6px 16px -8px var(--cpl-btn);
+}
+.cpl-btn-add {
+	padding: 0.45rem 1rem;
+	border-radius: 6px;
+	color: rgba(234, 240, 247, 0.85);
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.14);
+}

@@ -118,11 +118,22 @@ const MOVIES_TV_LOCK = {
 	params: { density: "roomy", badges: true, glow: "crimson" },
 };
 
+/** Games' locked identity (wayfinder #19) - the ninth topic that diverges
+ * from the shared parallax-depth seed: the quest-log frame, built on the
+ * live walk after the retro shortlist (arcade-hud/collectible) was passed
+ * over for modern candidates; reworked on the walk to read the topic's own
+ * honest questLog data (objectives above the prose, WoW-style buff tiles,
+ * party inventory, steam-library stats strip). */
+const GAMES_LOCK = {
+	id: "quest-log" as const,
+	params: { density: "roomy", objectives: true, journal: "arcane" },
+};
+
 const NON_CAREER_TOPICS = TOPICS.filter((t) => t.id !== "career");
 
-/** The seed list: every topic except the eight locks (career, coding,
- * tech-stack, ai, finance, family, travel, movies-tv) - these two still
- * deep-equal the shared parallax-depth defaults (TC-LOCK-4/5). */
+/** The seed list: every topic except the nine locks (career, coding,
+ * tech-stack, ai, finance, family, travel, movies-tv, games) - music alone
+ * still deep-equals the shared parallax-depth defaults (TC-LOCK-4/5). */
 const NON_LOCKED_TOPICS = TOPICS.filter(
 	(t) =>
 		t.id !== "career" &&
@@ -132,7 +143,8 @@ const NON_LOCKED_TOPICS = TOPICS.filter(
 		t.id !== "finance" &&
 		t.id !== "family" &&
 		t.id !== "travel" &&
-		t.id !== "movies-tv",
+		t.id !== "movies-tv" &&
+		t.id !== "games",
 );
 
 describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
@@ -152,7 +164,7 @@ describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
 	});
 });
 
-describe("eight divergent locks: career is nameplate, coding is pull-request, tech-stack is server-rack, ai is agent-console, finance is ticker-tape, family is polaroid, travel is ticket-stub, movies-tv is streaming-billboard, the other two stay the seed (TC-B1-B5, TC-LOCK-1-6)", () => {
+describe("nine divergent locks: career is nameplate, coding is pull-request, tech-stack is server-rack, ai is agent-console, finance is ticker-tape, family is polaroid, travel is ticket-stub, movies-tv is streaming-billboard, games is quest-log, music alone stays the seed (TC-B1-B5, TC-LOCK-1-6)", () => {
 	it("TC-B1: career's inner deep-equals the exact nameplate lock, no extra keys", () => {
 		expect(IDENTITIES.career.inner).toEqual(CAREER_LOCK);
 		expect(Object.keys(IDENTITIES.career.inner)).toEqual(
@@ -335,8 +347,32 @@ describe("eight divergent locks: career is nameplate, coding is pull-request, te
 		expect(params).not.toHaveProperty("layers");
 	});
 
-	it("TC-LOCK-4/5: the non-locked list has exactly two entries containing none of the eight locked ids", () => {
-		expect(NON_LOCKED_TOPICS.length).toBe(2);
+	it("TC-GAMES-1: games' inner deep-equals the exact quest-log lock, no extra keys", () => {
+		expect(IDENTITIES.games.inner).toEqual(GAMES_LOCK);
+		expect(Object.keys(IDENTITIES.games.inner)).toEqual(
+			Object.keys(GAMES_LOCK),
+		);
+		expect(Object.keys(IDENTITIES.games.inner.params)).toEqual(
+			Object.keys(GAMES_LOCK.params),
+		);
+	});
+
+	it("TC-GAMES-2: games' media note is the verbatim lock string", () => {
+		expect(IDENTITIES.games.media).toBe(
+			"none - the journal chrome is the visual; the quest content (objectives / buffs / party) is honest data in topics.ts questLog, hand-edited alongside GamesContent.tsx",
+		);
+	});
+
+	it("TC-GAMES-3: games' params carry no depth/shape/layers keys (not a parallax-depth cluster)", () => {
+		const params = IDENTITIES.games.inner.params as Record<string, unknown>;
+		expect(params).not.toHaveProperty("depth");
+		expect(params).not.toHaveProperty("shape");
+		expect(params).not.toHaveProperty("layers");
+	});
+
+	it("TC-LOCK-4/5: the non-locked list is exactly music, containing none of the nine locked ids", () => {
+		expect(NON_LOCKED_TOPICS.length).toBe(1);
+		expect(NON_LOCKED_TOPICS[0]?.id).toBe("music");
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "career")).toBe(false);
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "coding")).toBe(false);
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "tech-stack")).toBe(false);
@@ -345,6 +381,7 @@ describe("eight divergent locks: career is nameplate, coding is pull-request, te
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "family")).toBe(false);
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "travel")).toBe(false);
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "movies-tv")).toBe(false);
+		expect(NON_LOCKED_TOPICS.some((t) => t.id === "games")).toBe(false);
 	});
 
 	it.each(
@@ -393,9 +430,9 @@ describe("registry wiring - defaultClusters()/defaultState() read the registry (
 		}
 	});
 
-	it("TC-D4/TC-LOCK-6: mutating a consumer's copy never mutates the registry (games, params.depth - moved off travel, which no longer has a depth param under the ticket-stub lock)", () => {
+	it("TC-D4/TC-LOCK-6: mutating a consumer's copy never mutates the registry (music, params.depth - moved off games, which no longer has a depth param under the quest-log lock)", () => {
 		const state = defaultState();
-		const topicId = "games" as const;
+		const topicId = "music" as const;
 		const before = IDENTITIES[topicId].inner.params.depth;
 
 		// biome-ignore lint/suspicious/noExplicitAny: intentional mutation of a copy to prove isolation

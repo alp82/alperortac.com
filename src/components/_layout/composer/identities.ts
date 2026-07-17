@@ -8,9 +8,9 @@ import type { InnerId, InnerParamsMap } from "./types";
  * plus a media treatment note. Follow-up per-topic tickets edit exactly one
  * row here to give a topic its own locked look - career (nameplate),
  * coding (pull-request), tech-stack (server-rack), ai (agent-console),
- * finance (ticker-tape), family (polaroid), travel (ticket-stub) and
- * movies-tv (streaming-billboard) are locked so far; the remaining two
- * hold the shared parallax-depth seed. Every row is a literal (no
+ * finance (ticker-tape), family (polaroid), travel (ticket-stub),
+ * movies-tv (streaming-billboard) and games (quest-log) are locked so far;
+ * music alone still holds the shared parallax-depth seed. Every row is a literal (no
  * spreads of INNERS[...].defaults) so each stays independently hand-editable,
  * and the file holds only static literals - SSR-deterministic, no runtime deps.
  */
@@ -83,10 +83,11 @@ export const IDENTITIES = {
 	},
 	games: {
 		inner: {
-			id: "parallax-depth",
-			params: { density: "roomy", shape: "flourish", depth: 50, layers: 3 },
+			id: "quest-log",
+			params: { density: "roomy", objectives: true, journal: "arcane" },
 		},
-		media: "default - no per-topic treatment yet",
+		media:
+			"none - the journal chrome is the visual; the quest content (objectives / buffs / party) is honest data in topics.ts questLog, hand-edited alongside GamesContent.tsx",
 	},
 	music: {
 		inner: {
