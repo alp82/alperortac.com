@@ -64,12 +64,65 @@ const CODING_LOCK = {
 	params: { density: "roomy", checks: true, state: "merged" },
 };
 
+/** Tech Stack's locked identity (wayfinder #13) - the third topic that
+ * diverges from the shared parallax-depth seed. */
+const TECH_STACK_LOCK = {
+	id: "server-rack" as const,
+	params: { density: "roomy", leds: true, finish: "midnight" },
+};
+
+/** AI's locked identity (wayfinder #14) - the fourth topic that diverges
+ * from the shared parallax-depth seed: the violet agent-console with the
+ * chat elements merged in, picked on the live walk (aurora was picked
+ * first, then rejected). */
+const AI_LOCK = {
+	id: "agent-console" as const,
+	params: { density: "roomy", steps: true, input: true, finish: "violet" },
+};
+
+/** Finance's locked identity (wayfinder #15) - the fifth topic that
+ * diverges from the shared parallax-depth seed: the navy exchange board
+ * with the real build-time quote tape, picked on the live walk (chalkboard
+ * and topo-map were shortlisted, the three new trading frames built on the
+ * walk's ask, ticker-tape won). */
+const FINANCE_LOCK = {
+	id: "ticker-tape" as const,
+	params: { density: "roomy", tape: true, board: "navy" },
+};
+
+/** Family's locked identity (wayfinder #16) - the sixth topic that diverges
+ * from the shared parallax-depth seed: the kodak-print rework of the
+ * shortlisted polaroid, picked on the live walk after the first execution
+ * was rejected (print floated in the prose flow so text wraps, silhouette
+ * photo, tape on, tilt left). */
+const FAMILY_LOCK = {
+	id: "polaroid" as const,
+	params: { density: "roomy", tape: true, tilt: "left" },
+};
+
+/** Travel's locked identity (wayfinder #17) - the seventh topic that
+ * diverges from the shared parallax-depth seed: the shortlisted ticket-stub
+ * primary held on the live walk (crimson, perforation on) and grew the
+ * boarding-pass route strip as its media treatment. */
+const TRAVEL_LOCK = {
+	id: "ticket-stub" as const,
+	params: { density: "roomy", perforation: true, color: "crimson" },
+};
+
 const NON_CAREER_TOPICS = TOPICS.filter((t) => t.id !== "career");
 
-/** The seed list: every topic except the two locks (career, coding) - these
- * eight still deep-equal the shared parallax-depth defaults (TC-LOCK-4/5). */
+/** The seed list: every topic except the seven locks (career, coding,
+ * tech-stack, ai, finance, family, travel) - these three still deep-equal
+ * the shared parallax-depth defaults (TC-LOCK-4/5). */
 const NON_LOCKED_TOPICS = TOPICS.filter(
-	(t) => t.id !== "career" && t.id !== "coding",
+	(t) =>
+		t.id !== "career" &&
+		t.id !== "coding" &&
+		t.id !== "tech-stack" &&
+		t.id !== "ai" &&
+		t.id !== "finance" &&
+		t.id !== "family" &&
+		t.id !== "travel",
 );
 
 describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
@@ -89,7 +142,7 @@ describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
 	});
 });
 
-describe("two divergent locks: career is nameplate, coding is pull-request, the other eight stay the seed (TC-B1-B5, TC-LOCK-1-6)", () => {
+describe("seven divergent locks: career is nameplate, coding is pull-request, tech-stack is server-rack, ai is agent-console, finance is ticker-tape, family is polaroid, travel is ticket-stub, the other three stay the seed (TC-B1-B5, TC-LOCK-1-6)", () => {
 	it("TC-B1: career's inner deep-equals the exact nameplate lock, no extra keys", () => {
 		expect(IDENTITIES.career.inner).toEqual(CAREER_LOCK);
 		expect(Object.keys(IDENTITIES.career.inner)).toEqual(
@@ -132,10 +185,129 @@ describe("two divergent locks: career is nameplate, coding is pull-request, the 
 		expect(params).not.toHaveProperty("layers");
 	});
 
-	it("TC-LOCK-4/5: the non-locked list has exactly eight entries containing neither career nor coding", () => {
-		expect(NON_LOCKED_TOPICS.length).toBe(8);
+	it("TC-TS-1: tech-stack's inner deep-equals the exact server-rack lock, no extra keys", () => {
+		expect(IDENTITIES["tech-stack"].inner).toEqual(TECH_STACK_LOCK);
+		expect(Object.keys(IDENTITIES["tech-stack"].inner)).toEqual(
+			Object.keys(TECH_STACK_LOCK),
+		);
+		expect(Object.keys(IDENTITIES["tech-stack"].inner.params)).toEqual(
+			Object.keys(TECH_STACK_LOCK.params),
+		);
+	});
+
+	it("TC-TS-2: tech-stack's media note is the verbatim lock string", () => {
+		expect(IDENTITIES["tech-stack"].media).toBe(
+			"none - the rack chrome is the visual",
+		);
+	});
+
+	it("TC-TS-3: tech-stack's params carry no depth/shape/layers keys (not a parallax-depth cluster)", () => {
+		const params = IDENTITIES["tech-stack"].inner.params as Record<
+			string,
+			unknown
+		>;
+		expect(params).not.toHaveProperty("depth");
+		expect(params).not.toHaveProperty("shape");
+		expect(params).not.toHaveProperty("layers");
+	});
+
+	it("TC-AI-1: ai's inner deep-equals the exact aurora lock, no extra keys", () => {
+		expect(IDENTITIES.ai.inner).toEqual(AI_LOCK);
+		expect(Object.keys(IDENTITIES.ai.inner)).toEqual(Object.keys(AI_LOCK));
+		expect(Object.keys(IDENTITIES.ai.inner.params)).toEqual(
+			Object.keys(AI_LOCK.params),
+		);
+	});
+
+	it("TC-AI-2: ai's media note is the verbatim lock string", () => {
+		expect(IDENTITIES.ai.media).toBe("none - the console chrome is the visual");
+	});
+
+	it("TC-AI-3: ai's params carry no depth/shape/layers keys (not a parallax-depth cluster)", () => {
+		const params = IDENTITIES.ai.inner.params as Record<string, unknown>;
+		expect(params).not.toHaveProperty("depth");
+		expect(params).not.toHaveProperty("shape");
+		expect(params).not.toHaveProperty("layers");
+	});
+
+	it("TC-FIN-1: finance's inner deep-equals the exact ticker-tape lock, no extra keys", () => {
+		expect(IDENTITIES.finance.inner).toEqual(FINANCE_LOCK);
+		expect(Object.keys(IDENTITIES.finance.inner)).toEqual(
+			Object.keys(FINANCE_LOCK),
+		);
+		expect(Object.keys(IDENTITIES.finance.inner.params)).toEqual(
+			Object.keys(FINANCE_LOCK.params),
+		);
+	});
+
+	it("TC-FIN-2: finance's media note is the verbatim lock string", () => {
+		expect(IDENTITIES.finance.media).toBe(
+			"none - the board chrome is the visual",
+		);
+	});
+
+	it("TC-FIN-3: finance's params carry no depth/shape/layers keys (not a parallax-depth cluster)", () => {
+		const params = IDENTITIES.finance.inner.params as Record<string, unknown>;
+		expect(params).not.toHaveProperty("depth");
+		expect(params).not.toHaveProperty("shape");
+		expect(params).not.toHaveProperty("layers");
+	});
+
+	it("TC-FAM-1: family's inner deep-equals the exact polaroid lock, no extra keys", () => {
+		expect(IDENTITIES.family.inner).toEqual(FAMILY_LOCK);
+		expect(Object.keys(IDENTITIES.family.inner)).toEqual(
+			Object.keys(FAMILY_LOCK),
+		);
+		expect(Object.keys(IDENTITIES.family.inner.params)).toEqual(
+			Object.keys(FAMILY_LOCK.params),
+		);
+	});
+
+	it("TC-FAM-2: family's media note is the verbatim lock string", () => {
+		expect(IDENTITIES.family.media).toBe(
+			"silhouette print - the golden-hour family SVG inside the kodak frame (anonymity-friendly by construction; swap for a real print scan if one lands)",
+		);
+	});
+
+	it("TC-FAM-3: family's params carry no depth/shape/layers keys (not a parallax-depth cluster)", () => {
+		const params = IDENTITIES.family.inner.params as Record<string, unknown>;
+		expect(params).not.toHaveProperty("depth");
+		expect(params).not.toHaveProperty("shape");
+		expect(params).not.toHaveProperty("layers");
+	});
+
+	it("TC-TRV-1: travel's inner deep-equals the exact ticket-stub lock, no extra keys", () => {
+		expect(IDENTITIES.travel.inner).toEqual(TRAVEL_LOCK);
+		expect(Object.keys(IDENTITIES.travel.inner)).toEqual(
+			Object.keys(TRAVEL_LOCK),
+		);
+		expect(Object.keys(IDENTITIES.travel.inner.params)).toEqual(
+			Object.keys(TRAVEL_LOCK.params),
+		);
+	});
+
+	it("TC-TRV-2: travel's media note is the verbatim lock string", () => {
+		expect(IDENTITIES.travel.media).toBe(
+			"route imagery - the boarding-pass route strip printed in the ticket's fine print (visited stops THA/ISR/MEX/GRD/EUR, next leg JPN '27 in the accent); stops hand-edited in ticket-stub.tsx alongside the TravelContent prose",
+		);
+	});
+
+	it("TC-TRV-3: travel's params carry no depth/shape/layers keys (not a parallax-depth cluster)", () => {
+		const params = IDENTITIES.travel.inner.params as Record<string, unknown>;
+		expect(params).not.toHaveProperty("depth");
+		expect(params).not.toHaveProperty("shape");
+		expect(params).not.toHaveProperty("layers");
+	});
+
+	it("TC-LOCK-4/5: the non-locked list has exactly three entries containing none of the seven locked ids", () => {
+		expect(NON_LOCKED_TOPICS.length).toBe(3);
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "career")).toBe(false);
 		expect(NON_LOCKED_TOPICS.some((t) => t.id === "coding")).toBe(false);
+		expect(NON_LOCKED_TOPICS.some((t) => t.id === "tech-stack")).toBe(false);
+		expect(NON_LOCKED_TOPICS.some((t) => t.id === "ai")).toBe(false);
+		expect(NON_LOCKED_TOPICS.some((t) => t.id === "finance")).toBe(false);
+		expect(NON_LOCKED_TOPICS.some((t) => t.id === "family")).toBe(false);
+		expect(NON_LOCKED_TOPICS.some((t) => t.id === "travel")).toBe(false);
 	});
 
 	it.each(
@@ -184,9 +356,9 @@ describe("registry wiring - defaultClusters()/defaultState() read the registry (
 		}
 	});
 
-	it("TC-D4/TC-LOCK-6: mutating a consumer's copy never mutates the registry (tech-stack, params.depth - moved off coding, which no longer has a depth param under the pull-request lock)", () => {
+	it("TC-D4/TC-LOCK-6: mutating a consumer's copy never mutates the registry (games, params.depth - moved off travel, which no longer has a depth param under the ticket-stub lock)", () => {
 		const state = defaultState();
-		const topicId = "tech-stack" as const;
+		const topicId = "games" as const;
 		const before = IDENTITIES[topicId].inner.params.depth;
 
 		// biome-ignore lint/suspicious/noExplicitAny: intentional mutation of a copy to prove isolation

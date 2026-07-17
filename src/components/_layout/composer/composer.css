@@ -212,7 +212,6 @@
 }
 .specimen:focus-visible,
 .sticky-note:focus-visible,
-.polaroid:focus-visible,
 .fossil:focus-visible {
 	outline: 3px solid var(--ink);
 	outline-offset: 3px;
@@ -381,17 +380,53 @@
 	}
 }
 
-/* ── polaroid ── polaroids + washi-taped sticky notes ── */
-.polaroid {
-	background: #fffefb;
-	padding: 12px 12px 0;
-	box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.5);
-	border: 1px solid #ece6da;
+/* ── polaroid ── kodak-era print taped into the scrapbook ── */
+.kodak-print {
+	background: #fdfcf8;
+	padding: 6px 6px 0;
+	border: 1px solid #e8e2d4;
+	border-radius: 2px;
+	box-shadow:
+		0 10px 22px -10px rgba(0, 0, 0, 0.55),
+		inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
-.polaroid-photo {
+.kodak-photo {
 	width: 100%;
-	aspect-ratio: 1;
+	aspect-ratio: 3 / 4;
 	border: 1px solid #d8d2c4;
+	border-radius: 1px;
+}
+/* glossy paper sheen across the photo */
+.kodak-photo::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		115deg,
+		rgba(255, 255, 255, 0.28) 0%,
+		rgba(255, 255, 255, 0.06) 28%,
+		transparent 45%
+	);
+	pointer-events: none;
+}
+/* quartz-camera date stamp, burned into the corner */
+.kodak-datestamp {
+	position: absolute;
+	right: 7px;
+	bottom: 5px;
+	font-family: "Courier New", monospace;
+	font-weight: 700;
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	color: #ffa03c;
+	text-shadow: 0 0 5px rgba(255, 130, 30, 0.85);
+}
+/* muted paper-stock mark on the print border */
+.kodak-mark {
+	font-size: 8px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	color: #c2baa6;
 }
 .sticky-note {
 	background: #fef9c3;
@@ -2077,16 +2112,35 @@
    ENVIRONMENT INNER STYLES - night-sky / time-of-day / nature frames.
    ════════════════════════════════════════════════════════════════════ */
 
-/* ── aurora ── soft northern-lights curtains ── */
+/* ── aurora ── soft northern-lights curtains over a blur-edged veil ── */
+/* The veil: a deep night-sky slab whose blur feathers its own edges, so the
+   frame reads as a visible container with the same blurry border character
+   as the curtains. Cool indigo→violet and near-opaque on purpose: the band
+   crosses warm daylight stretches of the landscape, and a translucent
+   neutral-dark slab browns out against orange (and mutes the screen-blended
+   curtains with it). */
+.cmp-aurora-panel {
+	border-radius: 28px;
+	background: linear-gradient(
+		165deg,
+		rgba(11, 16, 38, 0.92),
+		rgba(26, 11, 46, 0.88)
+	);
+	filter: blur(10px);
+}
 .cmp-aurora {
+	/* inset lives here, not in a Tailwind utility: the curtains previously
+	   used `-inset-y-12`, which the build never generated, silently
+	   collapsing the wrapper to 0 height (invisible curtains). */
+	inset: -3rem -2.5rem;
 	filter: blur(20px);
-	opacity: 0.55;
+	opacity: 0.5;
 }
 .cmp-aurora-band {
 	position: absolute;
 	top: -10%;
 	bottom: -10%;
-	width: 55%;
+	width: 48%;
 	mix-blend-mode: screen;
 	will-change: transform;
 }
@@ -2094,9 +2148,9 @@
 	left: -4%;
 	background: linear-gradient(
 		150deg,
-		transparent 12%,
+		transparent 18%,
 		var(--aur-a, #34d399) 50%,
-		transparent 88%
+		transparent 82%
 	);
 	animation: cmp-aurora-drift 16s ease-in-out infinite alternate;
 }
@@ -2104,9 +2158,9 @@
 	right: -4%;
 	background: linear-gradient(
 		210deg,
-		transparent 12%,
+		transparent 18%,
 		var(--aur-b, #22d3ee) 50%,
-		transparent 88%
+		transparent 82%
 	);
 	animation: cmp-aurora-drift 22s ease-in-out infinite alternate-reverse;
 }
@@ -2116,6 +2170,53 @@
 	}
 	to {
 		transform: translateY(5%) skewX(7deg) scaleY(1.05);
+	}
+}
+/* hue: shift - a violet layer over each emerald band cross-fades in and out,
+   so the curtains drift between the emerald and violet pairs. The layers rest
+   at half-blend (opacity 0.5) when the animation is off (reduced motion). */
+.cmp-aurora-shift .cmp-aurora-band::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	opacity: 0.5;
+	animation: cmp-aurora-hue 18s ease-in-out infinite alternate;
+}
+.cmp-aurora-shift .cmp-aurora-band-1::after {
+	background: linear-gradient(
+		150deg,
+		transparent 12%,
+		var(--aur-a2, #a78bfa) 50%,
+		transparent 88%
+	);
+}
+.cmp-aurora-shift .cmp-aurora-band-2::after {
+	background: linear-gradient(
+		210deg,
+		transparent 12%,
+		var(--aur-b2, #f472b6) 50%,
+		transparent 88%
+	);
+}
+@keyframes cmp-aurora-hue {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+/* the eyebrow tracks the curtains' hue drift */
+.cmp-aurora-eyebrow-shift {
+	color: #34d399;
+	animation: cmp-aurora-hue-text 18s ease-in-out infinite alternate;
+}
+@keyframes cmp-aurora-hue-text {
+	from {
+		color: #34d399;
+	}
+	to {
+		color: #a78bfa;
 	}
 }
 
@@ -2143,6 +2244,8 @@
 @media (prefers-reduced-motion: reduce) {
 	.cmp-aurora-band-1,
 	.cmp-aurora-band-2,
+	.cmp-aurora-shift .cmp-aurora-band::after,
+	.cmp-aurora-eyebrow-shift,
 	.cmp-sun-rays {
 		animation: none;
 	}
@@ -2163,6 +2266,954 @@
 }
 @media (prefers-reduced-motion: reduce) {
 	.cmp-drift {
+		animation: none;
+	}
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   TECH-STACK CANDIDATE FRAMES (wayfinder #13) - infra / ops chrome.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── server-rack ── homelab rack unit (--rack-* inline vars) ──
+   Every metal/ink surface reads the finish-driven --rack-panel /
+   --rack-rail / --rack-ink the component sets inline (timecard --tc-*
+   convention); the NET lamp, one activity lamp and one patch cable read the
+   accent-driven --rack-net. All lamp blinks share the rack-net-blink
+   keyframes at staggered phase delays and are stilled under reduced
+   motion. */
+.rack {
+	background: var(--rack-rail);
+	border-radius: 8px;
+	border: 1px solid color-mix(in srgb, var(--rack-ink) 14%, transparent);
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+	padding-left: 22px;
+	padding-right: 22px;
+	overflow: hidden;
+}
+/* rack ears: two slotted screws each, hugging the frame's edges */
+.rack-ear {
+	position: absolute;
+	top: 14px;
+	bottom: 14px;
+	width: 22px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: space-between;
+	z-index: 5;
+}
+.rack-ear--left {
+	left: 0;
+}
+.rack-ear--right {
+	right: 0;
+}
+/* slotted pan-head screw: metal dome + diagonal driver slot */
+.rack-screw {
+	width: 11px;
+	height: 11px;
+	border-radius: 50%;
+	background:
+		linear-gradient(
+			135deg,
+			transparent 42%,
+			color-mix(in srgb, #000000 55%, transparent) 42% 58%,
+			transparent 58%
+		),
+		radial-gradient(
+			circle at 35% 30%,
+			color-mix(in srgb, var(--rack-ink) 55%, var(--rack-panel)),
+			color-mix(in srgb, var(--rack-ink) 18%, var(--rack-rail)) 75%
+		);
+	box-shadow:
+		0 0 0 2px color-mix(in srgb, #000000 30%, transparent),
+		0 1px 1px color-mix(in srgb, var(--rack-ink) 25%, transparent);
+}
+.rack-face {
+	background: var(--rack-panel);
+	color: var(--rack-ink);
+	border-bottom: 2px solid var(--rack-rail);
+	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--rack-ink) 18%, transparent);
+}
+.rack-label {
+	color: var(--rack-ink);
+}
+.rack-unit-no {
+	color: color-mix(in srgb, var(--rack-ink) 60%, transparent);
+}
+.rack-led-group {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 3px;
+}
+.rack-led {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+.rack-led--pwr {
+	background: #22c55e;
+	box-shadow: 0 0 6px color-mix(in srgb, #22c55e 70%, transparent);
+}
+.rack-led--net {
+	background: var(--rack-net);
+	box-shadow: 0 0 6px color-mix(in srgb, var(--rack-net) 75%, transparent);
+	animation: rack-net-blink 2.2s steps(1, end) infinite;
+}
+.rack-led--dsk {
+	background: color-mix(in srgb, var(--rack-ink) 35%, var(--rack-panel));
+}
+@keyframes rack-net-blink {
+	0%,
+	64%,
+	78%,
+	100% {
+		opacity: 1;
+	}
+	70%,
+	86% {
+		opacity: 0.25;
+	}
+}
+.rack-led-lbl {
+	font-size: 8px;
+	text-transform: uppercase;
+	letter-spacing: 0.14em;
+	color: color-mix(in srgb, var(--rack-ink) 55%, transparent);
+}
+/* activity bank: 8 tiny lamps in a recessed tray, blinking out of phase */
+.rack-act {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 5px 7px;
+	border-radius: 4px;
+	background: color-mix(in srgb, #000000 30%, var(--rack-panel));
+	box-shadow: inset 0 1px 2px color-mix(in srgb, #000000 45%, transparent);
+}
+.rack-act-led {
+	display: inline-block;
+	width: 5px;
+	height: 5px;
+	border-radius: 1.5px;
+}
+.rack-act-led--green {
+	background: #22c55e;
+	box-shadow: 0 0 4px color-mix(in srgb, #22c55e 70%, transparent);
+}
+.rack-act-led--net {
+	background: var(--rack-net);
+	box-shadow: 0 0 4px color-mix(in srgb, var(--rack-net) 75%, transparent);
+}
+.rack-act-led--dim {
+	background: color-mix(in srgb, var(--rack-ink) 22%, var(--rack-panel));
+}
+/* blink phases: ph0 = steady, ph1-3 share the keyframes at offset delays */
+.rack-act-led--ph1 {
+	animation: rack-net-blink 1.6s steps(1, end) infinite;
+}
+.rack-act-led--ph2 {
+	animation: rack-net-blink 1.6s steps(1, end) infinite;
+	animation-delay: 0.55s;
+}
+.rack-act-led--ph3 {
+	animation: rack-net-blink 1.6s steps(1, end) infinite;
+	animation-delay: 1.1s;
+}
+/* vent-slit block on the faceplate's right shoulder */
+.rack-vents {
+	display: inline-block;
+	width: 54px;
+	height: 26px;
+	border-radius: 3px;
+	background: repeating-linear-gradient(
+		to right,
+		color-mix(in srgb, var(--rack-rail) 85%, var(--rack-ink)) 0 3px,
+		transparent 3px 7px
+	);
+}
+.rack-bay {
+	background: color-mix(in srgb, var(--rack-panel) 72%, var(--rack-rail));
+	color: var(--rack-ink);
+}
+/* ethernet ports row: recessed patch strip along the bottom edge */
+.rack-ports {
+	background: var(--rack-panel);
+	border-top: 2px solid var(--rack-rail);
+}
+.rack-ports-lbl {
+	font-size: 8px;
+	text-transform: uppercase;
+	letter-spacing: 0.22em;
+	color: color-mix(in srgb, var(--rack-ink) 45%, transparent);
+	margin-right: 2px;
+}
+/* RJ45 jack: recessed housing with a gold pin comb along its top lip */
+.rack-jack {
+	position: relative;
+	display: inline-block;
+	width: 24px;
+	height: 19px;
+	border-radius: 3px;
+	background: color-mix(in srgb, #000000 42%, var(--rack-panel));
+	box-shadow:
+		inset 0 1px 3px color-mix(in srgb, #000000 55%, transparent),
+		0 1px 0 color-mix(in srgb, var(--rack-ink) 12%, transparent);
+}
+.rack-jack-pins {
+	position: absolute;
+	top: 3px;
+	left: 5px;
+	right: 5px;
+	height: 3px;
+	background: repeating-linear-gradient(
+		to right,
+		#b8860b 0 1.5px,
+		transparent 1.5px 3.5px
+	);
+}
+/* patched plug filling the jack, its cable dropping out of frame below */
+.rack-plug {
+	position: absolute;
+	inset: 4px 4px 0;
+	border-radius: 2px 2px 0 0;
+}
+.rack-plug--net {
+	background: color-mix(in srgb, var(--rack-net) 80%, #000000);
+}
+.rack-plug--green {
+	background: color-mix(in srgb, #22c55e 65%, #000000);
+}
+.rack-cable {
+	position: absolute;
+	top: 15px;
+	left: 50%;
+	width: 5px;
+	height: 40px;
+	margin-left: -2.5px;
+	border-radius: 0 0 3px 3px;
+}
+.rack-cable--net {
+	background: color-mix(in srgb, var(--rack-net) 70%, #000000);
+}
+.rack-cable--green {
+	background: color-mix(in srgb, #22c55e 55%, #000000);
+}
+/* link light winking beside an occupied port */
+.rack-link {
+	position: absolute;
+	top: -3px;
+	right: -2px;
+	width: 4px;
+	height: 4px;
+	border-radius: 50%;
+}
+.rack-link--net {
+	background: var(--rack-net);
+	box-shadow: 0 0 4px color-mix(in srgb, var(--rack-net) 75%, transparent);
+	animation: rack-net-blink 1.6s steps(1, end) infinite;
+	animation-delay: 0.3s;
+}
+.rack-link--green {
+	background: #22c55e;
+	box-shadow: 0 0 4px color-mix(in srgb, #22c55e 70%, transparent);
+	animation: rack-net-blink 1.6s steps(1, end) infinite;
+	animation-delay: 0.85s;
+}
+@media (prefers-reduced-motion: reduce) {
+	.rack-led--net,
+	.rack-act-led--ph1,
+	.rack-act-led--ph2,
+	.rack-act-led--ph3,
+	.rack-link--net,
+	.rack-link--green {
+		animation: none;
+	}
+}
+
+/* ── status-page ── SaaS status card (fixed --sp-paper / --sp-ink) ──
+   STATE-driven, not stock-driven (the pull-request carve-out): paper/ink
+   are fixed constants set inline, the state tone rides along as --sp-tone,
+   and the pill/dot/dips read it. The dot's pulse is the only motion and is
+   stilled under reduced motion. */
+.sp-card {
+	background: var(--sp-paper);
+	color: var(--sp-ink);
+	border: 1px solid color-mix(in srgb, var(--sp-ink) 14%, transparent);
+	border-radius: 14px;
+	box-shadow: 0 16px 36px -20px rgba(15, 23, 42, 0.4);
+	overflow: hidden;
+}
+.sp-head {
+	border-bottom: 1px solid color-mix(in srgb, var(--sp-ink) 10%, transparent);
+}
+.sp-pill {
+	padding: 4px 12px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--sp-tone) 12%, var(--sp-paper));
+	border: 1px solid color-mix(in srgb, var(--sp-tone) 35%, transparent);
+	/* raw tone on tinted paper can dip under 4.5:1 for 12px text - anchor
+	   toward ink the way pr-stat-count--add does */
+	color: color-mix(in srgb, var(--sp-tone) 65%, var(--sp-ink));
+}
+.sp-dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: var(--sp-tone);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sp-tone) 22%, transparent);
+	animation: sp-dot-pulse 2.4s ease-in-out infinite;
+}
+@keyframes sp-dot-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--sp-tone) 22%, transparent);
+	}
+	50% {
+		box-shadow: 0 0 0 6px color-mix(in srgb, var(--sp-tone) 10%, transparent);
+	}
+}
+.sp-tick {
+	display: inline-block;
+	width: 4px;
+	height: 18px;
+	border-radius: 2px;
+	flex: 0 1 auto;
+}
+.sp-tick--dip {
+	height: 12px;
+}
+.sp-uptime {
+	color: color-mix(in srgb, var(--sp-ink) 60%, transparent);
+}
+.sp-foot {
+	border-top: 1px solid color-mix(in srgb, var(--sp-ink) 10%, transparent);
+	color: color-mix(in srgb, var(--sp-ink) 55%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+	.sp-dot {
+		animation: none;
+	}
+}
+
+/* ── cargo-container ── shipping container (--cargo-* inline vars) ──
+   The wall paint + stencil ink read the livery-driven --cargo-paint /
+   --cargo-stencil the component sets inline; the door placard rides its own
+   fixed --cargo-placard-* pair so prose never tracks the livery. The
+   corrugation ridges are a paint-derived overlay gated by .cargo--ridged.
+   All decoration is static - no animation, no transition. */
+.cargo {
+	border-radius: 6px;
+	border: 2px solid
+		color-mix(in srgb, var(--cargo-stencil) 18%, var(--cargo-paint));
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.6);
+	overflow: hidden;
+}
+/* vertical corrugation: broad ridge/valley bands shaded off the paint */
+.cargo--ridged::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: repeating-linear-gradient(
+		to right,
+		color-mix(in srgb, #000000 16%, transparent) 0 6px,
+		transparent 6px 22px,
+		color-mix(in srgb, #ffffff 10%, transparent) 22px 28px,
+		transparent 28px 44px
+	);
+}
+.cargo-casting {
+	position: absolute;
+	width: 18px;
+	height: 18px;
+	border-radius: 3px;
+	background: color-mix(in srgb, #000000 38%, var(--cargo-paint));
+	box-shadow: inset 0 0 0 2px
+		color-mix(in srgb, var(--cargo-stencil) 30%, transparent);
+	z-index: 5;
+}
+.cargo-casting--tl {
+	top: 8px;
+	left: 8px;
+}
+.cargo-casting--tr {
+	top: 8px;
+	right: 8px;
+}
+.cargo-casting--bl {
+	bottom: 8px;
+	left: 8px;
+}
+.cargo-casting--br {
+	bottom: 8px;
+	right: 8px;
+}
+.cargo-stencil {
+	color: var(--cargo-stencil);
+	/* stencil paint: a hair of the wall grinding through the letters */
+	text-shadow: 0 1px 0 color-mix(in srgb, #000000 25%, transparent);
+}
+.cargo-reg {
+	color: color-mix(in srgb, var(--cargo-stencil) 78%, transparent);
+}
+.cargo-plate {
+	padding: 6px 10px;
+	border: 1px solid color-mix(in srgb, var(--cargo-stencil) 45%, transparent);
+	border-radius: 2px;
+	color: color-mix(in srgb, var(--cargo-stencil) 85%, transparent);
+	letter-spacing: 0.12em;
+}
+.cargo-placard {
+	border-radius: 4px;
+	box-shadow:
+		0 10px 24px -14px rgba(0, 0, 0, 0.55),
+		inset 0 0 0 1px
+		color-mix(in srgb, var(--cargo-placard-ink) 12%, transparent);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   AI INNER STYLES - wayfinder #14 candidates (chat-thread, model-card,
+   token-stream, neural-net).
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── chat-thread ── assistant conversation, ai-sdk Elements patterns
+   (--chat-* inline vars) ── */
+.chat {
+	border-radius: 16px;
+	background: var(--chat-bg);
+	color: var(--chat-ink);
+	border: 1px solid var(--chat-border);
+	box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.6);
+	backdrop-filter: blur(8px);
+	overflow: hidden;
+}
+.chat-head {
+	border-bottom: 1px solid var(--chat-border);
+	color: var(--chat-dim);
+}
+.chat-spark {
+	color: var(--chat-accent);
+}
+.chat-model {
+	padding: 3px 10px;
+	border-radius: 9999px;
+	border: 1px solid var(--chat-border);
+	background: var(--chat-soft);
+	color: var(--chat-dim);
+	white-space: nowrap;
+}
+.chat-title {
+	color: var(--chat-ink);
+}
+/* user turn: constrained secondary-background bubble (Elements: user gets
+   the bubble, assistant gets the full measure) */
+.chat-user-bubble {
+	border-radius: 16px 16px 4px 16px;
+	background: color-mix(in srgb, var(--chat-accent) 22%, transparent);
+	border: 1px solid color-mix(in srgb, var(--chat-accent) 34%, transparent);
+	color: var(--chat-ink);
+	max-width: 72%;
+}
+/* reasoning strip: collapsed "Thought for Ns" - muted, with a soft pill */
+.chat-reasoning {
+	color: var(--chat-dim);
+	width: fit-content;
+	padding: 6px 12px;
+	border-radius: 9999px;
+	background: var(--chat-soft);
+	border: 1px solid var(--chat-border);
+}
+.chat-reasoning-orb {
+	width: 8px;
+	height: 8px;
+	border-radius: 9999px;
+	background: conic-gradient(
+		from 0deg,
+		var(--chat-accent),
+		transparent 65%,
+		var(--chat-accent)
+	);
+	animation: chat-orb-spin 1.6s linear infinite;
+}
+.chat-reasoning-chev {
+	opacity: 0.7;
+}
+@keyframes chat-orb-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+.chat-role {
+	color: var(--chat-dim);
+}
+.chat-actions {
+	color: var(--chat-dim);
+}
+.chat-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.6rem;
+	height: 1.6rem;
+	border-radius: 6px;
+	font-size: 0.75rem;
+	opacity: 0.65;
+}
+.chat-action:hover {
+	background: var(--chat-soft);
+	opacity: 1;
+}
+/* prompt input: bordered rounded box, toolbar row + circular submit */
+.chat-input {
+	border: 1px solid var(--chat-border);
+	border-radius: 14px;
+	background: var(--chat-soft);
+}
+.chat-input-placeholder {
+	color: var(--chat-dim);
+}
+.chat-input-plus {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.9rem;
+	height: 1.9rem;
+	border-radius: 9999px;
+	border: 1px solid var(--chat-border);
+	color: var(--chat-dim);
+	font-size: 0.8rem;
+}
+.chat-send {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.9rem;
+	height: 1.9rem;
+	border-radius: 9999px;
+	background: var(--chat-accent);
+	color: #0b1220;
+	font-weight: 700;
+}
+
+/* ── agent-console ── coding-agent run (--acon-* inline vars) ── */
+.acon {
+	border-radius: 12px;
+	background: var(--acon-bg);
+	color: var(--acon-ink);
+	border: 1px solid var(--acon-border);
+	box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.65);
+	overflow: hidden;
+}
+.acon-head {
+	border-bottom: 1px solid var(--acon-border);
+	color: var(--acon-dim);
+}
+.acon-lamp {
+	width: 8px;
+	height: 8px;
+	border-radius: 9999px;
+	background: var(--acon-accent);
+	box-shadow: 0 0 8px color-mix(in srgb, var(--acon-accent) 80%, transparent);
+}
+.acon-prompt {
+	color: var(--acon-accent);
+	font-weight: 700;
+}
+.acon-task {
+	color: var(--acon-ink);
+}
+.acon-steps {
+	border-left: 2px solid var(--acon-border);
+	padding-left: 14px;
+}
+.acon-check {
+	color: var(--acon-ok);
+}
+.acon-tool {
+	color: var(--acon-ink);
+	font-weight: 600;
+}
+.acon-detail {
+	color: var(--acon-dim);
+}
+.acon-status {
+	color: var(--acon-dim);
+}
+.acon-status-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 9999px;
+	background: var(--acon-ok);
+}
+/* chat chrome merged in (wayfinder #14 lock): reasoning pill, actions row,
+   follow-up prompt input - the ai-sdk Elements patterns in console clothes */
+.acon-reason {
+	color: var(--acon-dim);
+	padding: 5px 11px;
+	border-radius: 9999px;
+	border: 1px solid var(--acon-border);
+	background: color-mix(in srgb, var(--acon-ink) 4%, transparent);
+}
+.acon-reason-orb {
+	width: 8px;
+	height: 8px;
+	border-radius: 9999px;
+	background: conic-gradient(
+		from 0deg,
+		var(--acon-accent),
+		transparent 65%,
+		var(--acon-accent)
+	);
+	animation: chat-orb-spin 1.6s linear infinite;
+}
+.acon-reason-chev {
+	opacity: 0.7;
+}
+.acon-actions {
+	color: var(--acon-dim);
+}
+.acon-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.6rem;
+	height: 1.6rem;
+	border-radius: 6px;
+	font-size: 0.75rem;
+	opacity: 0.65;
+}
+.acon-action:hover {
+	background: color-mix(in srgb, var(--acon-ink) 6%, transparent);
+	opacity: 1;
+}
+.acon-input {
+	border: 1px solid var(--acon-border);
+	border-radius: 10px;
+	background: color-mix(in srgb, var(--acon-ink) 4%, transparent);
+}
+.acon-input-placeholder {
+	color: var(--acon-dim);
+}
+.acon-model {
+	padding: 3px 10px;
+	border-radius: 9999px;
+	border: 1px solid var(--acon-border);
+	color: var(--acon-dim);
+	white-space: nowrap;
+}
+.acon-send {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.9rem;
+	height: 1.9rem;
+	border-radius: 9999px;
+	background: var(--acon-accent);
+	color: #0b1220;
+	font-weight: 700;
+}
+
+/* ── model-card ── printed model release card (--mc-* inline vars) ── */
+.mcard {
+	border-radius: 10px;
+	background: var(--mc-paper);
+	color: var(--mc-ink);
+	box-shadow:
+		0 18px 40px -22px rgba(0, 0, 0, 0.5),
+		inset 0 0 0 1px var(--mc-line);
+	overflow: hidden;
+}
+.mcard-eyebrow {
+	color: var(--mc-dim);
+}
+.mcard-version {
+	padding: 3px 9px;
+	border-radius: 9999px;
+	background: color-mix(in srgb, var(--mc-accent) 24%, transparent);
+	border: 1px solid color-mix(in srgb, var(--mc-accent) 45%, transparent);
+	color: var(--mc-ink);
+}
+.mcard-name {
+	color: var(--mc-ink);
+}
+.mcard-specs {
+	border-top: 1px solid var(--mc-line);
+	border-bottom: 1px solid var(--mc-line);
+}
+.mcard-spec + .mcard-spec {
+	border-left: 1px solid var(--mc-line);
+}
+.mcard-spec-label {
+	color: var(--mc-dim);
+}
+.mcard-spec-value {
+	color: var(--mc-ink);
+}
+
+/* ── token-stream ── tokenizer chips + streaming caret ── */
+.tok-eyebrow {
+	color: rgba(248, 250, 252, 0.75);
+}
+.tok-chip {
+	border-radius: 0.18em;
+	padding: 0 0.14em;
+	box-decoration-break: clone;
+}
+.tok-caret {
+	display: inline-block;
+	width: 0.14em;
+	height: 0.85em;
+	margin-left: 0.1em;
+	border-radius: 1px;
+	background: #f8fafc;
+	align-self: center;
+	animation: tok-caret-blink 1.1s steps(2, start) infinite;
+}
+@keyframes tok-caret-blink {
+	to {
+		visibility: hidden;
+	}
+}
+
+/* ── neural-net ── travelling signal dashes over the edge figure ── */
+.nnet-pulse {
+	stroke-dasharray: 6 58;
+	stroke-dashoffset: 64;
+	opacity: 0.9;
+	animation: nnet-signal 3.6s linear infinite;
+}
+.nnet-pulse--2 {
+	animation-delay: 1.2s;
+}
+.nnet-pulse--3 {
+	animation-delay: 2.4s;
+}
+@keyframes nnet-signal {
+	from {
+		stroke-dashoffset: 64;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.chat-reasoning-orb,
+	.acon-reason-orb,
+	.tok-caret,
+	.nnet-pulse {
+		animation: none;
+	}
+	.nnet-pulse {
+		stroke-dasharray: none;
+		opacity: 0.35;
+	}
+}
+
+/* ── ticker-tape ── exchange board (--ticker-* inline vars) ──
+   Every board surface reads the board-knob-driven --ticker-board /
+   --ticker-edge / --ticker-ink the component sets inline (rack --rack-*
+   convention); the LIVE lamp reads the accent-driven --ticker-live. Market
+   color is chrome, not theme: up-quotes green, down-quotes red. The tape
+   loops one doubled run via ticker-scroll over an LED dot-matrix wash,
+   pauses while hovered (the marquee's pause mechanism, Music-shelf
+   convention), and individual quotes flash their backdrop green/red on
+   staggered ticker-flash phases (component-assigned i % 4). Under reduced
+   motion the tape is stilled (not hidden), and the LIVE lamp blink + quote
+   flashes still too. */
+.ticker {
+	background: var(--ticker-board);
+	border-radius: 12px;
+	border: 1px solid var(--ticker-edge);
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+	overflow: hidden;
+}
+.ticker-strip {
+	border-bottom: 1px solid var(--ticker-edge);
+	/* LED matrix: a fine dot grid over the darkened board */
+	background-color: color-mix(in srgb, #000000 30%, var(--ticker-board));
+	background-image: radial-gradient(
+		circle,
+		color-mix(in srgb, var(--ticker-ink) 7%, transparent) 1px,
+		transparent 1px
+	);
+	background-size: 4px 4px;
+	overflow: hidden;
+}
+.ticker-track {
+	display: flex;
+	width: max-content;
+	animation: ticker-scroll 28s linear infinite;
+}
+.ticker-strip:hover .ticker-track {
+	animation-play-state: paused;
+}
+.ticker-run {
+	display: inline-flex;
+	align-items: center;
+	padding: 8px 0;
+}
+.ticker-quote {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 7px;
+	padding: 4px 18px;
+	border-right: 1px solid color-mix(in srgb, var(--ticker-ink) 14%, transparent);
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	white-space: nowrap;
+}
+/* update flash: the quote's backdrop blips its market color for a beat -
+   an 11s cycle so blips stay occasional, phase classes stagger them */
+.ticker-quote--up {
+	animation: ticker-flash-up 11s linear infinite;
+}
+.ticker-quote--down {
+	animation: ticker-flash-down 11s linear infinite;
+}
+.ticker-quote--ph1 {
+	animation-delay: 2.6s;
+}
+.ticker-quote--ph2 {
+	animation-delay: 5.4s;
+}
+.ticker-quote--ph3 {
+	animation-delay: 8.2s;
+}
+@keyframes ticker-flash-up {
+	0%,
+	3.5%,
+	100% {
+		background-color: transparent;
+	}
+	1.5% {
+		background-color: rgba(74, 222, 128, 0.16);
+	}
+}
+@keyframes ticker-flash-down {
+	0%,
+	3.5%,
+	100% {
+		background-color: transparent;
+	}
+	1.5% {
+		background-color: rgba(248, 113, 113, 0.16);
+	}
+}
+.ticker-sym {
+	color: color-mix(in srgb, var(--ticker-ink) 85%, transparent);
+	font-weight: 700;
+	text-shadow: 0 0 5px color-mix(in srgb, var(--ticker-ink) 35%, transparent);
+}
+.ticker-delta--up {
+	color: #4ade80;
+	text-shadow: 0 0 5px rgba(74, 222, 128, 0.45);
+}
+.ticker-delta--down {
+	color: #f87171;
+	text-shadow: 0 0 5px rgba(248, 113, 113, 0.45);
+}
+@keyframes ticker-scroll {
+	from {
+		transform: translateX(0);
+	}
+	to {
+		transform: translateX(-50%);
+	}
+}
+.ticker-label {
+	color: var(--ticker-ink);
+}
+.ticker-live {
+	color: color-mix(in srgb, var(--ticker-ink) 60%, transparent);
+}
+.ticker-live-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--ticker-live);
+	box-shadow: 0 0 6px 1px
+		color-mix(in srgb, var(--ticker-live) 60%, transparent);
+	animation: ticker-live-blink 1.6s steps(2, start) infinite;
+}
+@keyframes ticker-live-blink {
+	to {
+		visibility: hidden;
+	}
+}
+.ticker-stats {
+	color: color-mix(in srgb, var(--ticker-ink) 55%, transparent);
+}
+.ticker-hours {
+	color: color-mix(in srgb, var(--ticker-ink) 45%, transparent);
+}
+
+/* ── trading-app ── brokerage app card (--tapp-accent inline var) ──
+   The app surface is a fixed dark-mode fintech shell - the trend knob moves
+   the chart/chip ink in the component, never these surfaces. The active
+   timeframe pill reads the accent-driven --tapp-accent. */
+.tapp {
+	background: #0e131c;
+	border-radius: 16px;
+	border: 1px solid #222c3d;
+	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
+	overflow: hidden;
+}
+.tapp-label {
+	color: #edf2f9;
+}
+.tapp-chip {
+	padding: 3px 10px;
+	border-radius: 999px;
+	font-weight: 700;
+}
+.tapp-chip--up {
+	background: rgba(52, 211, 153, 0.12);
+}
+.tapp-chip--down {
+	background: rgba(248, 113, 113, 0.12);
+}
+.tapp-frame {
+	padding: 3px 9px;
+	border-radius: 999px;
+	color: rgba(237, 242, 249, 0.45);
+}
+.tapp-frame--on {
+	color: #0e131c;
+	background: var(--tapp-accent);
+	font-weight: 700;
+}
+.tapp-btn {
+	flex: 0 0 auto;
+	padding: 7px 26px;
+	border-radius: 10px;
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+}
+.tapp-btn--buy {
+	color: #052e1b;
+	background: #34d399;
+}
+.tapp-btn--sell {
+	color: #f8dada;
+	background: transparent;
+	border: 1px solid rgba(248, 113, 113, 0.55);
+}
+.tapp-zen {
+	color: rgba(237, 242, 249, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ticker-track,
+	.ticker-live-dot,
+	.ticker-quote--up,
+	.ticker-quote--down {
 		animation: none;
 	}
 }

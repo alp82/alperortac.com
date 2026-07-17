@@ -4,12 +4,15 @@ import { DENSITY_HEADING, DENSITY_MAXW } from "./shared";
 /*
  * Inner: aurora (night)
  *
- * Deep-night frame: two soft, blurred northern-lights ribbons drift behind the
- * cluster (mix-blend screen over the dark stage) with an optional faint star
- * scatter. A natural fit once the journey is fully into the night sky.
+ * Deep-night frame: a blur-edged dark veil panel seats the cluster as a
+ * visible container, and two soft, blurred northern-lights ribbons drift over
+ * it (mix-blend screen) with an optional faint star scatter. A natural fit
+ * once the journey is fully into the night sky.
  *
- * Signature toggle = the stars; `hue` recolors the curtains (+ eyebrow). Motion
- * is gentle and disabled under prefers-reduced-motion (see composer.css).
+ * Signature toggle = the stars; `hue` recolors the curtains (+ eyebrow) -
+ * `shift` cross-fades the curtains between the emerald and violet pairs.
+ * Motion is gentle and disabled under prefers-reduced-motion (see
+ * composer.css).
  */
 
 const HUE: Record<"emerald" | "violet" | "teal", [string, string]> = {
@@ -35,14 +38,29 @@ export function AuroraCluster({
 	params,
 	children,
 }: InnerRenderProps<"aurora">) {
-	const [a, b] = HUE[params.hue];
+	const shift = params.hue === "shift";
+	const [a, b] = HUE[params.hue === "shift" ? "emerald" : params.hue];
+	const [a2, b2] = HUE.violet;
 
 	return (
 		<div className={`relative w-full ${DENSITY_MAXW[params.density]}`}>
-			{/* aurora curtains - blurred, behind content */}
+			{/* veil panel - blur-edged dark slab so the frame reads as a container */}
 			<div
-				className="cmp-aurora pointer-events-none absolute -inset-x-10 -inset-y-12"
-				style={{ "--aur-a": a, "--aur-b": b } as React.CSSProperties}
+				className="cmp-aurora-panel pointer-events-none absolute -inset-x-6 -inset-y-8"
+				aria-hidden="true"
+			/>
+
+			{/* aurora curtains - blurred, over the veil, behind content */}
+			<div
+				className={`cmp-aurora pointer-events-none absolute${shift ? " cmp-aurora-shift" : ""}`}
+				style={
+					{
+						"--aur-a": a,
+						"--aur-b": b,
+						"--aur-a2": a2,
+						"--aur-b2": b2,
+					} as React.CSSProperties
+				}
 				aria-hidden="true"
 			>
 				<span className="cmp-aurora-band cmp-aurora-band-1" />
@@ -73,8 +91,8 @@ export function AuroraCluster({
 
 			<div className="relative z-10 flex flex-col items-center text-center gap-5">
 				<div
-					className="font-mono text-[11px] uppercase tracking-[0.35em]"
-					style={{ color: a }}
+					className={`font-mono text-[11px] uppercase tracking-[0.35em]${shift ? " cmp-aurora-eyebrow-shift" : ""}`}
+					style={shift ? undefined : { color: a }}
 				>
 					◇ aurora {String(index + 1).padStart(2, "0")}
 				</div>

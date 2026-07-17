@@ -678,6 +678,72 @@ function InsideSpecificControls({
 				</>
 			);
 		}
+		case "server-rack": {
+			const p = params as InnerParamsMap["server-rack"];
+			return (
+				<>
+					<Segmented
+						label="Finish"
+						value={p.finish}
+						options={[
+							{ value: "graphite", label: "Graphite" },
+							{ value: "steel", label: "Steel" },
+							{ value: "midnight", label: "Midnight" },
+						]}
+						onChange={(finish) => patch({ finish })}
+					/>
+					<Toggle
+						label="Status LEDs"
+						checked={p.leds}
+						onChange={(leds) => patch({ leds })}
+					/>
+				</>
+			);
+		}
+		case "status-page": {
+			const p = params as InnerParamsMap["status-page"];
+			return (
+				<>
+					<Segmented
+						label="Status"
+						value={p.status}
+						options={[
+							{ value: "operational", label: "Stable" },
+							{ value: "degraded", label: "Degraded" },
+							{ value: "maintenance", label: "Maint" },
+						]}
+						onChange={(status) => patch({ status })}
+					/>
+					<Toggle
+						label="Uptime bars"
+						checked={p.bars}
+						onChange={(bars) => patch({ bars })}
+					/>
+				</>
+			);
+		}
+		case "cargo-container": {
+			const p = params as InnerParamsMap["cargo-container"];
+			return (
+				<>
+					<Segmented
+						label="Livery"
+						value={p.livery}
+						options={[
+							{ value: "rust", label: "Rust" },
+							{ value: "ocean", label: "Ocean" },
+							{ value: "forest", label: "Forest" },
+						]}
+						onChange={(livery) => patch({ livery })}
+					/>
+					<Toggle
+						label="Corrugation"
+						checked={p.corrugation}
+						onChange={(corrugation) => patch({ corrugation })}
+					/>
+				</>
+			);
+		}
 		case "aurora": {
 			const p = params as InnerParamsMap["aurora"];
 			return (
@@ -689,6 +755,7 @@ function InsideSpecificControls({
 							{ value: "emerald", label: "Emerald" },
 							{ value: "violet", label: "Violet" },
 							{ value: "teal", label: "Teal" },
+							{ value: "shift", label: "Shift" },
 						]}
 						onChange={(hue) => patch({ hue })}
 					/>
@@ -696,6 +763,192 @@ function InsideSpecificControls({
 						label="Stars"
 						checked={p.stars}
 						onChange={(stars) => patch({ stars })}
+					/>
+				</>
+			);
+		}
+		case "chat-thread": {
+			const p = params as InnerParamsMap["chat-thread"];
+			return (
+				<>
+					<Segmented
+						label="Tone"
+						value={p.tone}
+						options={[
+							{ value: "midnight", label: "Midnight" },
+							{ value: "paper", label: "Paper" },
+							{ value: "violet", label: "Violet" },
+						]}
+						onChange={(tone) => patch({ tone })}
+					/>
+					<Toggle
+						label="Reasoning"
+						checked={p.reasoning}
+						onChange={(reasoning) => patch({ reasoning })}
+					/>
+					<Toggle
+						label="Input"
+						checked={p.input}
+						onChange={(input) => patch({ input })}
+					/>
+				</>
+			);
+		}
+		case "agent-console": {
+			const p = params as InnerParamsMap["agent-console"];
+			return (
+				<>
+					<Segmented
+						label="Finish"
+						value={p.finish}
+						options={[
+							{ value: "obsidian", label: "Obsidian" },
+							{ value: "violet", label: "Violet" },
+							{ value: "matrix", label: "Matrix" },
+						]}
+						onChange={(finish) => patch({ finish })}
+					/>
+					<Toggle
+						label="Steps"
+						checked={p.steps}
+						onChange={(steps) => patch({ steps })}
+					/>
+					<Toggle
+						label="Input"
+						checked={p.input}
+						onChange={(input) => patch({ input })}
+					/>
+				</>
+			);
+		}
+		case "model-card": {
+			const p = params as InnerParamsMap["model-card"];
+			return (
+				<>
+					<Segmented
+						label="Stock"
+						value={p.stock}
+						options={[
+							{ value: "paper", label: "Paper" },
+							{ value: "mint", label: "Mint" },
+							{ value: "slate", label: "Slate" },
+						]}
+						onChange={(stock) => patch({ stock })}
+					/>
+					<Toggle
+						label="Specs"
+						checked={p.specs}
+						onChange={(specs) => patch({ specs })}
+					/>
+				</>
+			);
+		}
+		case "token-stream": {
+			const p = params as InnerParamsMap["token-stream"];
+			return (
+				<>
+					<Segmented
+						label="Palette"
+						value={p.palette}
+						options={[
+							{ value: "candy", label: "Candy" },
+							{ value: "jade", label: "Jade" },
+							{ value: "mono", label: "Mono" },
+						]}
+						onChange={(palette) => patch({ palette })}
+					/>
+					<Toggle
+						label="Caret"
+						checked={p.caret}
+						onChange={(caret) => patch({ caret })}
+					/>
+				</>
+			);
+		}
+		case "neural-net": {
+			const p = params as InnerParamsMap["neural-net"];
+			return (
+				<>
+					<Segmented
+						label="Tint"
+						value={p.tint}
+						options={[
+							{ value: "cyan", label: "Cyan" },
+							{ value: "violet", label: "Violet" },
+							{ value: "ember", label: "Ember" },
+						]}
+						onChange={(tint) => patch({ tint })}
+					/>
+					<Toggle
+						label="Pulse"
+						checked={p.pulse}
+						onChange={(pulse) => patch({ pulse })}
+					/>
+				</>
+			);
+		}
+		case "ticker-tape": {
+			const p = params as InnerParamsMap["ticker-tape"];
+			return (
+				<>
+					<Segmented
+						label="Board"
+						value={p.board}
+						options={[
+							{ value: "onyx", label: "Onyx" },
+							{ value: "navy", label: "Navy" },
+							{ value: "pit", label: "Pit" },
+						]}
+						onChange={(board) => patch({ board })}
+					/>
+					<Toggle
+						label="Tape"
+						checked={p.tape}
+						onChange={(tape) => patch({ tape })}
+					/>
+				</>
+			);
+		}
+		case "trading-app": {
+			const p = params as InnerParamsMap["trading-app"];
+			return (
+				<>
+					<Segmented
+						label="Trend"
+						value={p.trend}
+						options={[
+							{ value: "bull", label: "Bull" },
+							{ value: "bear", label: "Bear" },
+							{ value: "crab", label: "Crab" },
+						]}
+						onChange={(trend) => patch({ trend })}
+					/>
+					<Toggle
+						label="Chart"
+						checked={p.chart}
+						onChange={(chart) => patch({ chart })}
+					/>
+				</>
+			);
+		}
+		case "candlestick": {
+			const p = params as InnerParamsMap["candlestick"];
+			return (
+				<>
+					<Segmented
+						label="Stock"
+						value={p.stock}
+						options={[
+							{ value: "white", label: "White" },
+							{ value: "cream", label: "Cream" },
+							{ value: "mist", label: "Mist" },
+						]}
+						onChange={(stock) => patch({ stock })}
+					/>
+					<Toggle
+						label="Grid"
+						checked={p.grid}
+						onChange={(grid) => patch({ grid })}
 					/>
 				</>
 			);

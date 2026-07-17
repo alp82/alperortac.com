@@ -11,6 +11,13 @@ import { DENSITY_MAXW } from "./shared";
  * Widened so the body holds the plate. Signature toggle (params.perforation) =
  * the perforation tear line (notches + dashed seam); `color` recolors both the
  * stub rail bg and the `--ticket-accent` var inline.
+ *
+ * Route strip (wayfinder #17, the Travel lock's media treatment): a
+ * boarding-pass route line printed as ticket fine print under the body -
+ * visited stops joined by a solid-dot dashed path, the next leg dashed in
+ * the ticket accent with a plane glyph. Stops mirror the TravelContent
+ * prose (Thailand, Israel, Mexico, Grenada, Europe; next: Japan 2027) -
+ * hand-edit ROUTE_STOPS/ROUTE_NEXT when the prose changes.
  */
 
 /** color → the stub rail bg + the `--ticket-accent` var (applied inline). */
@@ -22,6 +29,11 @@ const TICKET_COLOR: Record<
 	indigo: "#818cf8",
 	gold: "#d4a017",
 };
+
+/** Visited stops, in prose order - see the route-strip note above. */
+const ROUTE_STOPS = ["THA", "ISR", "MEX", "GRD", "EUR"] as const;
+/** The next leg - accent-colored, plane in flight. */
+const ROUTE_NEXT = "JPN '27";
 
 export function TicketStubCluster({
 	topic,
@@ -70,6 +82,36 @@ export function TicketStubCluster({
 					</h2>
 
 					<div className="mt-4">{children}</div>
+
+					{/* route strip - boarding-pass fine print (see file note) */}
+					<div className="mt-5 pt-3 border-t border-dashed border-slate-300">
+						<div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">
+							<span className="tracking-[0.3em] mr-1">route</span>
+							{ROUTE_STOPS.map((stop) => (
+								<span key={stop} className="flex items-center gap-2 min-w-0">
+									<span className="whitespace-nowrap">{stop}</span>
+									<span
+										className="flex-none w-4 border-t border-dashed border-slate-400"
+										aria-hidden="true"
+									/>
+								</span>
+							))}
+							<span
+								className="flex-1 min-w-4 border-t border-dashed"
+								style={{ borderColor: "var(--ticket-accent)" }}
+								aria-hidden="true"
+							/>
+							<span aria-hidden="true" style={{ color: "var(--ticket-accent)" }}>
+								✈
+							</span>
+							<span
+								className="whitespace-nowrap font-bold"
+								style={{ color: "var(--ticket-accent)" }}
+							>
+								{ROUTE_NEXT}
+							</span>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>

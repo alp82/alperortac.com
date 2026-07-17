@@ -62,9 +62,13 @@ if (typeof window !== "undefined" && !window.matchMedia) {
 	}));
 }
 
+// Wayfinder #17 note: the fixture moved travel → games IN PLACE - the
+// defaultState()-driven Milestone 2 assertions below expect the shared
+// parallax-depth seed chrome, and travel is now locked to ticket-stub;
+// games is one of the three topics still on the seed.
 const topic: Topic = {
-	id: "travel",
-	heading: "Travel",
+	id: "games",
+	heading: "Games",
 	teaser: "ignored",
 	triggers: [],
 };
@@ -322,10 +326,10 @@ describe("Milestone 2 - neutral wrapper replaces the stage", () => {
 	// TC-23: --cmp-accent reflects each topic's own palette across at least
 	// two different topics (same "none"-source stage-era reason as TC-4).
 	it("reflects each topic's own accent across multiple topics", () => {
-		const { container: travelContainer } = renderComposition(topic);
-		const travelArticle = travelContainer.querySelector("article");
-		expect(travelArticle?.style.getPropertyValue("--cmp-accent")).toBe(
-			TOPIC_ACCENT.travel,
+		const { container: gamesContainer } = renderComposition(topic);
+		const gamesArticle = gamesContainer.querySelector("article");
+		expect(gamesArticle?.style.getPropertyValue("--cmp-accent")).toBe(
+			TOPIC_ACCENT.games,
 		);
 		cleanup();
 
@@ -334,7 +338,7 @@ describe("Milestone 2 - neutral wrapper replaces the stage", () => {
 		expect(codingArticle?.style.getPropertyValue("--cmp-accent")).toBe(
 			TOPIC_ACCENT.coding,
 		);
-		expect(TOPIC_ACCENT.travel).not.toBe(TOPIC_ACCENT.coding);
+		expect(TOPIC_ACCENT.games).not.toBe(TOPIC_ACCENT.coding);
 	});
 });
 
@@ -612,11 +616,13 @@ describe("TopicComposition whole-section day/night freeze", () => {
 		vi.unstubAllGlobals();
 	});
 
-	// TCM-N1: adversarial - the article (#travel) gets a NIGHT-side rect,
+	// TCM-N1: adversarial - the article (#games) gets a NIGHT-side rect,
 	// while the DEFAULT rect (which the title's own wrapper receives, since
-	// it doesn't match "#travel") is far-DAY. The heading must still follow
-	// the ARTICLE's frozen phase (night), not its own rect.
-	it("the Travel heading follows the article's frozen night phase, not its own rect", () => {
+	// it doesn't match "#games") is far-DAY. The heading must still follow
+	// the ARTICLE's frozen phase (night), not its own rect. (Fixture moved
+	// travel → games with the wayfinder #17 travel lock - see the fixture
+	// note at the top of the file.)
+	it("the Games heading follows the article's frozen night phase, not its own rect", () => {
 		// The reduced-motion describe block above unstubs the module-level
 		// matchMedia stub set at import time; re-stub it here (a real
 		// prefers-reduced-motion: reduce mismatch, matches:false) so the
@@ -634,7 +640,7 @@ describe("TopicComposition whole-section day/night freeze", () => {
 		const restore = stubSectionGeometry({
 			scrollHeight: 10000,
 			innerHeight: 800,
-			rects: [{ match: "#travel", top: 5860, height: 1800 }],
+			rects: [{ match: "#games", top: 5860, height: 1800 }],
 			rect: { top: 100, height: 100 },
 		});
 		const { container } = renderCompositionWithInner("parallax-depth", topic);
@@ -681,8 +687,27 @@ describe("Milestone 4 (coding frames, final) - INNER_ORDER grows to 17", () => {
 
 	// TC-ORDER-3 (M4 final checkpoint): INNER_ORDER now has exactly 17 entries
 	// (12 + the five coding frames, appended - never rewritten in place).
-	it("has exactly 17 entries", () => {
-		expect(INNER_ORDER.length).toBe(17);
+	// Wayfinder #13 note: bumped to 22 IN PLACE per the growth convention -
+	// the five tech-stack candidate ids append after keycaps (see the
+	// TECH_STACK_CANDIDATE_IDS block below).
+	// Wayfinder #14 note: bumped to 23 IN PLACE - aurora (AI identity
+	// candidate) restored from the pruned list, appended after
+	// cargo-container. Round two bumped it to 27: four new AI-native frames
+	// (chat-thread, model-card, token-stream, neural-net) appended after the
+	// aurora lock was rejected on the live walk. Round three bumped it to
+	// 28: agent-console, the chat concept's CLI sibling.
+	// Wayfinder #15 note: bumped to 33 IN PLACE - chalkboard + topo-map
+	// (finance identity shortlist) restored from the pruned list plus three
+	// new trading frames (ticker-tape, trading-app, candlestick), appended
+	// after agent-console (see the FINANCE_CANDIDATE_IDS block below).
+	// Wayfinder #16 note: bumped to 34 IN PLACE - polaroid (family identity
+	// shortlisted primary) restored from the pruned list, appended after
+	// candlestick (see the FAMILY_CANDIDATE_IDS block below).
+	// Wayfinder #17 note: bumped to 35 IN PLACE - field-journal (travel
+	// identity shortlisted alternate) restored from the pruned list, appended
+	// after polaroid (see the TRAVEL_CANDIDATE_IDS block below).
+	it("has exactly 35 entries", () => {
+		expect(INNER_ORDER.length).toBe(35);
 	});
 
 	it("first 12 entries are unchanged", () => {
@@ -702,13 +727,13 @@ describe("Milestone 4 (coding frames, final) - INNER_ORDER grows to 17", () => {
 		]);
 	});
 
-	it("slice(12) equals the final five coding ids in order: code-editor, pull-request, commit-graph, man-page, keycaps", () => {
-		expect(INNER_ORDER.slice(12)).toEqual([...CODING_INNER_ORDER]);
+	it("slice(12, 17) equals the final five coding ids in order: code-editor, pull-request, commit-graph, man-page, keycaps", () => {
+		expect(INNER_ORDER.slice(12, 17)).toEqual([...CODING_INNER_ORDER]);
 	});
 
 	// TC-ORDER-4: no duplicate ids anywhere in INNER_ORDER at the final
-	// 17-entry state.
-	it("contains no duplicate ids at the final 17-entry state", () => {
+	// 22-entry state.
+	it("contains no duplicate ids at the final 22-entry state", () => {
 		expect(new Set(INNER_ORDER).size).toBe(INNER_ORDER.length);
 	});
 
@@ -789,27 +814,35 @@ describe("coding inners render through TopicComposition", () => {
  * behavior this build must not accidentally disturb.
  */
 
-// The 15 frames that exist as INNERS entries but were deliberately pruned
+// The frames that exist as INNERS entries but were deliberately pruned
 // out of INNER_ORDER (never appended to the picker) ahead of this round -
 // kept as a literal, independent of INNER_ORDER, so a future accidental
 // re-addition to INNER_ORDER trips this guard rather than silently updating
 // alongside it.
+// Wayfinder #13 note: blueprint + circuit-board left this list DELIBERATELY -
+// they are the Tech Stack identity ticket's shortlisted candidates and were
+// restored to the picker on Alper's ask; the remaining 13 stay pruned.
+// Wayfinder #14 note: aurora left this list DELIBERATELY - it is a
+// shortlisted alternate for the AI identity walk and was restored to the
+// picker; the remaining 12 stay pruned.
+// Wayfinder #15 note: chalkboard + topo-map left this list DELIBERATELY -
+// they are the Finance identity ticket's shortlisted candidates and were
+// restored to the picker on Alper's ask; the remaining 10 stay pruned.
+// Wayfinder #16 note: polaroid left this list DELIBERATELY - it is the
+// Family identity ticket's shortlisted primary and was restored to the
+// picker for the live walk; the remaining 9 stay pruned.
+// Wayfinder #17 note: field-journal left this list DELIBERATELY - it is a
+// shortlisted alternate for the Travel identity walk and was restored to
+// the picker; the remaining 8 stay pruned.
 const PRUNED_NOT_IN_ORDER_IDS = [
 	"minimal",
 	"trail-signpost",
-	"field-journal",
-	"aurora",
 	"moonrise",
 	"daybreak",
 	"summit",
-	"polaroid",
 	"collectible",
 	"comic",
-	"blueprint",
-	"circuit-board",
 	"neon-sign",
-	"chalkboard",
-	"topo-map",
 ] as const;
 
 describe("Milestone 4 (final sweep) - the coding lock landed, other out-of-scope regression guards hold", () => {
@@ -820,17 +853,326 @@ describe("Milestone 4 (final sweep) - the coding lock landed, other out-of-scope
 		expect(IDENTITIES.coding.inner.id).toBe("pull-request");
 	});
 
-	// TC-SCOPE-3: none of the 15 previously-pruned INNERS-but-not-INNER_ORDER
-	// frames reappear in INNER_ORDER at the final 17-entry state.
-	it("TC-SCOPE-3: none of the 15 previously-pruned frames reappear in INNER_ORDER", () => {
+	// TC-SCOPE-3: none of the still-pruned INNERS-but-not-INNER_ORDER
+	// frames reappear in INNER_ORDER.
+	it("TC-SCOPE-3: none of the 8 still-pruned frames reappear in INNER_ORDER", () => {
 		for (const id of PRUNED_NOT_IN_ORDER_IDS) {
 			expect(INNER_ORDER).not.toContain(id);
 		}
 	});
 
-	it("TC-SCOPE-3b (regression guard): all 15 pruned ids are still registered in INNERS itself (pruned from the picker, not deleted from the registry)", () => {
+	it("TC-SCOPE-3b (regression guard): all 8 pruned ids are still registered in INNERS itself (pruned from the picker, not deleted from the registry)", () => {
 		for (const id of PRUNED_NOT_IN_ORDER_IDS) {
 			expect(INNERS[id as InnerId]).toBeDefined();
 		}
+	});
+});
+
+/*
+ * Wayfinder #13 (tech-stack candidates) - the Tech Stack identity walk's
+ * five candidates join the picker as a SEPARATE literal beside
+ * CODING_INNER_ORDER, per the growth convention (append after keycaps,
+ * never interleave): the two shortlisted frames restored from the pruned
+ * list (blueprint, circuit-board) + three new infra frames (server-rack,
+ * status-page, cargo-container). The M4 `toBe(17)` pin above is bumped to
+ * 22 IN PLACE.
+ */
+const TECH_STACK_CANDIDATE_IDS = [
+	"blueprint",
+	"circuit-board",
+	"server-rack",
+	"status-page",
+	"cargo-container",
+] as const;
+
+describe("Wayfinder #13 (tech-stack candidates) - INNER_ORDER grows to 22", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	// Wayfinder #14 note: slice(17) narrowed to slice(17, 22) IN PLACE -
+	// aurora (AI identity candidate) now appends after cargo-container.
+	it("slice(17, 22) equals the five tech-stack candidate ids in order: blueprint, circuit-board, server-rack, status-page, cargo-container", () => {
+		expect(INNER_ORDER.slice(17, 22)).toEqual([...TECH_STACK_CANDIDATE_IDS]);
+	});
+
+	it("every candidate id has a matching INNERS entry whose .id matches", () => {
+		for (const id of TECH_STACK_CANDIDATE_IDS) {
+			expect(INNERS[id]).toBeDefined();
+			expect(INNERS[id].id).toBe(id);
+		}
+	});
+
+	// This build IS the HITL lock this pin was guarding for - Tech Stack is
+	// now honestly locked to server-rack (picked on the live walk, midnight
+	// finish), no longer the parallax-depth seed.
+	it("IDENTITIES.tech-stack is locked to server-rack", () => {
+		expect(IDENTITIES["tech-stack"].inner.id).toBe("server-rack");
+	});
+});
+
+describe("tech-stack candidate inners render through TopicComposition", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it.each(
+		TECH_STACK_CANDIDATE_IDS,
+	)("renders exactly one article for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const articles = container.querySelectorAll("article");
+		expect(articles.length).toBe(1);
+	});
+
+	it.each(
+		TECH_STACK_CANDIDATE_IDS,
+	)("seats the real TopicBody children inside the frame for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const article = container.querySelector("article");
+		expect(article).not.toBeNull();
+		expect(article?.textContent).toContain("ignored");
+	});
+});
+
+/*
+ * Wayfinder #14 (AI candidates) - the AI identity walk's shortlist was
+ * constellation (primary, already pickable), circuit-board (restored in #13)
+ * and aurora (restored from the pruned list). Round two: the aurora lock was
+ * rejected on the live walk, so four new AI-native frames joined the picker
+ * (chat-thread, model-card, token-stream, neural-net), appended after aurora
+ * per the growth convention (append, never interleave). The M4 `toBe(22)`
+ * pin above is bumped to 27 IN PLACE.
+ */
+const AI_CANDIDATE_IDS = [
+	"aurora",
+	"chat-thread",
+	"model-card",
+	"token-stream",
+	"neural-net",
+	"agent-console",
+] as const;
+
+describe("Wayfinder #14 (AI candidates) - INNER_ORDER grows to 28", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	// Wayfinder #15 note: slice(22) narrowed to slice(22, 28) IN PLACE - the
+	// finance candidates now append after agent-console.
+	it("slice(22, 28) equals the six AI candidate ids in order: aurora, chat-thread, model-card, token-stream, neural-net, agent-console", () => {
+		expect(INNER_ORDER.slice(22, 28)).toEqual([...AI_CANDIDATE_IDS]);
+	});
+
+	it("every candidate id has a matching INNERS entry whose .id matches", () => {
+		for (const id of AI_CANDIDATE_IDS) {
+			expect(INNERS[id]).toBeDefined();
+			expect(INNERS[id].id).toBe(id);
+		}
+	});
+
+	// This build IS the HITL lock this walk was for - AI is now honestly
+	// locked to agent-console (the violet console + the chat elements,
+	// picked on the live walk; aurora was picked first, then rejected).
+	it("IDENTITIES.ai is locked to agent-console", () => {
+		expect(IDENTITIES.ai.inner.id).toBe("agent-console");
+	});
+});
+
+describe("AI candidate inners render through TopicComposition", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it.each(AI_CANDIDATE_IDS)("renders exactly one article for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const articles = container.querySelectorAll("article");
+		expect(articles.length).toBe(1);
+	});
+
+	it.each(
+		AI_CANDIDATE_IDS,
+	)("seats the real TopicBody children inside the frame for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const article = container.querySelector("article");
+		expect(article).not.toBeNull();
+		expect(article?.textContent).toContain("ignored");
+	});
+});
+
+/*
+ * Wayfinder #15 (finance candidates) - the finance identity walk's shortlist
+ * was chalkboard (primary) and topo-map (alternate), both built long ago but
+ * pruned from the picker; they are restored here, plus three new trading
+ * frames built on the live walk's ask (ticker-tape, trading-app,
+ * candlestick), all appended after agent-console per the growth convention
+ * (append, never interleave). The M4 `toBe(28)` pin above is bumped to 33
+ * IN PLACE.
+ */
+const FINANCE_CANDIDATE_IDS = [
+	"chalkboard",
+	"topo-map",
+	"ticker-tape",
+	"trading-app",
+	"candlestick",
+] as const;
+
+describe("Wayfinder #15 (finance candidates) - INNER_ORDER grows to 33", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	// Wayfinder #16 note: bounded to slice(28, 33) IN PLACE - the picker grew
+	// past 33 (polaroid appended for the family walk), so the open-ended
+	// slice would drag later appends into this pin.
+	it("slice(28, 33) equals the five finance candidate ids in order: chalkboard, topo-map, ticker-tape, trading-app, candlestick", () => {
+		expect(INNER_ORDER.slice(28, 33)).toEqual([...FINANCE_CANDIDATE_IDS]);
+	});
+
+	it("every candidate id has a matching INNERS entry whose .id matches", () => {
+		for (const id of FINANCE_CANDIDATE_IDS) {
+			expect(INNERS[id]).toBeDefined();
+			expect(INNERS[id].id).toBe(id);
+		}
+	});
+
+	// This build IS the HITL lock this walk was for - Finance is now honestly
+	// locked to ticker-tape (the navy exchange board with the real build-time
+	// quote tape, picked on the live walk), no longer the parallax-depth seed.
+	it("IDENTITIES.finance is locked to ticker-tape", () => {
+		expect(IDENTITIES.finance.inner.id).toBe("ticker-tape");
+	});
+});
+
+describe("finance candidate inners render through TopicComposition", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it.each(FINANCE_CANDIDATE_IDS)("renders exactly one article for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const articles = container.querySelectorAll("article");
+		expect(articles.length).toBe(1);
+	});
+
+	it.each(
+		FINANCE_CANDIDATE_IDS,
+	)("seats the real TopicBody children inside the frame for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const article = container.querySelector("article");
+		expect(article).not.toBeNull();
+		expect(article?.textContent).toContain("ignored");
+	});
+});
+
+/*
+ * Wayfinder #16 (family candidates) - the family identity walk's shortlist
+ * is polaroid (primary) and seed-packet (alternate). Seed-packet is already
+ * pickable; polaroid was built long ago but pruned from the picker and is
+ * restored here, appended after candlestick per the growth convention
+ * (append, never interleave). The M4 `toBe(33)` pin above is bumped to 34
+ * IN PLACE. The lock itself lands on the live walk - no IDENTITIES.family
+ * pin here until it does.
+ */
+const FAMILY_CANDIDATE_IDS = ["polaroid"] as const;
+
+describe("Wayfinder #16 (family candidates) - INNER_ORDER grows to 34", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it("slice(33, 34) equals the restored family candidate id: polaroid", () => {
+		expect(INNER_ORDER.slice(33, 34)).toEqual([...FAMILY_CANDIDATE_IDS]);
+	});
+
+	it("every candidate id has a matching INNERS entry whose .id matches", () => {
+		for (const id of FAMILY_CANDIDATE_IDS) {
+			expect(INNERS[id]).toBeDefined();
+			expect(INNERS[id].id).toBe(id);
+		}
+	});
+
+	// This build IS the HITL lock this walk was for - Family is now honestly
+	// locked to polaroid (the kodak-print rework picked on the live walk:
+	// print floated in the prose flow, silhouette photo, tape on, tilt left),
+	// no longer the parallax-depth seed.
+	it("IDENTITIES.family is locked to polaroid", () => {
+		expect(IDENTITIES.family.inner.id).toBe("polaroid");
+	});
+});
+
+describe("family candidate inners render through TopicComposition", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it.each(FAMILY_CANDIDATE_IDS)("renders exactly one article for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const articles = container.querySelectorAll("article");
+		expect(articles.length).toBe(1);
+	});
+
+	it.each(
+		FAMILY_CANDIDATE_IDS,
+	)("seats the real TopicBody children inside the frame for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const article = container.querySelector("article");
+		expect(article).not.toBeNull();
+		expect(article?.textContent).toContain("ignored");
+	});
+});
+
+/*
+ * Wayfinder #17 (travel candidates) - the travel identity walk's shortlist
+ * is ticket-stub (primary), field-journal and topo-map (alternates).
+ * Ticket-stub and topo-map are already pickable; field-journal was built
+ * long ago but pruned from the picker and is restored here, appended after
+ * polaroid per the growth convention (append, never interleave). The
+ * `toBe(34)` pin above is bumped to 35 IN PLACE.
+ */
+const TRAVEL_CANDIDATE_IDS = ["field-journal"] as const;
+
+describe("Wayfinder #17 (travel candidates) - INNER_ORDER grows to 35", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it("slice(34) equals the restored travel candidate id: field-journal", () => {
+		expect(INNER_ORDER.slice(34)).toEqual([...TRAVEL_CANDIDATE_IDS]);
+	});
+
+	it("every candidate id has a matching INNERS entry whose .id matches", () => {
+		for (const id of TRAVEL_CANDIDATE_IDS) {
+			expect(INNERS[id]).toBeDefined();
+			expect(INNERS[id].id).toBe(id);
+		}
+	});
+
+	// This build IS the HITL lock this walk was for - Travel is now honestly
+	// locked to ticket-stub (the shortlisted primary held on the live walk:
+	// crimson, perforation on, boarding-pass route strip as media), no longer
+	// the parallax-depth seed.
+	it("IDENTITIES.travel is locked to ticket-stub", () => {
+		expect(IDENTITIES.travel.inner.id).toBe("ticket-stub");
+	});
+});
+
+describe("travel candidate inners render through TopicComposition", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it.each(TRAVEL_CANDIDATE_IDS)("renders exactly one article for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const articles = container.querySelectorAll("article");
+		expect(articles.length).toBe(1);
+	});
+
+	it.each(
+		TRAVEL_CANDIDATE_IDS,
+	)("seats the real TopicBody children inside the frame for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const article = container.querySelector("article");
+		expect(article).not.toBeNull();
+		expect(article?.textContent).toContain("ignored");
 	});
 });

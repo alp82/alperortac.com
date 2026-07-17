@@ -1,7 +1,11 @@
+import { AgentConsoleCluster } from "./inner/agent-console";
 import { ArcadeHudCluster } from "./inner/arcade-hud";
 import { AuroraCluster } from "./inner/aurora";
 import { BlueprintCluster } from "./inner/blueprint";
+import { CandlestickCluster } from "./inner/candlestick";
+import { CargoContainerCluster } from "./inner/cargo-container";
 import { ChalkboardCluster } from "./inner/chalkboard";
+import { ChatThreadCluster } from "./inner/chat-thread";
 import { CircuitBoardCluster } from "./inner/circuit-board";
 import { CodeEditorCluster } from "./inner/code-editor";
 import { CollectibleCluster } from "./inner/collectible";
@@ -14,21 +18,28 @@ import { FloatingIslandCluster } from "./inner/floating-island";
 import { KeycapsCluster } from "./inner/keycaps";
 import { ManPageCluster } from "./inner/man-page";
 import { MinimalCluster } from "./inner/minimal";
+import { ModelCardCluster } from "./inner/model-card";
 import { MoonriseCluster } from "./inner/moonrise";
 import { NameplateCluster } from "./inner/nameplate";
 import { NeonSignCluster } from "./inner/neon-sign";
+import { NeuralNetCluster } from "./inner/neural-net";
 import { OfferLetterCluster } from "./inner/offer-letter";
 import { ParallaxDepthCluster } from "./inner/parallax-depth";
 import { PolaroidCluster } from "./inner/polaroid";
 import { PullRequestCluster } from "./inner/pull-request";
 import { PunchCardCluster } from "./inner/punch-card";
 import { SeedPacketCluster } from "./inner/seed-packet";
+import { ServerRackCluster } from "./inner/server-rack";
 import { SkylineCluster } from "./inner/skyline";
+import { StatusPageCluster } from "./inner/status-page";
 import { SummitCluster } from "./inner/summit";
 import { TerminalCluster } from "./inner/terminal";
+import { TickerTapeCluster } from "./inner/ticker-tape";
 import { TicketStubCluster } from "./inner/ticket-stub";
 import { TimecardCluster } from "./inner/timecard";
+import { TokenStreamCluster } from "./inner/token-stream";
 import { TopoMapCluster } from "./inner/topo-map";
+import { TradingAppCluster } from "./inner/trading-app";
 import { TrailSignpostCluster } from "./inner/trail-signpost";
 import { BotanicalVineLink } from "./links/botanical-vine";
 import { ConstellationStarlineLink } from "./links/constellation-starline";
@@ -111,7 +122,7 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 	aurora: {
 		id: "aurora",
 		label: "Aurora",
-		feel: "Night sky: soft northern-lights curtains drifting behind the cluster. A natural fit deep into the night.",
+		feel: "Night sky: soft northern-lights curtains drifting over a blur-edged dark veil. A natural fit deep into the night.",
 		surface: "dark",
 		defaults: { density: "roomy", stars: true, hue: "emerald" },
 		Component: AuroraCluster,
@@ -167,7 +178,7 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 	polaroid: {
 		id: "polaroid",
 		label: "Polaroid",
-		feel: "Scrapbook page: a kraft board with a corner-pinned, tilt-able polaroid + handwritten caption.",
+		feel: "Scrapbook page: a kraft board with a glossy Kodak-era print floated in the prose (text wraps around it) - date stamp, washi tape, handwritten caption.",
 		surface: "light",
 		defaults: { density: "roomy", tape: true, tilt: "left" },
 		Component: PolaroidCluster,
@@ -324,6 +335,104 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 		defaults: { density: "roomy", backlight: true, colorway: "beige" },
 		Component: KeycapsCluster,
 	},
+	"server-rack": {
+		id: "server-rack",
+		label: "Server Rack",
+		feel: "Rack unit: slotted rack screws flank a metal faceplate with the heading as the unit label, winking status + activity lamps, vent slits and a patched ethernet row along the bottom. Homelab hardware.",
+		surface: "dark",
+		defaults: { density: "roomy", leds: true, finish: "midnight" },
+		Component: ServerRackCluster,
+	},
+	"status-page": {
+		id: "status-page",
+		label: "Status Page",
+		feel: "SaaS status card: a live status pill, the heading as the monitored service, a 90-day uptime tick row and a checked-just-now footer. Modern ops.",
+		surface: "light",
+		defaults: { density: "roomy", bars: true, status: "operational" },
+		Component: StatusPageCluster,
+	},
+	"cargo-container": {
+		id: "cargo-container",
+		label: "Container",
+		feel: "Shipping container: a corrugated painted wall with corner castings, a stenciled heading + ALPU registration, and the body on a door placard. Everything ships in containers.",
+		surface: "light",
+		defaults: { density: "roomy", corrugation: true, livery: "rust" },
+		Component: CargoContainerCluster,
+	},
+	"chat-thread": {
+		id: "chat-thread",
+		label: "Chat Thread",
+		feel: "Assistant conversation (ai-sdk Elements patterns): model-chip header, prompt as a user bubble, a collapsed reasoning strip, the body full-width as the reply, actions row + prompt-input footer.",
+		surface: "dark",
+		defaults: {
+			density: "roomy",
+			reasoning: true,
+			input: true,
+			tone: "midnight",
+		},
+		Component: ChatThreadCluster,
+	},
+	"agent-console": {
+		id: "agent-console",
+		label: "Agent Console",
+		feel: "A coding-agent run à la Claude Code: mono console header, the heading as the task line, reasoning pill + tool-call steps, the body as the final answer, actions + follow-up input, status footer.",
+		surface: "dark",
+		defaults: {
+			density: "roomy",
+			steps: true,
+			input: true,
+			finish: "obsidian",
+		},
+		Component: AgentConsoleCluster,
+	},
+	"model-card": {
+		id: "model-card",
+		label: "Model Card",
+		feel: "Printed model release card: MODEL CARD eyebrow + version chip, the heading as the model name, a playful three-cell spec strip. Ephemera lineage.",
+		surface: "light",
+		defaults: { density: "roomy", specs: true, stock: "paper" },
+		Component: ModelCardCluster,
+	},
+	"token-stream": {
+		id: "token-stream",
+		label: "Token Stream",
+		feel: "The heading tokenized: each word on a translucent tokenizer chip with cycling hues and a streaming caret still generating. Floats over the landscape.",
+		surface: "dark",
+		defaults: { density: "roomy", caret: true, palette: "candy" },
+		Component: TokenStreamCluster,
+	},
+	"neural-net": {
+		id: "neural-net",
+		label: "Neural Net",
+		feel: "A layered network figure under the title - hairline edges, node dots, travelling signal pulses. The constellation's structured sibling.",
+		surface: "dark",
+		defaults: { density: "roomy", pulse: true, tint: "cyan" },
+		Component: NeuralNetCluster,
+	},
+	"ticker-tape": {
+		id: "ticker-tape",
+		label: "Ticker Tape",
+		feel: "Exchange board: a scrolling quote tape across the top, the heading as the listing with a LIVE lamp, mono exchange-hours footer.",
+		surface: "dark",
+		defaults: { density: "roomy", tape: true, board: "onyx" },
+		Component: TickerTapeCluster,
+	},
+	"trading-app": {
+		id: "trading-app",
+		label: "Trading App",
+		feel: "Dark-mode brokerage screen: delta chip, sparkline chart in a chosen market mood, timeframe pills, decorative BUY/SELL row.",
+		surface: "dark",
+		defaults: { density: "roomy", chart: true, trend: "bull" },
+		Component: TradingAppCluster,
+	},
+	candlestick: {
+		id: "candlestick",
+		label: "Candlestick",
+		feel: "Broker research sheet: instrument heading + mono OHLC readout, a fixed candlestick chart on a chosen paper stock, session footer.",
+		surface: "light",
+		defaults: { density: "roomy", grid: true, stock: "white" },
+		Component: CandlestickCluster,
+	},
 };
 
 export const INNER_ORDER: InnerId[] = [
@@ -344,6 +453,45 @@ export const INNER_ORDER: InnerId[] = [
 	"commit-graph",
 	"man-page",
 	"keycaps",
+	// wayfinder #13 (tech-stack candidates): the two shortlisted frames
+	// restored to the picker + three new infra frames, appended per the
+	// growth convention (never interleaved).
+	"blueprint",
+	"circuit-board",
+	"server-rack",
+	"status-page",
+	"cargo-container",
+	// wayfinder #14 (AI candidates): aurora restored from the pruned list -
+	// it is a shortlisted alternate for the AI identity walk, appended per
+	// the growth convention (never interleaved).
+	"aurora",
+	// wayfinder #14 round two: four new AI-native frames built after the
+	// aurora lock was rejected on the live walk, appended per the growth
+	// convention.
+	"chat-thread",
+	"model-card",
+	"token-stream",
+	"neural-net",
+	// wayfinder #14 round three: the chat concept won; agent-console is its
+	// CLI-flavored sibling variation, appended per the growth convention.
+	"agent-console",
+	// wayfinder #15 (finance candidates): the two shortlisted frames restored
+	// from the pruned list + three new trading frames, appended per the
+	// growth convention (never interleaved).
+	"chalkboard",
+	"topo-map",
+	"ticker-tape",
+	"trading-app",
+	"candlestick",
+	// wayfinder #16 (family candidates): polaroid (the shortlisted primary)
+	// restored from the pruned list, appended per the growth convention
+	// (never interleaved); seed-packet (the alternate) is already pickable.
+	"polaroid",
+	// wayfinder #17 (travel candidates): field-journal (a shortlisted
+	// alternate) restored from the pruned list, appended per the growth
+	// convention (never interleaved); ticket-stub (the primary) and topo-map
+	// are already pickable.
+	"field-journal",
 ];
 
 /* ── LINKS (between-topic connectors) ───────────────────────────────────── */

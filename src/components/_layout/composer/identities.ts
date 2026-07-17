@@ -6,9 +6,10 @@ import type { InnerId, InnerParamsMap } from "./types";
  *
  * One row per Craft-band topic pins that topic's inner frame (id + params)
  * plus a media treatment note. Follow-up per-topic tickets edit exactly one
- * row here to give a topic its own locked look - career (nameplate) and
- * coding (pull-request) are locked so far; the remaining eight hold the
- * shared parallax-depth seed. Every row is a literal (no
+ * row here to give a topic its own locked look - career (nameplate),
+ * coding (pull-request), tech-stack (server-rack), ai (agent-console),
+ * finance (ticker-tape), family (polaroid) and travel (ticket-stub) are
+ * locked so far; the remaining three hold the shared parallax-depth seed. Every row is a literal (no
  * spreads of INNERS[...].defaults) so each stays independently hand-editable,
  * and the file holds only static literals - SSR-deterministic, no runtime deps.
  */
@@ -37,38 +38,40 @@ export const IDENTITIES = {
 	},
 	"tech-stack": {
 		inner: {
-			id: "parallax-depth",
-			params: { density: "roomy", shape: "flourish", depth: 50, layers: 3 },
+			id: "server-rack",
+			params: { density: "roomy", leds: true, finish: "midnight" },
 		},
-		media: "default - no per-topic treatment yet",
+		media: "none - the rack chrome is the visual",
 	},
 	ai: {
 		inner: {
-			id: "parallax-depth",
-			params: { density: "roomy", shape: "flourish", depth: 50, layers: 3 },
+			id: "agent-console",
+			params: { density: "roomy", steps: true, input: true, finish: "violet" },
 		},
-		media: "default - no per-topic treatment yet",
+		media: "none - the console chrome is the visual",
 	},
 	finance: {
 		inner: {
-			id: "parallax-depth",
-			params: { density: "roomy", shape: "flourish", depth: 50, layers: 3 },
+			id: "ticker-tape",
+			params: { density: "roomy", tape: true, board: "navy" },
 		},
-		media: "default - no per-topic treatment yet",
+		media: "none - the board chrome is the visual",
 	},
 	family: {
 		inner: {
-			id: "parallax-depth",
-			params: { density: "roomy", shape: "flourish", depth: 50, layers: 3 },
+			id: "polaroid",
+			params: { density: "roomy", tape: true, tilt: "left" },
 		},
-		media: "default - no per-topic treatment yet",
+		media:
+			"silhouette print - the golden-hour family SVG inside the kodak frame (anonymity-friendly by construction; swap for a real print scan if one lands)",
 	},
 	travel: {
 		inner: {
-			id: "parallax-depth",
-			params: { density: "roomy", shape: "flourish", depth: 50, layers: 3 },
+			id: "ticket-stub",
+			params: { density: "roomy", perforation: true, color: "crimson" },
 		},
-		media: "default - no per-topic treatment yet",
+		media:
+			"route imagery - the boarding-pass route strip printed in the ticket's fine print (visited stops THA/ISR/MEX/GRD/EUR, next leg JPN '27 in the accent); stops hand-edited in ticket-stub.tsx alongside the TravelContent prose",
 	},
 	"movies-tv": {
 		inner: {

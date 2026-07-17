@@ -49,7 +49,18 @@ export type InnerId =
 	| "pull-request"
 	| "commit-graph"
 	| "man-page"
-	| "keycaps";
+	| "keycaps"
+	| "server-rack"
+	| "status-page"
+	| "cargo-container"
+	| "chat-thread"
+	| "agent-console"
+	| "model-card"
+	| "token-stream"
+	| "neural-net"
+	| "ticker-tape"
+	| "trading-app"
+	| "candlestick";
 
 /** Shared by every inside style - cluster scale / breathing room. */
 export type InnerBase = {
@@ -169,9 +180,55 @@ export type KeycapsParams = InnerBase & {
 	backlight: boolean;
 	colorway: "beige" | "graphite" | "milkshake";
 };
+export type ServerRackParams = InnerBase & {
+	leds: boolean;
+	finish: "graphite" | "steel" | "midnight";
+};
+export type StatusPageParams = InnerBase & {
+	bars: boolean;
+	status: "operational" | "degraded" | "maintenance";
+};
+export type CargoContainerParams = InnerBase & {
+	corrugation: boolean;
+	livery: "rust" | "ocean" | "forest";
+};
 export type AuroraParams = InnerBase & {
 	stars: boolean;
-	hue: "emerald" | "violet" | "teal";
+	hue: "emerald" | "violet" | "teal" | "shift";
+};
+export type ChatThreadParams = InnerBase & {
+	reasoning: boolean;
+	input: boolean;
+	tone: "midnight" | "paper" | "violet";
+};
+export type AgentConsoleParams = InnerBase & {
+	steps: boolean;
+	input: boolean;
+	finish: "obsidian" | "violet" | "matrix";
+};
+export type ModelCardParams = InnerBase & {
+	specs: boolean;
+	stock: "paper" | "mint" | "slate";
+};
+export type TokenStreamParams = InnerBase & {
+	caret: boolean;
+	palette: "candy" | "jade" | "mono";
+};
+export type NeuralNetParams = InnerBase & {
+	pulse: boolean;
+	tint: "cyan" | "violet" | "ember";
+};
+export type TickerTapeParams = InnerBase & {
+	tape: boolean;
+	board: "onyx" | "navy" | "pit";
+};
+export type TradingAppParams = InnerBase & {
+	chart: boolean;
+	trend: "bull" | "bear" | "crab";
+};
+export type CandlestickParams = InnerBase & {
+	grid: boolean;
+	stock: "white" | "cream" | "mist";
 };
 export type MoonriseParams = InnerBase & {
 	stars: boolean;
@@ -243,6 +300,17 @@ export type InnerParamsMap = {
 	"commit-graph": CommitGraphParams;
 	"man-page": ManPageParams;
 	keycaps: KeycapsParams;
+	"server-rack": ServerRackParams;
+	"status-page": StatusPageParams;
+	"cargo-container": CargoContainerParams;
+	"chat-thread": ChatThreadParams;
+	"agent-console": AgentConsoleParams;
+	"model-card": ModelCardParams;
+	"token-stream": TokenStreamParams;
+	"neural-net": NeuralNetParams;
+	"ticker-tape": TickerTapeParams;
+	"trading-app": TradingAppParams;
+	candlestick: CandlestickParams;
 	aurora: AuroraParams;
 	moonrise: MoonriseParams;
 	daybreak: DaybreakParams;

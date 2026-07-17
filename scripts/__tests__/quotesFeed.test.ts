@@ -1,0 +1,173 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+	chartUrl,
+	fetchQuoteJson,
+	parseQuoteMeta,
+	renderQuotesModule,
+	type TapeQuote,
+} from "../quotesFeed";
+
+// ---------------------------------------------------------------------------
+// Unit tests for the pure, build-time-only Yahoo quote parser/renderer
+// (scripts/quotesFeed.ts). No network, no filesystem - fixtures are inline
+// objects shaped like a real Yahoo v8 chart response's meta block.
+// ---------------------------------------------------------------------------
+
+/** A well-formed chart response carrying exactly the meta fields we read. */
+function chartFixture(meta: Record<string, unknown>) {
+	return { chart: { result: [{ meta }] } };
+}
+
+const FULL_META = {
+	regularMarketPrice: 110,
+	chartPreviousClose: 100,
+	regularMarketDayHigh: 112.345,
+	regularMarketDayLow: 98.765,
+	regularMarketVolume: 1234567.8,
+};
+
+describe("chartUrl", () => {
+	it("builds the v8 chart URL from the Yahoo symbol, encoded", () => {
+		expect(chartUrl({ sym: "BTC", yahoo: "BTC-USD" })).toBe(
+			"https://query1.finance.yahoo.com/v8/finance/chart/BTC-USD?range=1d&interval=1d",
+		);
+	});
+
+	it("percent-encodes exchange-suffixed symbols safely", () => {
+		expect(chartUrl({ sym: "VWCE", yahoo: "VWCE.DE" })).toContain("VWCE.DE");
+	});
+});
+
+describe("parseQuoteMeta", () => {
+	it("computes deltaPct vs previous close, rounded to 2 decimals", () => {
+		const q = parseQuoteMeta("TST", chartFixture(FULL_META));
+		expect(q).toEqual({
+			sym: "TST",
+			deltaPct: 10,
+			high: 112.35,
+			low: 98.77,
+			volume: 1234568,
+		});
+	});
+
+	it("computes a negative delta for a down day", () => {
+		const q = parseQuoteMeta(
+			"TST",
+			chartFixture({ ...FULL_META, regularMarketPrice: 97.6 }),
+		);
+		expect(q?.deltaPct).toBe(-2.4);
+	});
+
+	it("falls back to previousClose when chartPreviousClose is absent", () => {
+		const { chartPreviousClose: _omitted, ...rest } = FULL_META;
+		const q = parseQuoteMeta(
+			"TST",
+			chartFixture({ ...rest, previousClose: 100 }),
+		);
+		expect(q?.deltaPct).toBe(10);
+	});
+
+	it("returns null (with a warning) when meta is missing entirely", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		expect(parseQuoteMeta("TST", {})).toBeNull();
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining("skipping TST"),
+		);
+		warn.mockRestore();
+	});
+
+	it.each([
+		"regularMarketPrice",
+		"regularMarketDayHigh",
+		"regularMarketDayLow",
+		"regularMarketVolume",
+	])("returns null when %s is absent", (field) => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const { [field]: _omitted, ...rest } = FULL_META as Record<
+			string,
+			unknown
+		>;
+		expect(parseQuoteMeta("TST", chartFixture(rest))).toBeNull();
+		warn.mockRestore();
+	});
+
+	it("returns null when previous close is zero (no division by zero)", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		expect(
+			parseQuoteMeta(
+				"TST",
+				chartFixture({ ...FULL_META, chartPreviousClose: 0 }),
+			),
+		).toBeNull();
+		warn.mockRestore();
+	});
+
+	it("returns null on non-finite numbers rather than writing NaN", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		expect(
+			parseQuoteMeta(
+				"TST",
+				chartFixture({ ...FULL_META, regularMarketPrice: Number.NaN }),
+			),
+		).toBeNull();
+		warn.mockRestore();
+	});
+});
+
+describe("fetchQuoteJson", () => {
+	it("returns parsed JSON on first success", async () => {
+		const fetchImpl = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ ok: true }), { status: 200 }),
+		);
+		await expect(
+			fetchQuoteJson(fetchImpl as unknown as typeof fetch, "u"),
+		).resolves.toEqual({ ok: true });
+		expect(fetchImpl).toHaveBeenCalledTimes(1);
+	});
+
+	it("retries on failure then succeeds", async () => {
+		const fetchImpl = vi
+			.fn()
+			.mockResolvedValueOnce(new Response("", { status: 429 }))
+			.mockResolvedValue(
+				new Response(JSON.stringify({ ok: 1 }), { status: 200 }),
+			);
+		await expect(
+			fetchQuoteJson(fetchImpl as unknown as typeof fetch, "u", {
+				delayMs: 1,
+			}),
+		).resolves.toEqual({ ok: 1 });
+		expect(fetchImpl).toHaveBeenCalledTimes(2);
+	});
+
+	it("throws naming the last failure after exhausting attempts", async () => {
+		const fetchImpl = vi
+			.fn()
+			.mockResolvedValue(new Response("", { status: 429 }));
+		await expect(
+			fetchQuoteJson(fetchImpl as unknown as typeof fetch, "u", {
+				attempts: 2,
+				delayMs: 1,
+			}),
+		).rejects.toThrow(/2 attempts.*429/);
+	});
+});
+
+describe("renderQuotesModule", () => {
+	const QUOTES: TapeQuote[] = [
+		{ sym: "TST", deltaPct: -1.5, high: 12.3, low: 11.1, volume: 42 },
+	];
+
+	it("emits the AUTO-GENERATED header and the as-of constant", () => {
+		const out = renderQuotesModule(QUOTES, "2026-07-17");
+		expect(out).toContain("AUTO-GENERATED by scripts/generate-quotes-data.ts");
+		expect(out).toContain('export const TAPE_AS_OF = "2026-07-17";');
+	});
+
+	it("emits every quote as a literal entry", () => {
+		const out = renderQuotesModule(QUOTES, "2026-07-17");
+		expect(out).toContain('sym: "TST"');
+		expect(out).toContain("deltaPct: -1.5");
+		expect(out).toContain("volume: 42");
+	});
+});

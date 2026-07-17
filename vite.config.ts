@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 
@@ -18,6 +19,13 @@ export default defineConfig(({ mode }) => {
 	return {
 		resolve: { tsconfigPaths: true },
 		plugins: [devtools(), tailwindcss(), tanstackStart(), viteReact()],
+		test: {
+			// The DesignPanel suites render the full frame picker (one option per
+			// INNER_ORDER entry × 10 topic rows), which legitimately grows with
+			// every identity walk - vitest's 5s default started flaking under
+			// parallel load once the picker passed ~30 frames (wayfinder #15).
+			testTimeout: 15_000,
+		},
 		server: {
 			proxy: {
 				"/ingest/static": {
