@@ -1,5 +1,5 @@
-import { linkStroke } from "../types";
 import type { LinkRenderProps } from "../types";
+import { linkStroke } from "../types";
 import { railVars, useDrawIn, VBOX_H } from "./shared";
 
 /*

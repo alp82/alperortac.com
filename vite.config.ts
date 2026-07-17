@@ -23,8 +23,9 @@ export default defineConfig(({ mode }) => {
 			// The DesignPanel suites render the full frame picker (one option per
 			// INNER_ORDER entry × 10 topic rows), which legitimately grows with
 			// every identity walk - vitest's 5s default started flaking under
-			// parallel load once the picker passed ~30 frames (wayfinder #15).
-			testTimeout: 15_000,
+			// parallel load once the picker passed ~30 frames (wayfinder #15);
+			// 15s started flaking at 52 frames (wayfinder #20).
+			testTimeout: 30_000,
 		},
 		server: {
 			proxy: {

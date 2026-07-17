@@ -5,14 +5,15 @@ import type { InnerId, InnerParamsMap } from "./types";
  * Identity-lock registry (wayfinder #10).
  *
  * One row per Craft-band topic pins that topic's inner frame (id + params)
- * plus a media treatment note. Follow-up per-topic tickets edit exactly one
- * row here to give a topic its own locked look - career (nameplate),
- * coding (pull-request), tech-stack (server-rack), ai (agent-console),
- * finance (ticker-tape), family (polaroid), travel (ticket-stub),
- * movies-tv (streaming-billboard) and games (quest-log) are locked so far;
- * music alone still holds the shared parallax-depth seed. Every row is a literal (no
- * spreads of INNERS[...].defaults) so each stays independently hand-editable,
- * and the file holds only static literals - SSR-deterministic, no runtime deps.
+ * plus a media treatment note. Per-topic tickets edited exactly one row here
+ * to give each topic its own locked look - career (nameplate), coding
+ * (pull-request), tech-stack (server-rack), ai (agent-console), finance
+ * (ticker-tape), family (polaroid), travel (ticket-stub), movies-tv
+ * (streaming-billboard), games (quest-log) and music (festival-poster): all
+ * ten are locked, the shared parallax-depth seed era is over. Every row is a
+ * literal (no spreads of INNERS[...].defaults) so each stays independently
+ * hand-editable, and the file holds only static literals - SSR-deterministic,
+ * no runtime deps.
  */
 
 /** One inner pick with params correlated to its id - switching `id` forces the matching params shape. */
@@ -91,9 +92,10 @@ export const IDENTITIES = {
 	},
 	music: {
 		inner: {
-			id: "parallax-depth",
-			params: { density: "roomy", shape: "flourish", depth: 50, layers: 3 },
+			id: "festival-poster",
+			params: { density: "roomy", lineup: true, poster: "dusk" },
 		},
-		media: "default - no per-topic treatment yet",
+		media:
+			"none on the band - the poster chrome is the visual; the bill is honest chrome mirroring the album shelf's artists (personal.ts), hand-edited in festival-poster.tsx (album covers stay on the Music subpage)",
 	},
 } satisfies Record<TopicId, TopicIdentity>;

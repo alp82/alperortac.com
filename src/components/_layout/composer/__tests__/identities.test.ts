@@ -129,11 +129,23 @@ const GAMES_LOCK = {
 	params: { density: "roomy", objectives: true, journal: "arcane" },
 };
 
+/** Music's locked identity (wayfinder #20) - the tenth and final topic to
+ * diverge from the shared parallax-depth seed: the festival-poster frame,
+ * built on the live walk after the night-sky shortlist
+ * (neon-sign/moonrise/aurora) was passed over for modern + live/festival
+ * candidates; the bill tiers are the album shelf's real artists. With this
+ * lock the seed era is over - every topic is locked. */
+const MUSIC_LOCK = {
+	id: "festival-poster" as const,
+	params: { density: "roomy", lineup: true, poster: "dusk" },
+};
+
 const NON_CAREER_TOPICS = TOPICS.filter((t) => t.id !== "career");
 
-/** The seed list: every topic except the nine locks (career, coding,
- * tech-stack, ai, finance, family, travel, movies-tv, games) - music alone
- * still deep-equals the shared parallax-depth defaults (TC-LOCK-4/5). */
+/** The seed list: every topic except the ten locks - EMPTY since the music
+ * lock (wayfinder #20) closed the seed era. Kept (with TC-LOCK-4/5 asserting
+ * emptiness) so an eleventh topic added without a registry lock decision
+ * trips a test instead of silently shipping on the seed. */
 const NON_LOCKED_TOPICS = TOPICS.filter(
 	(t) =>
 		t.id !== "career" &&
@@ -144,7 +156,8 @@ const NON_LOCKED_TOPICS = TOPICS.filter(
 		t.id !== "family" &&
 		t.id !== "travel" &&
 		t.id !== "movies-tv" &&
-		t.id !== "games",
+		t.id !== "games" &&
+		t.id !== "music",
 );
 
 describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
@@ -164,7 +177,7 @@ describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
 	});
 });
 
-describe("nine divergent locks: career is nameplate, coding is pull-request, tech-stack is server-rack, ai is agent-console, finance is ticker-tape, family is polaroid, travel is ticket-stub, movies-tv is streaming-billboard, games is quest-log, music alone stays the seed (TC-B1-B5, TC-LOCK-1-6)", () => {
+describe("ten divergent locks: career is nameplate, coding is pull-request, tech-stack is server-rack, ai is agent-console, finance is ticker-tape, family is polaroid, travel is ticket-stub, movies-tv is streaming-billboard, games is quest-log, music is festival-poster - the seed era is over (TC-B1-B5, TC-LOCK-1-6)", () => {
 	it("TC-B1: career's inner deep-equals the exact nameplate lock, no extra keys", () => {
 		expect(IDENTITIES.career.inner).toEqual(CAREER_LOCK);
 		expect(Object.keys(IDENTITIES.career.inner)).toEqual(
@@ -370,32 +383,41 @@ describe("nine divergent locks: career is nameplate, coding is pull-request, tec
 		expect(params).not.toHaveProperty("layers");
 	});
 
-	it("TC-LOCK-4/5: the non-locked list is exactly music, containing none of the nine locked ids", () => {
-		expect(NON_LOCKED_TOPICS.length).toBe(1);
-		expect(NON_LOCKED_TOPICS[0]?.id).toBe("music");
-		expect(NON_LOCKED_TOPICS.some((t) => t.id === "career")).toBe(false);
-		expect(NON_LOCKED_TOPICS.some((t) => t.id === "coding")).toBe(false);
-		expect(NON_LOCKED_TOPICS.some((t) => t.id === "tech-stack")).toBe(false);
-		expect(NON_LOCKED_TOPICS.some((t) => t.id === "ai")).toBe(false);
-		expect(NON_LOCKED_TOPICS.some((t) => t.id === "finance")).toBe(false);
-		expect(NON_LOCKED_TOPICS.some((t) => t.id === "family")).toBe(false);
-		expect(NON_LOCKED_TOPICS.some((t) => t.id === "travel")).toBe(false);
-		expect(NON_LOCKED_TOPICS.some((t) => t.id === "movies-tv")).toBe(false);
-		expect(NON_LOCKED_TOPICS.some((t) => t.id === "games")).toBe(false);
-	});
-
-	it.each(
-		NON_LOCKED_TOPICS.map((t) => [t.id, t] as const),
-	)("TC-B3: %s's inner deep-equals the locked parallax-depth cluster", (_id, t) => {
-		expect(IDENTITIES[t.id].inner).toEqual(LOCKED_INNER);
-	});
-
-	it.each(
-		NON_LOCKED_TOPICS.map((t) => [t.id, t] as const),
-	)("TC-B4: %s's inner.params deep-equals the live parallax-depth defaults", (_id, t) => {
-		expect(IDENTITIES[t.id].inner.params).toEqual(
-			INNERS["parallax-depth"].defaults,
+	it("TC-MUS-1: music's inner deep-equals the exact festival-poster lock, no extra keys", () => {
+		expect(IDENTITIES.music.inner).toEqual(MUSIC_LOCK);
+		expect(Object.keys(IDENTITIES.music.inner)).toEqual(
+			Object.keys(MUSIC_LOCK),
 		);
+		expect(Object.keys(IDENTITIES.music.inner.params)).toEqual(
+			Object.keys(MUSIC_LOCK.params),
+		);
+	});
+
+	it("TC-MUS-2: music's media note is the verbatim lock string", () => {
+		expect(IDENTITIES.music.media).toBe(
+			"none on the band - the poster chrome is the visual; the bill is honest chrome mirroring the album shelf's artists (personal.ts), hand-edited in festival-poster.tsx (album covers stay on the Music subpage)",
+		);
+	});
+
+	it("TC-MUS-3: music's params carry no depth/shape/layers keys (not a parallax-depth cluster)", () => {
+		const params = IDENTITIES.music.inner.params as Record<string, unknown>;
+		expect(params).not.toHaveProperty("depth");
+		expect(params).not.toHaveProperty("shape");
+		expect(params).not.toHaveProperty("layers");
+	});
+
+	// TC-B3/TC-B4 (seed-list parity with the live parallax-depth defaults)
+	// retired with the seed era: the list they iterated is now empty, and an
+	// empty it.each throws at collection. TC-LOCK-4/5 below carries the
+	// guard forward - a topic added without a lock decision lands in
+	// NON_LOCKED_TOPICS and trips the emptiness assertion.
+	it("TC-LOCK-4/5: the non-locked list is empty - every topic carries a divergent lock", () => {
+		expect(NON_LOCKED_TOPICS.length).toBe(0);
+		// Widened to string: at today's registry the literal id types can't
+		// overlap "parallax-depth" (tsc would reject the comparison), and THAT
+		// is the guard - this stays behavioral so a future seeded row trips it.
+		const lockedIds = TOPICS.map((t) => IDENTITIES[t.id].inner.id as string);
+		expect(lockedIds).not.toContain(LOCKED_INNER.id);
 	});
 
 	it("buildComposerSpec(defaultState()) emits exactly `link: none`", () => {
@@ -430,15 +452,15 @@ describe("registry wiring - defaultClusters()/defaultState() read the registry (
 		}
 	});
 
-	it("TC-D4/TC-LOCK-6: mutating a consumer's copy never mutates the registry (music, params.depth - moved off games, which no longer has a depth param under the quest-log lock)", () => {
+	it("TC-D4/TC-LOCK-6: mutating a consumer's copy never mutates the registry (music, params.lineup - the depth probe retired with the seed era; music now carries the festival-poster lock)", () => {
 		const state = defaultState();
 		const topicId = "music" as const;
-		const before = IDENTITIES[topicId].inner.params.depth;
+		const before = IDENTITIES[topicId].inner.params.lineup;
 
 		// biome-ignore lint/suspicious/noExplicitAny: intentional mutation of a copy to prove isolation
-		(state.clusters[topicId].params as any).depth = 999;
+		(state.clusters[topicId].params as any).lineup = false;
 
-		expect(IDENTITIES[topicId].inner.params.depth).toBe(before);
+		expect(IDENTITIES[topicId].inner.params.lineup).toBe(before);
 	});
 
 	it("TC-D5: mutating a consumer's copy of career's nameplate params never mutates the registry (screws)", () => {

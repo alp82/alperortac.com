@@ -69,7 +69,12 @@ export type InnerId =
 	| "steam-library"
 	| "achievement"
 	| "quest-log"
-	| "continue-playing";
+	| "continue-playing"
+	| "now-playing"
+	| "waveform"
+	| "mixer"
+	| "festival-poster"
+	| "backstage-pass";
 
 /** Shared by every inside style - cluster scale / breathing room. */
 export type InnerBase = {
@@ -275,6 +280,26 @@ export type ContinuePlayingParams = InnerBase & {
 	spotlight: boolean;
 	console: "onyx" | "azure" | "violet";
 };
+export type NowPlayingParams = InnerBase & {
+	transport: boolean;
+	skin: "obsidian" | "emerald" | "plum";
+};
+export type WaveformParams = InnerBase & {
+	timestamps: boolean;
+	tint: "sunset" | "ocean" | "lilac";
+};
+export type MixerParams = InnerBase & {
+	meters: boolean;
+	desk: "graphite" | "midnight" | "sand";
+};
+export type FestivalPosterParams = InnerBase & {
+	lineup: boolean;
+	poster: "dusk" | "midnight" | "acid";
+};
+export type BackstagePassParams = InnerBase & {
+	lanyard: boolean;
+	laminate: "holo" | "onyx" | "crimson";
+};
 export type MoonriseParams = InnerBase & {
 	stars: boolean;
 	phase: "full" | "gibbous" | "crescent";
@@ -365,6 +390,11 @@ export type InnerParamsMap = {
 	achievement: AchievementParams;
 	"quest-log": QuestLogParams;
 	"continue-playing": ContinuePlayingParams;
+	"now-playing": NowPlayingParams;
+	waveform: WaveformParams;
+	mixer: MixerParams;
+	"festival-poster": FestivalPosterParams;
+	"backstage-pass": BackstagePassParams;
 	aurora: AuroraParams;
 	moonrise: MoonriseParams;
 	daybreak: DaybreakParams;

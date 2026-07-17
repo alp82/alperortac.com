@@ -101,7 +101,10 @@ export function TicketStubCluster({
 								style={{ borderColor: "var(--ticket-accent)" }}
 								aria-hidden="true"
 							/>
-							<span aria-hidden="true" style={{ color: "var(--ticket-accent)" }}>
+							<span
+								aria-hidden="true"
+								style={{ color: "var(--ticket-accent)" }}
+							>
 								✈
 							</span>
 							<span

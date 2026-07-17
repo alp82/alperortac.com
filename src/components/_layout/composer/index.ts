@@ -2,6 +2,7 @@ import { AchievementCluster } from "./inner/achievement";
 import { AgentConsoleCluster } from "./inner/agent-console";
 import { ArcadeHudCluster } from "./inner/arcade-hud";
 import { AuroraCluster } from "./inner/aurora";
+import { BackstagePassCluster } from "./inner/backstage-pass";
 import { BlueprintCluster } from "./inner/blueprint";
 import { CandlestickCluster } from "./inner/candlestick";
 import { CargoContainerCluster } from "./inner/cargo-container";
@@ -15,18 +16,21 @@ import { CommitGraphCluster } from "./inner/commit-graph";
 import { ConstellationCluster } from "./inner/constellation";
 import { ContinuePlayingCluster } from "./inner/continue-playing";
 import { DaybreakCluster } from "./inner/daybreak";
+import { FestivalPosterCluster } from "./inner/festival-poster";
 import { FieldJournalCluster } from "./inner/field-journal";
 import { FloatingIslandCluster } from "./inner/floating-island";
 import { KeycapsCluster } from "./inner/keycaps";
 import { LetterboxCluster } from "./inner/letterbox";
 import { ManPageCluster } from "./inner/man-page";
 import { MinimalCluster } from "./inner/minimal";
+import { MixerCluster } from "./inner/mixer";
 import { ModelCardCluster } from "./inner/model-card";
 import { MoonriseCluster } from "./inner/moonrise";
 import { MoviePosterCluster } from "./inner/movie-poster";
 import { NameplateCluster } from "./inner/nameplate";
 import { NeonSignCluster } from "./inner/neon-sign";
 import { NeuralNetCluster } from "./inner/neural-net";
+import { NowPlayingCluster } from "./inner/now-playing";
 import { OfferLetterCluster } from "./inner/offer-letter";
 import { ParallaxDepthCluster } from "./inner/parallax-depth";
 import { PolaroidCluster } from "./inner/polaroid";
@@ -50,6 +54,7 @@ import { TopoMapCluster } from "./inner/topo-map";
 import { TradingAppCluster } from "./inner/trading-app";
 import { TrailSignpostCluster } from "./inner/trail-signpost";
 import { TrailerPlayerCluster } from "./inner/trailer-player";
+import { WaveformCluster } from "./inner/waveform";
 import { BotanicalVineLink } from "./links/botanical-vine";
 import { ConstellationStarlineLink } from "./links/constellation-starline";
 import { FlowingCurveLink } from "./links/flowing-curve";
@@ -514,6 +519,46 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 		defaults: { density: "roomy", spotlight: true, console: "onyx" },
 		Component: ContinuePlayingCluster,
 	},
+	"now-playing": {
+		id: "now-playing",
+		label: "Now Playing",
+		feel: 'Streaming-app player screen: a "NOW PLAYING" eyebrow + tiny EQ, an art tile beside the heading as the current track, a scrubber with times, and an optional shuffle-to-repeat transport row. Headphones on.',
+		surface: "dark",
+		defaults: { density: "roomy", transport: true, skin: "obsidian" },
+		Component: NowPlayingCluster,
+	},
+	waveform: {
+		id: "waveform",
+		label: "Waveform",
+		feel: "Audio-platform track page: a round play button beside the heading as the track title, a hand-shaped waveform strip with the played half tinted, and optional timestamps. Scrub-ready.",
+		surface: "light",
+		defaults: { density: "roomy", timestamps: true, tint: "sunset" },
+		Component: WaveformCluster,
+	},
+	mixer: {
+		id: "mixer",
+		label: "Mixer",
+		feel: 'Front-of-house mixing desk: six channel faders in a hand-set mix (VOX riding high), optional VU meters, the heading as the session name over a "LIVE MIX · 48 kHz" line. Soundcheck done.',
+		surface: "dark",
+		defaults: { density: "roomy", meters: true, desk: "graphite" },
+		Component: MixerCluster,
+	},
+	"festival-poster": {
+		id: "festival-poster",
+		label: "Festival Poster",
+		feel: "Festival lineup poster: ALPFEST presents the heading as the festival name over a tiered bill of the album shelf's real artists, closed by a one-stage-one-listener date strip. Gates open.",
+		surface: "dark",
+		defaults: { density: "roomy", lineup: true, poster: "dusk" },
+		Component: FestivalPosterCluster,
+	},
+	"backstage-pass": {
+		id: "backstage-pass",
+		label: "Backstage Pass",
+		feel: 'Tour laminate on a lanyard: an "ALL ACCESS" band, the heading as the tour name, a CREW credential row, and a barcode strip at the foot. Plastic, not paper - the gig-side sibling of the ticket stub.',
+		surface: "dark",
+		defaults: { density: "roomy", lanyard: true, laminate: "holo" },
+		Component: BackstagePassCluster,
+	},
 };
 
 export const INNER_ORDER: InnerId[] = [
@@ -592,6 +637,21 @@ export const INNER_ORDER: InnerId[] = [
 	"achievement",
 	"quest-log",
 	"continue-playing",
+	// wayfinder #20 (music candidates): neon-sign (the shortlisted primary)
+	// and moonrise (a shortlisted alternate) restored from the pruned list,
+	// appended per the growth convention (never interleaved); aurora (the
+	// other alternate) is already pickable above.
+	"neon-sign",
+	"moonrise",
+	// wayfinder #20 round two: five modern / live-music candidate frames
+	// built on Alper's ask ("modern music related stuff, also maybe some
+	// live/concert/festival themes"), appended per the growth convention
+	// (never interleaved).
+	"now-playing",
+	"waveform",
+	"mixer",
+	"festival-poster",
+	"backstage-pass",
 ];
 
 /* ── LINKS (between-topic connectors) ───────────────────────────────────── */

@@ -63,9 +63,13 @@ if (typeof window !== "undefined" && !window.matchMedia) {
 }
 
 // Wayfinder #19 note: the fixture moved games → music IN PLACE (as #17 moved
-// travel → games) - the defaultState()-driven Milestone 2 assertions below
-// expect the shared parallax-depth seed chrome, and games is now locked to
-// quest-log; music is the last topic still on the seed.
+// travel → games). Wayfinder #20 note: music - the last seed topic - locked
+// to festival-poster, so the seed era is over and the fixture has nowhere
+// left to move; it stays music, and the one defaultState()-driven chrome
+// assertion below (TC-5) flipped IN PLACE from seed chrome to the locked
+// festival-poster chrome. Frame-agnostic Milestone 2 assertions (wrapper,
+// accent) and every renderCompositionWithInner-based block are unaffected -
+// they override the cluster explicitly.
 const topic: Topic = {
 	id: "music",
 	heading: "Music",
@@ -299,22 +303,23 @@ describe("Milestone 2 - neutral wrapper replaces the stage", () => {
 		expect(article?.className).toContain("min-h-[90vh]");
 	});
 
-	// TC-5: the default render shows Parallax Depth chrome - an h2 containing
-	// topic.heading, styled with SectionTitle's shared brutalist drop-shadow
-	// class (the stage-era DEFAULT_INNER was "constellation", whose h2 used a
-	// different text-shadow treatment; the ported inners' pre-SectionTitle
-	// chrome used a softer 0_2px_16px shadow, which this swaps out).
-	it("shows Parallax Depth chrome: an h2 with topic.heading and SectionTitle's shared drop-shadow class", () => {
+	// TC-5 (flipped IN PLACE with the wayfinder #20 music lock): the default
+	// render of the music fixture now shows the LOCKED festival-poster chrome
+	// - an h2 carrying topic.heading with the poster's own .fsp-title class
+	// (not SectionTitle's brutalist drop-shadow: the poster owns its type),
+	// with the ALPFEST eyebrow present. Until #20 this asserted the shared
+	// parallax-depth seed chrome; the seed render path itself stays guarded by
+	// the renderInner/renderCompositionWithInner parallax-depth blocks.
+	it("shows the locked festival-poster chrome: an .fsp-title h2 with topic.heading and the ALPFEST eyebrow", () => {
 		const { container } = renderComposition(topic);
 		const heading = container.querySelector("h2");
 		expect(heading).not.toBeNull();
 		expect(heading?.textContent).toBe(topic.heading);
-		expect(heading?.className).toContain(
+		expect(heading?.className).toContain("fsp-title");
+		expect(heading?.className).not.toContain(
 			"drop-shadow-[4px_4px_0px_rgba(255,255,255,0.5)]",
 		);
-		expect(heading?.className).not.toContain(
-			"drop-shadow-[0_2px_16px_rgba(0,0,0,0.45)]",
-		);
+		expect(container.textContent).toContain("ALPFEST");
 	});
 
 	// TC-13: DEFAULT_INNER is "parallax-depth" (was "constellation" on the
@@ -717,8 +722,17 @@ describe("Milestone 4 (coding frames, final) - INNER_ORDER grows to 17", () => {
 	// passed over on the live walk (modern ask), so four modern game-UI
 	// candidate frames (steam-library, achievement, quest-log,
 	// continue-playing) were built and appended after collectible.
-	it("has exactly 45 entries", () => {
-		expect(INNER_ORDER.length).toBe(45);
+	// Wayfinder #20 note: bumped to 47 IN PLACE - neon-sign (music identity
+	// shortlisted primary) and moonrise (a shortlisted alternate) restored
+	// from the pruned list, appended after continue-playing (aurora, the
+	// other alternate, is already pickable above); see the
+	// MUSIC_CANDIDATE_IDS block below.
+	// Wayfinder #20 round two: bumped to 52 IN PLACE - five modern /
+	// live-music candidate frames (now-playing, waveform, mixer,
+	// festival-poster, backstage-pass) built on Alper's ask and appended
+	// after moonrise (see the MUSIC_MODERN_CANDIDATE_IDS block below).
+	it("has exactly 52 entries", () => {
+		expect(INNER_ORDER.length).toBe(52);
 	});
 
 	it("first 12 entries are unchanged", () => {
@@ -848,14 +862,16 @@ describe("coding inners render through TopicComposition", () => {
 // Wayfinder #19 note: collectible left this list DELIBERATELY - it is the
 // Games identity ticket's shortlisted alternate and was restored to the
 // picker for the live walk; the remaining 7 stay pruned.
+// Wayfinder #20 note: neon-sign + moonrise left this list DELIBERATELY -
+// they are the Music identity ticket's shortlisted primary and alternate
+// and were restored to the picker for the live walk; the remaining 5 stay
+// pruned.
 const PRUNED_NOT_IN_ORDER_IDS = [
 	"minimal",
 	"trail-signpost",
-	"moonrise",
 	"daybreak",
 	"summit",
 	"comic",
-	"neon-sign",
 ] as const;
 
 describe("Milestone 4 (final sweep) - the coding lock landed, other out-of-scope regression guards hold", () => {
@@ -868,13 +884,13 @@ describe("Milestone 4 (final sweep) - the coding lock landed, other out-of-scope
 
 	// TC-SCOPE-3: none of the still-pruned INNERS-but-not-INNER_ORDER
 	// frames reappear in INNER_ORDER.
-	it("TC-SCOPE-3: none of the 7 still-pruned frames reappear in INNER_ORDER", () => {
+	it("TC-SCOPE-3: none of the 5 still-pruned frames reappear in INNER_ORDER", () => {
 		for (const id of PRUNED_NOT_IN_ORDER_IDS) {
 			expect(INNER_ORDER).not.toContain(id);
 		}
 	});
 
-	it("TC-SCOPE-3b (regression guard): all 7 pruned ids are still registered in INNERS itself (pruned from the picker, not deleted from the registry)", () => {
+	it("TC-SCOPE-3b (regression guard): all 5 pruned ids are still registered in INNERS itself (pruned from the picker, not deleted from the registry)", () => {
 		for (const id of PRUNED_NOT_IN_ORDER_IDS) {
 			expect(INNERS[id as InnerId]).toBeDefined();
 		}
@@ -1365,5 +1381,135 @@ describe("quest-log reads topic.questLog (Games real content)", () => {
 		const article = container.querySelector("article");
 		expect(article).not.toBeNull();
 		expect(article?.textContent).toContain("ignored");
+	});
+});
+
+/*
+ * Wayfinder #20 (music candidates) - the Music identity walk.
+ *
+ * Round one restored neon-sign (the shortlisted primary) and moonrise (a
+ * shortlisted alternate) from the pruned list; aurora (the other alternate)
+ * was already pickable since the #14 AI walk. The `toBe(45)` pin above was
+ * bumped to 47 IN PLACE. No lock happens this round (Music stays on
+ * parallax-depth until the pick lands on the walk) - so, like the family,
+ * movies-tv and games pre-lock rounds, there is deliberately NO
+ * `IDENTITIES.music` pin here (the lock lands on the walk, not this build).
+ */
+const MUSIC_CANDIDATE_IDS = ["neon-sign", "moonrise"] as const;
+
+describe("Wayfinder #20 (music candidates) - INNER_ORDER grows to 47", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it("slice(45, 47) equals the restored music candidate ids in order: neon-sign, moonrise", () => {
+		expect(INNER_ORDER.slice(45, 47)).toEqual([...MUSIC_CANDIDATE_IDS]);
+	});
+
+	it("aurora (the other shortlisted alternate) is already pickable above", () => {
+		expect(INNER_ORDER.indexOf("aurora")).toBeGreaterThanOrEqual(0);
+		expect(INNER_ORDER.indexOf("aurora")).toBeLessThan(45);
+	});
+
+	it("every music candidate id has a matching INNERS entry whose .id matches", () => {
+		for (const id of MUSIC_CANDIDATE_IDS) {
+			expect(INNERS[id]).toBeDefined();
+			expect(INNERS[id].id).toBe(id);
+		}
+	});
+});
+
+describe("music candidate inners render through TopicComposition", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it.each(MUSIC_CANDIDATE_IDS)("renders exactly one article for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const articles = container.querySelectorAll("article");
+		expect(articles.length).toBe(1);
+	});
+
+	it.each(
+		MUSIC_CANDIDATE_IDS,
+	)("seats the real TopicBody children inside the frame for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const article = container.querySelector("article");
+		expect(article).not.toBeNull();
+		expect(article?.textContent).toContain("ignored");
+	});
+});
+
+/*
+ * Wayfinder #20 round two (music modern candidates).
+ *
+ * The restored shortlist (neon-sign / moonrise / aurora) stays walkable, and
+ * on Alper's ask ("modern music related stuff, also maybe some
+ * live/concert/festival themes") five modern / live-music candidate frames
+ * were BUILT and appended after moonrise per the growth convention (append,
+ * never interleave): now-playing (streaming-app player screen), waveform
+ * (audio-platform track page), mixer (front-of-house desk), festival-poster
+ * (lineup poster off the album shelf's real artists), backstage-pass (tour
+ * laminate). The pin was bumped to 52 IN PLACE. No lock happens this round
+ * (Music stays on parallax-depth until the pick lands on the walk) - so,
+ * like the movies-tv and games pre-lock rounds, there is deliberately NO
+ * `IDENTITIES.music` pin here.
+ */
+const MUSIC_MODERN_CANDIDATE_IDS = [
+	"now-playing",
+	"waveform",
+	"mixer",
+	"festival-poster",
+	"backstage-pass",
+] as const;
+
+describe("Wayfinder #20 round two (music modern candidates) - INNER_ORDER grows to 52", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it("slice(47, 52) equals the five modern music candidate ids in order: now-playing, waveform, mixer, festival-poster, backstage-pass", () => {
+		expect(INNER_ORDER.slice(47, 52)).toEqual([...MUSIC_MODERN_CANDIDATE_IDS]);
+	});
+
+	it("every modern music candidate id has a matching INNERS entry whose .id matches", () => {
+		for (const id of MUSIC_MODERN_CANDIDATE_IDS) {
+			expect(INNERS[id]).toBeDefined();
+			expect(INNERS[id].id).toBe(id);
+		}
+	});
+});
+
+describe("music modern candidate inners render through TopicComposition", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it.each(
+		MUSIC_MODERN_CANDIDATE_IDS,
+	)("renders exactly one article for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const articles = container.querySelectorAll("article");
+		expect(articles.length).toBe(1);
+	});
+
+	it.each(
+		MUSIC_MODERN_CANDIDATE_IDS,
+	)("seats the real TopicBody children inside the frame for %s", (id) => {
+		const { container } = renderCompositionWithInner(id);
+		const article = container.querySelector("article");
+		expect(article).not.toBeNull();
+		expect(article?.textContent).toContain("ignored");
+	});
+
+	// The festival bill is honest chrome - it mirrors the album shelf's
+	// artists (personal.ts); pin one name per tier so a shelf-blind rewrite
+	// of the component trips this.
+	it("festival-poster prints the album-shelf bill at its defaults (lineup on)", () => {
+		const { container } = renderCompositionWithInner("festival-poster");
+		const text = container.querySelector("article")?.textContent ?? "";
+		expect(text).toContain("GOJIRA");
+		expect(text).toContain("PORCUPINE TREE");
+		expect(text).toContain("Noisia");
 	});
 });

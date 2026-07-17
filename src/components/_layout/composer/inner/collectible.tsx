@@ -1,6 +1,6 @@
 import { Sparkles } from "lucide-react";
-import type { InnerRenderProps } from "../types";
 import { TOPICS } from "../../../../data/topics";
+import type { InnerRenderProps } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
 /*

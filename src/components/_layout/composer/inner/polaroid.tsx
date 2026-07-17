@@ -94,10 +94,7 @@ export function PolaroidCluster({
 
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
-			<div
-				className="relative px-7 md:px-10 py-9 md:py-10"
-				style={BOARD_STYLE}
-			>
+			<div className="relative px-7 md:px-10 py-9 md:py-10" style={BOARD_STYLE}>
 				<h2 className="scrapbook-hand font-black tracking-tight text-3xl md:text-5xl text-slate-900 leading-none">
 					{topic.heading}
 				</h2>
@@ -108,7 +105,9 @@ export function PolaroidCluster({
 						className="kodak-print relative float-right w-36 md:w-48 ml-5 md:ml-7 mb-3 mt-1"
 						style={{ transform: `rotate(${tilt}deg)` }}
 					>
-						{params.tape && <span className="polaroid-tape" aria-hidden="true" />}
+						{params.tape && (
+							<span className="polaroid-tape" aria-hidden="true" />
+						)}
 						<div className="kodak-photo relative overflow-hidden">
 							<SilhouettePhoto />
 							<span className="kodak-datestamp" aria-hidden="true">
