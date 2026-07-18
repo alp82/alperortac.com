@@ -1,7 +1,4 @@
-import { BillboardCyclePrototype } from "../../movies/prototype/BillboardCyclePrototype";
-import { PosterGridPrototype } from "../../movies/prototype/PosterGridPrototype";
-import { PrototypeSwitcher } from "../../movies/prototype/PrototypeSwitcher";
-import { usePrototypeVariant } from "../../movies/prototype/usePrototypeVariant";
+import { PosterGrid } from "../../movies/PosterGrid";
 import type { InnerRenderProps } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
@@ -19,6 +16,12 @@ import { DENSITY_MAXW } from "./shared";
  * the billboard wash (crimson / indigo / ember), handed to the `.sbb-*`
  * classes as --sbb-glow / --sbb-soft / --sbb-btn inline vars (the rack
  * --rack-* convention).
+ *
+ * movies-tv only (#22, topic.id gate - no param): the decorative top-chrome
+ * pills relocate DOWN onto the PosterGrid under the prose as functional
+ * All/Films/Series filters, and the grid doubles as the trigger into the
+ * /movies favorites subpage. Other topics picking this frame keep the top
+ * pills and get no grid.
  */
 
 /** glow → { glow, soft, btn } - wash core, faded wash, solid button ink. */
@@ -37,15 +40,10 @@ const PILLS = ["Series", "Films", "New & Hot"];
 export function StreamingBillboardCluster({
 	topic,
 	params,
+	lastTriggerRef,
 	children,
 }: InnerRenderProps<"streaming-billboard">) {
 	const g = GLOWS[params.glow];
-
-	// PROTOTYPE (#22, throwaway) — poster grid placement variants on the
-	// movies-tv band only, dormant unless `?variant=` is in the URL.
-	const [variant, setVariant] = usePrototypeVariant();
-	const proto =
-		topic.id === "movies-tv" && !import.meta.env.PROD ? variant : null;
 
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
@@ -59,9 +57,9 @@ export function StreamingBillboardCluster({
 					} as React.CSSProperties
 				}
 			>
-				{/* top chrome - category pills (PROTOTYPE: variant A relocates them
-				    onto the grid as functional filters, so they vanish up here) */}
-				{proto !== "a" && (
+				{/* top chrome - category pills (on movies-tv they live on the
+				    PosterGrid as functional filters instead) */}
+				{topic.id !== "movies-tv" && (
 					<div
 						className="sbb-nav relative px-6 md:px-9 pt-5 flex items-center gap-3 text-[11px] font-semibold tracking-[0.08em]"
 						aria-hidden="true"
@@ -79,11 +77,7 @@ export function StreamingBillboardCluster({
 
 				{/* billboard zone - the heading as tonight's featured title */}
 				<div className="sbb-billboard relative px-6 md:px-9 pt-8">
-					{/* PROTOTYPE variant B — cycling artwork behind the title */}
-					{proto === "b" && <BillboardCyclePrototype />}
-					<h2
-						className={`sbb-title font-bold text-4xl md:text-6xl leading-none tracking-tight ${proto === "b" ? "relative" : ""}`}
-					>
+					<h2 className="sbb-title font-bold text-4xl md:text-6xl leading-none tracking-tight">
 						{topic.heading}
 					</h2>
 
@@ -116,8 +110,10 @@ export function StreamingBillboardCluster({
 				{/* the topic's REAL body - seated bare below the billboard */}
 				<div className="relative px-6 md:px-9 py-6">{children}</div>
 
-				{/* PROTOTYPE variant A — flicker grid under the prose, subpage trigger */}
-				{proto === "a" && <PosterGridPrototype />}
+				{/* movies-tv: the flickering favorites grid, subpage trigger */}
+				{topic.id === "movies-tv" && (
+					<PosterGrid lastTriggerRef={lastTriggerRef} />
+				)}
 
 				{/* progress strip - fixed width, pure theater */}
 				<div
@@ -127,9 +123,6 @@ export function StreamingBillboardCluster({
 					<span className="sbb-progress-fill" />
 				</div>
 			</div>
-
-			{/* PROTOTYPE switcher — only when ?variant= is present, never in prod */}
-			{proto && <PrototypeSwitcher variant={proto} onChange={setVariant} />}
 		</div>
 	);
 }

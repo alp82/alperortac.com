@@ -5,7 +5,7 @@ export type ProjectSlug = Extract<
 	PanelKey,
 	"goodwatch" | "aistack" | "alpriver" | "manaschmiede"
 >;
-export type PersonalSlug = Extract<PanelKey, "music">;
+export type PersonalSlug = Extract<PanelKey, "music" | "movies">;
 
 export type Trigger =
 	| { kind: "career" }
@@ -23,7 +23,11 @@ export type TopicId =
 	| "travel"
 	| "movies-tv"
 	| "games"
-	| PersonalSlug;
+	// The music BAND (a TopicId) happens to share its name with the music
+	// PERSONAL slug, but the two are separate axes - kept a literal here so
+	// widening PersonalSlug (e.g. adding "movies") never leaks new keys into
+	// every Record<TopicId, ...> (IDENTITIES, TOPIC_ACCENT, clusters).
+	| "music";
 
 /**
  * One word-diff replacement point for the pull-request frame. Contract:
@@ -160,7 +164,14 @@ export const TOPICS: Topic[] = [
 		id: "movies-tv",
 		heading: "Movies & TV",
 		// Prose lives in src/components/_layout/topics/MoviesTvContent.tsx.
-		triggers: [{ kind: "project", slug: "goodwatch" }],
+		// The personal trigger is the PosterGrid (the whole grid is the
+		// tap-target into /movies) - movies-tv renders through CustomContent,
+		// so this entry adds no extra card; it exists so PANEL_KEY_TO_TOPIC_ID
+		// parks a direct /movies load at this band (music precedent).
+		triggers: [
+			{ kind: "project", slug: "goodwatch" },
+			{ kind: "personal", slug: "movies" },
+		],
 	},
 	{
 		id: "games",

@@ -1,4 +1,4 @@
-import { type LucideIcon, Music } from "lucide-react";
+import { Clapperboard, type LucideIcon, Music } from "lucide-react";
 import type { PersonalSlug } from "./topics";
 
 export type Personal = {
@@ -20,6 +20,16 @@ export const PERSONAL: Personal[] = [
 		tileFg: "text-indigo-900",
 		panelBg: "#312e81",
 		panelFg: "#eef2ff",
+	},
+	{
+		slug: "movies",
+		title: "Movies & TV",
+		Icon: Clapperboard,
+		tileBg: "bg-rose-100",
+		tileFg: "text-rose-900",
+		// Palette echoes the streaming billboard's crimson --sbb-soft wash.
+		panelBg: "#3b0a0a",
+		panelFg: "#fff1f2",
 	},
 ];
 

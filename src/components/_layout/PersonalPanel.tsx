@@ -1,4 +1,6 @@
+import { FAVORITES } from "../../data/favorites";
 import { ALBUMS, type Personal } from "../../data/personal";
+import { FavoritesWall } from "./movies/FavoritesWall";
 import { AlbumShelf } from "./music/AlbumShelf";
 import { SubpageClose } from "./SubpageClose";
 
@@ -42,6 +44,15 @@ export function PersonalPanel({ item, open, onClose }: PersonalPanelProps) {
 								Some of my all-time and current favorites include:
 							</p>
 							<AlbumShelf albums={ALBUMS} active={open} />
+						</>
+					)}
+
+					{item.slug === "movies" && (
+						<>
+							<p className="mt-6 text-lg leading-relaxed">
+								Twelve films and twelve series I could rewatch anytime:
+							</p>
+							<FavoritesWall favorites={FAVORITES} />
 						</>
 					)}
 				</div>

@@ -80,7 +80,8 @@ export const IDENTITIES = {
 			id: "streaming-billboard",
 			params: { density: "roomy", badges: true, glow: "crimson" },
 		},
-		media: "none - the billboard chrome is the visual",
+		media:
+			"poster grid - flickering 3x2 all-time-favorites wall under the prose (channel-zap swaps; the top-chrome pills relocate onto it as functional All/Films/Series filters), doubling as the trigger into the /movies favorites subpage; titles hand-edited in src/data/favorites.ts",
 	},
 	games: {
 		inner: {

@@ -11,6 +11,7 @@
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FAVORITES } from "../../../data/favorites";
 import type { Personal } from "../../../data/personal";
 import { ALBUMS } from "../../../data/personal";
 import { stubMatchMedia } from "../../../test/stubMatchMedia";
@@ -25,6 +26,19 @@ const musicItem: Personal = {
 	panelBg: "#312e81",
 	panelFg: "#eef2ff",
 };
+
+// #22: the movies PERSONAL entry (plan step 1 exact literal). Cast the same
+// way TC-PP-08's `gamesItem` is - PersonalSlug doesn't include "movies" until
+// the widening lands, so this sidesteps the (soon-to-be-lifted) type error.
+const moviesItem: Personal = {
+	slug: "movies",
+	title: "Movies & TV",
+	Icon: (() => null) as unknown as Personal["Icon"],
+	tileBg: "bg-rose-100",
+	tileFg: "text-rose-900",
+	panelBg: "#3b0a0a",
+	panelFg: "#fff1f2",
+} as unknown as Personal;
 
 describe("PersonalPanel - music album shelf", () => {
 	beforeEach(() => {
@@ -708,5 +722,81 @@ describe("PersonalPanel - music album shelf", () => {
 			".album-ring-fill",
 		) as SVGCircleElement;
 		expect(fill.style.animationPlayState).toBe("running");
+	});
+
+	// TC-PP-35 (#22) - movies favorites wall
+	it("renders exactly 24 <img> with /posters/*.jpg src for the movies item", () => {
+		const { container } = render(
+			<PersonalPanel item={moviesItem} open={true} onClose={vi.fn()} />,
+		);
+		const imgs = Array.from(container.querySelectorAll("img")).filter((img) =>
+			/\/posters\/[^/]+\.jpg$/.test(img.getAttribute("src") ?? ""),
+		);
+		expect(imgs.length).toBe(24);
+	});
+
+	// TC-PP-36
+	it('captions each poster as "Title (Year)", matching favorites data', () => {
+		const { container } = render(
+			<PersonalPanel item={moviesItem} open={true} onClose={vi.fn()} />,
+		);
+		const imgs = Array.from(container.querySelectorAll("img")).filter((img) =>
+			/\/posters\/[^/]+\.jpg$/.test(img.getAttribute("src") ?? ""),
+		);
+		expect(imgs.length).toBeGreaterThan(0);
+		for (const img of imgs) {
+			const src = img.getAttribute("src");
+			const entry = FAVORITES.find((f) => f.poster === src);
+			expect(entry, `No FAVORITES entry for src ${src}`).toBeDefined();
+			expect(
+				screen.getByText(`${entry?.title} (${entry?.year})`),
+			).not.toBeNull();
+		}
+	});
+
+	// TC-PP-37
+	it("renders a Films section header before a Series section header, in that DOM order", () => {
+		const { container } = render(
+			<PersonalPanel item={moviesItem} open={true} onClose={vi.fn()} />,
+		);
+		const filmsHeader = screen.getByText("Films");
+		const seriesHeader = screen.getByText("Series");
+		expect(container.contains(filmsHeader)).toBe(true);
+		expect(container.contains(seriesHeader)).toBe(true);
+		const position = filmsHeader.compareDocumentPosition(seriesHeader);
+		expect(Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+	});
+
+	// TC-PP-38
+	it('renders the verbatim movies intro line "Twelve films and twelve series I could rewatch anytime:"', () => {
+		render(<PersonalPanel item={moviesItem} open={true} onClose={vi.fn()} />);
+		expect(
+			screen.getByText(
+				"Twelve films and twelve series I could rewatch anytime:",
+			),
+		).not.toBeNull();
+	});
+
+	// TC-PP-39 - both directions of the item.slug dispatch (mirrors TC-PP-08)
+	it("renders NO album shelf for the movies item, and NO favorites wall for the music item", () => {
+		const { container: moviesContainer } = render(
+			<PersonalPanel item={moviesItem} open={true} onClose={vi.fn()} />,
+		);
+		const albumImgs = Array.from(
+			moviesContainer.querySelectorAll("img"),
+		).filter((img) =>
+			/\/albums\/[^/]+\.jpg$/.test(img.getAttribute("src") ?? ""),
+		);
+		expect(albumImgs.length).toBe(0);
+
+		const { container: musicContainer } = render(
+			<PersonalPanel item={musicItem} open={true} onClose={vi.fn()} />,
+		);
+		const posterImgs = Array.from(
+			musicContainer.querySelectorAll("img"),
+		).filter((img) =>
+			/\/posters\/[^/]+\.jpg$/.test(img.getAttribute("src") ?? ""),
+		);
+		expect(posterImgs.length).toBe(0);
 	});
 });

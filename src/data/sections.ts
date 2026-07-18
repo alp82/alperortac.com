@@ -6,7 +6,8 @@ export type PanelKey =
 	| "aistack"
 	| "alpriver"
 	| "manaschmiede"
-	| "music";
+	| "music"
+	| "movies";
 
 // Body class toggled while any panel (sky or detail) is open. Written by
 // PanelHost, read by SectionTitle's fonts.ready re-seed guard - shared here
@@ -23,6 +24,9 @@ export const PANEL_SIDES: Record<Exclude<PanelKey, "sky">, "left" | "right"> = {
 	alpriver: "left",
 	manaschmiede: "right",
 	music: "left",
+	// GoodWatch on the same band slides left; the second destination takes the
+	// opposite side so the dive aim reads distinct.
+	movies: "right",
 };
 
 export const MINIMAP_BOUNDARIES = [

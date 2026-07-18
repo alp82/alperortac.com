@@ -69,6 +69,13 @@ describe("sections topology", () => {
 		expect(PANEL_KEY_TO_TOPIC_ID.manaschmiede).toBe("family");
 	});
 
+	// Pin (#22): the movies-tv topic gains a second trigger,
+	// { kind: "personal", slug: "movies" }, so a direct /movies load parks the
+	// scroll journey at the movies-tv band (same mechanism as the music pin).
+	it('PANEL_KEY_TO_TOPIC_ID parks movies at "movies-tv"', () => {
+		expect(PANEL_KEY_TO_TOPIC_ID.movies).toBe("movies-tv");
+	});
+
 	// TC-11 - SECTION_IDS must not carry a "footer" key after the footer refactor
 	it('SECTION_IDS does not carry a "footer" key', () => {
 		expect("footer" in SECTION_IDS).toBe(false);

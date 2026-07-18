@@ -344,9 +344,12 @@ describe("ten divergent locks: career is nameplate, coding is pull-request, tech
 		);
 	});
 
+	// #22: the poster grid is a new named media treatment on the movies-tv
+	// band, so the media note amends from "none" to describe it (params are
+	// unchanged - no new streaming-billboard param was added for the grid).
 	it("TC-MTV-2: movies-tv's media note is the verbatim lock string", () => {
 		expect(IDENTITIES["movies-tv"].media).toBe(
-			"none - the billboard chrome is the visual",
+			"poster grid - flickering 3x2 all-time-favorites wall under the prose (channel-zap swaps; the top-chrome pills relocate onto it as functional All/Films/Series filters), doubling as the trigger into the /movies favorites subpage; titles hand-edited in src/data/favorites.ts",
 		);
 	});
 
