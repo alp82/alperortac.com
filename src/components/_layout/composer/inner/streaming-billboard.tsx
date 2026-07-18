@@ -1,3 +1,7 @@
+import { BillboardCyclePrototype } from "../../movies/prototype/BillboardCyclePrototype";
+import { PosterGridPrototype } from "../../movies/prototype/PosterGridPrototype";
+import { PrototypeSwitcher } from "../../movies/prototype/PrototypeSwitcher";
+import { usePrototypeVariant } from "../../movies/prototype/usePrototypeVariant";
 import type { InnerRenderProps } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
@@ -37,6 +41,12 @@ export function StreamingBillboardCluster({
 }: InnerRenderProps<"streaming-billboard">) {
 	const g = GLOWS[params.glow];
 
+	// PROTOTYPE (#22, throwaway) — poster grid placement variants on the
+	// movies-tv band only, dormant unless `?variant=` is in the URL.
+	const [variant, setVariant] = usePrototypeVariant();
+	const proto =
+		topic.id === "movies-tv" && !import.meta.env.PROD ? variant : null;
+
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
 			<div
@@ -49,24 +59,31 @@ export function StreamingBillboardCluster({
 					} as React.CSSProperties
 				}
 			>
-				{/* top chrome - category pills */}
-				<div
-					className="sbb-nav relative px-6 md:px-9 pt-5 flex items-center gap-3 text-[11px] font-semibold tracking-[0.08em]"
-					aria-hidden="true"
-				>
-					{PILLS.map((pill, i) => (
-						<span
-							key={pill}
-							className={`sbb-pill ${i === 0 ? "sbb-pill--on" : ""}`}
-						>
-							{pill}
-						</span>
-					))}
-				</div>
+				{/* top chrome - category pills (PROTOTYPE: variant A relocates them
+				    onto the grid as functional filters, so they vanish up here) */}
+				{proto !== "a" && (
+					<div
+						className="sbb-nav relative px-6 md:px-9 pt-5 flex items-center gap-3 text-[11px] font-semibold tracking-[0.08em]"
+						aria-hidden="true"
+					>
+						{PILLS.map((pill, i) => (
+							<span
+								key={pill}
+								className={`sbb-pill ${i === 0 ? "sbb-pill--on" : ""}`}
+							>
+								{pill}
+							</span>
+						))}
+					</div>
+				)}
 
 				{/* billboard zone - the heading as tonight's featured title */}
 				<div className="sbb-billboard relative px-6 md:px-9 pt-8">
-					<h2 className="sbb-title font-bold text-4xl md:text-6xl leading-none tracking-tight">
+					{/* PROTOTYPE variant B — cycling artwork behind the title */}
+					{proto === "b" && <BillboardCyclePrototype />}
+					<h2
+						className={`sbb-title font-bold text-4xl md:text-6xl leading-none tracking-tight ${proto === "b" ? "relative" : ""}`}
+					>
 						{topic.heading}
 					</h2>
 
@@ -99,6 +116,9 @@ export function StreamingBillboardCluster({
 				{/* the topic's REAL body - seated bare below the billboard */}
 				<div className="relative px-6 md:px-9 py-6">{children}</div>
 
+				{/* PROTOTYPE variant A — flicker grid under the prose, subpage trigger */}
+				{proto === "a" && <PosterGridPrototype />}
+
 				{/* progress strip - fixed width, pure theater */}
 				<div
 					className="sbb-progress relative mx-6 md:mx-9 mb-5"
@@ -107,6 +127,9 @@ export function StreamingBillboardCluster({
 					<span className="sbb-progress-fill" />
 				</div>
 			</div>
+
+			{/* PROTOTYPE switcher — only when ?variant= is present, never in prod */}
+			{proto && <PrototypeSwitcher variant={proto} onChange={setVariant} />}
 		</div>
 	);
 }

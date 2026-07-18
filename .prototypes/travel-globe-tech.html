@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Travel globe — tech pick (SVG orthographic vs WebGL) — ticket #21</title>
+<!--
+  PROTOTYPE — throwaway, not shipped.
+  Two variants of the Travel subpage globe, switchable via ?variant= (a|b) or the
+  floating bottom bar / arrow keys:
+    A — hand-rolled SVG orthographic projection (d3-geo). Crafted paper look.
+    B — WebGL globe (globe.gl / three). Photoreal space-globe look.
+  Same content in both: visited-country fills (scratch-map), Japan as the crimson
+  "next leg", drag to spin, zoom, click a visited country for a card.
+  Data + libs load from unpkg at runtime — open in a normal browser, online.
+-->
+<style>
+  :root {
+    --accent: #e23b54;          /* ticket-stub crimson (locked Travel identity) */
+    --paper: #f5efe3;           /* ticket paper cream */
+    --ink: #26221b;
+    --slate: #94a3b8;
+  }
+  * { box-sizing: border-box; }
+  .hidden { display: none !important; }
+  html, body { margin: 0; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #e5e7eb;
+    background:
+      radial-gradient(1100px 600px at 75% -10%, #2a1a24 0%, transparent 60%),
+      linear-gradient(180deg, #0f172a 0%, #111827 60%, #0b1220 100%);
+    min-height: 100vh;
+  }
+  header.page {
+    max-width: 860px; margin: 0 auto; padding: 26px 20px 4px;
+  }
+  header.page h1 { font-size: 17px; margin: 0 0 4px; letter-spacing: 0.01em; }
+  header.page p { font-size: 13px; color: #94a3b8; margin: 0; line-height: 1.5; }
+  header.page .q { color: #cbd5e1; }
+
+  /* fake subpage column, so the globe is judged in panel-like context */
+  .panel {
+    max-width: 860px; margin: 18px auto 90px; padding: 26px 24px 30px;
+    border: 1px solid rgba(148,163,184,0.16); border-radius: 14px;
+    background: rgba(2,6,23,0.55); backdrop-filter: blur(6px);
+  }
+  .panel .kicker {
+    font-size: 11px; letter-spacing: 0.22em; color: var(--accent);
+    text-transform: uppercase; margin: 0 0 2px;
+  }
+  .panel h2 { font-size: 22px; margin: 0 0 14px; }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    height: min(72vh, 640px);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .stage.hidden { display: none; }
+  #stageA { background: transparent; }
+  #stageA svg { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+  #stageA svg.dragging { cursor: grabbing; }
+  #stageB { background: #000010; }
+  #stageB canvas { outline: none; }
+
+  .variant-meta {
+    display: flex; justify-content: space-between; gap: 12px;
+    font-size: 12px; color: #94a3b8; margin-top: 12px; line-height: 1.5;
+  }
+  .variant-meta b { color: #e2e8f0; font-weight: 600; }
+
+  /* click card — echoes the boarding-pass fine print */
+  .card {
+    position: absolute; left: 14px; bottom: 14px; width: 250px;
+    background: var(--paper); color: var(--ink);
+    border-radius: 8px; padding: 12px 14px 10px;
+    border: 1px dashed rgba(38,34,27,0.45);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    opacity: 0; transform: translateY(8px); pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+  .card.open { opacity: 1; transform: none; pointer-events: auto; }
+  .card .stamp {
+    font-size: 10px; letter-spacing: 0.24em; color: var(--accent);
+    text-transform: uppercase; font-weight: 700;
+  }
+  .card .stamp.next { color: #1d4ed8; }
+  .card h3 { margin: 2px 0 4px; font-size: 16px; }
+  .card p { margin: 0; font-size: 12px; color: rgba(38,34,27,0.75); line-height: 1.45;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .card button {
+    position: absolute; top: 6px; right: 8px; border: 0; background: none;
+    font-size: 14px; color: rgba(38,34,27,0.6); cursor: pointer; padding: 2px;
+  }
+
+  .loading {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font-size: 13px; color: #94a3b8;
+  }
+
+  /* highlight-treatment chips (variant B only) */
+  .chips {
+    position: absolute; top: 10px; right: 10px; z-index: 5;
+    display: flex; gap: 6px;
+  }
+  .chips button {
+    border: 1px solid rgba(148,163,184,0.35); border-radius: 999px;
+    background: rgba(2,6,23,0.7); color: #cbd5e1; font-size: 11px;
+    padding: 4px 10px; cursor: pointer; backdrop-filter: blur(4px);
+  }
+  .chips button.on { border-color: var(--accent); color: #fff; background: rgba(226,59,84,0.25); }
+
+  .fallback-note {
+    display: none; margin: 0 0 10px; padding: 8px 12px; font-size: 12px;
+    border: 1px dashed rgba(226,59,84,0.5); border-radius: 8px; color: #fca5a5;
+    background: rgba(226,59,84,0.08);
+  }
+  .fallback-note.show { display: block; }
+
+  /* floating variant switcher — obviously not part of the design */
+  .switcher {
+    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 4px;
+    background: #f8fafc; color: #0f172a; border-radius: 999px;
+    padding: 6px 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    font-size: 13px; z-index: 50; user-select: none;
+  }
+  .switcher button {
+    border: 0; background: none; font-size: 16px; cursor: pointer;
+    padding: 2px 8px; border-radius: 999px; color: #0f172a;
+  }
+  .switcher button:hover { background: #e2e8f0; }
+  .switcher .label { min-width: 250px; text-align: center; font-weight: 600; }
+  .switcher .label small { display: block; font-weight: 400; color: #64748b; font-size: 11px; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Travel globe — tech pick <span style="color:#64748b">(prototype, ticket #21)</span></h1>
+  <p class="q">Question: SVG orthographic (crafted, tiny dep) or WebGL (photoreal, heavy dep)?</p>
+  <p>Both show the same thing: visited countries filled scratch-map style, Japan as the crimson next leg.
+     Drag to spin · scroll to zoom · click a filled country for its card · idle = gentle auto-rotate.
+     Switch with the bar below or ←/→ keys.</p>
+</header>
+
+<section class="panel">
+  <p class="kicker">Travel · dive</p>
+  <h2>Where we've been</h2>
+  <p class="fallback-note" id="fallbackNote">WebGL unavailable — showing the SVG globe instead. This is the production fallback behavior.</p>
+
+  <div class="stage" id="stageA">
+    <div class="loading" id="loadingA">loading world data…</div>
+    <div class="card" id="cardA"></div>
+  </div>
+
+  <div class="stage hidden" id="stageB">
+    <div id="globeMount" style="position:absolute;inset:0"></div>
+    <div class="loading" id="loadingB">loading globe.gl…</div>
+    <div class="chips" id="chipsB">
+      <button data-t="hex" class="on">hex dots</button>
+      <button data-t="soft">soft fill</button>
+      <button data-t="borders">lit borders</button>
+    </div>
+    <div class="card" id="cardB"></div>
+  </div>
+
+  <div class="variant-meta" id="metaA">
+    <span><b>A — SVG orthographic</b> · d3-geo, hand-styled to the ticket-stub identity</span>
+    <span>prod dep cost: ~<b>30&nbsp;kB</b> gz (d3-geo + topojson-client) · SSR/jsdom-safe</span>
+  </div>
+  <div class="variant-meta hidden" id="metaB">
+    <span><b>B — WebGL globe</b> · globe.gl (three.js) · highlight treatment via the chips (top-right)</span>
+    <span>prod dep cost: ~<b>1.2&nbsp;MB</b> min · falls back to the SVG globe without WebGL (test: <code>&amp;nogl=1</code>)</span>
+  </div>
+</section>
+
+<div class="switcher" role="group" aria-label="Prototype variant switcher">
+  <button id="prev" aria-label="Previous variant">◀</button>
+  <div class="label" id="switchLabel"></div>
+  <button id="next" aria-label="Next variant">▶</button>
+</div>
+
+<script src="https://unpkg.com/d3@7/dist/d3.min.js"></script>
+<script>
+/* ---------------- shared data ---------------- */
+const ACCENT = "#e23b54";
+const VISITED = [
+  "Thailand", "Israel", "Mexico", "Grenada",
+  "Germany", "France", "Italy", "Spain", "Portugal", "United Kingdom",
+  "Croatia", "Greece", "Netherlands", "Austria", "Denmark", "Finland",
+  "Sweden", "Norway", "Lithuania", "Bulgaria", "Turkey",
+];
+const NEXT_LEG = "Japan";
+// placeholder card lines — real copy comes later, in Alper's words
+const CARD_NOTES = {
+  "United Kingdom": "England & Scotland · 20·· — a line of memory goes here",
+};
+const PLACEHOLDER_NOTE = "20·· — a line of memory goes here";
+
+const state = { variant: null, world: null, bInited: false };
+
+function cardHTML(name, isNext) {
+  const note = isNext
+    ? "Next destination · 2027 — the accent leg of the route"
+    : (CARD_NOTES[name] || PLACEHOLDER_NOTE);
+  return `<button aria-label="close">×</button>
+    <div class="stamp ${isNext ? "next" : ""}">${isNext ? "✈ Next leg" : "Visited"}</div>
+    <h3>${name}</h3><p>${note}</p>`;
+}
+function openCard(el, name, isNext) {
+  el.innerHTML = cardHTML(name, isNext);
+  el.classList.add("open");
+  el.querySelector("button").onclick = () => el.classList.remove("open");
+}
+
+/* ---------------- world data ---------------- */
+const worldReady = fetch("https://unpkg.com/world-atlas@2.0.2/countries-50m.json")
+  .then((r) => r.json())
+  .then((topo) => {
+    // topojson-client is bundled inside full d3 as d3.geoContains? No — use the topojson lib:
+    return import("https://unpkg.com/topojson-client@3?module").then((tj) => {
+      const feats = tj.feature(topo, topo.objects.countries).features;
+      const byName = new Map(feats.map((f) => [f.properties.name, f]));
+      const missing = VISITED.concat([NEXT_LEG]).filter((n) => !byName.has(n));
+      if (missing.length) console.warn("No polygon match for:", missing);
+      state.world = { feats, byName };
+      return state.world;
+    });
+  });
+
+/* ---------------- variant A: SVG orthographic (d3-geo) ---------------- */
+function initA(world) {
+  document.getElementById("loadingA").remove();
+  const stage = document.getElementById("stageA");
+  // stage may be display:none at init (loaded with ?variant=b) — measure the panel instead
+  const W = stage.clientWidth || stage.parentElement.clientWidth - 48;
+  const H = stage.clientHeight || Math.min(innerHeight * 0.72, 640);
+  const R0 = Math.min(W, H) / 2 - 24;
+
+  const projection = d3.geoOrthographic()
+    .translate([W / 2, H / 2]).scale(R0).rotate([-15, -30]).clipAngle(90);
+  const path = d3.geoPath(projection);
+  const visitedSet = new Set(VISITED);
+
+  const svg = d3.select(stage).insert("svg", ".card")
+    .attr("viewBox", `0 0 ${W} ${H}`);
+
+  // paper grain
+  const defs = svg.append("defs");
+  const filt = defs.append("filter").attr("id", "grain");
+  filt.append("feTurbulence").attr("type", "fractalNoise")
+    .attr("baseFrequency", "0.9").attr("numOctaves", "2").attr("result", "n");
+  filt.append("feColorMatrix").attr("in", "n").attr("type", "matrix")
+    .attr("values", "0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.04 0");
+  filt.append("feComposite").attr("operator", "over").attr("in2", "SourceGraphic");
+  const grad = defs.append("radialGradient").attr("id", "sea")
+    .attr("cx", "38%").attr("cy", "32%");
+  grad.append("stop").attr("offset", "0%").attr("stop-color", "#faf6ec");
+  grad.append("stop").attr("offset", "100%").attr("stop-color", "#e9dfc9");
+
+  // perforation ring — the ticket-stub echo
+  const perf = svg.append("circle")
+    .attr("fill", "none").attr("stroke", "rgba(226,59,84,0.55)")
+    .attr("stroke-dasharray", "2 7").attr("stroke-width", 1.6);
+  const sphere = svg.append("path").datum({ type: "Sphere" })
+    .attr("fill", "url(#sea)").attr("filter", "url(#grain)")
+    .attr("stroke", "rgba(38,34,27,0.5)").attr("stroke-width", 1);
+  const graticule = svg.append("path").datum(d3.geoGraticule10())
+    .attr("fill", "none").attr("stroke", "rgba(38,34,27,0.14)").attr("stroke-width", 0.5);
+
+  const land = svg.append("g").selectAll("path")
+    .data(world.feats).join("path")
+    .attr("data-name", (d) => d.properties.name)
+    .attr("fill", (d) => d.properties.name === NEXT_LEG ? "rgba(226,59,84,0.16)"
+      : visitedSet.has(d.properties.name) ? "rgba(226,59,84,0.66)" : "rgba(120,113,98,0.35)")
+    .attr("stroke", (d) => d.properties.name === NEXT_LEG ? ACCENT : "rgba(38,34,27,0.35)")
+    .attr("stroke-dasharray", (d) => d.properties.name === NEXT_LEG ? "4 3" : null)
+    .attr("stroke-width", (d) => d.properties.name === NEXT_LEG ? 1.4 : 0.5)
+    .style("cursor", (d) => visitedSet.has(d.properties.name) || d.properties.name === NEXT_LEG ? "pointer" : null)
+    .on("click", (ev, d) => {
+      const n = d.properties.name;
+      if (visitedSet.has(n) || n === NEXT_LEG)
+        openCard(document.getElementById("cardA"), n, n === NEXT_LEG);
+    });
+
+  // tiny visited countries (Grenada!) get a stamp dot so they stay visible + clickable
+  const tiny = world.feats.filter((f) =>
+    (visitedSet.has(f.properties.name)) && d3.geoArea(f) < 0.0004);
+  const dots = svg.append("g").selectAll("circle")
+    .data(tiny).join("circle")
+    .attr("r", 5).attr("fill", ACCENT).attr("fill-opacity", 0.85)
+    .attr("stroke", "#faf6ec").attr("stroke-width", 1.2).style("cursor", "pointer")
+    .on("click", (ev, d) => openCard(document.getElementById("cardA"), d.properties.name, false));
+
+  let k = 1;
+  function render() {
+    projection.scale(R0 * k);
+    const [cx, cy] = projection.translate();
+    perf.attr("cx", cx).attr("cy", cy).attr("r", R0 * k + 10);
+    sphere.attr("d", path);
+    graticule.attr("d", path);
+    land.attr("d", path);
+    dots.each(function (d) {
+      const c = d3.geoCentroid(d);
+      const visible = d3.geoDistance(c, [-projection.rotate()[0], -projection.rotate()[1]]) < Math.PI / 2;
+      const p = projection(c);
+      d3.select(this).attr("display", visible && p ? null : "none")
+        .attr("cx", p ? p[0] : 0).attr("cy", p ? p[1] : 0);
+    });
+  }
+
+  // drag to rotate
+  let lastInteraction = 0;
+  svg.call(d3.drag()
+    .on("start", () => { svg.classed("dragging", true); })
+    .on("drag", (ev) => {
+      const r = projection.rotate();
+      const s = 75 / (R0 * k);
+      projection.rotate([r[0] + ev.dx * s, Math.max(-80, Math.min(80, r[1] - ev.dy * s))]);
+      lastInteraction = Date.now();
+      render();
+    })
+    .on("end", () => { svg.classed("dragging", false); lastInteraction = Date.now(); }));
+
+  // wheel zoom
+  svg.on("wheel", (ev) => {
+    ev.preventDefault();
+    k = Math.max(0.7, Math.min(4, k * (ev.deltaY < 0 ? 1.12 : 0.89)));
+    lastInteraction = Date.now();
+    render();
+  }, { passive: false });
+
+  // idle auto-rotate (paused while hovering the sphere)
+  let hovering = false;
+  stage.addEventListener("pointerenter", () => { hovering = true; });
+  stage.addEventListener("pointerleave", () => { hovering = false; });
+  d3.timer(() => {
+    if (state.variant !== "a") return;
+    if (!hovering && Date.now() - lastInteraction > 2500) {
+      const r = projection.rotate();
+      projection.rotate([r[0] + 0.05, r[1]]);
+      render();
+    }
+  });
+
+  render();
+}
+
+/* ---------------- variant B: WebGL (globe.gl) ---------------- */
+function webglAvailable() {
+  if (new URL(location.href).searchParams.get("nogl")) return false;
+  try {
+    const c = document.createElement("canvas");
+    return !!(c.getContext("webgl2") || c.getContext("webgl"));
+  } catch {
+    return false;
+  }
+}
+
+function initB(world) {
+  const stage = document.getElementById("stageB");
+  const script = document.createElement("script");
+  script.src = "https://unpkg.com/globe.gl";
+  script.onload = () => {
+    document.getElementById("loadingB").remove();
+    const visitedSet = new Set(VISITED);
+    const isNext = (f) => f.properties.name === NEXT_LEG;
+    const polys = world.feats.filter((f) =>
+      visitedSet.has(f.properties.name) || isNext(f));
+
+    const w = stage.clientWidth || stage.parentElement.clientWidth - 48;
+    const h = stage.clientHeight || Math.min(innerHeight * 0.72, 640);
+    const label = (f) => `<div style="font:12px sans-serif;color:#f5efe3">${f.properties.name}</div>`;
+    const onClick = (f) =>
+      openCard(document.getElementById("cardB"), f.properties.name, isNext(f));
+    const onHover = (f) => {
+      globe.controls().autoRotate = !f;
+      stage.style.cursor = f ? "pointer" : "grab";
+    };
+
+    const globe = new Globe(document.getElementById("globeMount"))
+      .width(w).height(h)
+      .backgroundColor("#000010")
+      .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-night.jpg")
+      .bumpImageUrl("https://unpkg.com/three-globe/example/img/earth-topology.png")
+      .atmosphereColor("#88aaff").atmosphereAltitude(0.18)
+      .polygonLabel(label).onPolygonClick(onClick).onPolygonHover(onHover)
+      .hexPolygonLabel(label).onHexPolygonClick(onClick).onHexPolygonHover(onHover);
+
+    // "next leg" beacon — a slow crimson pulse over Japan, on in every treatment
+    const [jLng, jLat] = d3.geoCentroid(world.byName.get(NEXT_LEG));
+    globe.ringsData([{ lat: jLat, lng: jLng }])
+      .ringColor(() => (t) => `rgba(226,59,84,${1 - t})`)
+      .ringMaxRadius(4.5).ringPropagationSpeed(1.4).ringRepeatPeriod(1600);
+
+    // three highlight treatments, switched by the chips
+    function applyTreatment(t) {
+      globe.polygonsData([]).hexPolygonsData([]);
+      if (t === "hex") {
+        globe.hexPolygonsData(polys)
+          .hexPolygonResolution(3).hexPolygonMargin(0.42).hexPolygonUseDots(true)
+          .hexPolygonColor((f) => isNext(f) ? "#ff6d84" : "rgba(226,59,84,0.85)");
+      } else if (t === "soft") {
+        globe.polygonsData(polys)
+          .polygonAltitude((f) => isNext(f) ? 0.018 : 0.005)
+          .polygonCapColor((f) => isNext(f) ? "rgba(226,59,84,0.85)" : "rgba(226,59,84,0.32)")
+          .polygonSideColor(() => "rgba(226,59,84,0.05)")
+          .polygonStrokeColor(() => "rgba(245,239,227,0.3)");
+      } else { // lit borders
+        globe.polygonsData(polys)
+          .polygonAltitude(() => 0.006)
+          .polygonCapColor((f) => isNext(f) ? "rgba(226,59,84,0.5)" : "rgba(226,59,84,0.08)")
+          .polygonSideColor(() => "rgba(0,0,0,0)")
+          .polygonStrokeColor(() => "#ff5d76");
+      }
+    }
+    applyTreatment("hex");
+    for (const btn of document.querySelectorAll("#chipsB button")) {
+      btn.onclick = () => {
+        document.querySelectorAll("#chipsB button").forEach((b) => b.classList.toggle("on", b === btn));
+        applyTreatment(btn.dataset.t);
+      };
+    }
+
+    globe.controls().autoRotate = true;
+    globe.controls().autoRotateSpeed = 0.55;
+    globe.pointOfView({ lat: 30, lng: 15, altitude: 2.1 }, 0);
+  };
+  document.body.appendChild(script);
+}
+
+/* ---------------- switcher ---------------- */
+const VARIANTS = [
+  { key: "a", label: "A — SVG orthographic", sub: "d3-geo · crafted paper, ticket-stub echo" },
+  { key: "b", label: "B — WebGL globe", sub: "globe.gl · night earth, atmosphere glow" },
+];
+function setVariant(key) {
+  const note = document.getElementById("fallbackNote");
+  if (key === "b" && !webglAvailable()) {
+    note.classList.add("show");
+    key = "a";
+  } else {
+    note.classList.remove("show");
+  }
+  state.variant = key;
+  const url = new URL(location.href);
+  url.searchParams.set("variant", key);
+  history.replaceState(null, "", url);
+  for (const v of VARIANTS) {
+    document.getElementById("stage" + v.key.toUpperCase()).classList.toggle("hidden", v.key !== key);
+    document.getElementById("meta" + v.key.toUpperCase()).classList.toggle("hidden", v.key !== key);
+  }
+  const v = VARIANTS.find((v) => v.key === key);
+  document.getElementById("switchLabel").innerHTML = `${v.label}<small>${v.sub}</small>`;
+  if (key === "b" && !state.bInited) {
+    state.bInited = true;
+    worldReady.then(initB);
+  }
+}
+function cycle(dir) {
+  const i = VARIANTS.findIndex((v) => v.key === state.variant);
+  setVariant(VARIANTS[(i + dir + VARIANTS.length) % VARIANTS.length].key);
+}
+document.getElementById("prev").onclick = () => cycle(-1);
+document.getElementById("next").onclick = () => cycle(1);
+document.addEventListener("keydown", (ev) => {
+  if (/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName) ||
+      document.activeElement?.isContentEditable) return;
+  if (ev.key === "ArrowLeft") cycle(-1);
+  if (ev.key === "ArrowRight") cycle(1);
+});
+
+const initial = new URL(location.href).searchParams.get("variant");
+setVariant(initial === "b" ? "b" : "a");
+worldReady.then(initA);
+</script>
+</body>
+</html>
