@@ -89,6 +89,7 @@ export function PanelHost({
 	const manaschmiedeRef = useRef<HTMLDialogElement>(null);
 	const musicRef = useRef<HTMLDialogElement>(null);
 	const moviesRef = useRef<HTMLDialogElement>(null);
+	const travelRef = useRef<HTMLDialogElement>(null);
 	// Tracks the URL-driven panel for the close-event handler to distinguish
 	// user-initiated closes (ESC/backdrop) from URL-driven panel transitions.
 	const urlPanelRef = useRef<PanelKey | null>(null);
@@ -107,6 +108,7 @@ export function PanelHost({
 			manaschmiede: manaschmiedeRef,
 			music: musicRef,
 			movies: moviesRef,
+			travel: travelRef,
 		}),
 		[],
 	);

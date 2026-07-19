@@ -7,7 +7,8 @@ export type PanelKey =
 	| "alpriver"
 	| "manaschmiede"
 	| "music"
-	| "movies";
+	| "movies"
+	| "travel";
 
 // Body class toggled while any panel (sky or detail) is open. Written by
 // PanelHost, read by SectionTitle's fonts.ready re-seed guard - shared here
@@ -27,6 +28,9 @@ export const PANEL_SIDES: Record<Exclude<PanelKey, "sky">, "left" | "right"> = {
 	// GoodWatch on the same band slides left; the second destination takes the
 	// opposite side so the dive aim reads distinct.
 	movies: "right",
+	// Matches the ticket-stub route strip's travel direction (next leg points
+	// right toward JPN '27).
+	travel: "right",
 };
 
 export const MINIMAP_BOUNDARIES = [

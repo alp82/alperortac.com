@@ -21,6 +21,7 @@ import { FindMeSection } from "../components/_layout/FindMeSection";
 import { FooterSection } from "../components/_layout/footer/FooterSection";
 import { HeroSection } from "../components/_layout/HeroSection";
 import { PanelHost } from "../components/_layout/PanelHost";
+import { RhythmGap } from "../components/_layout/RhythmGap";
 import { Minimap } from "../components/Minimap";
 import { NarrativeWatermark } from "../components/NarrativeWatermark";
 import { SUBPAGE_WORDS } from "../components/narrativeWatermark";
@@ -67,11 +68,16 @@ function useCelestialState(): [CelestialState, (s: CelestialState) => void] {
 			if (!stored) return;
 			const parsed = JSON.parse(stored) as Partial<CelestialState>;
 			if (parsed?.sun && parsed?.moon) {
-				// Migration shim: older states stored before sky-curve landed lack `curve`.
+				// Migration shims: older states stored before sky-curve landed lack
+				// `curve`; states stored before vertical rhythm landed lack `gapVh`.
 				setState({
 					sun: parsed.sun,
 					moon: parsed.moon,
 					curve: isValidCurve(parsed.curve) ? parsed.curve : DEFAULT_SKY_CURVE,
+					gapVh:
+						typeof parsed.gapVh === "number"
+							? parsed.gapVh
+							: DEFAULT_CELESTIAL.gapVh,
 				});
 			}
 		} catch {
@@ -267,6 +273,24 @@ function LayoutHost() {
 		};
 	}, []);
 
+	// A rhythm-gap change (Tune panel slider, or the stored gap loading after
+	// mount) moves the document height under a stationary scroll position - no
+	// scroll event fires, so the day/night progress must be re-derived here.
+	// Skipped while a detail subpage is open: the journey is deliberately
+	// frozen there (same gate as handleScroll).
+	// biome-ignore lint/correctness/useExhaustiveDependencies: celestial.gapVh is the trigger, not a body dependency
+	useEffect(() => {
+		if (panelOpenRef.current) return;
+		const progress = scrollProgressAt(
+			window.scrollY,
+			document.documentElement.scrollHeight,
+			window.innerHeight,
+		);
+		scrollProgressRef.current = progress;
+		setScrollProgress(progress);
+		setScrollY(window.scrollY);
+	}, [celestial.gapVh]);
+
 	useEffect(() => {
 		if (!aboutOpen) return;
 		const onPointerDown = (e: PointerEvent) => {
@@ -416,12 +440,16 @@ function LayoutHost() {
 
 			<div ref={mainShellRef} className="main-shell min-h-screen md:pr-20">
 				<HeroSection />
+				<RhythmGap gapVh={celestial.gapVh} />
 				<FindMeSection />
+				<RhythmGap gapVh={celestial.gapVh} />
 				<CraftSection
 					lastTriggerRef={lastTriggerRef}
 					isNight={isNight}
 					composer={designComposer}
+					gapVh={celestial.gapVh}
 				/>
+				<RhythmGap gapVh={celestial.gapVh} />
 				<FooterSection />
 			</div>
 

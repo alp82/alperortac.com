@@ -5,7 +5,7 @@ export type ProjectSlug = Extract<
 	PanelKey,
 	"goodwatch" | "aistack" | "alpriver" | "manaschmiede"
 >;
-export type PersonalSlug = Extract<PanelKey, "music" | "movies">;
+export type PersonalSlug = Extract<PanelKey, "music" | "movies" | "travel">;
 
 export type Trigger =
 	| { kind: "career" }
@@ -158,7 +158,11 @@ export const TOPICS: Topic[] = [
 		id: "travel",
 		heading: "Travel",
 		// Prose lives in src/components/_layout/topics/TravelContent.tsx.
-		triggers: [],
+		// The personal trigger is the rotating EarthTrigger globe (the earth is
+		// the tap-target into /travel) - travel renders through CustomContent,
+		// so this entry adds no extra card; it exists so PANEL_KEY_TO_TOPIC_ID
+		// parks a direct /travel load at this band (movies precedent).
+		triggers: [{ kind: "personal", slug: "travel" }],
 	},
 	{
 		id: "movies-tv",

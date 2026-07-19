@@ -95,7 +95,7 @@ export function SkyTuningPanel({
 							<button
 								key={name}
 								type="button"
-								onClick={() => onChange({ ...preset, curve: state.curve })}
+								onClick={() => onChange({ ...state, ...preset })}
 								className="px-3 py-1.5 bg-slate-100 hover:bg-slate-900 hover:text-white border border-slate-900 font-bold uppercase text-[10px] tracking-wider transition-colors"
 							>
 								{name}
@@ -152,6 +152,48 @@ export function SkyTuningPanel({
 						})}
 					</div>
 				))}
+
+				<div className="mb-6">
+					<div className="font-black uppercase text-sm mb-1 tracking-wider">
+						Rhythm
+					</div>
+					<p className="text-[10px] opacity-60 mb-3 font-sans">
+						Landscape gap between sections. Changes total scroll height - retune
+						the sky-curve phases below so dusk/night stay on their sections.
+					</p>
+					<div className="flex items-center gap-2 mb-2">
+						<label
+							htmlFor="rhythm-gap-range"
+							className="w-20 text-[10px] uppercase opacity-70"
+						>
+							gap (vh)
+						</label>
+						<input
+							id="rhythm-gap-range"
+							type="range"
+							min={0}
+							max={120}
+							step={1}
+							value={state.gapVh}
+							onChange={(e) =>
+								onChange({ ...state, gapVh: Number(e.target.value) })
+							}
+							className="flex-1 accent-slate-900"
+						/>
+						<input
+							aria-label="rhythm gap value"
+							type="number"
+							min={0}
+							max={120}
+							step={1}
+							value={state.gapVh}
+							onChange={(e) =>
+								onChange({ ...state, gapVh: Number(e.target.value) })
+							}
+							className="w-14 px-1 border border-slate-300 text-right text-xs"
+						/>
+					</div>
+				</div>
 
 				<div className="mb-6">
 					<div className="flex items-center justify-between mb-3">

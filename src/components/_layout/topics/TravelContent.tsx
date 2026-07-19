@@ -1,6 +1,7 @@
+import { EarthTrigger } from "../travel/EarthTrigger";
 import { Paragraph, type TopicContentProps } from "./primitives";
 
-export function TravelContent(_: TopicContentProps) {
+export function TravelContent({ lastTriggerRef }: TopicContentProps) {
 	return (
 		<div className="space-y-5">
 			<Paragraph>
@@ -18,6 +19,8 @@ export function TravelContent(_: TopicContentProps) {
 			</Paragraph>
 
 			<Paragraph>Next destination: Japan 2027.</Paragraph>
+
+			<EarthTrigger lastTriggerRef={lastTriggerRef} />
 		</div>
 	);
 }

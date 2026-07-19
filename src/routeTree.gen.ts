@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout.index'
+import { Route as LayoutTravelRouteImport } from './routes/_layout.travel'
 import { Route as LayoutMusicRouteImport } from './routes/_layout.music'
 import { Route as LayoutMoviesRouteImport } from './routes/_layout.movies'
 import { Route as LayoutEarlyDaysRouteImport } from './routes/_layout.early-days'
@@ -24,6 +25,11 @@ const LayoutRoute = LayoutRouteImport.update({
 const LayoutIndexRoute = LayoutIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutTravelRoute = LayoutTravelRouteImport.update({
+  id: '/travel',
+  path: '/travel',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutMusicRoute = LayoutMusicRouteImport.update({
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/early-days': typeof LayoutEarlyDaysRoute
   '/movies': typeof LayoutMoviesRoute
   '/music': typeof LayoutMusicRoute
+  '/travel': typeof LayoutTravelRoute
   '/projects/$slug': typeof LayoutProjectsSlugRoute
 }
 export interface FileRoutesByTo {
@@ -65,6 +72,7 @@ export interface FileRoutesByTo {
   '/early-days': typeof LayoutEarlyDaysRoute
   '/movies': typeof LayoutMoviesRoute
   '/music': typeof LayoutMusicRoute
+  '/travel': typeof LayoutTravelRoute
   '/': typeof LayoutIndexRoute
   '/projects/$slug': typeof LayoutProjectsSlugRoute
 }
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   '/_layout/early-days': typeof LayoutEarlyDaysRoute
   '/_layout/movies': typeof LayoutMoviesRoute
   '/_layout/music': typeof LayoutMusicRoute
+  '/_layout/travel': typeof LayoutTravelRoute
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/projects/$slug': typeof LayoutProjectsSlugRoute
 }
@@ -86,9 +95,17 @@ export interface FileRouteTypes {
     | '/early-days'
     | '/movies'
     | '/music'
+    | '/travel'
     | '/projects/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/career' | '/early-days' | '/movies' | '/music' | '/' | '/projects/$slug'
+  to:
+    | '/career'
+    | '/early-days'
+    | '/movies'
+    | '/music'
+    | '/travel'
+    | '/'
+    | '/projects/$slug'
   id:
     | '__root__'
     | '/_layout'
@@ -96,6 +113,7 @@ export interface FileRouteTypes {
     | '/_layout/early-days'
     | '/_layout/movies'
     | '/_layout/music'
+    | '/_layout/travel'
     | '/_layout/'
     | '/_layout/projects/$slug'
   fileRoutesById: FileRoutesById
@@ -118,6 +136,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof LayoutIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/travel': {
+      id: '/_layout/travel'
+      path: '/travel'
+      fullPath: '/travel'
+      preLoaderRoute: typeof LayoutTravelRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/music': {
@@ -163,6 +188,7 @@ interface LayoutRouteChildren {
   LayoutEarlyDaysRoute: typeof LayoutEarlyDaysRoute
   LayoutMoviesRoute: typeof LayoutMoviesRoute
   LayoutMusicRoute: typeof LayoutMusicRoute
+  LayoutTravelRoute: typeof LayoutTravelRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
   LayoutProjectsSlugRoute: typeof LayoutProjectsSlugRoute
 }
@@ -172,6 +198,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutEarlyDaysRoute: LayoutEarlyDaysRoute,
   LayoutMoviesRoute: LayoutMoviesRoute,
   LayoutMusicRoute: LayoutMusicRoute,
+  LayoutTravelRoute: LayoutTravelRoute,
   LayoutIndexRoute: LayoutIndexRoute,
   LayoutProjectsSlugRoute: LayoutProjectsSlugRoute,
 }

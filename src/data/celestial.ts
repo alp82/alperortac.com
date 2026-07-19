@@ -12,12 +12,21 @@ export type CelestialState = {
 	sun: CelestialParams;
 	moon: CelestialParams;
 	curve: SkyCurve;
+	// Vertical rhythm of the scroll journey: the landscape-through gap (in vh)
+	// rendered between consecutive sections (hero → socials → each band topic →
+	// footer). Rides the celestial tuning state because gap changes move the
+	// total scroll height, which shifts where the sky-curve phases land - the
+	// two are tuned together on the same panel.
+	gapVh: number;
 };
 
 export const DEFAULT_CELESTIAL: CelestialState = {
 	sun: { startX: 75, startY: 12, endX: 28, endY: 58, arcLift: 8 },
 	moon: { startX: 27, startY: 45, endX: 16, endY: 13, arcLift: 6 },
 	curve: DEFAULT_SKY_CURVE,
+	// Locked on the wayfinder #35 tuning walk (2026-07-18): 55vh of landscape
+	// between consecutive sections.
+	gapVh: 55,
 };
 
 export const CELESTIAL_PRESETS: Record<

@@ -1,12 +1,10 @@
 import { SiLastdotfm, SiSpotify } from "@icons-pack/react-simple-icons";
-import {
-	ExternalCard,
-	Paragraph,
-	type TopicContentProps,
-	TriggerCard,
-} from "./primitives";
+import { ExternalCard, Paragraph, type TopicContentProps } from "./primitives";
 
-export function MusicContent({ lastTriggerRef, isNight }: TopicContentProps) {
+// The /music subpage trigger does NOT live here (no-double-links): the
+// festival-poster frame's date strip is the one trigger into the subpage
+// (ShelfStripTrigger in music/CoverWall.tsx, the approved #26 walk).
+export function MusicContent({ isNight }: TopicContentProps) {
 	return (
 		<div className="space-y-5">
 			<Paragraph>
@@ -33,10 +31,6 @@ export function MusicContent({ lastTriggerRef, isNight }: TopicContentProps) {
 					Icon={SiSpotify}
 					brand="#1ED760"
 					isNight={isNight}
-				/>
-				<TriggerCard
-					trigger={{ kind: "personal", slug: "music" }}
-					lastTriggerRef={lastTriggerRef}
 				/>
 			</div>
 		</div>

@@ -1,8 +1,9 @@
 import { FAVORITES } from "../../data/favorites";
 import { ALBUMS, type Personal } from "../../data/personal";
 import { FavoritesWall } from "./movies/FavoritesWall";
-import { AlbumShelf } from "./music/AlbumShelf";
+import { SnippetPlayersPrototype } from "./music/prototype/SnippetPlayersPrototype";
 import { SubpageClose } from "./SubpageClose";
+import { EarthGlobe } from "./travel/EarthGlobe";
 
 export const getPersonalPanelTitleId = (slug: string) =>
 	`personal-${slug}-title`;
@@ -43,7 +44,8 @@ export function PersonalPanel({ item, open, onClose }: PersonalPanelProps) {
 							<p className="mt-6 text-lg leading-relaxed">
 								Some of my all-time and current favorites include:
 							</p>
-							<AlbumShelf albums={ALBUMS} active={open} />
+							{/* PROTOTYPE (#27) — renders the plain AlbumShelf unless ?variant= is present */}
+							<SnippetPlayersPrototype albums={ALBUMS} active={open} />
 						</>
 					)}
 
@@ -53,6 +55,20 @@ export function PersonalPanel({ item, open, onClose }: PersonalPanelProps) {
 								Twelve films and twelve series I could rewatch anytime:
 							</p>
 							<FavoritesWall favorites={FAVORITES} />
+						</>
+					)}
+
+					{/* Stub destination for the EarthTrigger - the INTERACTIVE 3D globe
+					    of travelled locations replaces the big rotating earth (#21). */}
+					{item.slug === "travel" && (
+						<>
+							<p className="mt-6 text-lg leading-relaxed">
+								Thailand, Israel, Mexico, Grenada and all over Europe — next
+								stamp: Japan 2027.
+							</p>
+							<div className="mt-10 flex justify-center">
+								<EarthGlobe size="min(18rem, 70vw)" />
+							</div>
 						</>
 					)}
 				</div>

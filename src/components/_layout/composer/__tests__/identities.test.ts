@@ -396,9 +396,9 @@ describe("ten divergent locks: career is nameplate, coding is pull-request, tech
 		);
 	});
 
-	it("TC-MUS-2: music's media note is the verbatim lock string", () => {
+	it("TC-MUS-2: music's media note is the verbatim lock string (#26 amends the #20 'none' to the backdrop cover wall)", () => {
 		expect(IDENTITIES.music.media).toBe(
-			"none on the band - the poster chrome is the visual; the bill is honest chrome mirroring the album shelf's artists (personal.ts), hand-edited in festival-poster.tsx (album covers stay on the Music subpage)",
+			"backdrop cover wall (#26 amends the #20 'none') - the album shelf's real covers (personal.ts) as a dimmed ambient flicker wall behind the poster, and the date strip reworded into the one /music trigger (both in music/CoverWall.tsx); the bill stays honest chrome mirroring the shelf's artists, hand-edited in festival-poster.tsx; the curated shelf itself stays on the Music subpage",
 		);
 	});
 

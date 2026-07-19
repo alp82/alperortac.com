@@ -4,6 +4,7 @@ import { TOPICS } from "../../data/topics";
 import { LINKS } from "./composer/index";
 import { type LinkRenderProps, TOPIC_ACCENT } from "./composer/types";
 import type { ComposerState } from "./composer/useComposerControls";
+import { RhythmGap } from "./RhythmGap";
 import { TopicArticle } from "./TopicArticle";
 
 /*
@@ -22,12 +23,15 @@ type CraftSectionProps = {
 	isNight: boolean;
 	// The active composition (composed look by default; panel can switch to baseline).
 	composer: ComposerState;
+	// Landscape-through gap (vh) at each seam between consecutive topics.
+	gapVh: number;
 };
 
 export function CraftSection({
 	lastTriggerRef,
 	isNight,
 	composer,
+	gapVh,
 }: CraftSectionProps) {
 	const showLinks = !composer.baseline && composer.link !== "none";
 	// Widening cast (same as Inside): the registry erases the id↔params
@@ -56,6 +60,7 @@ export function CraftSection({
 								accent={TOPIC_ACCENT[topic.id]}
 							/>
 						)}
+						{index < TOPICS.length - 1 && <RhythmGap gapVh={gapVh} />}
 					</Fragment>
 				))}
 			</div>

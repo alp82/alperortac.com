@@ -1,3 +1,4 @@
+import { CoverWallBackdrop, ShelfStripTrigger } from "../../music/CoverWall";
 import type { InnerRenderProps } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
@@ -44,9 +45,17 @@ const UNDERCARD = [
 export function FestivalPosterCluster({
 	topic,
 	params,
+	lastTriggerRef,
 	children,
 }: InnerRenderProps<"festival-poster">) {
 	const p = POSTERS[params.poster];
+
+	// music only (#26, topic.id gate - no param, the streaming-billboard
+	// movies-tv precedent): the album shelf's covers back the whole poster as
+	// an ambient dimmed flicker wall, and the date strip rewords into the one
+	// trigger into the /music subpage. Other topics picking this frame keep
+	// the plain date strip and get no wall.
+	const isMusic = topic.id === "music";
 
 	return (
 		<div className={`w-full ${DENSITY_MAXW[params.density]}`}>
@@ -60,6 +69,7 @@ export function FestivalPosterCluster({
 					} as React.CSSProperties
 				}
 			>
+				{isMusic && <CoverWallBackdrop />}
 				{/* presents eyebrow */}
 				<p
 					className="fsp-eyebrow relative pt-6 text-[10px] font-extrabold tracking-[0.32em]"
@@ -88,13 +98,17 @@ export function FestivalPosterCluster({
 					</div>
 				)}
 
-				{/* date strip */}
-				<p
-					className="fsp-dates relative mt-6 mx-6 py-2 text-[10px] font-extrabold tracking-[0.28em]"
-					aria-hidden="true"
-				>
-					EVERY DAY · ONE STAGE · ONE LISTENER
-				</p>
+				{/* date strip - on music it IS the /music trigger */}
+				{isMusic ? (
+					<ShelfStripTrigger lastTriggerRef={lastTriggerRef} />
+				) : (
+					<p
+						className="fsp-dates relative mt-6 mx-6 py-2 text-[10px] font-extrabold tracking-[0.28em]"
+						aria-hidden="true"
+					>
+						EVERY DAY · ONE STAGE · ONE LISTENER
+					</p>
+				)}
 
 				{/* the topic's REAL body - the fine print */}
 				<div className="relative px-6 md:px-9 py-6 text-left">{children}</div>
