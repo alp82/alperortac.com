@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { Story } from "../data/stories";
 import { SubpageClose } from "./_layout/SubpageClose";
+import { EraMediaSwitcher } from "./_layout/early-days/prototype/EraMediaSwitcher";
+import "./_layout/early-days/prototype/eraMediaPrototype.css";
+import { PROTOTYPE_ERAS } from "./_layout/early-days/prototype/prototypeEras";
+import { useEraMediaVariant } from "./_layout/early-days/prototype/useEraMediaVariant";
 import { useReducedMotion } from "./_layout/dive/useReducedMotion";
 
 export const getStoryPanelTitleId = (slug: string) => `story-${slug}-title`;
@@ -19,11 +23,21 @@ export function EarlyDaysPanel({ story, onClose }: EarlyDaysPanelProps) {
 	);
 	const reducedMotion = useReducedMotion();
 
+	// PROTOTYPE (wayfinder #28): when `?variant=` is present, swap in the
+	// approved five-era prose + one of three era-media treatments. Fully
+	// dormant when the param is absent - real browsing/tests are unaffected.
+	const [variant, setVariant] = useEraMediaVariant();
+	const eras = variant ? PROTOTYPE_ERAS : story.eras;
+	// Locked treatment: phosphor identity (em-phos) + compact CRT chip
+	// (em-chip); variants differ only in numeral color (em-num-<color>).
+	const treatmentClass =
+		variant && variant !== "off"
+			? ` em-phos em-chip em-num-${variant}`
+			: "";
+
 	useEffect(() => {
 		if (reducedMotion) {
-			setRevealed(
-				new Set(Array.from({ length: story.eras.length }, (_, i) => i)),
-			);
+			setRevealed(new Set(Array.from({ length: eras.length }, (_, i) => i)));
 			return;
 		}
 		const root = timelineRef.current?.closest(".panel-surface") ?? null;
@@ -58,7 +72,7 @@ export function EarlyDaysPanel({ story, onClose }: EarlyDaysPanelProps) {
 			observer.observe(el);
 		}
 		return () => observer.disconnect();
-	}, [reducedMotion, story.eras.length]);
+	}, [reducedMotion, eras.length]);
 
 	return (
 		<>
@@ -81,8 +95,8 @@ export function EarlyDaysPanel({ story, onClose }: EarlyDaysPanelProps) {
 						{story.title}
 					</h2>
 
-					<div ref={timelineRef} className="era-spine">
-						{story.eras.map((era, i) => (
+					<div ref={timelineRef} className={`era-spine${treatmentClass}`}>
+						{eras.map((era, i) => (
 							<section
 								// biome-ignore lint/suspicious/noArrayIndexKey: static era list, never reordered - age+suffix is not guaranteed unique across eras.
 								key={i}
@@ -120,6 +134,9 @@ export function EarlyDaysPanel({ story, onClose }: EarlyDaysPanelProps) {
 					</div>
 				</div>
 			</div>
+			{variant && (
+				<EraMediaSwitcher variant={variant} onChange={setVariant} />
+			)}
 		</>
 	);
 }

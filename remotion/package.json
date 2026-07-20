@@ -1,0 +1,23 @@
+{
+  "name": "forge-remotion-loop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "THROWAWAY prototype (wayfinder #29) — four Forge panel loop concepts to react to in Remotion Studio. Render the winner to public/videos/ then delete this folder.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render:molten": "remotion render src/index.ts MoltenForge out/forge-molten.mp4",
+    "render:pipeline": "remotion render src/index.ts PipelineFlow out/forge-pipeline.mp4",
+    "render:morph": "remotion render src/index.ts RawForgedMorph out/forge-morph.mp4",
+    "render:ember": "remotion render src/index.ts CodeEmberStream out/forge-ember.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "typescript": "^5.4.0"
+  }
+}
