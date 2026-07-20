@@ -2,10 +2,10 @@
 
 /*
  * AIContent tests - pins the no-double-links invariant on the AI band: the
- * alp-river GitHub card, the Discord card, and the aistack.to card are gone
+ * forge GitHub card, the Discord card, and the aistack.to card are gone
  * (their links live on the subpages now); only the paragraph-4 aistack.to
  * InlineLink and the two subpage trigger buttons remain. The assumptions
- * paragraph moved onto the Alp-River subpage, so it must be absent here -
+ * paragraph moved onto the Forge subpage, so it must be absent here -
  * assertions are scoped to this rendered container because the identical
  * string ships in projects.ts extraSection.body.
  *
@@ -36,10 +36,10 @@ describe("AIContent", () => {
 		cleanup();
 	});
 
-	it("has no link to the alp-river GitHub repo or the Discord invite", () => {
+	it("has no link to the forge GitHub repo or the Discord invite", () => {
 		const { container } = render(<AIContent {...sharedProps} />);
 		expect(
-			container.querySelector('a[href="https://github.com/alp82/alp-river"]'),
+			container.querySelector('a[href="https://github.com/alp82/forge"]'),
 		).toBeNull();
 		expect(
 			container.querySelector('a[href="https://discord.gg/5y4fpyahaF"]'),
@@ -57,7 +57,7 @@ describe("AIContent", () => {
 		expect(container.textContent).not.toContain("Assumptions are not allowed");
 	});
 
-	it("renders two trigger buttons (Alp-River and AIStack)", () => {
+	it("renders two trigger buttons (Forge and AIStack)", () => {
 		render(<AIContent {...sharedProps} />);
 		expect(screen.getAllByRole("button")).toHaveLength(2);
 	});

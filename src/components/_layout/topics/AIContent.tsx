@@ -26,7 +26,7 @@ export function AIContent({ lastTriggerRef, isNight }: TopicContentProps) {
 			<div className="space-y-3">
 				<p className="text-base md:text-lg font-medium">Check it out:</p>
 				<TriggerCard
-					trigger={{ kind: "project", slug: "alpriver" }}
+					trigger={{ kind: "project", slug: "forge" }}
 					lastTriggerRef={lastTriggerRef}
 				/>
 			</div>

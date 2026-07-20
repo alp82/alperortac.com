@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useMatches } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CraftSection } from "../components/_layout/CraftSection";
@@ -20,18 +20,26 @@ import {
 import { FindMeSection } from "../components/_layout/FindMeSection";
 import { FooterSection } from "../components/_layout/footer/FooterSection";
 import { HeroSection } from "../components/_layout/HeroSection";
-import { PanelHost } from "../components/_layout/PanelHost";
+import { deriveUrlPanel, PanelHost } from "../components/_layout/PanelHost";
 import { RhythmGap } from "../components/_layout/RhythmGap";
 import { Minimap } from "../components/Minimap";
 import { NarrativeWatermark } from "../components/NarrativeWatermark";
 import { SUBPAGE_WORDS } from "../components/narrativeWatermark";
 import { PixelBackground } from "../components/PixelBackground";
-import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
+import { useIsomorphicLayoutEffect } from "../components/useIsomorphicLayoutEffect";
 import {
+	CELESTIAL_STORAGE_KEY,
+	type CelestialState,
+	DEFAULT_CELESTIAL,
+} from "../data/celestial";
+import {
+	armSmoothScroll,
 	handleScrollTopClick,
 	type PanelKey,
 	SECTION_IDS,
+	shouldArmSmoothForClick,
 } from "../data/sections";
+import { coldEntryFor } from "../data/skyBoot";
 import {
 	DEFAULT_SKY_CURVE,
 	NIGHT_UI_THRESHOLD,
@@ -42,8 +50,6 @@ import {
 import { PANEL_KEY_TO_TOPIC_ID, TOPICS } from "../data/topics";
 
 export const Route = createFileRoute("/_layout")({ component: LayoutHost });
-
-const CELESTIAL_STORAGE_KEY = "alp-celestial-v1";
 
 function isValidCurve(v: unknown): v is SkyCurve {
 	return (
@@ -110,6 +116,13 @@ function LayoutHost() {
 	const [scrollProgress, setScrollProgress] = useState(0);
 	const [scrollY, setScrollY] = useState(0);
 	const [celestial, setCelestial] = useCelestialState();
+	// Mirror of celestial for the pre-paint seed (a []-dep layout effect that
+	// must read the current curve without re-subscribing). Synced in an effect,
+	// not during render, so concurrent rendering can't observe a torn value.
+	const celestialRef = useRef(celestial);
+	useEffect(() => {
+		celestialRef.current = celestial;
+	}, [celestial]);
 	const [skyOpen, setSkyOpen] = useState(false);
 	const [aboutOpen, setAboutOpen] = useState(false);
 	const aboutMenuRef = useRef<HTMLDivElement | null>(null);
@@ -117,7 +130,14 @@ function LayoutHost() {
 	const navRef = useRef<HTMLElement | null>(null);
 	const mainShellRef = useRef<HTMLDivElement | null>(null);
 	const [dive, setDive] = useState<DiveRenderState | undefined>(undefined);
-	const [subpageKey, setSubpageKey] = useState<PanelKey | null>(null);
+	// The open subpage, derived straight from the route (not a post-hydration
+	// effect) so the watermark side-text and the minimap render their correct
+	// state on the SSR + first client paint. Seeding this from an effect made the
+	// minimap flash in then unmount, and the side-text swap, on a cold subpage
+	// load. Gated by skyOpen to mirror PanelHost's openPanel: the sky dev overlay
+	// takes precedence and reveals the minimap/scroll watermark beneath it.
+	const matches = useMatches();
+	const subpageKey: PanelKey | null = skyOpen ? null : deriveUrlPanel(matches);
 	const diveExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	// Ref-tracked scroll progress so onPanelChange does not change identity on
 	// every scroll tick (avoids the stuck-dive-active bug from re-firing close).
@@ -142,7 +162,6 @@ function LayoutHost() {
 			rect: DOMRect | null;
 		}) => {
 			panelOpenRef.current = info.key !== null;
-			setSubpageKey(info.key);
 			if (info.key !== null) {
 				// Open branch: arm a fresh dive.
 				if (diveExitTimerRef.current) {
@@ -154,16 +173,19 @@ function LayoutHost() {
 				// so the backdrop and close/return target are wrong. Park the journey at
 				// the subpage's topic section so the sky reflects the right time-of-day and
 				// closing returns to that spot. The day/night driver is gated while a panel
-				// is open (panelOpenRef short-circuits handleScroll), so after the
+				// is open (panelOpenRef short-circuits seedSkyAt), so after the
 				// programmatic scroll we update scrollProgress/scrollY ourselves.
 				if (rect == null) {
+					// Cold entry (fresh load / reload straight onto a subpage URL): no
+					// trigger to dive from. Jump the journey instantly to the subpage's
+					// topic section - scroll-behavior is auto unless a click armed it, so
+					// this lands with no visible travel - park the sky at that spot, and
+					// return WITHOUT arming the dive: the panel simply appears already
+					// open. The glide dive is an in-app trigger->panel transition and has
+					// no meaning here (no origin to zoom from).
 					const topicId = PANEL_KEY_TO_TOPIC_ID[info.key];
 					const el = topicId ? document.getElementById(topicId) : null;
 					if (el) {
-						// Compute progress from the TARGET offset, not the post-scroll
-						// window.scrollY: with scroll-behavior:smooth the programmatic
-						// scroll is async, so reading scrollY here is stale (0) and the
-						// sky would stay day while the scroll animates to the right spot.
 						const targetY = el.offsetTop;
 						window.scrollTo(0, targetY);
 						const progress = scrollProgressAt(
@@ -175,12 +197,14 @@ function LayoutHost() {
 						setScrollProgress(progress);
 						setScrollY(targetY);
 					}
+					return;
 				}
-				const origin = rect
-					? `${((rect.left + rect.width / 2) / window.innerWidth) * 100}% ${
-							((rect.top + rect.height / 2) / window.innerHeight) * 100
-						}%`
-					: "50% 50%";
+				// Past the cold-entry return above, a trigger rect is always present:
+				// this is an in-app click, so aim the zoom at the trigger's on-screen
+				// center and fire the dive.
+				const origin = `${
+					((rect.left + rect.width / 2) / window.innerWidth) * 100
+				}% ${((rect.top + rect.height / 2) / window.innerHeight) * 100}%`;
 				document.body.classList.add("dive-active");
 				diveActiveRef.current = true;
 				const isTrueNight =
@@ -188,11 +212,7 @@ function LayoutHost() {
 				setDive({
 					u: 1,
 					origin,
-					// When opened via direct URL (no trigger rect), use glide so no
-					// side-pitched swoop arrives from a side that was never clicked.
-					technique: rect
-						? techniqueFor({ isTrueNight, side: info.side })
-						: "glide",
+					technique: techniqueFor({ isTrueNight, side: info.side }),
 					focalDepth: 0.5,
 					blurStrength: blurStrengthFor(isTrueNight, BASE_DIVE_BLUR),
 				});
@@ -228,6 +248,20 @@ function LayoutHost() {
 		};
 	}, []);
 
+	// In-app same-page anchor clicks (nav, hero, inline topic links) arm smooth
+	// scrolling for the gesture; the browser's native fragment scroll then runs
+	// smooth (honoring scroll-margin, focus, and history exactly as before). We
+	// only arm - never preventDefault - so nothing about the native navigation
+	// changes. Cold loads and back/forward restoration never pass through here,
+	// so they keep the instant default.
+	useEffect(() => {
+		const onClick = (e: MouseEvent) => {
+			if (shouldArmSmoothForClick(e)) armSmoothScroll();
+		};
+		document.addEventListener("click", onClick);
+		return () => document.removeEventListener("click", onClick);
+	}, []);
+
 	// The design composition, pushed up from <DesignModeHost>. Seeded to the
 	// deterministic defaults so the server and the first client paint render the
 	// SAME composition - no hydration mismatch, and the band is at its settled
@@ -237,58 +271,106 @@ function LayoutHost() {
 	const [designComposer, setDesignComposer] =
 		useState<ComposerState>(DEFAULT_STATE);
 
-	// Paint the body background with the current sky color so the dive's 3D
-	// transform never reveals a white void at the landscape edges - any exposed
-	// edge matches the sky/time-of-day (frozen while a subpage is open).
+	// Paint the sky for the current progress: the body background (the void the
+	// dive's 3D transform can expose at the landscape edges) and the --sky-now
+	// custom property that PixelBackground's base layer reads. React owns
+	// --sky-now after hydration; the pre-hydration boot script (skyBoot.ts) sets
+	// it for the first frame. Frozen while a subpage is open.
 	useEffect(() => {
-		document.body.style.backgroundColor = skyAt(
-			scrollProgress,
-			celestial.curve,
-		);
+		const color = skyAt(scrollProgress, celestial.curve);
+		document.body.style.backgroundColor = color;
+		document.documentElement.style.setProperty("--sky-now", color);
 	}, [scrollProgress, celestial]);
 
+	// Own the RhythmGap height var for Tune-panel changes. The boot script already
+	// set --gap-vh from stored localStorage before paint; useCelestialState loads
+	// that same value in a passive effect, so on the FIRST commit celestial.gapVh
+	// is still the DEFAULT. Writing it here on mount would stomp the boot's stored
+	// value with the default (a 40->55->40 reflow for tuned-gap users), so skip
+	// the first run and only react to genuine post-mount changes.
+	const gapVhMountedRef = useRef(false);
 	useEffect(() => {
-		const handleScroll = () => {
-			// Freeze the day/night driver while a detail subpage is open - the
-			// subpage's own scroll must not advance the time of day.
-			if (panelOpenRef.current) return;
-			const winHeight = window.innerHeight;
-			const docHeight = document.documentElement.scrollHeight;
-			const currentScroll = window.scrollY;
-			const progress = scrollProgressAt(currentScroll, docHeight, winHeight);
-			scrollProgressRef.current = progress;
-			setScrollProgress(progress);
-			setScrollY(currentScroll);
-		};
+		if (!gapVhMountedRef.current) {
+			gapVhMountedRef.current = true;
+			return;
+		}
+		document.documentElement.style.setProperty(
+			"--gap-vh",
+			`${celestial.gapVh}vh`,
+		);
+	}, [celestial.gapVh]);
 
-		// Seed the sky from the browser's restored scroll position once on mount,
-		// then track scrolling. The composition now SSRs at its settled height, so
-		// the document height is stable from first paint - the seed reads the right
-		// fraction in one shot and no height-change recompute (ResizeObserver /
-		// resize) is needed to correct it.
-		handleScroll();
-		window.addEventListener("scroll", handleScroll);
-		return () => {
-			window.removeEventListener("scroll", handleScroll);
-		};
-	}, []);
-
-	// A rhythm-gap change (Tune panel slider, or the stored gap loading after
-	// mount) moves the document height under a stationary scroll position - no
-	// scroll event fires, so the day/night progress must be re-derived here.
-	// Skipped while a detail subpage is open: the journey is deliberately
-	// frozen there (same gate as handleScroll).
-	// biome-ignore lint/correctness/useExhaustiveDependencies: celestial.gapVh is the trigger, not a body dependency
-	useEffect(() => {
+	// Seed the day/night driver (and the sky it paints) from a given scroll
+	// offset. Callers pass window.scrollY for anchors/restoration, or a parked
+	// topic's offsetTop for a subpage whose window hasn't scrolled there yet.
+	const seedSkyAt = useCallback((y: number) => {
+		// Freeze the driver while a detail subpage is open - the subpage's own
+		// scroll must not advance the time of day.
 		if (panelOpenRef.current) return;
 		const progress = scrollProgressAt(
-			window.scrollY,
+			y,
 			document.documentElement.scrollHeight,
 			window.innerHeight,
 		);
 		scrollProgressRef.current = progress;
 		setScrollProgress(progress);
-		setScrollY(window.scrollY);
+		setScrollY(y);
+		// Paint immediately so the pre-paint seed leaves no default-day frame
+		// before the reactive effect above catches up.
+		const color = skyAt(progress, celestialRef.current.curve);
+		document.body.style.backgroundColor = color;
+		document.documentElement.style.setProperty("--sky-now", color);
+	}, []);
+
+	// Seed React sky state BEFORE the first post-hydration paint so it matches
+	// where the boot script already landed the scroll + sky. The boot script
+	// (skyBoot.ts) is the single owner of cold-entry scroll for anchors; here we
+	// only mirror the resulting position into React. A subpage's window hasn't
+	// scrolled (onPanelChange owns that), so seed from its parked topic's offset;
+	// an anchor or plain load seeds from the already-landed window scroll.
+	useIsomorphicLayoutEffect(() => {
+		const entry = coldEntryFor(window.location.pathname, window.location.hash);
+		if (entry.mode === "subpage") {
+			const el = document.getElementById(entry.topicId);
+			if (el) seedSkyAt(el.offsetTop);
+			return;
+		}
+		seedSkyAt(window.scrollY);
+	}, [seedSkyAt]);
+
+	// Drop the pre-hydration boot flag once React has COMMITTED the settled state.
+	// The boot script sets html.panel-boot for a cold deep entry so the panel and
+	// the whole celestial scene render at their resulting state with no transition
+	// (see the html.panel-boot rules in styles.css). We must not re-enable
+	// transitions until the parked scrollProgress has painted: the cold-entry seed
+	// (onPanelChange / the layout-effect seed) settles it a render or two after
+	// mount, and re-enabling too early lets that final day->night re-seed animate -
+	// the exact flash we're removing. A double rAF clears the class two frames
+	// later, well past the settle, so later user-driven navigation still animates.
+	useEffect(() => {
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				document.documentElement.classList.remove("panel-boot");
+			});
+		});
+	}, []);
+
+	// Track scrolling after the initial seed.
+	useEffect(() => {
+		const onScroll = () => seedSkyAt(window.scrollY);
+		window.addEventListener("scroll", onScroll);
+		return () => {
+			window.removeEventListener("scroll", onScroll);
+		};
+	}, [seedSkyAt]);
+
+	// A rhythm-gap change (Tune panel slider, or the stored gap loading after
+	// mount) moves the document height under a stationary scroll position - no
+	// scroll event fires, so re-seed from the current scroll (seedSkyAt re-derives
+	// progress against the new height and keeps its own subpage-open freeze).
+	// biome-ignore lint/correctness/useExhaustiveDependencies: celestial.gapVh is the trigger; seedSkyAt is stable
+	useEffect(() => {
+		seedSkyAt(window.scrollY);
 	}, [celestial.gapVh]);
 
 	useEffect(() => {
@@ -438,7 +520,10 @@ function LayoutHost() {
 				</div>
 			</nav>
 
-			<div ref={mainShellRef} className="main-shell min-h-screen md:pr-20">
+			<div
+				ref={mainShellRef}
+				className={`main-shell min-h-screen md:pr-20${subpageKey ? " main-shell--subpage" : ""}`}
+			>
 				<HeroSection />
 				<RhythmGap gapVh={celestial.gapVh} />
 				<FindMeSection />
@@ -473,7 +558,15 @@ function LayoutHost() {
 				// biome-ignore lint/security/noDangerouslySetInnerHtml: scoped keyframes for pixel ambient animations
 				dangerouslySetInnerHTML={{
 					__html: `
-						html { scroll-behavior: smooth; }
+						/* Instant by default so cold entry (fresh load / reload landing
+						   on a #anchor or subpage) and back/forward restoration jump
+						   straight to the target with no visible travel. In-app clicks
+						   arm .smooth-scroll for the gesture (see armSmoothScroll); the
+						   opt-in is gated behind prefers-reduced-motion so reduced-motion
+						   users stay instant everywhere. */
+						@media (prefers-reduced-motion: no-preference) {
+							html.smooth-scroll { scroll-behavior: smooth; }
+						}
 						#craft article, #socials, #contact { scroll-margin-top: 80px; }
 						.cursor-pixel { cursor: crosshair; }
 						::selection {

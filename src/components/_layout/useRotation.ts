@@ -8,6 +8,27 @@ type HistoryEntry<T> = { cell: number; previousItem: T };
 // Bounded undo depth for prev(): oldest entries are discarded past this.
 const HISTORY_DEPTH = 12;
 
+// Deterministic PRNG (mulberry32) for the MOUNT-TIME shuffle only. The initial
+// visible set is rendered on the server (these grids live inside dialogs, whose
+// children are server-rendered even while closed) and must match the client's
+// first render, or hydration fails (React #418) and the whole tree is
+// regenerated on the client - the flash of the main page rebuilding behind a
+// subpage panel. Math.random() here differed every render, on every request, so
+// SSR and client never agreed. A fixed seed makes the initial subset stable and
+// identical across server/client; runtime rotation still uses the injected
+// `random` (Math.random by default) so the shelf keeps varying after mount.
+const INITIAL_SHUFFLE_SEED = 0x5eeded;
+function mulberry32(seed: number): () => number {
+	let a = seed;
+	return () => {
+		a |= 0;
+		a = (a + 0x6d2b79f5) | 0;
+		let t = Math.imul(a ^ (a >>> 15), 1 | a);
+		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
+}
+
 /*
  * Generic timed grid-cell rotation engine - the Music shelf's battle-tested
  * concurrency machinery (interval scheduling, two-phase flushSync swap,
@@ -50,11 +71,14 @@ export function useRotation<T>(
 	} = opts;
 
 	const [visible, setVisible] = useState<T[]>(() => {
-		// Fisher–Yates shuffle with the injected random, then take the first
-		// visibleCount (app is client-rendered; no hydration concern).
+		// Fisher–Yates shuffle with a FIXED-seed PRNG (not the injected `random`)
+		// so the mount-time subset is identical on server and client - hydration
+		// safety, see INITIAL_SHUFFLE_SEED above. Runtime swaps below still use
+		// the injected `random`, so the shelf keeps varying after mount.
+		const seededShuffle = mulberry32(INITIAL_SHUFFLE_SEED);
 		const shuffled = [...items];
 		for (let i = shuffled.length - 1; i > 0; i--) {
-			const j = Math.floor(random() * (i + 1));
+			const j = Math.floor(seededShuffle() * (i + 1));
 			const tmp = shuffled[i] as T;
 			shuffled[i] = shuffled[j] as T;
 			shuffled[j] = tmp;

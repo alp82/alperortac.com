@@ -42,7 +42,7 @@ export const SUBPAGE_WORDS: Partial<
 	"early-days": ["EARLY", "DAYS"],
 	goodwatch: ["GOOD", "WATCH"],
 	aistack: ["AI", "STACK"],
-	alpriver: ["ALP", "RIVER"],
+	forge: ["FORGE", "PIPELINE"],
 	manaschmiede: ["MANA", "SCHMIEDE"],
 	music: ["MUSIC", "AUDIO"],
 };

@@ -18,7 +18,7 @@ A vertical scroll journey on the main path:
 **Sidetracks (deep dive subpages)** are the primary depth surface:
 
 - Career history lives in a panel triggered from The Craft.
-- Each of the four flagship projects (GoodWatch, AIStack, Alp-River, Manaschmiede) gets its own panel.
+- Each of the four flagship projects (GoodWatch, AIStack, Forge, Manaschmiede) gets its own panel.
 - Four personal-thread panels (Learning, Teaching, Family, Music) are placeholders today, reusing the Career-style yellow brutalist banner.
 - A "tune the sky" panel exposes the celestial controls as a game-y find.
 

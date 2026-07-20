@@ -20,6 +20,12 @@ export default defineConfig(({ mode }) => {
 		resolve: { tsconfigPaths: true },
 		plugins: [devtools(), tailwindcss(), tanstackStart(), viteReact()],
 		test: {
+			// Never descend into sibling worktree checkouts (.claude/worktrees/*
+			// holds other branches, e.g. research checkouts). Their test files
+			// resolve public/ against this repo's cwd, so they falsely couple to
+			// the main tree's assets and double-count the suite (wayfinder: forge
+			// rename exposed this via a stale research/song-snippet-playback tree).
+			exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/worktrees/**"],
 			// The DesignPanel suites render the full frame picker (one option per
 			// INNER_ORDER entry × 10 topic rows), which legitimately grows with
 			// every identity walk - vitest's 5s default started flaking under

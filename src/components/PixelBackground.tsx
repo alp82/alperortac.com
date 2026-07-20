@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
-import type { CelestialState } from "../data/celestial";
-import { skyAt } from "../data/skyCurve";
+import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
+import { rgbToCss, SKY_NOON } from "../data/skyCurve";
 import type { DiveRenderState } from "./_layout/dive/diveConstants";
 import { useHandheldJitter } from "./_layout/dive/useHandheldJitter";
 import {
@@ -11,54 +11,62 @@ import {
 	sunOpacityAt,
 	windowedProgress,
 } from "./minimap/helpers";
+import { useIsomorphicLayoutEffect } from "./useIsomorphicLayoutEffect";
 
-function Stars({
-	scrollProgress,
-	curve,
-}: {
-	scrollProgress: number;
-	curve: CelestialState["curve"];
-}) {
+// Progress-0 (day) positions = celestialPosition at localProgress 0 = start
+// coords. Used as the CSS-var fallback for the raw SSR frame before the boot
+// script runs.
+const SUN_DAY = DEFAULT_CELESTIAL.sun;
+const MOON_DAY = DEFAULT_CELESTIAL.moon;
+
+// Deterministic PRNG (mulberry32): the star field is generated identically on
+// the server and the client so the SSR HTML and the first client render match.
+// Math.random() here made every page's star positions differ between the two,
+// which tripped a hydration mismatch (#418) that discarded the whole SSR tree
+// and re-rendered it on the client - the flash of the main page rebuilding
+// behind a subpage panel. A fixed seed keeps the layout stable across loads.
+function mulberry32(seed: number): () => number {
+	let a = seed;
+	return () => {
+		a |= 0;
+		a = (a + 0x6d2b79f5) | 0;
+		let t = Math.imul(a ^ (a >>> 15), 1 | a);
+		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
+}
+
+function Stars() {
 	const stars = useMemo(() => {
+		const rand = mulberry32(0x5eed);
 		return Array.from({ length: 150 }).map((_, i) => ({
 			id: i,
-			x: Math.random() * 100,
-			y: Math.random() * 100,
-			size: Math.random() * 2.5 + 0.5,
-			delay: Math.random() * 5,
-			duration: Math.random() * 3 + 2,
+			x: rand() * 100,
+			y: rand() * 100,
+			size: rand() * 2.5 + 0.5,
+			delay: rand() * 5,
+			duration: rand() * 3 + 2,
 		}));
 	}, []);
 
 	const shootingStars = useMemo(() => {
+		const rand = mulberry32(0x5140);
 		return Array.from({ length: 6 }).map((_, i) => ({
 			id: i,
-			top: Math.random() * 40,
-			delay: Math.random() * 12 + i * 4,
+			top: rand() * 40,
+			delay: rand() * 12 + i * 4,
 		}));
 	}, []);
 
-	// Dots fade in across the phase2 (dusk -> night) window.
-	const [s2, e2] = curve.phase2;
-	const dotsRange = Math.max(e2 - s2, 0.001);
-	const dotsOpacity = Math.min(
-		1,
-		Math.max(0, (scrollProgress - s2) / dotsRange),
-	);
-
-	// Shooting-star lines only kick in once the sky is close to deep night -
-	// ramps slowly from phase2 end to the bottom of the page.
-	const shootingRange = Math.max(1 - e2, 0.001);
-	const shootingOpacity = Math.min(
-		1,
-		Math.max(0, (scrollProgress - e2) / shootingRange),
-	);
-
+	// Opacities are driven by --stars-o / --shoot-o: the boot script sets them
+	// for a cold deep-link before paint, and PixelBackground's effect owns them
+	// after hydration (so the star field doesn't fade in a beat late). Fallbacks
+	// are the progress-0 (day = hidden) values for the raw SSR frame.
 	return (
 		<div className="absolute inset-0 overflow-hidden pointer-events-none">
 			<div
 				className="absolute inset-0 transition-opacity duration-100 ease-linear"
-				style={{ opacity: dotsOpacity }}
+				style={{ opacity: "var(--stars-o, 0)" }}
 			>
 				{stars.map((star) => (
 					<div
@@ -78,7 +86,7 @@ function Stars({
 			</div>
 			<div
 				className="absolute inset-0 transition-opacity duration-100 ease-linear"
-				style={{ opacity: shootingOpacity }}
+				style={{ opacity: "var(--shoot-o, 0)" }}
 			>
 				{shootingStars.map((star) => (
 					<div
@@ -139,7 +147,6 @@ export function PixelBackground({
 	celestial: CelestialState;
 	dive?: DiveRenderState | undefined;
 }) {
-	const skyColor = skyAt(scrollProgress, celestial.curve);
 	const sceneRef = useRef<HTMLDivElement>(null);
 
 	// rAF colocated with the scene element it writes to: the handheld technique's
@@ -157,6 +164,54 @@ export function PixelBackground({
 				"--dive-focal-depth": dive.focalDepth,
 			} as React.CSSProperties)
 		: undefined;
+
+	// Celestial scene values, mirrored to CSS custom properties. The boot script
+	// (skyBoot.ts) sets these before paint for a cold deep-link so the sun/moon/
+	// stars sit at the right time-of-day from frame one instead of their day/
+	// initial position; this effect owns them after hydration. The markup reads
+	// the vars with progress-0 (day) fallbacks for the raw SSR frame.
+	const sunPos = celestialPosition(
+		windowedProgress(scrollProgress, SUN_WINDOW),
+		celestial.sun,
+	);
+	const sunOpacity = sunOpacityAt(scrollProgress);
+	const moonPos = celestialPosition(
+		windowedProgress(scrollProgress, MOON_WINDOW),
+		celestial.moon,
+	);
+	const moonOpacity = moonOpacityAt(scrollProgress);
+	const [phase2Start, phase2End] = celestial.curve.phase2;
+	const starsOpacity = Math.min(
+		1,
+		Math.max(
+			0,
+			(scrollProgress - phase2Start) / Math.max(phase2End - phase2Start, 0.001),
+		),
+	);
+	const shootOpacity = Math.min(
+		1,
+		Math.max(0, (scrollProgress - phase2End) / Math.max(1 - phase2End, 0.001)),
+	);
+	useIsomorphicLayoutEffect(() => {
+		const s = document.documentElement.style;
+		s.setProperty("--sun-x", `${sunPos.x}%`);
+		s.setProperty("--sun-y", `${sunPos.y}%`);
+		s.setProperty("--sun-o", `${sunOpacity}`);
+		s.setProperty("--moon-x", `${moonPos.x}%`);
+		s.setProperty("--moon-y", `${moonPos.y}%`);
+		s.setProperty("--moon-o", `${moonOpacity}`);
+		s.setProperty("--stars-o", `${starsOpacity}`);
+		s.setProperty("--shoot-o", `${shootOpacity}`);
+	}, [
+		sunPos.x,
+		sunPos.y,
+		sunOpacity,
+		moonPos.x,
+		moonPos.y,
+		moonOpacity,
+		starsOpacity,
+		shootOpacity,
+	]);
 
 	return (
 		<div className="dive-viewport fixed inset-y-0 left-0 right-0 md:right-20 -z-10">
@@ -200,7 +255,12 @@ export function PixelBackground({
 					data-depth="0"
 					style={
 						{
-							backgroundColor: skyColor,
+							// Driven by the --sky-now custom property so the pre-hydration
+							// boot script (skyBoot.ts) can colour the sky for a cold deep-link
+							// before the first paint. React owns --sky-now after hydration
+							// (see _layout's seedSky / body-background effect). The fallback is
+							// day (skyAt(0)) for the raw SSR frame before the boot script runs.
+							backgroundColor: `var(--sky-now, ${rgbToCss(SKY_NOON)})`,
 							"--layer-depth": 0,
 						} as React.CSSProperties
 					}
@@ -211,64 +271,46 @@ export function PixelBackground({
 					data-depth="0.05"
 					style={{ "--layer-depth": 0.05 } as React.CSSProperties}
 				>
-					<Stars scrollProgress={scrollProgress} curve={celestial.curve} />
+					<Stars />
 				</div>
 
-				{(() => {
-					const sunPos = celestialPosition(
-						windowedProgress(scrollProgress, SUN_WINDOW),
-						celestial.sun,
-					);
-					const sunOpacity = sunOpacityAt(scrollProgress);
-					return (
-						<div
-							className="dive-layer absolute"
-							data-depth="0.12"
-							style={
-								{
-									left: `${sunPos.x}%`,
-									top: `${sunPos.y}%`,
-									transform: "translate(-50%, -50%)",
-									opacity: sunOpacity,
-									transition: "opacity 100ms linear",
-									"--layer-depth": 0.12,
-								} as React.CSSProperties
-							}
-						>
-							<div className="w-24 h-24 bg-yellow-200 rounded-full shadow-[0_0_40px_rgba(253,224,71,0.5)] border-4 border-yellow-300" />
-						</div>
-					);
-				})()}
+				<div
+					className="dive-layer absolute"
+					data-depth="0.12"
+					style={
+						{
+							left: `var(--sun-x, ${SUN_DAY.startX}%)`,
+							top: `var(--sun-y, ${SUN_DAY.startY}%)`,
+							transform: "translate(-50%, -50%)",
+							opacity: "var(--sun-o, 1)",
+							transition: "opacity 100ms linear",
+							"--layer-depth": 0.12,
+						} as React.CSSProperties
+					}
+				>
+					<div className="w-24 h-24 bg-yellow-200 rounded-full shadow-[0_0_40px_rgba(253,224,71,0.5)] border-4 border-yellow-300" />
+				</div>
 
-				{(() => {
-					const moonPos = celestialPosition(
-						windowedProgress(scrollProgress, MOON_WINDOW),
-						celestial.moon,
-					);
-					const moonOpacity = moonOpacityAt(scrollProgress);
-					return (
-						<div
-							className="dive-layer absolute"
-							data-depth="0.12"
-							style={
-								{
-									left: `${moonPos.x}%`,
-									top: `${moonPos.y}%`,
-									transform: "translate(-50%, -50%)",
-									opacity: moonOpacity,
-									transition: "opacity 100ms linear",
-									"--layer-depth": 0.12,
-								} as React.CSSProperties
-							}
-						>
-							<div className="w-20 h-20 bg-slate-100 rounded-full shadow-[0_0_60px_rgba(255,255,255,0.2)] border-4 border-slate-300 flex items-center justify-center overflow-hidden">
-								<div className="w-6 h-6 rounded-full bg-slate-200 absolute top-2 right-4 opacity-60" />
-								<div className="w-8 h-8 rounded-full bg-slate-200 absolute bottom-4 left-2 opacity-40" />
-								<div className="w-4 h-4 rounded-full bg-slate-200 absolute top-8 left-8 opacity-50" />
-							</div>
-						</div>
-					);
-				})()}
+				<div
+					className="dive-layer absolute"
+					data-depth="0.12"
+					style={
+						{
+							left: `var(--moon-x, ${MOON_DAY.startX}%)`,
+							top: `var(--moon-y, ${MOON_DAY.startY}%)`,
+							transform: "translate(-50%, -50%)",
+							opacity: "var(--moon-o, 0)",
+							transition: "opacity 100ms linear",
+							"--layer-depth": 0.12,
+						} as React.CSSProperties
+					}
+				>
+					<div className="w-20 h-20 bg-slate-100 rounded-full shadow-[0_0_60px_rgba(255,255,255,0.2)] border-4 border-slate-300 flex items-center justify-center overflow-hidden">
+						<div className="w-6 h-6 rounded-full bg-slate-200 absolute top-2 right-4 opacity-60" />
+						<div className="w-8 h-8 rounded-full bg-slate-200 absolute bottom-4 left-2 opacity-40" />
+						<div className="w-4 h-4 rounded-full bg-slate-200 absolute top-8 left-8 opacity-50" />
+					</div>
+				</div>
 
 				<div
 					className="dive-layer"

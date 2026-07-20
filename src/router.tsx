@@ -19,7 +19,13 @@ function NotFound() {
 export function getRouter() {
 	const router = createTanStackRouter({
 		routeTree,
-		scrollRestoration: true,
+		// Off deliberately: the pre-hydration sky boot script (src/data/skyBoot.ts)
+		// owns cold-entry scroll (it lands the window on the deep-link target before
+		// paint), and the browser's native history scroll restoration
+		// (history.scrollRestoration stays "auto" when this is false) handles
+		// back/forward. With this "true", TanStack also scrolled at hydration -
+		// racing the boot land and causing a visible jump. One scroller only.
+		scrollRestoration: false,
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
 		defaultNotFoundComponent: NotFound,

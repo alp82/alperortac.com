@@ -26,7 +26,13 @@ const STORY_ROUTE_TO_SLUG: Record<string, StorySlug> = Object.fromEntries(
 	STORIES.map((s) => [`/_layout/${s.slug}`, s.slug]),
 ) as Record<string, StorySlug>;
 
-function deriveUrlPanel(
+// The open detail panel for the current route, derived purely from the router
+// matches so it is identical on the server and the first client render. Exported
+// so _layout can seed the same value into the watermark/minimap (which key off
+// the open subpage) without waiting for a post-hydration effect - otherwise the
+// minimap flashes in then unmounts, and the side-text swaps, on a cold subpage
+// load. See LayoutHost's subpageKey.
+export function deriveUrlPanel(
 	matches: ReturnType<typeof useMatches>,
 ): PanelKey | null {
 	for (const m of matches) {
@@ -80,12 +86,21 @@ export function PanelHost({
 	// sky popover takes precedence over URL panel; closing sky reveals the URL panel underneath
 	const openPanel: PanelKey | null = skyOpen ? "sky" : urlPanel;
 
+	// The URL panel as it was on the FIRST render. Rendering its <dialog open>
+	// during SSR + first client paint makes a cold subpage load show the panel
+	// already open, instead of painting the main page and popping the panel in a
+	// beat later when the imperative open-effect first runs. Captured once (a ref,
+	// so its value never changes between renders) so the effect below stays the
+	// sole owner of open/close after mount - React writes this attribute exactly
+	// once at hydration and never reconciles it again.
+	const initialOpenPanelRef = useRef(urlPanel);
+
 	const skyRef = useRef<HTMLDialogElement>(null);
 	const careerRef = useRef<HTMLDialogElement>(null);
 	const earlyDaysRef = useRef<HTMLDialogElement>(null);
 	const goodwatchRef = useRef<HTMLDialogElement>(null);
 	const aistackRef = useRef<HTMLDialogElement>(null);
-	const alpriverRef = useRef<HTMLDialogElement>(null);
+	const forgeRef = useRef<HTMLDialogElement>(null);
 	const manaschmiedeRef = useRef<HTMLDialogElement>(null);
 	const musicRef = useRef<HTMLDialogElement>(null);
 	const moviesRef = useRef<HTMLDialogElement>(null);
@@ -104,7 +119,7 @@ export function PanelHost({
 			"early-days": earlyDaysRef,
 			goodwatch: goodwatchRef,
 			aistack: aistackRef,
-			alpriver: alpriverRef,
+			forge: forgeRef,
 			manaschmiede: manaschmiedeRef,
 			music: musicRef,
 			movies: moviesRef,
@@ -309,6 +324,7 @@ export function PanelHost({
 			{/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard dismissal (Esc) is provided by the document keydown trap; this onClick only adds mouse click-out on the empty scroller. */}
 			<dialog
 				ref={careerRef}
+				open={initialOpenPanelRef.current === "career" || undefined}
 				aria-labelledby={CAREER_PANEL_TITLE_ID}
 				className="panel-surface"
 				onClick={onSurfaceClick}
@@ -327,6 +343,7 @@ export function PanelHost({
 				<dialog
 					key={story.slug}
 					ref={panelRefs[story.slug]}
+					open={initialOpenPanelRef.current === story.slug || undefined}
 					aria-labelledby={getStoryPanelTitleId(story.slug)}
 					className="panel-surface"
 					onClick={onSurfaceClick}
@@ -349,6 +366,7 @@ export function PanelHost({
 				<dialog
 					key={p.slug}
 					ref={panelRefs[p.slug]}
+					open={initialOpenPanelRef.current === p.slug || undefined}
 					aria-labelledby={getProjectPanelTitleId(p.slug)}
 					className="panel-surface"
 					onClick={onSurfaceClick}
@@ -376,6 +394,7 @@ export function PanelHost({
 				<dialog
 					key={item.slug}
 					ref={panelRefs[item.slug]}
+					open={initialOpenPanelRef.current === item.slug || undefined}
 					aria-labelledby={getPersonalPanelTitleId(item.slug)}
 					className="panel-surface"
 					onClick={onSurfaceClick}

@@ -81,30 +81,30 @@ describe("PROJECTS verbatim copy", () => {
 		]);
 	});
 
-	it("alpriver: desc/problem/solution/outcome/tags are the locked complexity-pipeline copy", () => {
-		const alpriver = find("alpriver");
-		expect(alpriver.desc).toBe(
+	it("forge: desc/problem/solution/outcome/tags are the locked complexity-pipeline copy", () => {
+		const forge = find("forge");
+		expect(forge.desc).toBe(
 			"Complexity-aware agentic coding pipeline for Claude Code.",
 		);
-		expect(alpriver.problem).toBe(
+		expect(forge.problem).toBe(
 			"Coding agents misunderstand your intent, make wrong assumptions and write buggy code.",
 		);
-		expect(alpriver.solution).toBe(
+		expect(forge.solution).toBe(
 			"I open sourced my Claude Code setup as a plugin because I genuinely think it has some unique qualities. It automatically classifies each task by complexity: S, M, L or XL. It then spawns an appropriate number of subagents to do research, planning, execution and reviewing.",
 		);
-		expect(alpriver.outcome).toBe(
+		expect(forge.outcome).toBe(
 			"The implementation results are way better, more accurate and match your actual intentions. Due to the amount of ceremony, time to finish and token usage both increase slightly.",
 		);
-		expect(alpriver.tags).toEqual(["Claude Code", "Open Source"]);
+		expect(forge.tags).toEqual(["Claude Code", "Open Source"]);
 	});
 
-	it("alpriver: extraSection heading/body stay byte-identical and gain the seven-stage chain", () => {
-		const alpriver = find("alpriver");
-		expect(alpriver.extraSection?.heading).toBe("How it works");
-		expect(alpriver.extraSection?.body).toBe(
+	it("forge: extraSection heading/body stay byte-identical and gain the seven-stage chain", () => {
+		const forge = find("forge");
+		expect(forge.extraSection?.heading).toBe("How it works");
+		expect(forge.extraSection?.body).toBe(
 			"Assumptions are not allowed, therefore every sessions starts with confirming my intent and interviewing me to actually understand the task at hand. Ideally, every goal is programmatically verifiable to guarantee success once it's done.",
 		);
-		expect(alpriver.extraSection?.stages).toEqual([
+		expect(forge.extraSection?.stages).toEqual([
 			"🔎 Intent",
 			"🧭 Scout",
 			"📐 Blueprint",
@@ -115,12 +115,12 @@ describe("PROJECTS verbatim copy", () => {
 		]);
 	});
 
-	it("alpriver: media switches to the image variant with the hero PNG", () => {
-		const alpriver = find("alpriver");
-		expect(alpriver.media).toEqual({
+	it("forge: media switches to the image variant with the hero PNG", () => {
+		const forge = find("forge");
+		expect(forge.media).toEqual({
 			type: "image",
-			src: "/projects/alp-river-hero.png",
-			alt: "Alp-River pipeline example in Claude Code",
+			src: "/projects/forge-hero.png",
+			alt: "Forge pipeline example in Claude Code",
 		});
 	});
 

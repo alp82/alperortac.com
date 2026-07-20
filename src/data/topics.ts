@@ -3,7 +3,7 @@ import type { StorySlug } from "./stories";
 
 export type ProjectSlug = Extract<
 	PanelKey,
-	"goodwatch" | "aistack" | "alpriver" | "manaschmiede"
+	"goodwatch" | "aistack" | "forge" | "manaschmiede"
 >;
 export type PersonalSlug = Extract<PanelKey, "music" | "movies" | "travel">;
 
@@ -139,7 +139,7 @@ export const TOPICS: Topic[] = [
 		// Prose lives in src/components/_layout/topics/AIContent.tsx.
 		triggers: [
 			{ kind: "project", slug: "aistack" },
-			{ kind: "project", slug: "alpriver" },
+			{ kind: "project", slug: "forge" },
 		],
 	},
 	{

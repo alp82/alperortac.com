@@ -53,6 +53,26 @@ html { scrollbar-gutter: stable; }
 	}
 }
 
+/* Cold entry straight onto a deep target (a subpage URL, or an /#anchor deep in
+   the scroll) must LAND on its resulting state, not animate into it. Two things
+   would otherwise transition, both visible through the transparent panel surface:
+     1. the panel's own 450ms entry fade (opacity above), and
+     2. the celestial scene (sky colour, sun/moon/star opacity, clouds) animating
+        day -> parked time-of-day, because React hydrates at scrollProgress 0
+        (day) and only re-seeds to the parked progress a beat later.
+   The boot script sets html.panel-boot before the first paint; killing every
+   transition on the panel and the whole background scene makes the first frame
+   the settled state (with no transition, the @starting-style above is inert too).
+   _layout removes the class after React has committed the parked state (a double
+   rAF past hydration), so later user-driven navigation still animates normally. */
+html.panel-boot .panel-surface,
+html.panel-boot .dive-viewport,
+html.panel-boot .dive-viewport *,
+html.panel-boot .main-shell,
+html.panel-boot nav {
+	transition: none !important;
+}
+
 /* Frosted readability backing: a centered content-length column matching the
    main content's max-w-3xl measure. The vertical margin leaves the landscape
    visible above the first screen and below the last as you scroll to the ends.
@@ -290,6 +310,17 @@ body.panel-open .main-shell {
 	opacity: 0;
 	transform: translateY(8px) scale(0.985);
 }
+/* Same hidden state, but keyed on a React-rendered class instead of the
+   imperative body.panel-open. subpageKey is derived from the route, so this
+   class is in the SERVER HTML on a cold subpage load - the main shell is hidden
+   in the very first paint, before the boot script or hydration runs, so the hero
+   never flashes behind the panel. (body.panel-open is added a beat later by JS
+   and also covers the sky dev overlay; this covers the pre-boot frame.) The
+   .main-shell transition still animates it back on close. */
+.main-shell--subpage {
+	opacity: 0;
+	transform: translateY(8px) scale(0.985);
+}
 
 .dive-viewport {
 	/* no perspective here at rest; the 3D context is gated on body.dive-active */
@@ -429,7 +460,8 @@ body.dive-active .dive-layer--crisp {
 		filter: none !important;
 	}
 	/* Content still recedes by opacity (not motion); drop only its push-back. */
-	body.panel-open .main-shell {
+	body.panel-open .main-shell,
+	.main-shell--subpage {
 		transform: none;
 	}
 }

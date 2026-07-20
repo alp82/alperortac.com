@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CelestialState } from "../data/celestial";
+import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
 import { skyAt } from "../data/skyCurve";
 import {
 	celestialPosition,
 	MOON_WINDOW,
-	moonOpacityAt,
 	SUN_WINDOW,
-	sunOpacityAt,
 	windowedProgress,
 } from "./minimap/helpers";
 
@@ -69,6 +67,12 @@ function buildBandMask(vpTopPct: number, vpHeightPct: number): string {
 	];
 	return `linear-gradient(to bottom, ${stops.join(", ")})`;
 }
+
+// SSR / pre-boot fallbacks for the CSS-var-driven indicator (progress 0, the
+// viewportRatio-0 height floor). The boot script overrides these before paint
+// for a cold deep-link; React owns the vars after hydration.
+const DIM_MASK_0 = buildDimMask(0, 4);
+const BAND_MASK_0 = buildBandMask(0, 4);
 
 type MinimapProps = {
 	scrollProgress: number;
@@ -150,12 +154,26 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 	);
 	const sunY = viewportTopPct + (sunPos.y / 100) * viewportHeightPct;
 	const moonY = viewportTopPct + (moonPos.y / 100) * viewportHeightPct;
-	const sunOpacity = sunOpacityAt(scrollProgress);
-	const moonOpacity = moonOpacityAt(scrollProgress);
 
 	const dimMask = buildDimMask(viewportTopPct, viewportHeightPct);
 	const bandMask = buildBandMask(viewportTopPct, viewportHeightPct);
 	const bandColor = skyAt(scrollProgress, celestial.curve);
+
+	// Own the indicator + celestial-dot CSS vars after hydration. The boot script
+	// seeds them before the first paint (so the current-section indicator AND the
+	// sun/moon dots are right from frame one, not snapped in at hydration); this
+	// keeps them in sync as the user scrolls / resizes. The sun/moon x + opacity
+	// vars (--sun-x/-o, --moon-x/-o) are owned by PixelBackground; here we set
+	// only the minimap-remapped y positions.
+	useEffect(() => {
+		const s = document.documentElement.style;
+		s.setProperty("--mm-top", `${viewportTopPct}%`);
+		s.setProperty("--mm-h", `${viewportHeightPct}%`);
+		s.setProperty("--mm-dim", dimMask);
+		s.setProperty("--mm-band", bandMask);
+		s.setProperty("--mm-sun-y", `${sunY}%`);
+		s.setProperty("--mm-moon-y", `${moonY}%`);
+	}, [viewportTopPct, viewportHeightPct, dimMask, bandMask, sunY, moonY]);
 
 	return (
 		<div
@@ -176,39 +194,39 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 				className="absolute inset-0 pointer-events-none"
 				style={{
 					backgroundColor: bandColor,
-					maskImage: bandMask,
-					WebkitMaskImage: bandMask,
+					maskImage: `var(--mm-band, ${BAND_MASK_0})`,
+					WebkitMaskImage: `var(--mm-band, ${BAND_MASK_0})`,
 				}}
 			/>
 			<div
 				className="absolute -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-yellow-200 border border-yellow-400 shadow-[0_0_6px_rgba(253,224,71,0.7)] pointer-events-none"
 				style={{
-					left: `${sunPos.x}%`,
-					top: `${sunY}%`,
-					opacity: sunOpacity,
+					left: `var(--sun-x, ${DEFAULT_CELESTIAL.sun.startX}%)`,
+					top: "var(--mm-sun-y, 0%)",
+					opacity: "var(--sun-o, 1)",
 				}}
 			/>
 			<div
 				className="absolute -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-100 border border-slate-300 pointer-events-none"
 				style={{
-					left: `${moonPos.x}%`,
-					top: `${moonY}%`,
-					opacity: moonOpacity,
+					left: `var(--moon-x, ${DEFAULT_CELESTIAL.moon.startX}%)`,
+					top: "var(--mm-moon-y, 0%)",
+					opacity: "var(--moon-o, 0)",
 				}}
 			/>
 			<div
 				className="absolute inset-0 pointer-events-none bg-slate-950"
 				style={{
 					opacity: 0.4,
-					maskImage: dimMask,
-					WebkitMaskImage: dimMask,
+					maskImage: `var(--mm-dim, ${DIM_MASK_0})`,
+					WebkitMaskImage: `var(--mm-dim, ${DIM_MASK_0})`,
 				}}
 			/>
 			<div
 				className="absolute left-0 right-0 border-y-2 border-white/20 pointer-events-none"
 				style={{
-					top: `${viewportTopPct}%`,
-					height: `${viewportHeightPct}%`,
+					top: "var(--mm-top, 0%)",
+					height: "var(--mm-h, 4%)",
 				}}
 			/>
 		</div>

@@ -6,6 +6,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { SOCIAL_LINKS } from "../components/_layout/social/socialLinks";
 import { CONTACT_EMAIL } from "../data/footer";
 import { HERO_SUMMARY, OG_HEADLINE, OG_TAGLINE } from "../data/hero";
+import { skyBootScript } from "../data/skyBoot";
 import appCss from "../styles.css?url";
 
 const SITE_URL = "https://alperortac.com";
@@ -141,6 +142,16 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 							render: <TanStackRouterDevtoolsPanel />,
 						},
 					]}
+				/>
+				{/* Pre-hydration sky boot: colours the sky for a cold deep-link target
+				    before the first paint, so an /#anchor or subpage never flashes day
+				    while the bundle loads. Placed after the app markup (needs the topic
+				    sections in the DOM to read their offset) and before <Scripts /> (the
+				    module bundle). Self-contained + try/catch, so it can never blank the
+				    page. See src/data/skyBoot.ts. */}
+				<script
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: our own generated, self-contained boot script - no user input
+					dangerouslySetInnerHTML={{ __html: skyBootScript() }}
 				/>
 				<Scripts />
 			</body>

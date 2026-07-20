@@ -26,7 +26,7 @@ export type ProjectMedia =
 export type Project = {
 	slug: Extract<
 		PanelKey,
-		"goodwatch" | "aistack" | "alpriver" | "manaschmiede"
+		"goodwatch" | "aistack" | "forge" | "manaschmiede"
 	>;
 	title: string;
 	desc: string;
@@ -95,10 +95,10 @@ export const PROJECTS: Project[] = [
 		extraLinks: [{ label: "Discord", href: "https://discord.gg/5y4fpyahaF" }],
 	},
 	{
-		slug: "alpriver",
-		title: "Alp-River",
+		slug: "forge",
+		title: "Forge",
 		desc: "Complexity-aware agentic coding pipeline for Claude Code.",
-		link: "https://github.com/alp82/alp-river",
+		link: "https://github.com/alp82/forge",
 		tags: ["Claude Code", "Open Source"],
 		color: "bg-emerald-100 text-emerald-800",
 		iconKey: "Code2",
@@ -106,8 +106,8 @@ export const PROJECTS: Project[] = [
 		panelLight: "bg-emerald-100 text-emerald-900",
 		media: {
 			type: "image",
-			src: "/projects/alp-river-hero.png",
-			alt: "Alp-River pipeline example in Claude Code",
+			src: "/projects/forge-hero.png",
+			alt: "Forge pipeline example in Claude Code",
 		},
 		problem:
 			"Coding agents misunderstand your intent, make wrong assumptions and write buggy code.",

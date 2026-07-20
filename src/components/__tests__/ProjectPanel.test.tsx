@@ -152,8 +152,8 @@ const mockImageProject: Project = {
 	...mockVideoProject,
 	media: {
 		type: "image",
-		src: "/projects/alp-river-hero.png",
-		alt: "Alp-River pipeline example in Claude Code",
+		src: "/projects/forge-hero.png",
+		alt: "Forge pipeline example in Claude Code",
 	},
 };
 
@@ -168,9 +168,9 @@ describe("ProjectPanel image media branch", () => {
 		);
 		const images = container.querySelectorAll("img");
 		expect(images.length).toBe(1);
-		expect(images[0]?.getAttribute("src")).toBe("/projects/alp-river-hero.png");
+		expect(images[0]?.getAttribute("src")).toBe("/projects/forge-hero.png");
 		expect(images[0]?.getAttribute("alt")).toBe(
-			"Alp-River pipeline example in Claude Code",
+			"Forge pipeline example in Claude Code",
 		);
 		expect(container.querySelector("video")).toBeNull();
 		expect(container.querySelector('[role="img"]')).toBeNull();
@@ -181,7 +181,7 @@ describe("ProjectPanel image media branch", () => {
 			<ProjectPanel
 				project={{
 					...mockImageProject,
-					media: { type: "image", src: "/projects/alp-river-hero.png" },
+					media: { type: "image", src: "/projects/forge-hero.png" },
 				}}
 				open={true}
 				onClose={vi.fn()}

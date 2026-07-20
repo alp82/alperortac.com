@@ -53,7 +53,9 @@ describe("RhythmGap", () => {
 		render(<RhythmGap gapVh={42} />);
 		const gap = screen.getByTestId("rhythm-gap");
 		expect(gap.getAttribute("aria-hidden")).toBe("true");
-		expect(gap.style.height).toBe("42vh");
+		// Height is driven by --gap-vh (boot-set from stored gapVh before paint,
+		// to avoid a hydration reflow) with the prop as the SSR/pre-boot fallback.
+		expect(gap.style.height).toBe("var(--gap-vh, 42vh)");
 		expect(gap.childNodes.length).toBe(0);
 	});
 });
@@ -76,7 +78,7 @@ describe("CraftSection seams", () => {
 			const gaps = screen.getAllByTestId("rhythm-gap");
 			expect(gaps.length).toBe(TOPICS.length - 1);
 			for (const gap of gaps) {
-				expect(gap.style.height).toBe("60vh");
+				expect(gap.style.height).toBe("var(--gap-vh, 60vh)");
 			}
 		} finally {
 			restore();
