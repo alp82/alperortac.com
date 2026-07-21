@@ -19,38 +19,40 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { STORY_BY_SLUG } from "../../data/stories";
-import { setReducedMotion, stubMatchMedia } from "../../test/stubMatchMedia";
 import {
 	installStubIntersectionObserver,
 	intersect,
 	intersectMany,
 	StubIntersectionObserver,
 } from "../../test/stubIntersectionObserver";
+import { setReducedMotion, stubMatchMedia } from "../../test/stubMatchMedia";
 import { EarlyDaysPanel } from "../EarlyDaysPanel";
 
 const story = STORY_BY_SLUG["early-days"];
 
-const AGES = ["12", "16", "19", "20s"];
+const AGES = ["12", "16", "18", "19", "20s"];
 const CAPTIONS = [
 	"QBasic · Turbo Pascal · Delphi",
-	"SELFHTML · floppies · FastTracker",
+	"SELFHTML · floppies · CSS",
+	"PC-room keys · CS · StarCraft · FastTracker",
 	"56k · the whole world",
 	"IRC · ICQ · LAN parties",
 ];
 const BEATS: string[][] = [
 	[
-		"I started coding with QBasic when I was 12. Built text adventures and generated PC speaker sounds.",
-		"Then started to do a little bit of graphics with Turbo Pascal. Tried Delphi.",
+		"I started coding with QBasic when I was 12 - text adventures and sounds squeezed out of the PC speaker. Then a bit of graphics in Turbo Pascal, and a look at Delphi.",
 	],
 	[
-		"Started to learn HTML and CSS when I was 16 and found my love for web development. No internet at home - my parents knew it would distract me from school, so I had to finish first.",
-		"Used the school PCs to learn about SELFHTML, copied the pages to floppies to continue learning at home. Later JavaScript.",
-		"Loved exploring possibilities - broke DOS and Windows often to experiment with systems. Did music via FastTracker, loved it.",
-		"Got keys for the PC room at school. I was very responsible, and we played CS and StarCraft in the afternoons - my parents were proud that I was staying late at school because they thought I was learning.",
+		"At 16 I found my love for web development: HTML and CSS. There was no internet at home - my parents knew it would pull me away from school, so I had to finish first.",
+		"I learned from SELFHTML on the school PCs and copied the pages onto floppies to keep going at home. Later, JavaScript.",
 	],
-	["Then internet. Mind blown."],
 	[
-		"Was admin in a forum for my friends, we chatted via IRC and later ICQ. Also gaming and LAN-parties. Lots of gaming. My digital life has begun.",
+		"I got the keys to the PC room at school. I was responsible with them - and in the afternoons we played CS and StarCraft. My parents were proud I was staying late; they thought I was learning.",
+		"I broke DOS and Windows constantly just to see what would happen, and made music in FastTracker - loved it.",
+	],
+	["Then, internet. Mind blown."],
+	[
+		"I was admin in a forum for my friends. We talked on IRC, later ICQ. Gaming and LAN parties - lots of gaming. My digital life had begun.",
 	],
 ];
 
@@ -70,17 +72,18 @@ describe("EarlyDaysPanel", () => {
 	}
 
 	// TC-EP-01
-	it("renders 4 [data-era] sections with data-era 0..3 in DOM order", () => {
+	it("renders 5 [data-era] sections with data-era 0..4 in DOM order", () => {
 		const { container } = render(
 			<EarlyDaysPanel story={story} onClose={vi.fn()} />,
 		);
 		const eras = getEraSections(container);
-		expect(eras.length).toBe(4);
+		expect(eras.length).toBe(5);
 		expect(eras.map((e) => e.getAttribute("data-era"))).toEqual([
 			"0",
 			"1",
 			"2",
 			"3",
+			"4",
 		]);
 	});
 
@@ -90,7 +93,7 @@ describe("EarlyDaysPanel", () => {
 			<EarlyDaysPanel story={story} onClose={vi.fn()} />,
 		);
 		const eras = getEraSections(container);
-		expect(eras.length).toBe(4);
+		expect(eras.length).toBe(5);
 		for (const era of eras) {
 			expect(era.classList.contains("era-reveal")).toBe(true);
 		}
@@ -134,15 +137,15 @@ describe("EarlyDaysPanel", () => {
 	});
 
 	// TC-EP-06
-	it("era index 2 has exactly one beat paragraph", () => {
+	it("era index 3 has exactly one beat paragraph", () => {
 		const { container } = render(
 			<EarlyDaysPanel story={story} onClose={vi.fn()} />,
 		);
 		const eras = getEraSections(container);
-		const era2 = eras[2]!;
-		const paragraphs = era2.querySelectorAll("p");
+		const era3 = eras[3]!;
+		const paragraphs = era3.querySelectorAll("p");
 		expect(paragraphs.length).toBe(1);
-		expect(paragraphs[0]?.textContent).toBe("Then internet. Mind blown.");
+		expect(paragraphs[0]?.textContent).toBe("Then, internet. Mind blown.");
 	});
 
 	// TC-EP-07
@@ -167,7 +170,7 @@ describe("EarlyDaysPanel", () => {
 			<EarlyDaysPanel story={story} onClose={vi.fn()} />,
 		);
 		const eras = getEraSections(container);
-		expect(eras.length).toBe(4);
+		expect(eras.length).toBe(5);
 		for (const era of eras) {
 			expect(era.classList.contains("is-revealed")).toBe(false);
 		}
@@ -175,7 +178,7 @@ describe("EarlyDaysPanel", () => {
 
 	// TC-EP-11
 	it.each([
-		0, 1, 2, 3,
+		0, 1, 2, 3, 4,
 	])("intersecting era %i reveals only that era (fresh render)", (index) => {
 		const { container } = render(
 			<EarlyDaysPanel story={story} onClose={vi.fn()} />,
@@ -233,7 +236,7 @@ describe("EarlyDaysPanel", () => {
 			<EarlyDaysPanel story={story} onClose={vi.fn()} />,
 		);
 		const eras = getEraSections(container);
-		expect(eras.length).toBe(4);
+		expect(eras.length).toBe(5);
 		for (const era of eras) {
 			expect(era.classList.contains("is-revealed")).toBe(true);
 		}
@@ -246,7 +249,7 @@ describe("EarlyDaysPanel", () => {
 			<EarlyDaysPanel story={story} onClose={vi.fn()} />,
 		);
 		const allEras = getEraSections(container);
-		expect(allEras.length).toBe(4);
+		expect(allEras.length).toBe(5);
 		const unrevealed = allEras.filter(
 			(era) => !era.classList.contains("is-revealed"),
 		);
@@ -292,7 +295,7 @@ describe("EarlyDaysPanel", () => {
 			<EarlyDaysPanel story={story} onClose={vi.fn()} />,
 		);
 		const eras = getEraSections(container);
-		expect(eras.length).toBe(4);
+		expect(eras.length).toBe(5);
 		expect(eras.every((era) => era.classList.contains("is-revealed"))).toBe(
 			false,
 		);
@@ -354,5 +357,52 @@ describe("EarlyDaysPanel", () => {
 		expect(srOnlyEl).not.toBeNull();
 		expect(srOnlyEl?.textContent).toBe(expected);
 		expect(srOnlyEl?.getAttribute("aria-hidden")).not.toBe("true");
+	});
+
+	// TC-EP-24
+	it("puts every era numeral on an aria-hidden CRT chip with the age + suffix", () => {
+		const { container } = render(
+			<EarlyDaysPanel story={story} onClose={vi.fn()} />,
+		);
+		const eras = getEraSections(container);
+		expect(eras.length).toBe(5);
+		eras.forEach((era, i) => {
+			const chip = era.querySelector<HTMLElement>(".era-chip");
+			expect(chip).not.toBeNull();
+			expect(chip?.getAttribute("aria-hidden")).toBe("true");
+			expect(chip?.textContent).toBe(AGES[i]);
+			const suffix = chip?.querySelector(".era-chip-suffix");
+			expect(suffix).not.toBeNull();
+		});
+	});
+
+	// TC-EP-25
+	it("renders every era caption on the amber-phosphor era-title element", () => {
+		const { container } = render(
+			<EarlyDaysPanel story={story} onClose={vi.fn()} />,
+		);
+		const titles = Array.from(
+			container.querySelectorAll<HTMLElement>(".era-title"),
+		);
+		expect(titles.map((t) => t.textContent)).toEqual(CAPTIONS);
+	});
+
+	// TC-EP-26
+	it("renders the chip treatment unconditionally, ignoring any ?variant= param (prototype deleted)", () => {
+		const original = window.location.href;
+		window.history.pushState({}, "", "/?variant=cream");
+		try {
+			const { container } = render(
+				<EarlyDaysPanel story={story} onClose={vi.fn()} />,
+			);
+			expect(container.querySelectorAll(".era-chip").length).toBe(5);
+			// The throwaway variant switcher and its controls are gone for good.
+			expect(container.querySelector('[aria-label="next variant"]')).toBeNull();
+			expect(
+				container.querySelector('[aria-label="previous variant"]'),
+			).toBeNull();
+		} finally {
+			window.history.pushState({}, "", original);
+		}
 	});
 });

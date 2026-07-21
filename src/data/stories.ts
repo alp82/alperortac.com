@@ -43,33 +43,39 @@ export const STORIES: Story[] = [
 				ageSuffix: "",
 				caption: "QBasic · Turbo Pascal · Delphi",
 				beats: [
-					"I started coding with QBasic when I was 12. Built text adventures and generated PC speaker sounds.",
-					"Then started to do a little bit of graphics with Turbo Pascal. Tried Delphi.",
+					"I started coding with QBasic when I was 12 - text adventures and sounds squeezed out of the PC speaker. Then a bit of graphics in Turbo Pascal, and a look at Delphi.",
 				],
 			},
 			{
 				age: "16",
 				ageSuffix: "",
-				caption: "SELFHTML · floppies · FastTracker",
+				caption: "SELFHTML · floppies · CSS",
 				beats: [
-					"Started to learn HTML and CSS when I was 16 and found my love for web development. No internet at home - my parents knew it would distract me from school, so I had to finish first.",
-					"Used the school PCs to learn about SELFHTML, copied the pages to floppies to continue learning at home. Later JavaScript.",
-					"Loved exploring possibilities - broke DOS and Windows often to experiment with systems. Did music via FastTracker, loved it.",
-					"Got keys for the PC room at school. I was very responsible, and we played CS and StarCraft in the afternoons - my parents were proud that I was staying late at school because they thought I was learning.",
+					"At 16 I found my love for web development: HTML and CSS. There was no internet at home - my parents knew it would pull me away from school, so I had to finish first.",
+					"I learned from SELFHTML on the school PCs and copied the pages onto floppies to keep going at home. Later, JavaScript.",
+				],
+			},
+			{
+				age: "18",
+				ageSuffix: "",
+				caption: "PC-room keys · CS · StarCraft · FastTracker",
+				beats: [
+					"I got the keys to the PC room at school. I was responsible with them - and in the afternoons we played CS and StarCraft. My parents were proud I was staying late; they thought I was learning.",
+					"I broke DOS and Windows constantly just to see what would happen, and made music in FastTracker - loved it.",
 				],
 			},
 			{
 				age: "19",
 				ageSuffix: "",
 				caption: "56k · the whole world",
-				beats: ["Then internet. Mind blown."],
+				beats: ["Then, internet. Mind blown."],
 			},
 			{
 				age: "20",
 				ageSuffix: "s",
 				caption: "IRC · ICQ · LAN parties",
 				beats: [
-					"Was admin in a forum for my friends, we chatted via IRC and later ICQ. Also gaming and LAN-parties. Lots of gaming. My digital life has begun.",
+					"I was admin in a forum for my friends. We talked on IRC, later ICQ. Gaming and LAN parties - lots of gaming. My digital life had begun.",
 				],
 			},
 		],

@@ -3,15 +3,16 @@ import { STORIES, STORY_BY_SLUG } from "../stories";
 
 describe("stories - early-days eras", () => {
 	// TC-SD-01
-	it('STORY_BY_SLUG["early-days"] has exactly 4 eras', () => {
-		expect(STORY_BY_SLUG["early-days"].eras.length).toBe(4);
+	it('STORY_BY_SLUG["early-days"] has exactly 5 eras', () => {
+		expect(STORY_BY_SLUG["early-days"].eras.length).toBe(5);
 	});
 
 	// TC-SD-02
-	it("orders era ages 12, 16, 19, 20", () => {
+	it("orders era ages 12, 16, 18, 19, 20", () => {
 		expect(STORY_BY_SLUG["early-days"].eras.map((e) => e.age)).toEqual([
 			"12",
 			"16",
+			"18",
 			"19",
 			"20",
 		]);
@@ -23,6 +24,7 @@ describe("stories - early-days eras", () => {
 			"",
 			"",
 			"",
+			"",
 			"s",
 		]);
 	});
@@ -31,16 +33,17 @@ describe("stories - early-days eras", () => {
 	it("renders the verbatim era captions", () => {
 		expect(STORY_BY_SLUG["early-days"].eras.map((e) => e.caption)).toEqual([
 			"QBasic · Turbo Pascal · Delphi",
-			"SELFHTML · floppies · FastTracker",
+			"SELFHTML · floppies · CSS",
+			"PC-room keys · CS · StarCraft · FastTracker",
 			"56k · the whole world",
 			"IRC · ICQ · LAN parties",
 		]);
 	});
 
 	// TC-SD-05
-	it("has beat counts [2, 4, 1, 1]", () => {
+	it("has beat counts [1, 2, 2, 1, 1]", () => {
 		expect(STORY_BY_SLUG["early-days"].eras.map((e) => e.beats.length)).toEqual(
-			[2, 4, 1, 1],
+			[1, 2, 2, 1, 1],
 		);
 	});
 
@@ -70,16 +73,25 @@ describe("stories - early-days eras", () => {
 		const eras = STORY_BY_SLUG["early-days"].eras;
 		const dashRegex = /[–—]/;
 
-		const era1Beats = eras[1]!.beats;
-		expect(era1Beats[0]).toContain(" - ");
-		expect(era1Beats[0]).not.toMatch(dashRegex);
-		expect(era1Beats[2]).toContain(" - ");
-		expect(era1Beats[2]).not.toMatch(dashRegex);
-		expect(era1Beats[3]).toContain(" - ");
-		expect(era1Beats[3]).not.toMatch(dashRegex);
+		// The spaced " - " aside appears across several eras as ASCII hyphen-minus.
+		const era0Beat0 = eras[0]!.beats[0]!;
+		expect(era0Beat0).toContain(" - ");
+		expect(era0Beat0).not.toMatch(dashRegex);
 
-		const era3Beats = eras[3]!.beats;
-		expect(era3Beats[0]).toContain("LAN-parties");
-		expect(era3Beats[0]).not.toMatch(dashRegex);
+		const era1Beat0 = eras[1]!.beats[0]!;
+		expect(era1Beat0).toContain(" - ");
+		expect(era1Beat0).not.toMatch(dashRegex);
+
+		const era2Beats = eras[2]!.beats;
+		expect(era2Beats[0]).toContain(" - ");
+		expect(era2Beats[0]).not.toMatch(dashRegex);
+		expect(era2Beats[1]).toContain(" - ");
+		expect(era2Beats[1]).not.toMatch(dashRegex);
+
+		// "LAN parties" is now a plain space, and the last beat keeps a " - " aside.
+		const era4Beat0 = eras[4]!.beats[0]!;
+		expect(era4Beat0).toContain("LAN parties");
+		expect(era4Beat0).toContain(" - ");
+		expect(era4Beat0).not.toMatch(dashRegex);
 	});
 });

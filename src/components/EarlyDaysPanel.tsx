@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Story } from "../data/stories";
-import { SubpageClose } from "./_layout/SubpageClose";
-import { EraMediaSwitcher } from "./_layout/early-days/prototype/EraMediaSwitcher";
-import "./_layout/early-days/prototype/eraMediaPrototype.css";
-import { PROTOTYPE_ERAS } from "./_layout/early-days/prototype/prototypeEras";
-import { useEraMediaVariant } from "./_layout/early-days/prototype/useEraMediaVariant";
 import { useReducedMotion } from "./_layout/dive/useReducedMotion";
+import { SubpageClose } from "./_layout/SubpageClose";
 
 export const getStoryPanelTitleId = (slug: string) => `story-${slug}-title`;
 
@@ -22,18 +18,7 @@ export function EarlyDaysPanel({ story, onClose }: EarlyDaysPanelProps) {
 		new Set(),
 	);
 	const reducedMotion = useReducedMotion();
-
-	// PROTOTYPE (wayfinder #28): when `?variant=` is present, swap in the
-	// approved five-era prose + one of three era-media treatments. Fully
-	// dormant when the param is absent - real browsing/tests are unaffected.
-	const [variant, setVariant] = useEraMediaVariant();
-	const eras = variant ? PROTOTYPE_ERAS : story.eras;
-	// Locked treatment: phosphor identity (em-phos) + compact CRT chip
-	// (em-chip); variants differ only in numeral color (em-num-<color>).
-	const treatmentClass =
-		variant && variant !== "off"
-			? ` em-phos em-chip em-num-${variant}`
-			: "";
+	const eras = story.eras;
 
 	useEffect(() => {
 		if (reducedMotion) {
@@ -95,7 +80,7 @@ export function EarlyDaysPanel({ story, onClose }: EarlyDaysPanelProps) {
 						{story.title}
 					</h2>
 
-					<div ref={timelineRef} className={`era-spine${treatmentClass}`}>
+					<div ref={timelineRef} className="era-spine">
 						{eras.map((era, i) => (
 							<section
 								// biome-ignore lint/suspicious/noArrayIndexKey: static era list, never reordered - age+suffix is not guaranteed unique across eras.
@@ -105,21 +90,17 @@ export function EarlyDaysPanel({ story, onClose }: EarlyDaysPanelProps) {
 							>
 								<div
 									aria-hidden="true"
-									className="sticky top-6 self-start select-none text-right pr-[0.9rem] sm:pr-[1.4rem] text-[3.5rem] sm:text-[5.5rem] font-black leading-none tracking-[-0.06em] text-[rgba(255,247,237,0.14)]"
+									className="era-chip sticky top-6 self-start select-none"
 								>
 									{era.age}
-									<span className="text-[1.6rem] sm:text-[2.4rem] tracking-normal">
-										{era.ageSuffix}
-									</span>
+									<span className="era-chip-suffix">{era.ageSuffix}</span>
 								</div>
 								<div>
 									<span className="sr-only">
 										Age {era.age}
 										{era.ageSuffix}
 									</span>
-									<div className="text-[0.7rem] font-bold uppercase tracking-[0.22em] text-[rgba(255,247,237,0.75)] mb-[0.6rem]">
-										{era.caption}
-									</div>
+									<div className="era-title mb-[0.6rem]">{era.caption}</div>
 									<div className="space-y-[0.9rem]">
 										{era.beats.map((beat, beatIndex) => (
 											// biome-ignore lint/suspicious/noArrayIndexKey: static beats list, never reordered - beat text is not guaranteed unique within an era.
@@ -134,9 +115,6 @@ export function EarlyDaysPanel({ story, onClose }: EarlyDaysPanelProps) {
 					</div>
 				</div>
 			</div>
-			{variant && (
-				<EraMediaSwitcher variant={variant} onChange={setVariant} />
-			)}
 		</>
 	);
 }
