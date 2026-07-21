@@ -24,19 +24,19 @@ export const YOUTUBE_SHORTS: YoutubeShort[] = [
 	{
 		id: "5mgQepVfcyc",
 		title: "Day 3 -  Best tools for your tech stack - Part 1",
-		views: 454,
+		views: 455,
 		publishedAt: "2026-05-06T21:10:50+00:00",
 	},
 	{
 		id: "UGgKyRGUwkE",
 		title: "I see the issue now - Part 1",
-		views: 959,
+		views: 962,
 		publishedAt: "2026-05-05T22:17:30+00:00",
 	},
 	{
 		id: "ueRlidFgFYY",
 		title: "Agentic Coding - hello to Day 1 of 30",
-		views: 743,
+		views: 745,
 		publishedAt: "2026-05-05T00:27:20+00:00",
 	},
 ];

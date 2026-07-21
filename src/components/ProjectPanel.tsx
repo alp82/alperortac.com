@@ -2,6 +2,7 @@ import { ExternalLink } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PROJECT_ICONS, type Project } from "../data/projects";
 import { useReducedMotion } from "./_layout/dive/useReducedMotion";
+import { ForgePipeline } from "./_layout/projects/ForgePipeline";
 import { SubpageClose } from "./_layout/SubpageClose";
 
 export const getProjectPanelTitleId = (slug: string) => `project-${slug}-title`;
@@ -212,7 +213,13 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 									{project.extraSection.heading}
 								</h3>
 								{project.extraSection.stages &&
-									project.extraSection.stages.length > 0 && (
+									project.extraSection.stages.length > 0 &&
+									// wayfinder #30: Forge's stage chain becomes the interactive
+									// classify → walk pipeline; every other project keeps the
+									// static chain.
+									(project.slug === "forge" ? (
+										<ForgePipeline />
+									) : (
 										<ul className="flex flex-wrap items-center gap-2 mb-4">
 											{project.extraSection.stages.map((stage, index) => {
 												const spaceIndex = stage.indexOf(" ");
@@ -240,7 +247,7 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 												);
 											})}
 										</ul>
-									)}
+									))}
 								<p className="text-lg leading-relaxed">
 									{project.extraSection.body}
 								</p>

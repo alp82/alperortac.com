@@ -1,3 +1,5 @@
+* #28
+* #29
 * projects as own section after socials
 * subpage triggers 3d tilted towards background, hover tilts landscape
 * https://elder-plinius.github.io/FABLE-SHOWCASE/paper-garden/index.html
