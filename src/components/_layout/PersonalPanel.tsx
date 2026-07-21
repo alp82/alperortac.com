@@ -3,7 +3,7 @@ import { ALBUMS, type Personal } from "../../data/personal";
 import { FavoritesWall } from "./movies/FavoritesWall";
 import { SnippetPlayersPrototype } from "./music/prototype/SnippetPlayersPrototype";
 import { SubpageClose } from "./SubpageClose";
-import { EarthGlobe } from "./travel/EarthGlobe";
+import { TravelGlobe } from "./travel/TravelGlobe";
 
 export const getPersonalPanelTitleId = (slug: string) =>
 	`personal-${slug}-title`;
@@ -58,17 +58,13 @@ export function PersonalPanel({ item, open, onClose }: PersonalPanelProps) {
 						</>
 					)}
 
-					{/* Stub destination for the EarthTrigger - the INTERACTIVE 3D globe
-					    of travelled locations replaces the big rotating earth (#21). */}
 					{item.slug === "travel" && (
 						<>
 							<p className="mt-6 text-lg leading-relaxed">
-								Thailand, Israel, Mexico, Grenada and all over Europe — next
+								Thailand, Israel, Mexico, Grenada and all over Europe - next
 								stamp: Japan 2027.
 							</p>
-							<div className="mt-10 flex justify-center">
-								<EarthGlobe size="min(18rem, 70vw)" />
-							</div>
+							<TravelGlobe active={open} />
 						</>
 					)}
 				</div>

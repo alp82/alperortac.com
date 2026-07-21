@@ -2,6 +2,7 @@
 import { cleanup, render } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ROUTE_NEXT, ROUTE_STOPS } from "../../../../data/travel";
 import { TOPICS, type Topic } from "../../../../data/topics";
 import { stubSectionGeometry } from "../../../../test/stubSectionGeometry";
 import { IDENTITIES } from "../identities";
@@ -1511,5 +1512,33 @@ describe("music modern candidate inners render through TopicComposition", () => 
 		expect(text).toContain("GOJIRA");
 		expect(text).toContain("PORCUPINE TREE");
 		expect(text).toContain("Noisia");
+	});
+});
+
+/*
+ * #travel-globe-subpage (M1 regression guard) - ticket-stub's route strip
+ * (THA/ISR/MEX/GRD/EUR + JPN '27) is deduped onto src/data/travel.ts's
+ * ROUTE_STOPS/ROUTE_NEXT instead of holding its own local consts. This is a
+ * NEW case (the existing IDENTITIES.travel.inner.id==="ticket-stub" lock
+ * above only guards the identity pick, not the route-strip data source) -
+ * it guards the rendered fine print still shows the exact literals after
+ * the swap.
+ */
+describe("ticket-stub route strip sources from src/data/travel.ts (TC-TICKET-01)", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	it("still renders THA/ISR/MEX/GRD/EUR + JPN '27 after the dedup, sourced from src/data/travel.ts", () => {
+		const { container } = renderCompositionWithInner("ticket-stub");
+		const text = container.querySelector("article")?.textContent ?? "";
+		for (const stop of ROUTE_STOPS) {
+			expect(text).toContain(stop);
+		}
+		expect(text).toContain(ROUTE_NEXT);
+		// Sanity: the shared data module IS the source (guards against a
+		// copy-paste fork rather than a real import).
+		expect(ROUTE_STOPS).toEqual(["THA", "ISR", "MEX", "GRD", "EUR"]);
+		expect(ROUTE_NEXT).toBe("JPN '27");
 	});
 });

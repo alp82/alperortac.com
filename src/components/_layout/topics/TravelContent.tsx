@@ -2,6 +2,8 @@ import { EarthTrigger } from "../travel/EarthTrigger";
 import { Paragraph, type TopicContentProps } from "./primitives";
 
 export function TravelContent({ lastTriggerRef }: TopicContentProps) {
+	// The visited-country list below is mirrored BY HAND from the single source
+	// in src/data/travel.ts (VISITED_PLACES) - authentic voice stays verbatim.
 	return (
 		<div className="space-y-5">
 			<Paragraph>

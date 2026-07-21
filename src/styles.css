@@ -1298,3 +1298,174 @@ body.panel-open nav {
 		transform: none;
 	}
 }
+
+/* ---- Travel globe subpage (#21) ----
+   The real interactive globe replacing the decorative earth in the Travel
+   panel. The stage hosts either the Mapbox GL satellite globe or the d3-geo SVG
+   paper globe; the memory card floats over it (boarding-pass fine print). */
+.travel-stage {
+	position: relative;
+	width: 100%;
+	height: min(72vh, 640px);
+	margin-top: 2.5rem;
+	border-radius: 10px;
+	overflow: hidden;
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.travel-globe-svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	touch-action: none;
+	cursor: grab;
+}
+.travel-globe-svg.dragging {
+	cursor: grabbing;
+}
+/* Mapbox GL satellite globe fills the stage; mapbox manages the canvas size. */
+.travel-globe-mapbox {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+.travel-globe-mapbox .mapboxgl-canvas {
+	outline: none;
+}
+/* Japan next-leg beacon on the mapbox globe - a DOM marker wrapping the shared
+   .travel-beacon pulse (a small crimson ring). */
+.travel-beacon-marker {
+	width: 14px;
+	height: 14px;
+	pointer-events: none;
+}
+.travel-beacon-marker .travel-beacon {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	border: 1.5px solid #e23b54;
+	box-sizing: border-box;
+}
+.travel-loading {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	gap: 10px;
+	font-size: 13px;
+	color: rgba(240, 249, 255, 0.6);
+}
+.travel-loading-error {
+	text-align: center;
+}
+.travel-loading-error button {
+	border: 1px solid rgba(240, 249, 255, 0.4);
+	background: transparent;
+	color: rgba(240, 249, 255, 0.85);
+	font-size: 12px;
+	padding: 4px 12px;
+	border-radius: 6px;
+	cursor: pointer;
+}
+.travel-loading-error button:hover,
+.travel-loading-error button:focus-visible {
+	background: rgba(240, 249, 255, 0.12);
+}
+
+/* click card - echoes the boarding-pass fine print */
+.travel-card {
+	position: absolute;
+	left: 14px;
+	bottom: 14px;
+	width: 250px;
+	background: #f5efe3;
+	color: #26221b;
+	border-radius: 8px;
+	padding: 12px 14px 10px;
+	border: 1px solid rgba(38, 34, 27, 0.75);
+	box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.6);
+	opacity: 0;
+	transform: translateY(8px);
+	transition:
+		opacity 160ms ease,
+		transform 160ms ease;
+}
+.travel-card.open {
+	opacity: 1;
+	transform: none;
+}
+.travel-card-stamp {
+	font-size: 10px;
+	letter-spacing: 0.24em;
+	color: #b8283f;
+	text-transform: uppercase;
+	font-weight: 700;
+}
+.travel-card-stamp.next {
+	color: #1d4ed8;
+}
+.travel-card h3 {
+	margin: 2px 0 4px;
+	font-size: 16px;
+}
+.travel-card p {
+	margin: 0;
+	font-size: 12px;
+	color: rgba(38, 34, 27, 0.75);
+	line-height: 1.45;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.travel-card-memory-placeholder {
+	color: rgba(38, 34, 27, 0.5);
+	font-style: italic;
+}
+.travel-card-close {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid rgba(38, 34, 27, 0.6);
+	border-radius: 4px;
+	background: transparent;
+	font-size: 14px;
+	line-height: 1;
+	color: rgba(38, 34, 27, 0.75);
+	cursor: pointer;
+	transition:
+		background-color 120ms ease,
+		color 120ms ease;
+}
+.travel-card-close:hover,
+.travel-card-close:focus-visible {
+	background: rgba(38, 34, 27, 0.85);
+	color: #f5efe3;
+}
+
+/* Japan next-leg beacon - a slow crimson pulse over the SVG globe */
+.travel-beacon {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: travel-beacon-pulse 1.6s ease-out infinite;
+}
+@keyframes travel-beacon-pulse {
+	0% {
+		transform: scale(0.6);
+		opacity: 0.9;
+	}
+	100% {
+		transform: scale(2.6);
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.travel-card {
+		transition: none;
+	}
+	.travel-beacon {
+		animation: none;
+	}
+}

@@ -1,3 +1,4 @@
+import { ROUTE_NEXT, ROUTE_STOPS } from "../../../../data/travel";
 import type { InnerRenderProps } from "../types";
 import { DENSITY_MAXW } from "./shared";
 
@@ -15,9 +16,8 @@ import { DENSITY_MAXW } from "./shared";
  * Route strip (wayfinder #17, the Travel lock's media treatment): a
  * boarding-pass route line printed as ticket fine print under the body -
  * visited stops joined by a solid-dot dashed path, the next leg dashed in
- * the ticket accent with a plane glyph. Stops mirror the TravelContent
- * prose (Thailand, Israel, Mexico, Grenada, Europe; next: Japan 2027) -
- * hand-edit ROUTE_STOPS/ROUTE_NEXT when the prose changes.
+ * the ticket accent with a plane glyph. ROUTE_STOPS/ROUTE_NEXT are the single
+ * source in src/data/travel.ts (shared with the Travel globe subpage).
  */
 
 /** color → the stub rail bg + the `--ticket-accent` var (applied inline). */
@@ -29,11 +29,6 @@ const TICKET_COLOR: Record<
 	indigo: "#818cf8",
 	gold: "#d4a017",
 };
-
-/** Visited stops, in prose order - see the route-strip note above. */
-const ROUTE_STOPS = ["THA", "ISR", "MEX", "GRD", "EUR"] as const;
-/** The next leg - accent-colored, plane in flight. */
-const ROUTE_NEXT = "JPN '27";
 
 export function TicketStubCluster({
 	topic,
