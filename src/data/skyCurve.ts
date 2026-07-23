@@ -129,25 +129,40 @@ export function rgbToCss(rgb: RGB): string {
 	return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
 }
 
-export function skyAt(p: number, curve: SkyCurve): string {
+// The three sky anchor colours. Extracted from the SKY_* module constants so a
+// palette can swap them (see the atmospheric-playground toy) without touching
+// the curve maths. Default = Earth, i.e. the original constants, so every
+// existing caller of skyAt(p, curve) is unchanged.
+export type SkyAnchors = { noon: RGB; dusk: RGB; night: RGB };
+export const DEFAULT_SKY_ANCHORS: SkyAnchors = {
+	noon: SKY_NOON,
+	dusk: SKY_DUSK,
+	night: SKY_NIGHT,
+};
+
+export function skyAt(
+	p: number,
+	curve: SkyCurve,
+	anchors: SkyAnchors = DEFAULT_SKY_ANCHORS,
+): string {
 	const eff = curve.enabled ? curve : LEGACY_NEUTRAL_PARAMS;
 	const [s1, e1] = eff.phase1;
 	const [s2, e2] = eff.phase2;
-	if (p <= s1) return rgbToCss(SKY_NOON);
+	if (p <= s1) return rgbToCss(anchors.noon);
 	if (p < e1) {
 		const t = (p - s1) / (e1 - s1);
 		return rgbToCss(
-			boostSat(lerpRgb(SKY_NOON, SKY_DUSK, t), eff.boost, bell(t)),
+			boostSat(lerpRgb(anchors.noon, anchors.dusk, t), eff.boost, bell(t)),
 		);
 	}
-	if (p <= s2) return rgbToCss(SKY_DUSK);
+	if (p <= s2) return rgbToCss(anchors.dusk);
 	if (p < e2) {
 		const t = (p - s2) / (e2 - s2);
 		return rgbToCss(
-			boostSat(lerpRgb(SKY_DUSK, SKY_NIGHT, t), eff.boost, bell(t)),
+			boostSat(lerpRgb(anchors.dusk, anchors.night, t), eff.boost, bell(t)),
 		);
 	}
-	return rgbToCss(SKY_NIGHT);
+	return rgbToCss(anchors.night);
 }
 
 export type ClampField = "p1s" | "p1e" | "p2s" | "p2e";

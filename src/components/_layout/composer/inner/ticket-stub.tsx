@@ -5,16 +5,16 @@ import { DENSITY_MAXW } from "./shared";
 /*
  * Inner: ticket-stub - "wide ticket."
  *
- * A WIDE event ticket: a bold stub forms a SIDE ACCENT RAIL (ADMIT ONE,
+ * A WIDE event ticket: a bold stub forms a SIDE ACCENT RAIL (BOARDING PASS,
  * ticket no., a printed barcode), a perforated tear line divides it from the
- * main ticket body, where the GENERAL-ADMISSION chrome + the heading sit above
+ * main ticket body, where the route-strip chrome + the heading sit above
  * the topic's REAL body (the shared light plate) seated as the ticket content.
  * Widened so the body holds the plate. Signature toggle (params.perforation) =
  * the perforation tear line (notches + dashed seam); `color` recolors both the
  * stub rail bg and the `--ticket-accent` var inline.
  *
  * Route strip (wayfinder #17, the Travel lock's media treatment): a
- * boarding-pass route line printed as ticket fine print under the body -
+ * boarding-pass route line printed in the header slot above the heading -
  * visited stops joined by a solid-dot dashed path, the next leg dashed in
  * the ticket accent with a plane glyph. ROUTE_STOPS/ROUTE_NEXT are the single
  * source in src/data/travel.ts (shared with the Travel globe subpage).
@@ -32,11 +32,9 @@ const TICKET_COLOR: Record<
 
 export function TicketStubCluster({
 	topic,
-	index,
 	params,
 	children,
 }: InnerRenderProps<"ticket-stub">) {
-	const num = String(index + 1).padStart(2, "0");
 	const ticketColor = TICKET_COLOR[params.color];
 
 	return (
@@ -51,9 +49,9 @@ export function TicketStubCluster({
 					style={{ background: ticketColor }}
 				>
 					<span className="font-mono text-[10px] uppercase tracking-[0.3em] text-slate-900/70 [writing-mode:vertical-rl] rotate-180">
-						admit one
+						boarding pass
 					</span>
-					<span className="font-black text-2xl text-slate-900">{num}</span>
+					<span className="font-black text-2xl text-slate-900">AO 27</span>
 					{/* printed barcode */}
 					<span
 						className="w-5 h-12"
@@ -69,17 +67,8 @@ export function TicketStubCluster({
 				)}
 				{/* body */}
 				<div className="flex-1 px-6 py-6 text-left">
-					<div className="font-mono text-[10px] uppercase tracking-[0.3em] text-slate-500 mb-2">
-						general admission
-					</div>
-					<h2 className="font-black uppercase tracking-tight text-3xl md:text-4xl text-slate-900 leading-none">
-						{topic.heading}
-					</h2>
-
-					<div className="mt-4">{children}</div>
-
-					{/* route strip - boarding-pass fine print (see file note) */}
-					<div className="mt-5 pt-3 border-t border-dashed border-slate-300">
+					{/* route strip - boarding-pass header line (see file note) */}
+					<div className="ticket-route mb-3">
 						<div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">
 							<span className="tracking-[0.3em] mr-1">route</span>
 							{ROUTE_STOPS.map((stop) => (
@@ -110,6 +99,11 @@ export function TicketStubCluster({
 							</span>
 						</div>
 					</div>
+					<h2 className="font-black uppercase tracking-tight text-3xl md:text-4xl text-slate-900 leading-none">
+						{topic.heading}
+					</h2>
+
+					<div className="mt-4">{children}</div>
 				</div>
 			</div>
 		</div>

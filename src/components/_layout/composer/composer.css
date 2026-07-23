@@ -20,6 +20,18 @@
 :root {
 	--paper: #faf7f1;
 	--ink: #0f172a;
+
+	/* ── band-shell translucency (wayfinder #40, contract locked in #31) ──
+	   ONE site-wide alpha + backdrop-blur, so the landscape and daytime sky
+	   read through every one of the ten locked band shells. Each shell's base
+	   surface converts to `color-mix(in srgb, <base> var(--band-shell-alpha),
+	   transparent)` and gets `backdrop-filter: blur(var(--band-shell-blur))`;
+	   genre chrome (header bands, LED strips, ports, tape) stays crisp on top.
+	   This single knob retunes all ten at once. Per-frame nudges belong on the
+	   frame, not here. Locked on the live day+night walk (#40): 60%, airy - the
+	   landscape reads clearly through every shell; no per-frame AA nudge needed. */
+	--band-shell-alpha: 60%;
+	--band-shell-blur: 8px;
 }
 
 /* ── inner: parallax-depth ──────────────────────────────────────────── */
@@ -603,7 +615,9 @@
 
 /* ── ticket-stub ── perforated event ticket ── */
 .ticket {
-	background: #fbf7ef;
+	background: color-mix(in srgb, #fbf7ef var(--band-shell-alpha), transparent);
+	backdrop-filter: blur(var(--band-shell-blur));
+	-webkit-backdrop-filter: blur(var(--band-shell-blur));
 	border: 2px solid #1f2937;
 	border-radius: 10px;
 	box-shadow: 0 16px 36px -18px rgba(0, 0, 0, 0.6);
@@ -1661,7 +1675,9 @@
    and the corner mount screws are clipped to the header band and never cross the
    body field. */
 .nameplate-card {
-	background: #f8fafc;
+	background: color-mix(in srgb, #f8fafc var(--band-shell-alpha), transparent);
+	backdrop-filter: blur(var(--band-shell-blur));
+	-webkit-backdrop-filter: blur(var(--band-shell-blur));
 	border: 1px solid rgba(15, 23, 42, 0.16);
 	border-radius: 12px;
 	box-shadow: 0 18px 40px -20px rgba(15, 23, 42, 0.55);
@@ -1851,7 +1867,9 @@
    bubbles all read those vars. All decoration is static - no animation, no
    transition. */
 .pr-card {
-	background: var(--pr-paper);
+	background: color-mix(in srgb, var(--pr-paper) var(--band-shell-alpha), transparent);
+	backdrop-filter: blur(var(--band-shell-blur));
+	-webkit-backdrop-filter: blur(var(--band-shell-blur));
 	color: var(--pr-ink);
 	border: 1px solid color-mix(in srgb, var(--pr-ink) 16%, transparent);
 	border-radius: 10px;
@@ -2282,7 +2300,13 @@
    keyframes at staggered phase delays and are stilled under reduced
    motion. */
 .rack {
-	background: var(--rack-rail);
+	/* single read-through layer: the rail carries the band-shell alpha; the bay
+	   below goes transparent so the prose area isn't a second stacked surface
+	   (two 0.85 layers would multiply to ~0.98 - no read-through). Faceplate +
+	   ports keep their opaque --rack-panel fills on top as crisp chrome. */
+	background: color-mix(in srgb, var(--rack-rail) var(--band-shell-alpha), transparent);
+	backdrop-filter: blur(var(--band-shell-blur));
+	-webkit-backdrop-filter: blur(var(--band-shell-blur));
 	border-radius: 8px;
 	border: 1px solid color-mix(in srgb, var(--rack-ink) 14%, transparent);
 	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
@@ -2436,7 +2460,10 @@
 	);
 }
 .rack-bay {
-	background: color-mix(in srgb, var(--rack-panel) 72%, var(--rack-rail));
+	/* transparent: the prose reads through the single translucent .rack rail
+	   layer (band-shell #40). A second panel fill here would stack and cancel
+	   the read-through. Restore a faint tone on the walk if the bay reads flat. */
+	background: transparent;
 	color: var(--rack-ink);
 }
 /* ethernet ports row: recessed patch strip along the bottom edge */
@@ -2802,7 +2829,11 @@
 /* ── agent-console ── coding-agent run (--acon-* inline vars) ── */
 .acon {
 	border-radius: 12px;
-	background: var(--acon-bg);
+	/* --acon-bg is now an OPAQUE base (the finishes dropped their old 0.95); the
+	   band-shell alpha is the single site-wide knob (#40), same as every shell. */
+	background: color-mix(in srgb, var(--acon-bg) var(--band-shell-alpha), transparent);
+	backdrop-filter: blur(var(--band-shell-blur));
+	-webkit-backdrop-filter: blur(var(--band-shell-blur));
 	color: var(--acon-ink);
 	border: 1px solid var(--acon-border);
 	box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.65);
@@ -3026,7 +3057,9 @@
    motion the tape is stilled (not hidden), and the LIVE lamp blink + quote
    flashes still too. */
 .ticker {
-	background: var(--ticker-board);
+	background: color-mix(in srgb, var(--ticker-board) var(--band-shell-alpha), transparent);
+	backdrop-filter: blur(var(--band-shell-blur));
+	-webkit-backdrop-filter: blur(var(--band-shell-blur));
 	border-radius: 12px;
 	border: 1px solid var(--ticker-edge);
 	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
@@ -3235,7 +3268,13 @@
 			color-mix(in srgb, var(--sbb-glow) 55%, transparent),
 			transparent 60%
 		),
-		linear-gradient(180deg, var(--sbb-soft), #07090d 78%);
+		linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--sbb-soft) var(--band-shell-alpha), transparent),
+			color-mix(in srgb, #07090d var(--band-shell-alpha), transparent) 78%
+		);
+	backdrop-filter: blur(var(--band-shell-blur));
+	-webkit-backdrop-filter: blur(var(--band-shell-blur));
 	border-radius: 14px;
 	border: 1px solid color-mix(in srgb, var(--sbb-glow) 35%, #1a1f28);
 	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
@@ -3657,7 +3696,13 @@
    Fixed dark journal; the journal knob moves the accent ink + hairline
    (--qlog-ink / --qlog-soft / --qlog-line). All chrome strings fixed. Static. */
 .qlog {
-	background: linear-gradient(180deg, var(--qlog-soft), #090b12 85%);
+	background: linear-gradient(
+		180deg,
+		color-mix(in srgb, var(--qlog-soft) var(--band-shell-alpha), transparent),
+		color-mix(in srgb, #090b12 var(--band-shell-alpha), transparent) 85%
+	);
+	backdrop-filter: blur(var(--band-shell-blur));
+	-webkit-backdrop-filter: blur(var(--band-shell-blur));
 	border-radius: 14px;
 	border: 1px solid var(--qlog-line);
 	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);
@@ -4152,7 +4197,13 @@
 			color-mix(in srgb, var(--fsp-a) 80%, transparent),
 			transparent 70%
 		),
-		linear-gradient(180deg, var(--fsp-a), var(--fsp-b) 92%);
+		linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--fsp-a) var(--band-shell-alpha), transparent),
+			color-mix(in srgb, var(--fsp-b) var(--band-shell-alpha), transparent) 92%
+		);
+	backdrop-filter: blur(var(--band-shell-blur));
+	-webkit-backdrop-filter: blur(var(--band-shell-blur));
 	border-radius: 12px;
 	border: 1px solid color-mix(in srgb, var(--fsp-b) 60%, #05060b);
 	box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.7);

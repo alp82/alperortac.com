@@ -216,7 +216,7 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 	"ticket-stub": {
 		id: "ticket-stub",
 		label: "Ticket Stub",
-		feel: "Wide ticket: a perforated ADMIT ONE stub + barcode in a chosen ticket color.",
+		feel: "Wide ticket: a perforated BOARDING PASS stub + barcode in a chosen ticket color, with a route strip above the heading.",
 		surface: "light",
 		defaults: { density: "roomy", perforation: true, color: "crimson" },
 		Component: TicketStubCluster,
@@ -546,7 +546,7 @@ export const INNERS: { [Id in InnerId]: InnerDef<Id> } = {
 	"festival-poster": {
 		id: "festival-poster",
 		label: "Festival Poster",
-		feel: "Festival lineup poster: ALPFEST presents the heading as the festival name over a tiered bill of the album shelf's real artists, closed by a one-stage-one-listener date strip. Gates open.",
+		feel: "Festival lineup poster: ALP presents the heading as the festival name over a tiered bill of the album shelf's real artists, closed by a one-stage-one-listener date strip. Gates open.",
 		surface: "dark",
 		defaults: { density: "roomy", lineup: true, poster: "dusk" },
 		Component: FestivalPosterCluster,

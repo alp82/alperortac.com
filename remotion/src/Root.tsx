@@ -1,12 +1,15 @@
 import { Composition } from "remotion";
 import { DURATION, FPS, HEIGHT, WIDTH } from "./theme";
-import { MoltenForge } from "./MoltenForge";
 import { PipelineFlow } from "./PipelineFlow";
-import { RawForgedMorph } from "./RawForgedMorph";
 import { CodeEmberStream } from "./CodeEmberStream";
+import { ForgeBlendB } from "./ForgeBlendB";
+import { ForgeBlendA } from "./ForgeBlendA";
+import { ForgeBlendC } from "./ForgeBlendC";
 
-// Four Forge-panel loop concepts to walk in Remotion Studio (wayfinder #29).
-// Switch between them in the left sidebar; each is a seamless 4s loop.
+// Forge-panel loop concepts to walk in Remotion Studio (wayfinder #29).
+// Round 2: PipelineFlow + CodeEmberStream survived; Alper asked to blend them.
+// Three blends to walk (top of the sidebar); the two survivors kept below as
+// reference. Each is a seamless 4s loop.
 const common = {
   durationInFrames: DURATION,
   fps: FPS,
@@ -17,10 +20,11 @@ const common = {
 export const RemotionRoot: React.FC = () => {
   return (
     <>
-      <Composition id="MoltenForge" component={MoltenForge} {...common} />
-      <Composition id="PipelineFlow" component={PipelineFlow} {...common} />
-      <Composition id="RawForgedMorph" component={RawForgedMorph} {...common} />
-      <Composition id="CodeEmberStream" component={CodeEmberStream} {...common} />
+      <Composition id="Blend-B-CometFromCode" component={ForgeBlendB} {...common} />
+      <Composition id="Blend-A-SequentialArc" component={ForgeBlendA} {...common} />
+      <Composition id="Blend-C-EmberMedium" component={ForgeBlendC} {...common} />
+      <Composition id="ref-PipelineFlow" component={PipelineFlow} {...common} />
+      <Composition id="ref-CodeEmberStream" component={CodeEmberStream} {...common} />
     </>
   );
 };

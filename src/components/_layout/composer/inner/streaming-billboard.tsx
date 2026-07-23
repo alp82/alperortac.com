@@ -11,7 +11,9 @@ import { DENSITY_MAXW } from "./shared";
  * row, the topic's REAL body seated bare below, and a thin fixed-width
  * progress strip at the foot. All chrome text is deterministic theater -
  * fixed strings ("98% Match", "#1 in Series Today"), never computed, all
- * aria-hidden. No real-brand marks anywhere - generic streaming chrome only.
+ * aria-hidden - with one deliberate exception (#39): the year badge renders
+ * the real current year (module-scope YEAR) so it never goes stale.
+ * No real-brand marks anywhere - generic streaming chrome only.
  * Signature toggle (params.badges) = the badges row; theming knob (glow) =
  * the billboard wash (crimson / indigo / ember), handed to the `.sbb-*`
  * classes as --sbb-glow / --sbb-soft / --sbb-btn inline vars (the rack
@@ -36,6 +38,9 @@ const GLOWS: Record<
 
 /** Fixed pill labels - generic streaming nav, no real-brand marks. */
 const PILLS = ["Series", "Films", "New & Hot"];
+
+/** The one computed chrome value (#39): the year badge stays current. */
+const YEAR = new Date().getFullYear();
 
 export function StreamingBillboardCluster({
 	topic,
@@ -88,7 +93,7 @@ export function StreamingBillboardCluster({
 						>
 							<span className="sbb-match">98% Match</span>
 							<span className="sbb-tag">4K</span>
-							<span className="sbb-tag">2026</span>
+							<span className="sbb-tag">{YEAR}</span>
 							<span className="sbb-top">#1 in Series Today</span>
 						</div>
 					)}

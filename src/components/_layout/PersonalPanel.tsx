@@ -1,7 +1,7 @@
 import { FAVORITES } from "../../data/favorites";
 import { ALBUMS, type Personal } from "../../data/personal";
 import { FavoritesWall } from "./movies/FavoritesWall";
-import { SnippetPlayersPrototype } from "./music/prototype/SnippetPlayersPrototype";
+import { AlbumShelf } from "./music/AlbumShelf";
 import { SubpageClose } from "./SubpageClose";
 import { TravelGlobe } from "./travel/TravelGlobe";
 
@@ -17,6 +17,17 @@ type PersonalPanelProps = {
 export function PersonalPanel({ item, open, onClose }: PersonalPanelProps) {
 	const Icon = item.Icon;
 	const titleId = getPersonalPanelTitleId(item.slug);
+
+	// Travel (#37): the globe IS the subpage - a fullscreen manifest-split
+	// experience, not a frosted prose column. TravelGlobe owns the titleId h2.
+	if (item.slug === "travel") {
+		return (
+			<>
+				<SubpageClose onClose={onClose} />
+				<TravelGlobe active={open} titleId={titleId} />
+			</>
+		);
+	}
 
 	return (
 		<>
@@ -44,8 +55,7 @@ export function PersonalPanel({ item, open, onClose }: PersonalPanelProps) {
 							<p className="mt-6 text-lg leading-relaxed">
 								Some of my all-time and current favorites include:
 							</p>
-							{/* PROTOTYPE (#27) — renders the plain AlbumShelf unless ?variant= is present */}
-							<SnippetPlayersPrototype albums={ALBUMS} active={open} />
+							<AlbumShelf albums={ALBUMS} active={open} />
 						</>
 					)}
 
@@ -55,16 +65,6 @@ export function PersonalPanel({ item, open, onClose }: PersonalPanelProps) {
 								Twelve films and twelve series I could rewatch anytime:
 							</p>
 							<FavoritesWall favorites={FAVORITES} />
-						</>
-					)}
-
-					{item.slug === "travel" && (
-						<>
-							<p className="mt-6 text-lg leading-relaxed">
-								Thailand, Israel, Mexico, Grenada and all over Europe - next
-								stamp: Japan 2027.
-							</p>
-							<TravelGlobe active={open} />
 						</>
 					)}
 				</div>

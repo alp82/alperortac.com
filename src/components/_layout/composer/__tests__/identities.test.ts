@@ -321,9 +321,9 @@ describe("ten divergent locks: career is nameplate, coding is pull-request, tech
 		);
 	});
 
-	it("TC-TRV-2: travel's media note is the verbatim lock string", () => {
+	it("TC-TRV-2: travel's media note is the verbatim lock string (amended by #39's relocation + #37's fullscreen globe)", () => {
 		expect(IDENTITIES.travel.media).toBe(
-			"route imagery - the boarding-pass route strip printed in the ticket's fine print (visited stops THA/ISR/MEX/GRD/EUR, next leg JPN '27 in the accent); stops hand-edited in ticket-stub.tsx alongside the TravelContent prose",
+			"route imagery - the boarding-pass route strip (visited stops THA/ISR/MEX/GRD/EUR, next leg JPN '27 in the accent) printed in the general-admission slot since the #39 boarding-pass pass; stops live in src/data/travel.ts (ROUTE_STOPS), shared with the fullscreen /travel globe",
 		);
 	});
 

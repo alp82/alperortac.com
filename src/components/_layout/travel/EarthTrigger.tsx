@@ -8,10 +8,10 @@ import { EarthGlobe } from "./EarthGlobe";
  * subpage, #21) - the PosterGrid pattern of "the media is the trigger".
  *
  * The rotation is pure CSS: a circle clipping a repeating equirectangular
- * texture (public-domain NASA blue-marble via Wikimedia, downscaled + palette-
- * quantized to sit with the pixel landscape) whose background-position loops
- * one full map width. Inset shadows fake the sphere's terminator + limb light.
- * Reduced-motion pins the spin (styles.css).
+ * texture (NASA blue marble, #37's walk winner over a static satellite shot
+ * and a live mini-Mapbox) whose background-position loops one full map width.
+ * Inset shadows fake the sphere's terminator + limb light. Reduced-motion
+ * pins the spin (styles.css).
  */
 export function EarthTrigger({
 	lastTriggerRef,

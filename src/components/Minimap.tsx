@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
-import { skyAt } from "../data/skyCurve";
+import { DEFAULT_SKY_ANCHORS, type SkyAnchors, skyAt } from "../data/skyCurve";
 import {
 	celestialPosition,
 	MOON_WINDOW,
@@ -77,9 +77,16 @@ const BAND_MASK_0 = buildBandMask(0, 4);
 type MinimapProps = {
 	scrollProgress: number;
 	celestial: CelestialState;
+	// Atmosphere toy: palette anchors so the minimap gradient mirrors the toy's
+	// selected world. Defaults to Earth = unchanged.
+	anchors?: SkyAnchors;
 };
 
-export function Minimap({ scrollProgress, celestial }: MinimapProps) {
+export function Minimap({
+	scrollProgress,
+	celestial,
+	anchors = DEFAULT_SKY_ANCHORS,
+}: MinimapProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [viewportRatio, setViewportRatio] = useState(0);
 	const isDraggingRef = useRef(false);
@@ -139,10 +146,10 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 		const parts: string[] = [];
 		for (let i = 0; i < STOPS; i++) {
 			const p = i / (STOPS - 1);
-			parts.push(`${skyAt(p, celestial.curve)} ${(p * 100).toFixed(2)}%`);
+			parts.push(`${skyAt(p, celestial.curve, anchors)} ${(p * 100).toFixed(2)}%`);
 		}
 		return `linear-gradient(to bottom, ${parts.join(", ")})`;
-	}, [celestial.curve]);
+	}, [celestial.curve, anchors]);
 
 	const sunPos = celestialPosition(
 		windowedProgress(scrollProgress, SUN_WINDOW),
@@ -157,7 +164,7 @@ export function Minimap({ scrollProgress, celestial }: MinimapProps) {
 
 	const dimMask = buildDimMask(viewportTopPct, viewportHeightPct);
 	const bandMask = buildBandMask(viewportTopPct, viewportHeightPct);
-	const bandColor = skyAt(scrollProgress, celestial.curve);
+	const bandColor = skyAt(scrollProgress, celestial.curve, anchors);
 
 	// Own the indicator + celestial-dot CSS vars after hydration. The boot script
 	// seeds them before the first paint (so the current-section indicator AND the

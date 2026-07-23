@@ -36,10 +36,16 @@ function mulberry32(seed: number): () => number {
 	};
 }
 
-function Stars() {
+function Stars({
+	dense = false,
+	forceShoot = false,
+}: {
+	dense?: boolean;
+	forceShoot?: boolean;
+}) {
 	const stars = useMemo(() => {
 		const rand = mulberry32(0x5eed);
-		return Array.from({ length: 150 }).map((_, i) => ({
+		return Array.from({ length: dense ? 340 : 150 }).map((_, i) => ({
 			id: i,
 			x: rand() * 100,
 			y: rand() * 100,
@@ -47,7 +53,7 @@ function Stars() {
 			delay: rand() * 5,
 			duration: rand() * 3 + 2,
 		}));
-	}, []);
+	}, [dense]);
 
 	const shootingStars = useMemo(() => {
 		const rand = mulberry32(0x5140);
@@ -86,7 +92,7 @@ function Stars() {
 			</div>
 			<div
 				className="absolute inset-0 transition-opacity duration-100 ease-linear"
-				style={{ opacity: "var(--shoot-o, 0)" }}
+				style={{ opacity: forceShoot ? 1 : "var(--shoot-o, 0)" }}
 			>
 				{shootingStars.map((star) => (
 					<div
@@ -142,10 +148,20 @@ export function PixelBackground({
 	scrollProgress,
 	celestial,
 	dive,
+	// Atmosphere toy: palette + celestial-extras overrides. All optional; the
+	// defaults reproduce the original scene exactly.
+	landscapeColor = "#4a7a8c",
+	sunColor,
+	extras,
 }: {
 	scrollProgress: number;
 	celestial: CelestialState;
 	dive?: DiveRenderState | undefined;
+	landscapeColor?: string;
+	sunColor?: { bg: string; border: string } | undefined;
+	extras?:
+		| { extraMoon: boolean; denseStars: boolean; shootingStar: boolean }
+		| undefined;
 }) {
 	const sceneRef = useRef<HTMLDivElement>(null);
 
@@ -271,7 +287,10 @@ export function PixelBackground({
 					data-depth="0.05"
 					style={{ "--layer-depth": 0.05 } as React.CSSProperties}
 				>
-					<Stars />
+					<Stars
+						dense={extras?.denseStars ?? false}
+						forceShoot={extras?.shootingStar ?? false}
+					/>
 				</div>
 
 				<div
@@ -288,7 +307,14 @@ export function PixelBackground({
 						} as React.CSSProperties
 					}
 				>
-					<div className="w-24 h-24 bg-yellow-200 rounded-full shadow-[0_0_40px_rgba(253,224,71,0.5)] border-4 border-yellow-300" />
+					<div
+						className="w-24 h-24 bg-yellow-200 rounded-full shadow-[0_0_40px_rgba(253,224,71,0.5)] border-4 border-yellow-300"
+						style={
+							sunColor
+								? { backgroundColor: sunColor.bg, borderColor: sunColor.border }
+								: undefined
+						}
+					/>
 				</div>
 
 				<div
@@ -311,6 +337,26 @@ export function PixelBackground({
 						<div className="w-4 h-4 rounded-full bg-slate-200 absolute top-8 left-8 opacity-50" />
 					</div>
 				</div>
+
+				{/* Atmosphere toy: extra companion moon (celestial extra). */}
+				{extras?.extraMoon && (
+					<div
+						className="dive-layer absolute"
+						data-depth="0.12"
+						style={
+							{
+								left: `var(--moon-x, ${MOON_DAY.startX}%)`,
+								top: `var(--moon-y, ${MOON_DAY.startY}%)`,
+								transform: "translate(-165%, -150%)",
+								opacity: "var(--moon-o, 0)",
+								transition: "opacity 100ms linear",
+								"--layer-depth": 0.12,
+							} as React.CSSProperties
+						}
+					>
+						<div className="w-12 h-12 bg-slate-100 rounded-full shadow-[0_0_40px_rgba(255,255,255,0.2)] border-4 border-slate-300" />
+					</div>
+				)}
 
 				<div
 					className="dive-layer"
@@ -369,7 +415,7 @@ export function PixelBackground({
 						aria-hidden="true"
 					>
 						<path
-							fill="#4a7a8c"
+							fill={landscapeColor}
 							d="M0 400V300l100-50h50l100 100h50l150-150h50l100 80h100l200-180h100v300z"
 							style={{ shapeRendering: "crispEdges" }}
 						/>

@@ -16,12 +16,17 @@ import { DENSITY_MAXW } from "./shared";
  * rotates the print inline.
  */
 
-/* Kraft scrapbook board - paper grain + soft fibre speckle. */
+/* Kraft scrapbook board - paper grain + soft fibre speckle. The kraft base
+ * carries the site-wide band-shell translucency (#40) so the landscape reads
+ * through; the fibre speckle rides on top. */
 const BOARD_STYLE: React.CSSProperties = {
-	backgroundColor: "#e7dcc4",
+	backgroundColor:
+		"color-mix(in srgb, #e7dcc4 var(--band-shell-alpha), transparent)",
 	backgroundImage:
 		"radial-gradient(circle at 20% 12%, rgba(120,90,40,0.07) 1px, transparent 1px), radial-gradient(circle at 78% 64%, rgba(120,90,40,0.06) 1px, transparent 1px)",
 	backgroundSize: "20px 20px, 28px 28px",
+	backdropFilter: "blur(var(--band-shell-blur))",
+	WebkitBackdropFilter: "blur(var(--band-shell-blur))",
 	border: "1px solid #c9b791",
 	boxShadow: "2px 6px 18px -8px rgba(80,60,30,0.45)",
 };

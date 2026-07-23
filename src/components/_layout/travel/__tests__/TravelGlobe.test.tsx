@@ -274,6 +274,78 @@ describe("TravelGlobe (#travel-globe-subpage)", () => {
 		expect(screen.getByText("France")).not.toBeNull();
 	});
 
+	// #37: fullscreen manifest split
+	describe("passenger manifest (#37)", () => {
+		it("renders one manifest stop button per TRAVEL_STOPS entry, plus the countries/stops count line", async () => {
+			const { TRAVEL_STOPS, VISITED_PLACES } = await import(
+				"../../../../data/travel"
+			);
+			render(<TravelGlobe active={true} />);
+
+			for (const stop of TRAVEL_STOPS) {
+				expect(
+					screen.getAllByRole("button", {
+						name: new RegExp(stop.city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+					}).length,
+				).toBeGreaterThan(0);
+			}
+			expect(
+				screen.getByText(
+					`${VISITED_PLACES.length} countries · ${TRAVEL_STOPS.length} stops`,
+				),
+			).not.toBeNull();
+		});
+
+		it("shows ISO codes, never full country names, in the manifest rows (card titles stay unique)", async () => {
+			render(<TravelGlobe active={true} />);
+			// France appears ONLY when its card is open - the manifest row for
+			// Paris must say FRA, or every getByText country assertion collides.
+			expect(screen.queryByText("France")).toBeNull();
+			expect(screen.getByText("FRA")).not.toBeNull();
+		});
+
+		it('clicking a manifest city opens a card titled "City · Country"', async () => {
+			render(<TravelGlobe active={true} />);
+
+			fireEvent.click(screen.getByRole("button", { name: /Paris/ }));
+
+			expect(await screen.findByText("Visited")).not.toBeNull();
+			expect(screen.getByText("Paris · France")).not.toBeNull();
+		});
+
+		it('clicking the Tokyo stop opens a "Next leg" card', async () => {
+			render(<TravelGlobe active={true} />);
+
+			fireEvent.click(screen.getByRole("button", { name: /Tokyo/ }));
+
+			expect(await screen.findByText("Next leg")).not.toBeNull();
+			expect(screen.getByText("Tokyo · Japan")).not.toBeNull();
+		});
+
+		it("closing a manifest-opened card restores focus to the manifest button", async () => {
+			render(<TravelGlobe active={true} />);
+
+			const parisButton = screen.getByRole("button", { name: /Paris/ });
+			parisButton.focus();
+			fireEvent.click(parisButton);
+			await screen.findByRole("dialog");
+
+			fireEvent.keyDown(document, { key: "Escape" });
+
+			expect(screen.queryByRole("dialog")).toBeNull();
+			expect(document.activeElement).toBe(parisButton);
+		});
+
+		it("renders the manifest h2 with the provided titleId (the panel dialog's aria-labelledby target)", () => {
+			const { container } = render(
+				<TravelGlobe active={false} titleId="personal-travel-title" />,
+			);
+			const h2 = container.querySelector("#personal-travel-title");
+			expect(h2).not.toBeNull();
+			expect(h2?.textContent).toBe("Travel");
+		});
+	});
+
 	// tests-missing/regression: MemoryCard dialog semantics (focus-in / Escape / focus-restore)
 	describe("MemoryCard dialog semantics (role, focus-in, Escape, focus-restore)", () => {
 		it("opening a card via the sr-only button moves focus into the dialog (the close button)", async () => {

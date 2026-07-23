@@ -26,21 +26,22 @@ const FINISHES: Record<
 	{ bg: string; ink: string; dim: string; border: string; ok: string }
 > = {
 	obsidian: {
-		bg: "rgba(10, 12, 16, 0.95)",
+		// opaque base - the site-wide --band-shell-alpha (#40) owns the alpha now
+		bg: "#0a0c10",
 		ink: "#e7eaf0",
 		dim: "#7d8595",
 		border: "rgba(125, 133, 149, 0.25)",
 		ok: "#4ade80",
 	},
 	violet: {
-		bg: "rgba(20, 12, 32, 0.95)",
+		bg: "#140c20",
 		ink: "#ece5f7",
 		dim: "#9d8fc0",
 		border: "rgba(157, 143, 192, 0.28)",
 		ok: "#c4b5fd",
 	},
 	matrix: {
-		bg: "rgba(5, 14, 9, 0.95)",
+		bg: "#050e09",
 		ink: "#d8f3e0",
 		dim: "#5f8a6d",
 		border: "rgba(95, 138, 109, 0.3)",
@@ -63,7 +64,6 @@ const ACTIONS = [
 
 export function AgentConsoleCluster({
 	topic,
-	index,
 	params,
 	accent,
 	children,
@@ -91,9 +91,7 @@ export function AgentConsoleCluster({
 						<span className="acon-lamp" aria-hidden="true" />
 						claude code
 					</span>
-					<span className="acon-run">
-						run {String(index + 1).padStart(2, "0")}
-					</span>
+					<span className="acon-run">run 07</span>
 				</div>
 
 				<div className="px-5 md:px-7 pb-6">
@@ -115,7 +113,7 @@ export function AgentConsoleCluster({
 						<>
 							<div className="acon-reason mt-6 flex items-center gap-2.5 text-xs w-fit">
 								<span className="acon-reason-orb" aria-hidden="true" />
-								<span>thought for {index + 2}s</span>
+								<span>thought for 6s</span>
 								<span className="acon-reason-chev" aria-hidden="true">
 									⌄
 								</span>
@@ -158,7 +156,7 @@ export function AgentConsoleCluster({
 					{/* status footer */}
 					<div className="acon-status mt-6 flex items-center gap-2.5 text-[11px] uppercase tracking-[0.2em]">
 						<span className="acon-status-dot" aria-hidden="true" />
-						done · 3 tools · {(index + 1) * 3}.2k tokens
+						done · 3 tools · 12.4k tokens
 					</div>
 
 					{/* prompt input - ask a follow-up (chat chrome) */}

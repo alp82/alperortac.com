@@ -4,6 +4,7 @@ import {
 	PLACE_BY_NAME,
 	ROUTE_NEXT,
 	ROUTE_STOPS,
+	TRAVEL_STOPS,
 	VISITED_PLACES,
 } from "../travel";
 
@@ -105,5 +106,45 @@ describe("travel data (#travel-globe-subpage)", () => {
 		for (const place of [...VISITED_PLACES, NEXT_DESTINATION]) {
 			expect(place.memory).toBeUndefined();
 		}
+	});
+});
+
+/*
+ * TRAVEL_STOPS contract (#37) - the manifest/pin city list is hand-editable
+ * (Alper curates the real itinerary over the shipped placeholders), so these
+ * trap edits that would silently break the globe: a stop pointing at a country
+ * the map can't resolve, or coordinates outside the valid lng/lat range.
+ */
+describe("TRAVEL_STOPS (#37)", () => {
+	it("every stop's country resolves in PLACE_BY_NAME (visited + next leg)", () => {
+		for (const stop of TRAVEL_STOPS) {
+			expect(
+				PLACE_BY_NAME[stop.country],
+				`Stop "${stop.city}" points at unknown country "${stop.country}"`,
+			).toBeDefined();
+		}
+	});
+
+	it("every stop carries valid coordinates", () => {
+		for (const stop of TRAVEL_STOPS) {
+			expect(stop.lng, `${stop.city} lng`).toBeGreaterThanOrEqual(-180);
+			expect(stop.lng, `${stop.city} lng`).toBeLessThanOrEqual(180);
+			expect(stop.lat, `${stop.city} lat`).toBeGreaterThanOrEqual(-85);
+			expect(stop.lat, `${stop.city} lat`).toBeLessThanOrEqual(85);
+		}
+	});
+
+	it("exactly the next-leg country's stops carry the next flag", () => {
+		for (const stop of TRAVEL_STOPS) {
+			expect(
+				Boolean(stop.next),
+				`${stop.city}: next flag must mirror country === ${NEXT_DESTINATION.name}`,
+			).toBe(stop.country === NEXT_DESTINATION.name);
+		}
+	});
+
+	it("has no duplicate city entries within a country", () => {
+		const keys = TRAVEL_STOPS.map((s) => `${s.city}|${s.country}`);
+		expect(new Set(keys).size).toBe(keys.length);
 	});
 });

@@ -24,10 +24,7 @@ export type ProjectMedia =
 	| { type: "illustration" };
 
 export type Project = {
-	slug: Extract<
-		PanelKey,
-		"goodwatch" | "aistack" | "forge" | "manaschmiede"
-	>;
+	slug: Extract<PanelKey, "goodwatch" | "aistack" | "forge" | "manaschmiede">;
 	title: string;
 	desc: string;
 	link: string;
@@ -105,9 +102,10 @@ export const PROJECTS: Project[] = [
 		panelColor: "#065f46",
 		panelLight: "bg-emerald-100 text-emerald-900",
 		media: {
-			type: "image",
-			src: "/projects/forge-hero.png",
-			alt: "Forge pipeline example in Claude Code",
+			type: "video",
+			mp4: "/videos/forge-pipeline.mp4",
+			webm: "/videos/forge-pipeline.webm",
+			poster: "/videos/forge-pipeline-poster.webp",
 		},
 		problem:
 			"Coding agents misunderstand your intent, make wrong assumptions and write buggy code.",

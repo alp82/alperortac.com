@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { PANEL_SIDES } from "../data/sections";
 import {
 	driftOffset,
 	LONGEST,
 	letterSizePx,
 	revealFactor,
+	SUBPAGE_WORDS,
 	type WatermarkWord,
 	WM,
 	WORDS,
@@ -67,6 +69,32 @@ describe("Constants", () => {
 		};
 		expect(byText("BUILD").color).toBe("#0f172a");
 		expect(byText("EXPLORE").color).toBe("#fff");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// SUBPAGE_WORDS (#39 microcopy detail fixes)
+// ---------------------------------------------------------------------------
+
+describe("SUBPAGE_WORDS", () => {
+	it("TC-S-01: movies pair is [MOVIES, SERIES]", () => {
+		expect(SUBPAGE_WORDS.movies).toEqual(["MOVIES", "SERIES"]);
+	});
+
+	it("TC-S-02: travel pair is [TRAVEL, WORLD]", () => {
+		expect(SUBPAGE_WORDS.travel).toEqual(["TRAVEL", "WORLD"]);
+	});
+
+	// Regression class of the #22 rider: every non-sky PanelKey (the canonical
+	// set is PANEL_SIDES's keys) must have a SUBPAGE_WORDS pair, so a future
+	// subpage can't silently fall back to the generic BUILD/EXPLORE watermark.
+	it("TC-S-03: every non-sky PanelKey (PANEL_SIDES keys) has a SUBPAGE_WORDS pair", () => {
+		for (const key of Object.keys(PANEL_SIDES)) {
+			expect(
+				SUBPAGE_WORDS[key as keyof typeof PANEL_SIDES],
+				`Missing SUBPAGE_WORDS pair for "${key}"`,
+			).toBeDefined();
+		}
 	});
 });
 

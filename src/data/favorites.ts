@@ -9,7 +9,7 @@ export type Favorite = {
 	year: string;
 	kind: "film" | "series";
 	poster: string;
-	/** Per-title blurb - landing slot for ticket #33, unset until then. */
+	/** Per-title blurb - reserved slot; ticket #33 cut it (posters-only stays). */
 	blurb?: string;
 };
 

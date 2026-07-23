@@ -2,8 +2,8 @@
 import { cleanup, render } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ROUTE_NEXT, ROUTE_STOPS } from "../../../../data/travel";
 import { TOPICS, type Topic } from "../../../../data/topics";
+import { ROUTE_NEXT, ROUTE_STOPS } from "../../../../data/travel";
 import { stubSectionGeometry } from "../../../../test/stubSectionGeometry";
 import { IDENTITIES } from "../identities";
 import { INNER_ORDER, INNERS } from "../index";
@@ -308,10 +308,13 @@ describe("Milestone 2 - neutral wrapper replaces the stage", () => {
 	// render of the music fixture now shows the LOCKED festival-poster chrome
 	// - an h2 carrying topic.heading with the poster's own .fsp-title class
 	// (not SectionTitle's brutalist drop-shadow: the poster owns its type),
-	// with the ALPFEST eyebrow present. Until #20 this asserted the shared
-	// parallax-depth seed chrome; the seed render path itself stays guarded by
-	// the renderInner/renderCompositionWithInner parallax-depth blocks.
-	it("shows the locked festival-poster chrome: an .fsp-title h2 with topic.heading and the ALPFEST eyebrow", () => {
+	// with the ALP PRESENTS eyebrow present. Until #20 this asserted the
+	// shared parallax-depth seed chrome; the seed render path itself stays
+	// guarded by the renderInner/renderCompositionWithInner parallax-depth
+	// blocks. Updated in place for #39: eyebrow text ALPFEST PRESENTS -> ALP
+	// PRESENTS; the not.toContain("ALPFEST") guard is the real assertion here
+	// since "ALPFEST PRESENTS" also contains the substring "ALP".
+	it("shows the locked festival-poster chrome: an .fsp-title h2 with topic.heading and the ALP PRESENTS eyebrow (not ALPFEST)", () => {
 		const { container } = renderComposition(topic);
 		const heading = container.querySelector("h2");
 		expect(heading).not.toBeNull();
@@ -320,7 +323,8 @@ describe("Milestone 2 - neutral wrapper replaces the stage", () => {
 		expect(heading?.className).not.toContain(
 			"drop-shadow-[4px_4px_0px_rgba(255,255,255,0.5)]",
 		);
-		expect(container.textContent).toContain("ALPFEST");
+		expect(container.textContent).toContain("ALP PRESENTS");
+		expect(container.textContent).not.toContain("ALPFEST");
 	});
 
 	// TC-13: DEFAULT_INNER is "parallax-depth" (was "constellation" on the
@@ -1540,5 +1544,133 @@ describe("ticket-stub route strip sources from src/data/travel.ts (TC-TICKET-01)
 		// copy-paste fork rather than a real import).
 		expect(ROUTE_STOPS).toEqual(["THA", "ISR", "MEX", "GRD", "EUR"]);
 		expect(ROUTE_NEXT).toBe("JPN '27");
+	});
+});
+
+/*
+ * #39 microcopy detail fixes - agent-console drops index math for fixed
+ * plausible-real values, streaming-billboard's year badge becomes the real
+ * computed current year, and ticket-stub becomes a boarding pass with the
+ * route strip relocated above the heading.
+ */
+describe("#39 microcopy detail fixes", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	// TC-39-A1: agent-console's run number / thought time / token count are
+	// fixed literals now, independent of the cluster's position on the page
+	// (the `index` prop) - renders at index 0 and index 4 must be identical.
+	it("agent-console shows fixed run 07 / thought for 6s / done · 3 tools · 12.4k tokens, identically at index 0 and index 4", () => {
+		const def = INNERS["agent-console"];
+		const Cluster = def.Component as React.ComponentType<
+			InnerRenderProps<"agent-console">
+		>;
+		const renderAt = (index: number) =>
+			render(
+				<Cluster
+					topic={topic}
+					index={index}
+					isNight={false}
+					lastTriggerRef={lastTriggerRef}
+					params={def.defaults}
+					accent={ACCENT}
+				>
+					<p data-testid="body">real body</p>
+				</Cluster>,
+			);
+
+		const zero = renderAt(0);
+		expect(zero.container.textContent).toContain("run 07");
+		expect(zero.container.textContent).toContain("thought for 6s");
+		expect(zero.container.textContent).toContain(
+			"done · 3 tools · 12.4k tokens",
+		);
+		const zeroText = zero.container.textContent;
+		cleanup();
+
+		const four = renderAt(4);
+		expect(four.container.textContent).toBe(zeroText);
+	});
+
+	// TC-39-B1: the year badge is the real current year computed at
+	// module-scope (`new Date().getFullYear()`), not hand-edited - a
+	// fake-clock render at 2031 must show "2031". A STATIC render through the
+	// file-top `INNERS` import can't exercise this: that module-scope const is
+	// only ever evaluated once, at the file's first import (long before any
+	// fake clock is armed), so `vi.resetModules()` + a dynamic import are used
+	// to force a fresh module evaluation under the faked clock.
+	//
+	// Fresh-React hazard (challenge concern, plan v1): `vi.resetModules()`
+	// forces the freshly-imported module's ENTIRE import graph - including
+	// React itself - to re-evaluate as a separate copy. This render only stays
+	// safe because the non-movies-tv path exercised below calls zero hooks
+	// from that fresh copy. If streaming-billboard ever gains a hook (e.g. a
+	// `useState` for the progress strip), this test will start throwing
+	// "invalid hook call" for reasons that have nothing to do with the year
+	// badge - if that happens, look here first.
+	it("streaming-billboard year badge renders the module-scope current year (fake-clock 2031 -> 2031)", async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2031-06-01"));
+		try {
+			vi.resetModules();
+			const mod = await import("../inner/streaming-billboard");
+			const Cluster = mod.StreamingBillboardCluster as React.ComponentType<
+				InnerRenderProps<"streaming-billboard">
+			>;
+			const { container } = render(
+				<Cluster
+					topic={topic}
+					index={0}
+					isNight={false}
+					lastTriggerRef={lastTriggerRef}
+					params={{ density: "roomy", badges: true, glow: "crimson" }}
+					accent={ACCENT}
+				>
+					<p data-testid="body">real body</p>
+				</Cluster>,
+			);
+			expect(container.textContent).toContain("2031");
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	// TC-39-C1: the rail reads "boarding pass" with ticket number "AO 27";
+	// "admit one" and the "general admission" eyebrow are both gone.
+	it("ticket-stub reads boarding pass / AO 27 and drops admit one / general admission", () => {
+		const { container } = renderCompositionWithInner("ticket-stub");
+		const text = container.querySelector("article")?.textContent ?? "";
+		expect(text).toContain("boarding pass");
+		expect(text).toContain("AO 27");
+		expect(text).not.toContain("admit one");
+		expect(text).not.toContain("general admission");
+	});
+
+	// TC-39-C2 (relocation guard): the route strip (now `.ticket-route`
+	// classed) sits ABOVE the heading in document order, and the old footer
+	// wrapper it vacated is gone entirely.
+	it("the .ticket-route element precedes the heading, and the old footer wrapper is gone", () => {
+		const { container } = renderCompositionWithInner("ticket-stub");
+		const routeEl = container.querySelector(".ticket-route");
+		const heading = container.querySelector("h2");
+		expect(routeEl).not.toBeNull();
+		expect(heading).not.toBeNull();
+		if (routeEl && heading) {
+			expect(
+				routeEl.compareDocumentPosition(heading) &
+					Node.DOCUMENT_POSITION_FOLLOWING,
+			).toBeTruthy();
+		}
+		// Load-bearing selector note (challenge concern, plan v1): the
+		// relocated strip's OWN dashed-leg spans also carry `border-t
+		// border-dashed` (the per-stop connector + the next-leg accent line),
+		// so a selector on just those two classes would false-match on the
+		// strip's own children once it moves into the header slot. `pt-3` is
+		// unique to the OLD footer wrapper being deleted - keep it in the
+		// selector even though it looks redundant.
+		const article = container.querySelector("article");
+		const oldFooter = article?.querySelector(".pt-3.border-t.border-dashed");
+		expect(oldFooter).toBeNull();
 	});
 });

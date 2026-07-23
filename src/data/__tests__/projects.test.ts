@@ -115,12 +115,13 @@ describe("PROJECTS verbatim copy", () => {
 		]);
 	});
 
-	it("forge: media switches to the image variant with the hero PNG", () => {
+	it("forge: media is the Remotion pipeline video loop with a poster", () => {
 		const forge = find("forge");
 		expect(forge.media).toEqual({
-			type: "image",
-			src: "/projects/forge-hero.png",
-			alt: "Forge pipeline example in Claude Code",
+			type: "video",
+			mp4: "/videos/forge-pipeline.mp4",
+			webm: "/videos/forge-pipeline.webm",
+			poster: "/videos/forge-pipeline-poster.webp",
 		});
 	});
 

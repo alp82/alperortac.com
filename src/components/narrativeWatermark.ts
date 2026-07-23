@@ -45,6 +45,8 @@ export const SUBPAGE_WORDS: Partial<
 	forge: ["FORGE", "PIPELINE"],
 	manaschmiede: ["MANA", "SCHMIEDE"],
 	music: ["MUSIC", "AUDIO"],
+	movies: ["MOVIES", "SERIES"],
+	travel: ["TRAVEL", "WORLD"],
 };
 
 // Longest word drives the auto-fit so the full column always fits the viewport.

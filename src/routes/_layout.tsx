@@ -48,6 +48,14 @@ import {
 	skyAt,
 } from "../data/skyCurve";
 import { PANEL_KEY_TO_TOPIC_ID, TOPICS } from "../data/topics";
+// The atmospheric-playground toy (#38 / #32): the always-on visitor sky toy.
+import {
+	AtmosphereToy,
+	paletteAnchorsFor,
+	paletteVisualsFor,
+	softSlice,
+	usePlayground,
+} from "../components/_layout/playground/AtmosphereToy";
 
 export const Route = createFileRoute("/_layout")({ component: LayoutHost });
 
@@ -123,6 +131,13 @@ function LayoutHost() {
 	useEffect(() => {
 		celestialRef.current = celestial;
 	}, [celestial]);
+	// Atmosphere toy state (time-slice override + palette + extras). Held in a ref
+	// too so the []-dep sky painters can read it without resubscribing.
+	const [playground, playgroundApi] = usePlayground();
+	const playgroundRef = useRef(playground);
+	useEffect(() => {
+		playgroundRef.current = playground;
+	}, [playground]);
 	const [skyOpen, setSkyOpen] = useState(false);
 	const [aboutOpen, setAboutOpen] = useState(false);
 	const aboutMenuRef = useRef<HTMLDivElement | null>(null);
@@ -276,11 +291,22 @@ function LayoutHost() {
 	// custom property that PixelBackground's base layer reads. React owns
 	// --sky-now after hydration; the pre-hydration boot script (skyBoot.ts) sets
 	// it for the first frame. Frozen while a subpage is open.
-	useEffect(() => {
-		const color = skyAt(scrollProgress, celestial.curve);
+	// Paint the sky for a RAW scroll progress, applying the atmosphere toy's soft
+	// time-slice override + palette anchors when active. Both paint sites (this
+	// reactive effect and seedSkyAt's pre-paint) route through here so they always
+	// agree. Reads refs so it stays []-stable.
+	const paintSky = useCallback((rawProgress: number) => {
+		const pg = playgroundRef.current;
+		const eff = pg.time != null ? softSlice(pg.time, rawProgress) : rawProgress;
+		const anchors = paletteAnchorsFor(pg.palette);
+		const color = skyAt(eff, celestialRef.current.curve, anchors);
 		document.body.style.backgroundColor = color;
 		document.documentElement.style.setProperty("--sky-now", color);
-	}, [scrollProgress, celestial]);
+	}, []);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: celestial + playground are repaint triggers - paintSky reads them via refs, so a palette/time/curve change must re-run this effect to recolour --sky-now without waiting for a scroll.
+	useEffect(() => {
+		paintSky(scrollProgress);
+	}, [scrollProgress, celestial, playground, paintSky]);
 
 	// Own the RhythmGap height var for Tune-panel changes. The boot script already
 	// set --gap-vh from stored localStorage before paint; useCelestialState loads
@@ -316,11 +342,10 @@ function LayoutHost() {
 		setScrollProgress(progress);
 		setScrollY(y);
 		// Paint immediately so the pre-paint seed leaves no default-day frame
-		// before the reactive effect above catches up.
-		const color = skyAt(progress, celestialRef.current.curve);
-		document.body.style.backgroundColor = color;
-		document.documentElement.style.setProperty("--sky-now", color);
-	}, []);
+		// before the reactive effect above catches up. paintSky applies any
+		// active atmosphere-toy override/palette.
+		paintSky(progress);
+	}, [paintSky]);
 
 	// Seed React sky state BEFORE the first post-hydration paint so it matches
 	// where the boot script already landed the scroll + sky. The boot script
@@ -390,16 +415,28 @@ function LayoutHost() {
 		};
 	}, [aboutOpen]);
 
-	const isNight = scrollProgress >= NIGHT_UI_THRESHOLD;
+	// The sky/celestial scene follows the toy's time-slice override when one is
+	// set; otherwise it tracks real scroll. Only the sky-facing values use this -
+	// scroll position, watermark, and dive keep raw scroll.
+	const skyProgress =
+		playground.time != null
+			? softSlice(playground.time, scrollProgress)
+			: scrollProgress;
+	const paletteAnchors = paletteAnchorsFor(playground.palette);
+	const paletteVisuals = paletteVisualsFor(playground.palette);
+	const isNight = skyProgress >= NIGHT_UI_THRESHOLD;
 	const navColor = isNight ? "white" : "#0f172a";
 	const aboutItemClass = `block px-4 py-2 text-sm font-black uppercase tracking-widest transition-colors ${isNight ? "hover:bg-white hover:text-slate-900" : "hover:bg-slate-900 hover:text-white"}`;
 
 	return (
 		<div className="font-sans text-slate-900 selection:bg-yellow-200">
 			<PixelBackground
-				scrollProgress={scrollProgress}
+				scrollProgress={skyProgress}
 				celestial={celestial}
 				dive={dive}
+				landscapeColor={paletteVisuals.landscape}
+				sunColor={paletteVisuals.sun}
+				extras={playground.extras}
 			/>
 			<NarrativeWatermark
 				scrollProgress={scrollProgress}
@@ -408,25 +445,37 @@ function LayoutHost() {
 				isNight={isNight}
 			/>
 			{subpageKey === null && (
-				<Minimap scrollProgress={scrollProgress} celestial={celestial} />
+				<Minimap
+					scrollProgress={skyProgress}
+					celestial={celestial}
+					anchors={paletteAnchors}
+				/>
 			)}
 
-			<button
-				type="button"
-				onClick={(e) => {
-					lastTriggerRef.current = e.currentTarget;
-					setSkyOpen(true);
-				}}
-				aria-label="Tune sky animation"
-				className="fixed bottom-4 left-4 z-50 bg-slate-900 text-white min-h-[44px] px-3 py-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.4)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform"
-			>
-				Tune ☀ ☾
-			</button>
+			{/* Dev authoring tools - dev servers only. The visitor-facing Atmosphere
+			    toy replaces them in production; here Tune stacks above the Design
+			    selector in the bottom-right dev cluster so both clear the toy dial
+			    (bottom-left) and the minimap (md:right-24). */}
+			{import.meta.env.DEV && (
+				<button
+					type="button"
+					onClick={(e) => {
+						lastTriggerRef.current = e.currentTarget;
+						setSkyOpen(true);
+					}}
+					aria-label="Tune sky animation"
+					className="fixed bottom-20 right-4 md:right-24 z-50 bg-slate-900 text-white min-h-[44px] px-3 py-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.4)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform"
+				>
+					Tune ☀ ☾
+				</button>
+			)}
 
-			<DesignModeHost
-				lastTriggerRef={lastTriggerRef}
-				onComposer={setDesignComposer}
-			/>
+			{import.meta.env.DEV && (
+				<DesignModeHost
+					lastTriggerRef={lastTriggerRef}
+					onComposer={setDesignComposer}
+				/>
+			)}
 
 			<nav
 				ref={navRef}
@@ -547,6 +596,14 @@ function LayoutHost() {
 				onPanelChange={onPanelChange}
 				navRef={navRef}
 				mainShellRef={mainShellRef}
+			/>
+
+			{/* The always-on atmospheric-playground toy (visitor sky toy). */}
+			<AtmosphereToy
+				playground={playground}
+				api={playgroundApi}
+				live={skyProgress}
+				isNight={isNight}
 			/>
 
 			{/* Outlet must be rendered so child routes are matched by useMatches; children render null */}

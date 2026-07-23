@@ -71,7 +71,8 @@ export function PullRequestCluster({
 						"--pr-ink": PR_INK,
 						"--pr-add": STAT_GREEN,
 						"--pr-del": STAT_RED,
-						backgroundColor: PR_PAPER,
+						// base surface (backgroundColor) now comes from .pr-card in CSS,
+						// which applies the site-wide --band-shell-alpha translucency (#40)
 						color: PR_INK,
 					} as React.CSSProperties
 				}

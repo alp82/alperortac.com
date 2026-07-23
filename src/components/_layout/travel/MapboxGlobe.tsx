@@ -3,7 +3,13 @@ import type { Feature, FeatureCollection, Point } from "geojson";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef } from "react";
-import { NEXT_NAME, TRAVEL_ACCENT, VISITED_NAMES } from "../../../data/travel";
+import {
+	NEXT_NAME,
+	TRAVEL_ACCENT,
+	TRAVEL_STOPS,
+	type TravelStop,
+	VISITED_NAMES,
+} from "../../../data/travel";
 import type { CountryFeature, CountryProps, WorldData } from "./worldData";
 
 /*
@@ -27,6 +33,11 @@ import type { CountryFeature, CountryProps, WorldData } from "./worldData";
  * expressions), a `visited-line` cream stroke, a `tiny-visited` crimson circle
  * layer for dot-scale countries, and a DOM Marker carrying `.travel-beacon` at
  * Japan's centroid (reuses the CSS pulse, which already honors reduced-motion).
+ *
+ * #37 (manifest split, prototype variant C): a `travel-stop-*` dot + label
+ * symbol pair renders every TRAVEL_STOPS city, always visible; clicking a stop
+ * reports up via onSelectStop (the manifest column owns flyTo through the map
+ * handle exposed by onMapReady).
  */
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
@@ -36,9 +47,12 @@ mapboxgl.accessToken = MAPBOX_TOKEN ?? "";
 const FILL_LAYER = "travel-visited-fill";
 const LINE_LAYER = "travel-visited-line";
 const DOT_LAYER = "travel-tiny-visited";
+const STOP_DOT_LAYER = "travel-stop-dot";
+const STOP_LABEL_LAYER = "travel-stop-label";
 
 const VISITED_SOURCE = "travel-visited";
 const DOT_SOURCE = "travel-tiny";
+const STOP_SOURCE = "travel-stops";
 
 // Japan brighter/raised; other visited countries a soft crimson - tuned so the
 // satellite imagery still reads through.
@@ -49,17 +63,27 @@ const VISITED_OPACITY = 0.38;
 export default function MapboxGlobe({
 	world,
 	onSelect,
+	onSelectStop,
+	onMapReady,
 }: {
 	world: WorldData;
 	onSelect: (name: string) => void;
+	/** A city pin was clicked (#37). */
+	onSelectStop: (stop: TravelStop) => void;
+	/** Hands the live map up for manifest flyTo (#37). */
+	onMapReady?: (map: mapboxgl.Map) => void;
 	active: boolean;
 }) {
 	const mountRef = useRef<HTMLDivElement | null>(null);
 
-	// Keep the latest onSelect without re-creating the map on every render.
+	// Keep the latest callbacks without re-creating the map on every render.
 	const onSelectRef = useRef(onSelect);
+	const onSelectStopRef = useRef(onSelectStop);
+	const onMapReadyRef = useRef(onMapReady);
 	useEffect(() => {
 		onSelectRef.current = onSelect;
+		onSelectStopRef.current = onSelectStop;
+		onMapReadyRef.current = onMapReady;
 	});
 
 	useEffect(() => {
@@ -96,6 +120,19 @@ export default function MapboxGlobe({
 			features: dotFeatures,
 		};
 
+		// City stops (#37) - a dot + always-on label per TRAVEL_STOPS entry.
+		const stopCollection: FeatureCollection<
+			Point,
+			{ idx: number; city: string; next: number }
+		> = {
+			type: "FeatureCollection",
+			features: TRAVEL_STOPS.map((stop, idx) => ({
+				type: "Feature",
+				properties: { idx, city: stop.city, next: stop.next ? 1 : 0 },
+				geometry: { type: "Point", coordinates: [stop.lng, stop.lat] },
+			})),
+		};
+
 		const map = new mapboxgl.Map({
 			container: mount,
 			style: "mapbox://styles/mapbox/satellite-streets-v12",
@@ -106,8 +143,18 @@ export default function MapboxGlobe({
 		});
 
 		const onClick = (e: mapboxgl.MapMouseEvent) => {
+			// Stop pins sit above the fills - if one was hit, it owns the click.
+			const pinHit = map.queryRenderedFeatures(e.point, {
+				layers: [STOP_DOT_LAYER, STOP_LABEL_LAYER],
+			});
+			if (pinHit.length > 0) return;
 			const name = e.features?.[0]?.properties?.name;
 			if (typeof name === "string") onSelectRef.current(name);
+		};
+		const onStopClick = (e: mapboxgl.MapMouseEvent) => {
+			const idx = e.features?.[0]?.properties?.idx;
+			const stop = typeof idx === "number" ? TRAVEL_STOPS[idx] : undefined;
+			if (stop) onSelectStopRef.current(stop);
 		};
 		const onEnter = () => {
 			map.getCanvas().style.cursor = "pointer";
@@ -127,6 +174,7 @@ export default function MapboxGlobe({
 				data: visitedCollection,
 			});
 			map.addSource(DOT_SOURCE, { type: "geojson", data: dotCollection });
+			map.addSource(STOP_SOURCE, { type: "geojson", data: stopCollection });
 
 			map.addLayer({
 				id: FILL_LAYER,
@@ -173,9 +221,46 @@ export default function MapboxGlobe({
 				},
 			});
 
-			// Click + hover affordance on both the fills and the tiny dots.
+			// City stop pins (#37): cream dot with a crimson ring (next leg sky-
+			// tinted) + an always-visible city label, cream with an ink halo so it
+			// reads on both ocean and terrain tiles.
+			map.addLayer({
+				id: STOP_DOT_LAYER,
+				type: "circle",
+				source: STOP_SOURCE,
+				paint: {
+					"circle-radius": ["interpolate", ["linear"], ["zoom"], 1.5, 3, 6, 6],
+					"circle-color": ["match", ["get", "next"], 1, "#7dd3fc", "#faf6ec"],
+					"circle-stroke-color": TRAVEL_ACCENT,
+					"circle-stroke-width": 2,
+				},
+			});
+			map.addLayer({
+				id: STOP_LABEL_LAYER,
+				type: "symbol",
+				source: STOP_SOURCE,
+				layout: {
+					"text-field": ["get", "city"],
+					"text-size": 12,
+					"text-offset": [0, 1.1],
+					"text-anchor": "top",
+					"text-font": ["DIN Pro Medium", "Arial Unicode MS Regular"],
+				},
+				paint: {
+					"text-color": "#faf6ec",
+					"text-halo-color": "rgba(15,23,42,0.85)",
+					"text-halo-width": 1.2,
+				},
+			});
+
+			// Click + hover affordance on the fills, tiny dots, and stop pins.
 			for (const layer of [FILL_LAYER, DOT_LAYER]) {
 				map.on("click", layer, onClick);
+				map.on("mouseenter", layer, onEnter);
+				map.on("mouseleave", layer, onLeave);
+			}
+			for (const layer of [STOP_DOT_LAYER, STOP_LABEL_LAYER]) {
+				map.on("click", layer, onStopClick);
 				map.on("mouseenter", layer, onEnter);
 				map.on("mouseleave", layer, onLeave);
 			}
@@ -194,6 +279,8 @@ export default function MapboxGlobe({
 					.setLngLat([jLng, jLat])
 					.addTo(map);
 			}
+
+			onMapReadyRef.current?.(map);
 		});
 
 		// Mapbox tracks its own container size, but resize defensively if the

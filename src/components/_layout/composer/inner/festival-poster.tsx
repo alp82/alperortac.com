@@ -5,7 +5,7 @@ import { DENSITY_MAXW } from "./shared";
 /*
  * Inner: festival-poster - "one stage, one listener."
  *
- * A festival lineup poster is the frame: an "ALPFEST" presents-eyebrow, the
+ * A festival lineup poster is the frame: an "ALP" presents-eyebrow, the
  * heading huge and centered as the festival name, an optional tiered lineup
  * bill, a date strip, and the topic's REAL body seated below as the fine
  * print. The bill is HONEST chrome - the tiers mirror the artists on the
@@ -75,7 +75,7 @@ export function FestivalPosterCluster({
 					className="fsp-eyebrow relative pt-6 text-[10px] font-extrabold tracking-[0.32em]"
 					aria-hidden="true"
 				>
-					ALPFEST PRESENTS
+					ALP PRESENTS
 				</p>
 
 				{/* the festival name */}
