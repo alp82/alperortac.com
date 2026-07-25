@@ -1554,3 +1554,24 @@ body.panel-open nav {
 		animation: none;
 	}
 }
+
+/* ---- Projects band sun-glow breathe ----
+   Gentle opacity breathe on the radial "sunlit clearing" glow behind the
+   featured pair. Decorative only: the glow div is aria-hidden and
+   pointer-events-none, so reduced-motion users lose nothing functional. */
+@keyframes projects-sun-breathe {
+	from {
+		opacity: 0.75;
+	}
+	to {
+		opacity: 1;
+	}
+}
+.projects-sun-glow {
+	animation: projects-sun-breathe 8s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+	.projects-sun-glow {
+		animation: none;
+	}
+}

@@ -12,6 +12,7 @@ A vertical scroll journey on the main path:
 
 - **Hero (top, sky/day)** — avatar, headline, intro.
 - **Linktree** — one column, sectioned by VIDEO / POSTS / CODE.
+- **Projects band** (shipped; wired between Socials and Craft) - a flat showcase of all work rendered from `src/data/projects.ts`, highlights sitting larger inside the terracotta sun-glow. Each card is a split control: the whole card dives to the project's in-site subpage, the corner pill opens its external page in a new tab. "Building now" items behave like shipped ones. Coexists with Craft's existing project triggers (both routes reach the same subpage); Craft is left untouched.
 - **Craft band** — a stack of topical articles spanning the craft, tech, and personal-life threads. Each one has a heading, a one-line teaser, and 1-2 trigger cards opening a sidetrack panel.
 - **Footer (ground/night)** — ambient sign-off that doubles as the Freelance / Collab contact surface: the "Let's…" headline, a message box, and a live `mailto:` "Email me" button.
 
@@ -21,6 +22,24 @@ A vertical scroll journey on the main path:
 - Each of the four flagship projects (GoodWatch, AIStack, Forge, Manaschmiede) gets its own panel.
 - Four personal-thread panels (Learning, Teaching, Family, Music) are placeholders today, reusing the Career-style yellow brutalist banner.
 - A "tune the sky" panel exposes the celestial controls as a game-y find.
+
+## Projects inventory & content model
+
+Seven projects, locked (ticket #43). `src/data/projects.ts` is the single source of truth (Option A: one `Project` type feeds both the band card and the subpage).
+
+| Project | status | highlight | external link | subpage |
+| --- | --- | --- | --- | --- |
+| GoodWatch | shipped | yes | goodwatch.app | exists |
+| AIStack | shipped | yes | aistack.to | exists |
+| Forge | shipped | no | github.com/alp82/forge | exists |
+| Manaschmiede | shipped | no | github.com/alp82/manaschmiede | exists |
+| Curia | building | no | github.com/alp82/curia | stub (card + degraded panel) |
+| claude-statusline | shipped | no | github.com/alp82/claude-statusline | stub (card + degraded panel) |
+| alperortac.com | shipped | no | github.com/alp82/alperortac.com | stub (card + degraded panel) |
+
+- **Card core** (required): title, desc, link, status, highlight, tags, color, iconKey.
+- **Subpage payload** (panelColor, panelLight, media, problem, solution, outcome, stack): OPTIONAL - the Option A relaxation landed with the three stub projects. ProjectPanel degrades to title/desc/tags/link when the payload is absent (no media band, no Problem/Solution/Outcome/Stack, shared dark-slate fallback colors) and renders `desc` as an always-on lead paragraph on every subpage, flagships included. Real stub content is authored by tickets #48/#49/#50.
+- External link = the project's canonical home: the live app for apps, the GitHub repo for the repo-based ones. The self-reference (alperortac.com) points external at its own repo to avoid a circular link.
 
 ## Feel
 

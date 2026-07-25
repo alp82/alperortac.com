@@ -96,6 +96,33 @@ describe("SUBPAGE_WORDS", () => {
 			).toBeDefined();
 		}
 	});
+
+	// The three new stub projects (curia, claude-statusline, alperortac-com),
+	// wording pinned house microcopy-pin style (TC-S-03 above already enforces
+	// presence for every PANEL_SIDES key).
+	it("TC-S-04: curia pair is [CURIA, CHAMBER]", () => {
+		const words = SUBPAGE_WORDS as unknown as Record<
+			string,
+			readonly [string, string] | undefined
+		>;
+		expect(words.curia).toEqual(["CURIA", "CHAMBER"]);
+	});
+
+	it("TC-S-05: claude-statusline pair is [STATUS, LINE]", () => {
+		const words = SUBPAGE_WORDS as unknown as Record<
+			string,
+			readonly [string, string] | undefined
+		>;
+		expect(words["claude-statusline"]).toEqual(["STATUS", "LINE"]);
+	});
+
+	it("TC-S-06: alperortac-com pair is [ALPER, ORTAC]", () => {
+		const words = SUBPAGE_WORDS as unknown as Record<
+			string,
+			readonly [string, string] | undefined
+		>;
+		expect(words["alperortac-com"]).toEqual(["ALPER", "ORTAC"]);
+	});
 });
 
 // ---------------------------------------------------------------------------

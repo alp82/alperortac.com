@@ -68,6 +68,18 @@ describe("PATHNAME_TO_TOPIC_ID", () => {
 		const values = Object.values(PATHNAME_TO_TOPIC_ID);
 		expect(values.every(Boolean)).toBe(true);
 	});
+
+	// Pin: the three new stub projects have no Craft topic, so the derived
+	// supplement in PANEL_KEY_TO_TOPIC_ID parks their cold-entry pathnames at
+	// the Projects band ("projects") instead of leaving them undefined
+	// (which would otherwise boot at scroll 0 in daylight).
+	it("parks the three stub project pathnames at the Projects band topic id", () => {
+		expect(PATHNAME_TO_TOPIC_ID["/projects/curia"]).toBe("projects");
+		expect(PATHNAME_TO_TOPIC_ID["/projects/claude-statusline"]).toBe(
+			"projects",
+		);
+		expect(PATHNAME_TO_TOPIC_ID["/projects/alperortac-com"]).toBe("projects");
+	});
 });
 
 // The boot ships a vanilla port of the celestial-scene math (celestialPosition
@@ -144,6 +156,16 @@ describe("coldEntryFor", () => {
 	it("falls back to plain for the index and unknown paths", () => {
 		expect(coldEntryFor("/", "")).toEqual({ mode: "plain" });
 		expect(coldEntryFor("/not-a-route", "")).toEqual({ mode: "plain" });
+	});
+
+	// Pin: a cold load of a stub project's subpage must park at the Projects
+	// band, not fall back to "plain" (which would boot at scroll 0 daylight
+	// and strand the user at the hero when the panel closes).
+	it("parks a cold /projects/curia load at the Projects band", () => {
+		expect(coldEntryFor("/projects/curia", "")).toEqual({
+			mode: "subpage",
+			topicId: "projects",
+		});
 	});
 });
 

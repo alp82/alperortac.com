@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { Topic } from "../../../data/topics";
 import { TopicPlate } from "../topics/primitives";
 import { TOPIC_CONTENTS } from "../topics/registry";
@@ -17,40 +17,11 @@ import { type ResolvedTrigger, useTriggerNav } from "./useTriggerNav";
  * rhythm - those belong to the frame (or, in production, to `SectionBody`).
  */
 
+// Subpage triggers always read the same way: icon + label on the left, a
+// RIGHT-facing arrow on the right. The dive-zoom direction still varies per
+// destination (PanelHost / PANEL_SIDES); the arrow glyph no longer mirrors it.
 function SidedCard({ resolved }: { resolved: ResolvedTrigger }) {
-	const { Icon, title, subtitle, side, navigate, tileClass } = resolved;
-	const isRight = side === "right";
-
-	const iconEl = (
-		<div
-			className={`w-14 h-14 ${tileClass} flex items-center justify-center border-2 border-slate-900 shrink-0`}
-		>
-			<Icon size={26} />
-		</div>
-	);
-	const contentEl = (
-		<span className="min-w-0">
-			<span className="block text-2xl md:text-3xl font-black uppercase leading-none truncate">
-				{title}
-			</span>
-			{subtitle && (
-				<span className="block mt-1 text-xs md:text-sm font-medium normal-case opacity-75 line-clamp-1">
-					{subtitle}
-				</span>
-			)}
-		</span>
-	);
-	const arrowEl = isRight ? (
-		<ArrowRight
-			size={28}
-			className="shrink-0 group-hover:translate-x-1 transition-transform"
-		/>
-	) : (
-		<ArrowLeft
-			size={28}
-			className="shrink-0 group-hover:-translate-x-1 transition-transform"
-		/>
-	);
+	const { Icon, title, subtitle, navigate, tileClass } = resolved;
 
 	return (
 		<button
@@ -59,23 +30,27 @@ function SidedCard({ resolved }: { resolved: ResolvedTrigger }) {
 			className="btn-brutalist btn-brutalist--ghost group block w-full text-left p-6 md:p-7"
 		>
 			<div className="flex items-center justify-between gap-6">
-				{isRight ? (
-					<>
-						<div className="flex items-center gap-5 min-w-0">
-							{iconEl}
-							{contentEl}
-						</div>
-						{arrowEl}
-					</>
-				) : (
-					<>
-						<div className="flex items-center gap-5 min-w-0">
-							{arrowEl}
-							{contentEl}
-						</div>
-						{iconEl}
-					</>
-				)}
+				<div className="flex items-center gap-5 min-w-0">
+					<div
+						className={`w-14 h-14 ${tileClass} flex items-center justify-center border-2 border-slate-900 shrink-0`}
+					>
+						<Icon size={26} />
+					</div>
+					<span className="min-w-0">
+						<span className="block text-2xl md:text-3xl font-black uppercase leading-none truncate">
+							{title}
+						</span>
+						{subtitle && (
+							<span className="block mt-1 text-xs md:text-sm font-medium normal-case opacity-75 line-clamp-1">
+								{subtitle}
+							</span>
+						)}
+					</span>
+				</div>
+				<ArrowRight
+					size={28}
+					className="shrink-0 group-hover:translate-x-1 transition-transform"
+				/>
 			</div>
 		</button>
 	);
@@ -134,8 +109,8 @@ export function TopicBody({
 								onClick={(e) => resolved.navigate(e.currentTarget)}
 								className="btn-brutalist btn-brutalist--ghost w-full flex items-center justify-between gap-6 font-black uppercase tracking-tighter text-xl md:text-3xl p-6"
 							>
-								<ArrowLeft size={32} className="shrink-0" />
 								<span>{resolved.title}</span>
+								<ArrowRight size={32} className="shrink-0" />
 							</button>
 						);
 					}

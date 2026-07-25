@@ -21,6 +21,7 @@ import { FindMeSection } from "../components/_layout/FindMeSection";
 import { FooterSection } from "../components/_layout/footer/FooterSection";
 import { HeroSection } from "../components/_layout/HeroSection";
 import { deriveUrlPanel, PanelHost } from "../components/_layout/PanelHost";
+import { ProjectsSection } from "../components/_layout/ProjectsSection";
 import { RhythmGap } from "../components/_layout/RhythmGap";
 import { Minimap } from "../components/Minimap";
 import { NarrativeWatermark } from "../components/NarrativeWatermark";
@@ -539,6 +540,13 @@ function LayoutHost() {
 								>
 									Socials
 								</a>
+								<a
+									href={`#${SECTION_IDS.projects}`}
+									onClick={() => setAboutOpen(false)}
+									className={aboutItemClass}
+								>
+									Projects
+								</a>
 								{TOPICS.map((topic) => (
 									<a
 										key={topic.id}
@@ -576,6 +584,8 @@ function LayoutHost() {
 				<HeroSection />
 				<RhythmGap gapVh={celestial.gapVh} />
 				<FindMeSection />
+				<RhythmGap gapVh={celestial.gapVh} />
+				<ProjectsSection lastTriggerRef={lastTriggerRef} />
 				<RhythmGap gapVh={celestial.gapVh} />
 				<CraftSection
 					lastTriggerRef={lastTriggerRef}
@@ -624,7 +634,7 @@ function LayoutHost() {
 						@media (prefers-reduced-motion: no-preference) {
 							html.smooth-scroll { scroll-behavior: smooth; }
 						}
-						#craft article, #socials, #contact { scroll-margin-top: 80px; }
+						#craft article, #socials, #projects, #contact { scroll-margin-top: 80px; }
 						.cursor-pixel { cursor: crosshair; }
 						::selection {
 							background: #fef08a;

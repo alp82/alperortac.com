@@ -4,12 +4,21 @@ import { MINIMAP_BOUNDARIES, PANEL_SIDES, SECTION_IDS } from "../sections";
 import { PANEL_KEY_TO_TOPIC_ID, TOPICS } from "../topics";
 
 describe("sections topology", () => {
-	it("MINIMAP_BOUNDARIES match SECTION_IDS for {socials, craft, contact}", () => {
+	it("MINIMAP_BOUNDARIES match SECTION_IDS for {socials, projects, craft, contact}", () => {
 		expect(MINIMAP_BOUNDARIES.map((b) => b.id)).toEqual([
 			SECTION_IDS.findMe,
+			SECTION_IDS.projects,
 			SECTION_IDS.craft,
 			SECTION_IDS.contact,
 		]);
+	});
+
+	// Pin: ticket #47 inserts the Projects band between Socials and Craft.
+	// RED until sections.ts adds SECTION_IDS.projects and the matching
+	// MINIMAP_BOUNDARIES entry.
+	it('SECTION_IDS.projects and MINIMAP_BOUNDARIES[1].id are "projects"', () => {
+		expect(SECTION_IDS.projects).toBe("projects");
+		expect(MINIMAP_BOUNDARIES[1].id).toBe("projects");
 	});
 
 	// Pin: the find-me section's id value is being renamed to "socials" (the
@@ -79,5 +88,38 @@ describe("sections topology", () => {
 	// TC-11 - SECTION_IDS must not carry a "footer" key after the footer refactor
 	it('SECTION_IDS does not carry a "footer" key', () => {
 		expect("footer" in SECTION_IDS).toBe(false);
+	});
+
+	// Drift guard (ticket #47 follow-up): extends the existing PANEL_SIDES /
+	// SUBPAGE_WORDS pattern to the reverse-lookup map so a new PanelKey can't
+	// ship half-wired - PANEL_KEY_TO_TOPIC_ID is Partial, invisible to the
+	// compiler and to TC-S-03, so this is the missing runtime leg.
+	it("PANEL_KEY_TO_TOPIC_ID covers every PANEL_SIDES key (drift guard)", () => {
+		const parkMap = PANEL_KEY_TO_TOPIC_ID as unknown as Record<
+			string,
+			string | undefined
+		>;
+		for (const key of Object.keys(PANEL_SIDES)) {
+			expect(
+				parkMap[key],
+				`Missing PANEL_KEY_TO_TOPIC_ID entry for "${key}"`,
+			).toBeDefined();
+		}
+	});
+
+	// Pin: the three new stub projects (curia, claude-statusline,
+	// alperortac-com) have no Craft topic, so the derived supplement parks them
+	// at the Projects band itself.
+	it("curia, claude-statusline, and alperortac-com park at SECTION_IDS.projects", () => {
+		const parkMap = PANEL_KEY_TO_TOPIC_ID as unknown as Record<
+			string,
+			string | undefined
+		>;
+		for (const key of ["curia", "claude-statusline", "alperortac-com"]) {
+			expect(
+				parkMap[key],
+				`Expected PANEL_KEY_TO_TOPIC_ID["${key}"] to park at SECTION_IDS.projects`,
+			).toBe(SECTION_IDS.projects);
+		}
 	});
 });

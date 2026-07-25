@@ -30,9 +30,9 @@ export const DEFAULT_CELESTIAL: CelestialState = {
 	sun: { startX: 75, startY: 12, endX: 28, endY: 58, arcLift: 8 },
 	moon: { startX: 27, startY: 45, endX: 16, endY: 13, arcLift: 6 },
 	curve: DEFAULT_SKY_CURVE,
-	// Locked on the wayfinder #35 tuning walk (2026-07-18): 55vh of landscape
-	// between consecutive sections.
-	gapVh: 55,
+	// Re-locked on wayfinder #46 (Projects band scroll integration): the extra
+	// section tightens the site-wide landscape gap uniformly from 55vh to 30vh.
+	gapVh: 30,
 };
 
 export const CELESTIAL_PRESETS: Record<

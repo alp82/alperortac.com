@@ -1,7 +1,11 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { ComponentType } from "react";
 import { PERSONAL_BY_SLUG } from "../../../data/personal";
-import { PROJECT_ICONS, PROJECTS } from "../../../data/projects";
+import {
+	PANEL_LIGHT_FALLBACK,
+	PROJECT_ICONS,
+	PROJECTS,
+} from "../../../data/projects";
 import { PANEL_SIDES } from "../../../data/sections";
 import { STORY_BY_SLUG } from "../../../data/stories";
 import type { Trigger } from "../../../data/topics";
@@ -72,7 +76,9 @@ export function useTriggerNav(
 				title: project.title,
 				subtitle: project.desc,
 				Icon: PROJECT_ICONS[project.iconKey],
-				tileClass: project.panelLight,
+				// Only flagship slugs reach here via TOPICS triggers; the fallback
+				// satisfies the optional payload type.
+				tileClass: project.panelLight ?? PANEL_LIGHT_FALLBACK,
 				side: PANEL_SIDES[project.slug],
 				isCareer: false,
 				navigate: go,

@@ -6,6 +6,9 @@ export type PanelKey =
 	| "aistack"
 	| "forge"
 	| "manaschmiede"
+	| "curia"
+	| "claude-statusline"
+	| "alperortac-com"
 	| "music"
 	| "movies"
 	| "travel";
@@ -24,6 +27,10 @@ export const PANEL_SIDES: Record<Exclude<PanelKey, "sky">, "left" | "right"> = {
 	aistack: "right",
 	forge: "left",
 	manaschmiede: "right",
+	// The three stub projects continue the project alternation (L/R/L/R -> L/R/L).
+	curia: "left",
+	"claude-statusline": "right",
+	"alperortac-com": "left",
 	music: "left",
 	// GoodWatch on the same band slides left; the second destination takes the
 	// opposite side so the dive aim reads distinct.
@@ -35,12 +42,14 @@ export const PANEL_SIDES: Record<Exclude<PanelKey, "sky">, "left" | "right"> = {
 
 export const MINIMAP_BOUNDARIES = [
 	{ id: "socials", label: "Socials" },
+	{ id: "projects", label: "Projects" },
 	{ id: "craft", label: "Craft" },
 	{ id: "contact", label: "Collab" },
 ] as const;
 
 export const SECTION_IDS = {
 	findMe: "socials",
+	projects: "projects",
 	craft: "craft",
 	contact: "contact",
 } as const;

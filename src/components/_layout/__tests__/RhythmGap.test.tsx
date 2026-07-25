@@ -42,9 +42,10 @@ afterEach(() => {
 });
 
 describe("locked rhythm", () => {
-	// Locked on the wayfinder #35 tuning walk (2026-07-18). Change deliberately.
-	it("ships a 55vh landscape gap between sections", () => {
-		expect(DEFAULT_CELESTIAL.gapVh).toBe(55);
+	// Re-locked on ticket #46 (Projects band scroll integration): the extra
+	// section tightens the site-wide landscape gap from 55vh to 30vh.
+	it("ships a 30vh landscape gap between sections", () => {
+		expect(DEFAULT_CELESTIAL.gapVh).toBe(30);
 	});
 });
 

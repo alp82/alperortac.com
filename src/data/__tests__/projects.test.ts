@@ -6,7 +6,7 @@ import { PROJECTS } from "../projects";
 describe("PROJECTS data", () => {
 	it("has a poster set on every video media entry", () => {
 		for (const project of PROJECTS) {
-			if (project.media.type !== "video") continue;
+			if (project.media?.type !== "video") continue;
 			expect(
 				project.media.poster,
 				`Missing poster for project: ${project.slug}`,
@@ -17,7 +17,7 @@ describe("PROJECTS data", () => {
 	it("has every referenced poster file existing on disk under public/", () => {
 		const publicDir = path.resolve(process.cwd(), "public");
 		for (const project of PROJECTS) {
-			if (project.media.type !== "video") continue;
+			if (project.media?.type !== "video") continue;
 			if (!project.media.poster) continue;
 			const filePath = path.join(publicDir, project.media.poster);
 			expect(fs.existsSync(filePath), `Missing poster file: ${filePath}`).toBe(
@@ -29,13 +29,92 @@ describe("PROJECTS data", () => {
 	it("has every referenced image media src existing on disk under public/", () => {
 		const publicDir = path.resolve(process.cwd(), "public");
 		for (const project of PROJECTS) {
-			if (project.media.type !== "image") continue;
+			if (project.media?.type !== "image") continue;
 			const filePath = path.join(publicDir, project.media.src);
 			expect(
 				fs.existsSync(filePath),
 				`Missing image media file: ${filePath}`,
 			).toBe(true);
 		}
+	});
+
+	// The band tints every card's icon tile from panelColor; two projects
+	// sharing a tint (or falling back to the same neutral) collapse into an
+	// indistinguishable pair on the band - the exact defect the stub tints fix.
+	it("every defined panelColor is unique across PROJECTS", () => {
+		const colors = PROJECTS.map((p) => p.panelColor).filter(
+			(c): c is string => typeof c === "string",
+		);
+		expect(new Set(colors).size).toBe(colors.length);
+	});
+});
+
+describe("PROJECTS stub entries (curia, claude-statusline, alperortac-com)", () => {
+	const find = (slug: string) => {
+		const project = PROJECTS.find((p) => p.slug === slug);
+		if (!project) throw new Error(`Missing project: ${slug}`);
+		return project;
+	};
+
+	// Absence pins are deliberate (per plan Out of Scope): each authoring
+	// ticket (#48/#49/#50) deletes this project's absence assertions when its
+	// real subpage payload lands. `panelColor` is the one exception (ui fix
+	// round): it is card-adjacent - it tints the band card's icon tile as well
+	// as the panel surface - so each stub carries its own distinct tint,
+	// pinned exactly, none near the band's terracotta accent (#b4531f).
+	it("curia: card copy verbatim, band tint pinned, subpage payload absent", () => {
+		const curia = find("curia");
+		expect(curia.title).toBe("Curia");
+		expect(curia.desc).toBe("AI chamber for the modern engineer.");
+		expect(curia.link).toBe("https://github.com/alp82/curia");
+		expect(curia.status).toBe("building");
+		expect(curia.highlight).toBe(false);
+		expect(curia.tags).toEqual(["AI", "Open Source"]);
+		expect(curia.panelColor).toBe("#164e63");
+		expect(curia.panelLight).toBeUndefined();
+		expect(curia.media).toBeUndefined();
+		expect(curia.problem).toBeUndefined();
+		expect(curia.solution).toBeUndefined();
+		expect(curia.outcome).toBeUndefined();
+		expect(curia.stack).toBeUndefined();
+	});
+
+	it("claude-statusline: card copy verbatim, band tint pinned, subpage payload absent", () => {
+		const cs = find("claude-statusline");
+		expect(cs.title).toBe("claude-statusline");
+		expect(cs.desc).toBe(
+			"Single-file Bash statusline for Claude Code: model, context, and rate-limit windows at a glance.",
+		);
+		expect(cs.link).toBe("https://github.com/alp82/claude-statusline");
+		expect(cs.status).toBe("shipped");
+		expect(cs.highlight).toBe(false);
+		expect(cs.tags).toEqual(["Claude Code", "Bash"]);
+		expect(cs.panelColor).toBe("#365314");
+		expect(cs.panelLight).toBeUndefined();
+		expect(cs.media).toBeUndefined();
+		expect(cs.problem).toBeUndefined();
+		expect(cs.solution).toBeUndefined();
+		expect(cs.outcome).toBeUndefined();
+		expect(cs.stack).toBeUndefined();
+	});
+
+	it("alperortac-com: card copy verbatim, band tint pinned, subpage payload absent", () => {
+		const site = find("alperortac-com");
+		expect(site.title).toBe("alperortac.com");
+		expect(site.desc).toBe(
+			"Personal portfolio site: a vertical-scroll journey through atmosphere, time, and depth.",
+		);
+		expect(site.link).toBe("https://github.com/alp82/alperortac.com");
+		expect(site.status).toBe("shipped");
+		expect(site.highlight).toBe(false);
+		expect(site.tags).toEqual(["Portfolio", "Open Source"]);
+		expect(site.panelColor).toBe("#0369a1");
+		expect(site.panelLight).toBeUndefined();
+		expect(site.media).toBeUndefined();
+		expect(site.problem).toBeUndefined();
+		expect(site.solution).toBeUndefined();
+		expect(site.outcome).toBeUndefined();
+		expect(site.stack).toBeUndefined();
 	});
 });
 

@@ -2,7 +2,11 @@ import { useMatches, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import type { CelestialState } from "../../data/celestial";
 import { PERSONAL, PERSONAL_BY_SLUG } from "../../data/personal";
-import { PROJECTS, type Project } from "../../data/projects";
+import {
+	PANEL_FALLBACK_COLOR,
+	PROJECTS,
+	type Project,
+} from "../../data/projects";
 import {
 	PANEL_OPEN_CLASS,
 	PANEL_SIDES,
@@ -50,6 +54,20 @@ export function deriveUrlPanel(
 		if (storySlug) return storySlug;
 	}
 	return null;
+}
+
+// The style object for a project's panel surface. The --panel-bg fallback is
+// deliberate and is the ONE optional-payload consumer no compiler gate covers:
+// a CSS custom property accepts `undefined` without a type error, and React
+// DROPS an undefined custom property entirely, so the CSS-level fallback
+// `var(--panel-bg, #fff)` would paint WHITE behind the hardcoded #fff
+// foreground - white-on-white text. Extracted and exported so
+// PanelHost.test.tsx can pin the resolved value without rendering the host.
+export function projectPanelStyle(p: Project): React.CSSProperties {
+	return {
+		"--panel-bg": p.panelColor ?? PANEL_FALLBACK_COLOR,
+		"--panel-fg": "#fff",
+	} as React.CSSProperties;
 }
 
 type PanelHostProps = {
@@ -102,6 +120,9 @@ export function PanelHost({
 	const aistackRef = useRef<HTMLDialogElement>(null);
 	const forgeRef = useRef<HTMLDialogElement>(null);
 	const manaschmiedeRef = useRef<HTMLDialogElement>(null);
+	const curiaRef = useRef<HTMLDialogElement>(null);
+	const claudeStatuslineRef = useRef<HTMLDialogElement>(null);
+	const alperortacComRef = useRef<HTMLDialogElement>(null);
 	const musicRef = useRef<HTMLDialogElement>(null);
 	const moviesRef = useRef<HTMLDialogElement>(null);
 	const travelRef = useRef<HTMLDialogElement>(null);
@@ -121,6 +142,9 @@ export function PanelHost({
 			aistack: aistackRef,
 			forge: forgeRef,
 			manaschmiede: manaschmiedeRef,
+			curia: curiaRef,
+			"claude-statusline": claudeStatuslineRef,
+			"alperortac-com": alperortacComRef,
 			music: musicRef,
 			movies: moviesRef,
 			travel: travelRef,
@@ -370,12 +394,7 @@ export function PanelHost({
 					aria-labelledby={getProjectPanelTitleId(p.slug)}
 					className="panel-surface"
 					onClick={onSurfaceClick}
-					style={
-						{
-							"--panel-bg": p.panelColor,
-							"--panel-fg": "#fff",
-						} as React.CSSProperties
-					}
+					style={projectPanelStyle(p)}
 				>
 					<ProjectPanel
 						project={p}

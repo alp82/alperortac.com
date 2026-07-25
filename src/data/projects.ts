@@ -1,7 +1,22 @@
-import { Code2, Cpu, Palette, PlaySquare } from "lucide-react";
+import {
+	Code2,
+	Cpu,
+	Gauge,
+	Globe,
+	Landmark,
+	Palette,
+	PlaySquare,
+} from "lucide-react";
 import type { PanelKey } from "./sections";
 
-export type ProjectIconKey = "PlaySquare" | "Cpu" | "Code2" | "Palette";
+export type ProjectIconKey =
+	| "PlaySquare"
+	| "Cpu"
+	| "Code2"
+	| "Palette"
+	| "Landmark"
+	| "Gauge"
+	| "Globe";
 
 export const PROJECT_ICONS: Record<
 	ProjectIconKey,
@@ -11,7 +26,17 @@ export const PROJECT_ICONS: Record<
 	Cpu,
 	Code2,
 	Palette,
+	Landmark,
+	Gauge,
+	Globe,
 };
+
+// Shared neutral fallbacks for projects with no authored subpage payload.
+// PANEL_FALLBACK_COLOR reuses the career panel's dark-slate surface (#1e293b,
+// PanelHost.tsx) so a stub panel stays on-theme; PANEL_LIGHT_FALLBACK is the
+// matching light slate tile pair for trigger cards.
+export const PANEL_FALLBACK_COLOR = "#1e293b";
+export const PANEL_LIGHT_FALLBACK = "bg-slate-100 text-slate-900";
 
 export type ProjectMedia =
 	| {
@@ -23,21 +48,52 @@ export type ProjectMedia =
 	| { type: "image"; src: string; alt?: string }
 	| { type: "illustration" };
 
+// Whether the project is live or actively being built. Data-only today: the
+// locked band design (ticket #44) renders NO status badge - a "building" card
+// looks and behaves identically to a shipped one.
+export type ProjectStatus = "building" | "shipped";
+
+// Content model (locked, ticket #43 - Option A "unified type"). One type is the
+// single source of truth for both the Projects-band card and the in-site
+// subpage:
+// - Card core (title, desc, link, status, highlight, tags, color, iconKey):
+//   what the band card + split control render. Required.
+// - Subpage payload (panelColor, panelLight, media, problem, solution, outcome,
+//   stack): what ProjectPanel renders. OPTIONAL per Option A (relaxation landed
+//   with the first card-only projects: curia, claude-statusline,
+//   alperortac-com): a project may appear on the band before its subpage is
+//   authored, and ProjectPanel degrades to title/desc/tags/link when they are
+//   absent. The repo runs `exactOptionalPropertyTypes`, so stub entries OMIT
+//   these keys entirely - never set them to `undefined`. Consumers fall back to
+//   PANEL_FALLBACK_COLOR / PANEL_LIGHT_FALLBACK where a colour is needed.
 export type Project = {
-	slug: Extract<PanelKey, "goodwatch" | "aistack" | "forge" | "manaschmiede">;
+	slug: Extract<
+		PanelKey,
+		| "goodwatch"
+		| "aistack"
+		| "forge"
+		| "manaschmiede"
+		| "curia"
+		| "claude-statusline"
+		| "alperortac-com"
+	>;
 	title: string;
 	desc: string;
 	link: string;
+	status: ProjectStatus;
+	// A prominent-tier project, rendered larger on the band. Independent of
+	// whether it has a subpage.
+	highlight: boolean;
 	tags: string[];
 	color: string;
 	iconKey: ProjectIconKey;
-	panelColor: string;
-	panelLight: string;
-	media: ProjectMedia;
-	problem: string;
-	solution: string;
-	outcome: string;
-	stack: string[];
+	panelColor?: string;
+	panelLight?: string;
+	media?: ProjectMedia;
+	problem?: string;
+	solution?: string;
+	outcome?: string;
+	stack?: string[];
 	extraLinks?: { label: string; href: string }[];
 	extraSection?: { heading: string; body: string; stages?: string[] };
 };
@@ -48,6 +104,8 @@ export const PROJECTS: Project[] = [
 		title: "GoodWatch",
 		desc: "Discover, track, and share movies and TV shows effortlessly.",
 		link: "https://goodwatch.app",
+		status: "shipped",
+		highlight: true,
 		tags: ["Web App", "Entertainment"],
 		color: "bg-red-100 text-red-800",
 		iconKey: "PlaySquare",
@@ -72,6 +130,8 @@ export const PROJECTS: Project[] = [
 		title: "AIStack",
 		desc: "Community-driven AI stacks: what people use, how they work and what it costs.",
 		link: "https://aistack.to",
+		status: "shipped",
+		highlight: true,
 		tags: ["AI", "Community"],
 		color: "bg-blue-100 text-blue-800",
 		iconKey: "Cpu",
@@ -96,6 +156,8 @@ export const PROJECTS: Project[] = [
 		title: "Forge",
 		desc: "Complexity-aware agentic coding pipeline for Claude Code.",
 		link: "https://github.com/alp82/forge",
+		status: "shipped",
+		highlight: false,
 		tags: ["Claude Code", "Open Source"],
 		color: "bg-emerald-100 text-emerald-800",
 		iconKey: "Code2",
@@ -133,6 +195,8 @@ export const PROJECTS: Project[] = [
 		title: "Manaschmiede",
 		desc: "Magic: The Gathering deck builder and print assistant",
 		link: "https://github.com/alp82/manaschmiede",
+		status: "shipped",
+		highlight: false,
 		tags: ["MTG", "Print & Play"],
 		color: "bg-purple-100 text-purple-800",
 		iconKey: "Palette",
@@ -150,5 +214,57 @@ export const PROJECTS: Project[] = [
 		outcome:
 			"An easy and pleasant user experience to go quickly from a deck idea to a full PDF printout so that I can try different strategies with my kids.",
 		stack: ["TypeScript", "React", "Open Source"],
+	},
+	// Card-core-only stubs (no subpage payload yet): real content is authored by
+	// tickets #48/#49/#50. Card copy is Alper's own writing from the repos.
+	{
+		slug: "curia",
+		title: "Curia",
+		desc: "AI chamber for the modern engineer.",
+		link: "https://github.com/alp82/curia",
+		status: "building",
+		highlight: false,
+		tags: ["AI", "Open Source"],
+		// A curia is the Roman senate chamber - Landmark's columned building.
+		color: "bg-cyan-100 text-cyan-800",
+		iconKey: "Landmark",
+		// Band-tint only (panelColor is card-adjacent: it tints the band card's
+		// icon tile and the panel surface, not authored subpage content). The
+		// three stub tints are deliberately distinct from each other, from the
+		// four flagship tints, and from the band's terracotta accent (#b4531f).
+		// Cyan-900, staying in the card's own cyan family.
+		panelColor: "#164e63",
+	},
+	{
+		slug: "claude-statusline",
+		title: "claude-statusline",
+		desc: "Single-file Bash statusline for Claude Code: model, context, and rate-limit windows at a glance.",
+		link: "https://github.com/alp82/claude-statusline",
+		status: "shipped",
+		highlight: false,
+		tags: ["Claude Code", "Bash"],
+		// Lime nods to the green health bar of its color-coded meters.
+		color: "bg-lime-100 text-lime-800",
+		iconKey: "Gauge",
+		// Lime-900: the olive-green counterpart of the card's lime family.
+		panelColor: "#365314",
+	},
+	{
+		slug: "alperortac-com",
+		title: "alperortac.com",
+		desc: "Personal portfolio site: a vertical-scroll journey through atmosphere, time, and depth.",
+		link: "https://github.com/alp82/alperortac.com",
+		status: "shipped",
+		highlight: false,
+		// Sky fits the site's own identity and sits far from the band's
+		// terracotta accent (#b4531f).
+		tags: ["Portfolio", "Open Source"],
+		color: "bg-sky-100 text-sky-800",
+		iconKey: "Globe",
+		// Sky-700 (brighter azure, not sky-900): dark sky-900 sits a few hue
+		// degrees from Curia's cyan-900 and the two 18% tile tints would read
+		// as the same color; the -700 value keeps the sky family while staying
+		// clearly apart from Curia's dark teal.
+		panelColor: "#0369a1",
 	},
 ];

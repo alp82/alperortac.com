@@ -2,8 +2,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { PERSONAL_BY_SLUG } from "../../../data/personal";
-import { PROJECT_ICONS, PROJECTS } from "../../../data/projects";
-import { PANEL_SIDES } from "../../../data/sections";
+import {
+	PANEL_LIGHT_FALLBACK,
+	PROJECT_ICONS,
+	PROJECTS,
+} from "../../../data/projects";
 import { STORY_BY_SLUG } from "../../../data/stories";
 import type { Trigger } from "../../../data/topics";
 import { BorderGlow } from "../BorderGlow";
@@ -341,8 +344,8 @@ export function TriggerCard({
 				className="group w-full text-left px-6 py-16 font-black uppercase tracking-tighter text-amber-50 cursor-pointer select-none"
 			>
 				<div className="flex items-center justify-between gap-6 text-xl md:text-3xl">
-					<ArrowLeft size={32} className="shrink-0" />
 					<span>See the work history</span>
+					<ArrowRight size={32} className="shrink-0" />
 				</div>
 			</GlowTrigger>
 		);
@@ -366,8 +369,8 @@ export function TriggerCard({
 					Icon={Icon}
 					title={project.title}
 					subtitle={project.desc}
-					tileClass={project.panelLight}
-					arrowSide={PANEL_SIDES[project.slug]}
+					tileClass={project.panelLight ?? PANEL_LIGHT_FALLBACK}
+					arrowSide="right"
 				/>
 			</GlowTrigger>
 		);
@@ -388,7 +391,7 @@ export function TriggerCard({
 					Icon={item.Icon}
 					title={item.title}
 					tileClass={`${item.tileBg} ${item.tileFg}`}
-					arrowSide={PANEL_SIDES[item.slug]}
+					arrowSide="right"
 				/>
 			</GlowTrigger>
 		);

@@ -1,4 +1,4 @@
-import type { PanelKey } from "./sections";
+import { type PanelKey, SECTION_IDS } from "./sections";
 import type { StorySlug } from "./stories";
 
 export type ProjectSlug = Extract<
@@ -238,14 +238,28 @@ function triggerPanelKey(trigger: Trigger): PanelKey {
 }
 
 /**
- * Reverse lookup PanelKey -> the topic id whose triggers include that key.
- * Used on a direct subpage load to park the journey scroll at the subpage's
- * place in the scroll journey (so the sky/time-of-day is correct and closing
- * returns there).
+ * Reverse lookup PanelKey -> the DOM id of the band the journey parks at on a
+ * direct subpage load (so the sky/time-of-day is correct and closing returns
+ * there). For panels reached via a topic trigger the value is that topic's id;
+ * card-only projects with no Craft topic park at the Projects section itself,
+ * listed LITERALLY below. Literal on purpose (not derived from PROJECTS): the
+ * drift test in sections.test.ts ("covers every PANEL_SIDES key") already
+ * turns a forgotten entry for a future stub into a loud failure, and a
+ * literal entry cannot silently re-park a flagship at the band if its Craft
+ * trigger is ever removed - the derivation this replaces could.
  */
-export const PANEL_KEY_TO_TOPIC_ID: Partial<Record<PanelKey, TopicId>> =
+const TOPIC_DERIVED_PARK_IDS: Partial<Record<PanelKey, TopicId>> =
 	Object.fromEntries(
 		TOPICS.flatMap((topic) =>
 			topic.triggers.map((trigger) => [triggerPanelKey(trigger), topic.id]),
 		),
 	);
+
+export const PANEL_KEY_TO_TOPIC_ID: Partial<
+	Record<PanelKey, TopicId | typeof SECTION_IDS.projects>
+> = {
+	...TOPIC_DERIVED_PARK_IDS,
+	curia: SECTION_IDS.projects,
+	"claude-statusline": SECTION_IDS.projects,
+	"alperortac-com": SECTION_IDS.projects,
+};

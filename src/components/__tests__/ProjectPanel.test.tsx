@@ -14,6 +14,8 @@ const mockVideoProject: Project = {
 	title: "GoodWatch",
 	desc: "Discover, track, and share movies and TV shows effortlessly.",
 	link: "https://goodwatch.app",
+	status: "shipped",
+	highlight: true,
 	tags: ["Web App"],
 	color: "bg-red-100 text-red-800",
 	iconKey: "PlaySquare",
@@ -29,6 +31,27 @@ const mockVideoProject: Project = {
 	outcome: "test outcome",
 	stack: ["React"],
 };
+
+// Card-core-only fixture: the seven subpage-payload fields (panelColor,
+// panelLight, media, problem, solution, outcome, stack) are intentionally
+// omitted, mirroring a real stub project (e.g. Curia) before its subpage is
+// authored (Option A, ticket #43). `iconKey` reuses an already-registered
+// icon since this suite exercises ProjectPanel's degradation guards, not the
+// data-layer icon registry (covered separately in projects.test.ts /
+// typecheck). Cast through `as unknown as Project` because the payload
+// fields aren't optional in the type yet - pinning that they're safe to omit
+// is the whole point of this fixture.
+const stubProject = {
+	slug: "curia",
+	title: "Curia",
+	desc: "AI chamber for the modern engineer.",
+	link: "https://github.com/alp82/curia",
+	status: "building",
+	highlight: false,
+	tags: ["AI", "Open Source"],
+	color: "bg-cyan-100 text-cyan-800",
+	iconKey: "Cpu",
+} as unknown as Project;
 
 describe("ProjectPanel video lazy-mount contract", () => {
 	afterEach(() => {
@@ -409,6 +432,48 @@ describe("ProjectPanel regressions after the copy/media pass", () => {
 		expect(link.getAttribute("rel")).toBe("noopener noreferrer");
 	});
 
+	// B1 (challenge-gate user decision): `desc` renders as an always-on lead
+	// paragraph on every subpage, including the four authored flagships.
+	// Document-order pin, not just presence: the approved placement is
+	// hero block, after the tags row, before the Visit/Close button row,
+	// above THE PROBLEM section - a mutant that renders the blurb as the
+	// last element under the Stack section must go red.
+	it("renders the flagship's desc as a lead paragraph, between the hero tags and hero Visit button, above Problem", () => {
+		const { container } = render(
+			<ProjectPanel project={mockVideoProject} open={true} onClose={vi.fn()} />,
+		);
+		const blurb = screen.getByText(mockVideoProject.desc);
+
+		const heroTagMatches = screen.getAllByText(`#${mockVideoProject.tags[0]}`);
+		// sticky header renders the tag first, the hero tags row second.
+		const heroTag = heroTagMatches[heroTagMatches.length - 1] as HTMLElement;
+
+		const heroVisit = screen.getAllByRole("link", {
+			name: `Visit ${mockVideoProject.title}`,
+		})[1] as HTMLElement;
+
+		const video = container.querySelector("video");
+		expect(video).not.toBeNull();
+		if (!video) throw new Error("expected the video media element");
+
+		const problemHeading = screen.getByRole("heading", {
+			level: 3,
+			name: "Problem",
+		});
+
+		expect(
+			heroTag.compareDocumentPosition(blurb) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		expect(
+			blurb.compareDocumentPosition(heroVisit) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		expect(
+			blurb.compareDocumentPosition(problemHeading) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
 	it("leaves stack chip rendering untouched", () => {
 		const { container } = render(
 			<ProjectPanel
@@ -429,5 +494,81 @@ describe("ProjectPanel regressions after the copy/media pass", () => {
 		expect(Array.from(items ?? []).map((li) => li.textContent?.trim())).toEqual(
 			["TypeScript", "Bun"],
 		);
+	});
+});
+
+describe("ProjectPanel stub degradation", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	// B2/request #4: a card-core-only project (no media, no
+	// problem/solution/outcome, no stack) must render a calm, finished-looking
+	// page - title, tags, the desc blurb, and both external links - and must
+	// not crash on the missing payload fields. The "no [role='img']" pin is
+	// deliberate: that role is only the reduced-motion video fallback: lucide
+	// icons are plain <svg>, so it can never false-positive here.
+	it("renders title, tags, blurb, and external links; omits media and Problem/Solution/Outcome/Stack; does not throw", () => {
+		expect(() => {
+			render(
+				<ProjectPanel project={stubProject} open={true} onClose={vi.fn()} />,
+			);
+		}).not.toThrow();
+
+		// sticky header span + hero h2 both show the title
+		expect(
+			screen.getAllByText(stubProject.title).length,
+		).toBeGreaterThanOrEqual(2);
+
+		for (const tag of stubProject.tags) {
+			expect(screen.getAllByText(`#${tag}`).length).toBeGreaterThan(0);
+		}
+
+		const blurb = screen.getByText(stubProject.desc);
+
+		const visitLinks = screen.getAllByRole("link", {
+			name: `Visit ${stubProject.title}`,
+		});
+		expect(visitLinks.length).toBe(2);
+
+		// B1 document-order pin: the blurb sits in the hero block, after the
+		// hero title, before the hero Visit button - not merely present
+		// somewhere on the page (test-review-proven pair: green on the
+		// correct placement, red on a mutant that renders the blurb as the
+		// LAST element under the Stack section).
+		const heroTitle = screen.getByRole("heading", {
+			level: 2,
+			name: stubProject.title,
+		});
+		const heroVisit = visitLinks[1] as HTMLElement;
+		expect(
+			heroTitle.compareDocumentPosition(blurb) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		expect(
+			blurb.compareDocumentPosition(heroVisit) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+
+		expect(document.querySelector("video")).toBeNull();
+		expect(document.querySelector("img")).toBeNull();
+		expect(document.querySelector('[role="img"]')).toBeNull();
+
+		// Media-absence blocker fix (test-review): absence of video/img/
+		// [role="img"] does not by itself prove the media block is gone - an
+		// implementation that lets a payload-less project fall through to
+		// the illustration branch passes all three of the above while still
+		// rendering a 35vh band with a 120px icon and the hardcoded caption
+		// below. Both pins are mutation-proven: green on the plan's
+		// implementation (whole media block gated on `project.media`), red
+		// on the fallthrough mutant.
+		expect(document.querySelector('[class*="h-[35vh]"]')).toBeNull();
+		expect(screen.queryByText(/Open source · TypeScript/)).toBeNull();
+
+		for (const heading of ["Problem", "Solution", "Outcome", "Stack"]) {
+			expect(
+				screen.queryByRole("heading", { level: 3, name: heading }),
+			).toBeNull();
+		}
 	});
 });

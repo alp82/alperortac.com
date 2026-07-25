@@ -1,6 +1,10 @@
 import { ExternalLink } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { PROJECT_ICONS, type Project } from "../data/projects";
+import {
+	PANEL_FALLBACK_COLOR,
+	PROJECT_ICONS,
+	type Project,
+} from "../data/projects";
 import { useReducedMotion } from "./_layout/dive/useReducedMotion";
 import { ForgePipeline } from "./_layout/projects/ForgePipeline";
 import { SubpageClose } from "./_layout/SubpageClose";
@@ -19,6 +23,9 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 	const [stuck, setStuck] = useState(false);
 	const reducedMotion = useReducedMotion();
 	const titleId = getProjectPanelTitleId(project.slug);
+	// Stub projects carry no panelColor; the shared dark-slate fallback keeps
+	// the media-band tints on-theme wherever a colour is mixed.
+	const panelColor = project.panelColor ?? PANEL_FALLBACK_COLOR;
 
 	useEffect(() => {
 		if (!open) return;
@@ -39,7 +46,13 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 	return (
 		<>
 			<SubpageClose onClose={onClose} />
-			<div className="subpage-column relative w-full max-w-3xl mx-auto my-[10vh] text-white">
+			{/* min-h-[60vh]: a card-core-only stub carries roughly half a viewport
+			    of content - without a floor its frosted card sits top-anchored
+			    over a mostly empty landscape and reads as adrift. The floor keeps
+			    the shortest panel a deliberate surface; it is a no-op for every
+			    flagship, whose content exceeds it. Scoped here (not on
+			    .subpage-column) so the other panel columns keep their own sizing. */}
+			<div className="subpage-column relative w-full max-w-3xl mx-auto my-[10vh] min-h-[60vh] text-white">
 				<div
 					className={`panel-sticky-title ${stuck ? "is-stuck" : ""} bg-slate-900/90 backdrop-blur-md border-b border-white/20 pl-6 pr-16 py-3 flex items-center justify-between gap-4`}
 				>
@@ -71,75 +84,80 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 				</div>
 
 				<div className="relative">
-					{project.media.type === "video" ? (
-						<div className="relative w-full h-[35vh] bg-black overflow-hidden">
-							{open ? (
-								reducedMotion ? (
-									project.media.poster ? (
-										<img
-											src={project.media.poster}
-											alt={`${project.title} demo poster`}
-											className="w-full h-full object-cover"
-										/>
+					{/* Whole media band gated on the optional payload: a stub renders
+					    no band at all (and never falls through to the illustration
+					    branch's hardcoded caption). */}
+					{project.media ? (
+						project.media.type === "video" ? (
+							<div className="relative w-full h-[35vh] bg-black overflow-hidden">
+								{open ? (
+									reducedMotion ? (
+										project.media.poster ? (
+											<img
+												src={project.media.poster}
+												alt={`${project.title} demo poster`}
+												className="w-full h-full object-cover"
+											/>
+										) : (
+											<div
+												role="img"
+												aria-label={`${project.title} demo placeholder`}
+												className="w-full h-full grid place-items-center"
+												style={{
+													backgroundColor: `color-mix(in srgb, ${panelColor} 20%, transparent)`,
+												}}
+											>
+												<Icon size={120} className="opacity-80" />
+											</div>
+										)
 									) : (
-										<div
-											role="img"
-											aria-label={`${project.title} demo placeholder`}
-											className="w-full h-full grid place-items-center"
-											style={{
-												backgroundColor: `color-mix(in srgb, ${project.panelColor} 20%, transparent)`,
-											}}
+										<video
+											key={project.slug}
+											autoPlay
+											muted
+											loop
+											playsInline
+											preload="metadata"
+											poster={project.media.poster}
+											aria-label={`${project.title} demo video`}
+											className="w-full h-full object-cover"
 										>
-											<Icon size={120} className="opacity-80" />
-										</div>
+											<source src={project.media.webm} type="video/webm" />
+											<source src={project.media.mp4} type="video/mp4" />
+										</video>
 									)
-								) : (
-									<video
-										key={project.slug}
-										autoPlay
-										muted
-										loop
-										playsInline
-										preload="metadata"
-										poster={project.media.poster}
-										aria-label={`${project.title} demo video`}
-										className="w-full h-full object-cover"
-									>
-										<source src={project.media.webm} type="video/webm" />
-										<source src={project.media.mp4} type="video/mp4" />
-									</video>
-								)
-							) : null}
-						</div>
-					) : project.media.type === "image" ? (
-						<div
-							className="relative w-full h-[35vh] overflow-hidden"
-							style={{
-								backgroundColor: `color-mix(in srgb, ${project.panelColor} 20%, transparent)`,
-							}}
-						>
-							<img
-								src={project.media.src}
-								alt={project.media.alt ?? `${project.title} hero`}
-								loading="lazy"
-								className="w-full h-full object-contain"
-							/>
-						</div>
-					) : (
-						<div
-							className="relative w-full h-[35vh] grid place-items-center"
-							style={{
-								backgroundColor: `color-mix(in srgb, ${project.panelColor} 20%, transparent)`,
-							}}
-						>
-							<div className="flex flex-col items-center gap-4 text-center">
-								<Icon size={120} />
-								<div className="text-xs font-black uppercase tracking-widest opacity-80">
-									Open source · TypeScript
+								) : null}
+							</div>
+						) : project.media.type === "image" ? (
+							<div
+								className="relative w-full h-[35vh] overflow-hidden"
+								style={{
+									backgroundColor: `color-mix(in srgb, ${panelColor} 20%, transparent)`,
+								}}
+							>
+								<img
+									src={project.media.src}
+									alt={project.media.alt ?? `${project.title} hero`}
+									loading="lazy"
+									className="w-full h-full object-contain"
+								/>
+							</div>
+						) : (
+							<div
+								className="relative w-full h-[35vh] grid place-items-center"
+								style={{
+									backgroundColor: `color-mix(in srgb, ${panelColor} 20%, transparent)`,
+								}}
+							>
+								<div className="flex flex-col items-center gap-4 text-center">
+									<Icon size={120} />
+									<div className="text-xs font-black uppercase tracking-widest opacity-80">
+										Open source · TypeScript
+									</div>
 								</div>
 							</div>
-						</div>
-					)}
+						)
+					) : null}
 					<div ref={sentinelRef} className="h-px w-full" />
 
 					<div className="max-w-3xl mx-auto px-6 py-12">
@@ -152,7 +170,7 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 								{project.title}
 							</h2>
 						</div>
-						<div className="flex flex-wrap gap-2 mb-10">
+						<div className="flex flex-wrap gap-2 mb-6">
 							{project.tags.map((tag) => (
 								<span
 									key={tag}
@@ -162,6 +180,13 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 								</span>
 							))}
 						</div>
+
+						{/* Always-on lead blurb (B1, user decision): `desc` is required
+						    card core, rendered on every subpage - on stubs it is the only
+						    prose, on flagships it sits above THE PROBLEM. */}
+						<p className="text-lg md:text-xl leading-relaxed mb-10">
+							{project.desc}
+						</p>
 
 						<div className="flex flex-wrap gap-3 mb-12">
 							<a
@@ -186,26 +211,32 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 							))}
 						</div>
 
-						<section className="mb-10">
-							<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2">
-								Problem
-							</h3>
-							<p className="text-lg leading-relaxed">{project.problem}</p>
-						</section>
+						{project.problem && (
+							<section className="mb-10">
+								<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2">
+									Problem
+								</h3>
+								<p className="text-lg leading-relaxed">{project.problem}</p>
+							</section>
+						)}
 
-						<section className="mb-10">
-							<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2">
-								Solution
-							</h3>
-							<p className="text-lg leading-relaxed">{project.solution}</p>
-						</section>
+						{project.solution && (
+							<section className="mb-10">
+								<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2">
+									Solution
+								</h3>
+								<p className="text-lg leading-relaxed">{project.solution}</p>
+							</section>
+						)}
 
-						<section className="mb-10">
-							<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2">
-								Outcome
-							</h3>
-							<p className="text-lg leading-relaxed">{project.outcome}</p>
-						</section>
+						{project.outcome && (
+							<section className="mb-10">
+								<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2">
+									Outcome
+								</h3>
+								<p className="text-lg leading-relaxed">{project.outcome}</p>
+							</section>
+						)}
 
 						{project.extraSection && (
 							<section className="mb-10">
@@ -254,21 +285,26 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 							</section>
 						)}
 
-						<section>
-							<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-3">
-								Stack
-							</h3>
-							<ul className="flex flex-wrap gap-2">
-								{project.stack.map((item) => (
-									<li
-										key={item}
-										className="px-3 py-1 bg-white/10 border border-white/30 text-xs font-bold uppercase tracking-wider"
-									>
-										{item}
-									</li>
-								))}
-							</ul>
-						</section>
+						{/* Length-gated (not truthiness-gated) so a type-legal `stack: []`
+						    can't render a bare "Stack" heading over an empty list - the
+						    same idiom as the stages guard above. */}
+						{project.stack?.length ? (
+							<section>
+								<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-3">
+									Stack
+								</h3>
+								<ul className="flex flex-wrap gap-2">
+									{project.stack.map((item) => (
+										<li
+											key={item}
+											className="px-3 py-1 bg-white/10 border border-white/30 text-xs font-bold uppercase tracking-wider"
+										>
+											{item}
+										</li>
+									))}
+								</ul>
+							</section>
+						) : null}
 					</div>
 				</div>
 			</div>
