@@ -20,12 +20,11 @@ export type CelestialState = {
 	gapVh: number;
 };
 
-// localStorage key for the persisted celestial tuning state. Shared so the
-// pre-hydration boot script (skyBoot.ts) and useCelestialState (_layout) read
-// the same key - the boot applies the stored gapVh before it lands the scroll,
-// so the RhythmGap heights don't reflow the page at hydration.
-export const CELESTIAL_STORAGE_KEY = "alp-celestial-v1";
-
+// This file is the single source of truth for the celestial state. Nothing is
+// persisted: the dev-only Tune panel edits React state for the session, and a
+// reload always comes back to these values. (Persisting it to localStorage meant
+// a tuned browser silently ignored edits made here, which is how a re-locked
+// gapVh could look like it had never shipped.)
 export const DEFAULT_CELESTIAL: CelestialState = {
 	sun: { startX: 75, startY: 12, endX: 28, endY: 58, arcLift: 8 },
 	moon: { startX: 27, startY: 45, endX: 16, endY: 13, arcLift: 6 },

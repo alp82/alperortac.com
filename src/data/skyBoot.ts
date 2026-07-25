@@ -1,5 +1,5 @@
 import { MOON_WINDOW, SUN_WINDOW } from "../components/minimap/helpers";
-import { CELESTIAL_STORAGE_KEY, DEFAULT_CELESTIAL } from "./celestial";
+import { DEFAULT_CELESTIAL } from "./celestial";
 import { PROJECTS } from "./projects";
 import { DEFAULT_SKY_CURVE, SKY_DUSK, SKY_NIGHT, SKY_NOON } from "./skyCurve";
 import { PANEL_KEY_TO_TOPIC_ID } from "./topics";
@@ -99,8 +99,6 @@ export function skyBootScript(): string {
 	const map = JSON.stringify(PATHNAME_TO_TOPIC_ID);
 	return `(function(){try{${skyBootSkyAtJs()}${skyBootSceneJs()}
 var doc=document.documentElement,s=doc.style;
-var gv=${DEFAULT_CELESTIAL.gapVh};try{var _c=JSON.parse(localStorage.getItem(${JSON.stringify(CELESTIAL_STORAGE_KEY)}));if(_c&&typeof _c.gapVh==="number")gv=_c.gapVh;}catch(e){}
-s.setProperty("--gap-vh",gv+"vh");
 var MAP=${map};
 var isAnchor=!!location.hash;
 var id=isAnchor?location.hash.slice(1):MAP[location.pathname];

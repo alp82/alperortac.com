@@ -11,16 +11,16 @@ type RhythmGapProps = {
 };
 
 export function RhythmGap({ gapVh }: RhythmGapProps) {
-	// Height comes from --gap-vh so the boot script (skyBoot.ts) can apply the
-	// stored gapVh before paint - otherwise a cold deep-link lands the scroll
-	// against the SSR-default 55vh gaps, then the stored value reflows every gap
-	// at hydration and slides the target section out of view. React (LayoutHost)
-	// owns --gap-vh after hydration; the prop is the SSR/pre-boot fallback.
+	// Straight from the prop. This used to read a --gap-vh custom property that
+	// the boot script set from a persisted gapVh, so a cold deep-link wouldn't
+	// land its scroll against SSR-default gaps and then reflow at hydration.
+	// Nothing is persisted any more (celestial.ts is the source of truth), so SSR
+	// and hydration already agree and the indirection bought nothing.
 	return (
 		<div
 			aria-hidden="true"
 			data-testid="rhythm-gap"
-			style={{ height: `var(--gap-vh, ${gapVh}vh)` }}
+			style={{ height: `${gapVh}vh` }}
 		/>
 	);
 }

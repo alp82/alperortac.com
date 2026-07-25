@@ -22,33 +22,6 @@ import { FooterSection } from "../components/_layout/footer/FooterSection";
 import { HeroSection } from "../components/_layout/HeroSection";
 import { deriveUrlPanel, PanelHost } from "../components/_layout/PanelHost";
 import { ProjectsSection } from "../components/_layout/ProjectsSection";
-import { RhythmGap } from "../components/_layout/RhythmGap";
-import { Minimap } from "../components/Minimap";
-import { NarrativeWatermark } from "../components/NarrativeWatermark";
-import { SUBPAGE_WORDS } from "../components/narrativeWatermark";
-import { PixelBackground } from "../components/PixelBackground";
-import { useIsomorphicLayoutEffect } from "../components/useIsomorphicLayoutEffect";
-import {
-	CELESTIAL_STORAGE_KEY,
-	type CelestialState,
-	DEFAULT_CELESTIAL,
-} from "../data/celestial";
-import {
-	armSmoothScroll,
-	handleScrollTopClick,
-	type PanelKey,
-	SECTION_IDS,
-	shouldArmSmoothForClick,
-} from "../data/sections";
-import { coldEntryFor } from "../data/skyBoot";
-import {
-	DEFAULT_SKY_CURVE,
-	NIGHT_UI_THRESHOLD,
-	type SkyCurve,
-	scrollProgressAt,
-	skyAt,
-} from "../data/skyCurve";
-import { PANEL_KEY_TO_TOPIC_ID, TOPICS } from "../data/topics";
 // The atmospheric-playground toy (#38 / #32): the always-on visitor sky toy.
 import {
 	AtmosphereToy,
@@ -57,74 +30,32 @@ import {
 	softSlice,
 	usePlayground,
 } from "../components/_layout/playground/AtmosphereToy";
+import { RhythmGap } from "../components/_layout/RhythmGap";
+import { Minimap } from "../components/Minimap";
+import { NarrativeWatermark } from "../components/NarrativeWatermark";
+import { SUBPAGE_WORDS } from "../components/narrativeWatermark";
+import { PixelBackground } from "../components/PixelBackground";
+import { useIsomorphicLayoutEffect } from "../components/useIsomorphicLayoutEffect";
+import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
+import {
+	armSmoothScroll,
+	handleScrollTopClick,
+	type PanelKey,
+	SECTION_IDS,
+	shouldArmSmoothForClick,
+} from "../data/sections";
+import { coldEntryFor } from "../data/skyBoot";
+import { NIGHT_UI_THRESHOLD, scrollProgressAt, skyAt } from "../data/skyCurve";
+import { PANEL_KEY_TO_TOPIC_ID, TOPICS } from "../data/topics";
 
 export const Route = createFileRoute("/_layout")({ component: LayoutHost });
-
-function isValidCurve(v: unknown): v is SkyCurve {
-	return (
-		typeof v === "object" &&
-		v !== null &&
-		typeof (v as SkyCurve).enabled === "boolean" &&
-		Array.isArray((v as SkyCurve).phase1) &&
-		(v as SkyCurve).phase1.length === 2 &&
-		Array.isArray((v as SkyCurve).phase2) &&
-		(v as SkyCurve).phase2.length === 2 &&
-		typeof (v as SkyCurve).boost === "number"
-	);
-}
-
-function useCelestialState(): [CelestialState, (s: CelestialState) => void] {
-	const [state, setState] = useState<CelestialState>(DEFAULT_CELESTIAL);
-	const writeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-	useEffect(() => {
-		try {
-			const stored = localStorage.getItem(CELESTIAL_STORAGE_KEY);
-			if (!stored) return;
-			const parsed = JSON.parse(stored) as Partial<CelestialState>;
-			if (parsed?.sun && parsed?.moon) {
-				// Migration shims: older states stored before sky-curve landed lack
-				// `curve`; states stored before vertical rhythm landed lack `gapVh`.
-				setState({
-					sun: parsed.sun,
-					moon: parsed.moon,
-					curve: isValidCurve(parsed.curve) ? parsed.curve : DEFAULT_SKY_CURVE,
-					gapVh:
-						typeof parsed.gapVh === "number"
-							? parsed.gapVh
-							: DEFAULT_CELESTIAL.gapVh,
-				});
-			}
-		} catch {
-			// localStorage may be unavailable (SSR / private mode)
-		}
-	}, []);
-
-	useEffect(() => {
-		return () => {
-			if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
-		};
-	}, []);
-
-	const update = (next: CelestialState) => {
-		setState(next);
-		if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
-		writeTimerRef.current = setTimeout(() => {
-			try {
-				localStorage.setItem(CELESTIAL_STORAGE_KEY, JSON.stringify(next));
-			} catch {
-				// localStorage may be unavailable
-			}
-		}, 200);
-	};
-
-	return [state, update];
-}
 
 function LayoutHost() {
 	const [scrollProgress, setScrollProgress] = useState(0);
 	const [scrollY, setScrollY] = useState(0);
-	const [celestial, setCelestial] = useCelestialState();
+	// Session-only tuning state, seeded from the source-of-truth defaults. Nothing
+	// is persisted, so an edit to celestial.ts always shows up on the next reload.
+	const [celestial, setCelestial] = useState<CelestialState>(DEFAULT_CELESTIAL);
 	// Mirror of celestial for the pre-paint seed (a []-dep layout effect that
 	// must read the current curve without re-subscribing). Synced in an effect,
 	// not during render, so concurrent rendering can't observe a torn value.
@@ -309,44 +240,29 @@ function LayoutHost() {
 		paintSky(scrollProgress);
 	}, [scrollProgress, celestial, playground, paintSky]);
 
-	// Own the RhythmGap height var for Tune-panel changes. The boot script already
-	// set --gap-vh from stored localStorage before paint; useCelestialState loads
-	// that same value in a passive effect, so on the FIRST commit celestial.gapVh
-	// is still the DEFAULT. Writing it here on mount would stomp the boot's stored
-	// value with the default (a 40->55->40 reflow for tuned-gap users), so skip
-	// the first run and only react to genuine post-mount changes.
-	const gapVhMountedRef = useRef(false);
-	useEffect(() => {
-		if (!gapVhMountedRef.current) {
-			gapVhMountedRef.current = true;
-			return;
-		}
-		document.documentElement.style.setProperty(
-			"--gap-vh",
-			`${celestial.gapVh}vh`,
-		);
-	}, [celestial.gapVh]);
-
 	// Seed the day/night driver (and the sky it paints) from a given scroll
 	// offset. Callers pass window.scrollY for anchors/restoration, or a parked
 	// topic's offsetTop for a subpage whose window hasn't scrolled there yet.
-	const seedSkyAt = useCallback((y: number) => {
-		// Freeze the driver while a detail subpage is open - the subpage's own
-		// scroll must not advance the time of day.
-		if (panelOpenRef.current) return;
-		const progress = scrollProgressAt(
-			y,
-			document.documentElement.scrollHeight,
-			window.innerHeight,
-		);
-		scrollProgressRef.current = progress;
-		setScrollProgress(progress);
-		setScrollY(y);
-		// Paint immediately so the pre-paint seed leaves no default-day frame
-		// before the reactive effect above catches up. paintSky applies any
-		// active atmosphere-toy override/palette.
-		paintSky(progress);
-	}, [paintSky]);
+	const seedSkyAt = useCallback(
+		(y: number) => {
+			// Freeze the driver while a detail subpage is open - the subpage's own
+			// scroll must not advance the time of day.
+			if (panelOpenRef.current) return;
+			const progress = scrollProgressAt(
+				y,
+				document.documentElement.scrollHeight,
+				window.innerHeight,
+			);
+			scrollProgressRef.current = progress;
+			setScrollProgress(progress);
+			setScrollY(y);
+			// Paint immediately so the pre-paint seed leaves no default-day frame
+			// before the reactive effect above catches up. paintSky applies any
+			// active atmosphere-toy override/palette.
+			paintSky(progress);
+		},
+		[paintSky],
+	);
 
 	// Seed React sky state BEFORE the first post-hydration paint so it matches
 	// where the boot script already landed the scroll + sky. The boot script
@@ -390,10 +306,10 @@ function LayoutHost() {
 		};
 	}, [seedSkyAt]);
 
-	// A rhythm-gap change (Tune panel slider, or the stored gap loading after
-	// mount) moves the document height under a stationary scroll position - no
-	// scroll event fires, so re-seed from the current scroll (seedSkyAt re-derives
-	// progress against the new height and keeps its own subpage-open freeze).
+	// A rhythm-gap change (the dev Tune panel slider) moves the document height
+	// under a stationary scroll position - no scroll event fires, so re-seed from
+	// the current scroll (seedSkyAt re-derives progress against the new height and
+	// keeps its own subpage-open freeze).
 	// biome-ignore lint/correctness/useExhaustiveDependencies: celestial.gapVh is the trigger; seedSkyAt is stable
 	useEffect(() => {
 		seedSkyAt(window.scrollY);

@@ -52,7 +52,7 @@ Seven projects, locked (ticket #43). `src/data/projects.ts` is the single source
 - **Scroll** drives the day → dusk → night transition, sun arc setting, moon arc rising.
 - **Progress bar / minimap** always visible. Honest linear progress.
 - **Sidetracks** slide in as full-screen overlay panels with a RETURN edge connector.
-- **Persistence** via localStorage — track found items / sky tuning across sessions.
+- **Persistence** via localStorage, for found items only. Sky tuning is deliberately NOT persisted: `src/data/celestial.ts` is the single source of truth, the dev-only Tune panel edits session state, and a reload always returns to the committed values.
 - **Audio** is ambient. Default off, clear toggle.
 
 ## Constraints

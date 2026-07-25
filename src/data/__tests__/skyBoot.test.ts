@@ -7,7 +7,7 @@ import {
 	sunOpacityAt,
 	windowedProgress,
 } from "../../components/minimap/helpers";
-import { CELESTIAL_STORAGE_KEY, DEFAULT_CELESTIAL } from "../celestial";
+import { DEFAULT_CELESTIAL } from "../celestial";
 import {
 	coldEntryFor,
 	PATHNAME_TO_TOPIC_ID,
@@ -180,15 +180,13 @@ describe("skyBootScript", () => {
 		expect(s).toContain("}catch(e){}");
 	});
 
-	it("reads the stored gapVh and applies --gap-vh before landing the scroll", () => {
+	it("touches no storage - celestial.ts is the only source of the gap", () => {
 		const s = skyBootScript();
-		// The jump fix (wayfinder #36): the gap var must be set from the shared
-		// storage key BEFORE the scrollIntoView, or the stored gapVh reflows the
-		// page at hydration and slides the target section out of view.
-		expect(s).toContain(CELESTIAL_STORAGE_KEY);
-		expect(s).toContain('setProperty("--gap-vh"');
-		expect(s.indexOf('setProperty("--gap-vh"')).toBeLessThan(
-			s.indexOf("scrollIntoView()"),
-		);
+		// The boot script used to read a persisted gapVh and apply it as --gap-vh
+		// before the scrollIntoView, to stop a stored gap reflowing the page at
+		// hydration. Nothing is persisted now: SSR renders the default gap, so the
+		// scroll the boot lands is already measured against the final height.
+		expect(s).not.toContain("localStorage");
+		expect(s).not.toContain("--gap-vh");
 	});
 });
