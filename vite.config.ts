@@ -34,6 +34,11 @@ export default defineConfig(({ mode }) => {
 			testTimeout: 30_000,
 		},
 		server: {
+			// Preview links are served over the tailnet by Tailscale Serve, which
+			// preserves the original Host header (`<box>.<tailnet>.ts.net`). Vite's
+			// host check rejects it otherwise, so a preview renders as
+			// "Blocked request" instead of the page.
+			allowedHosts: [".ts.net"],
 			proxy: {
 				"/ingest/static": {
 					target: posthogAssetsHost,
