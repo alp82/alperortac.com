@@ -49,7 +49,7 @@ describe("PROJECTS data", () => {
 	});
 });
 
-describe("PROJECTS stub entries (curia, claude-statusline, alperortac-com)", () => {
+describe("PROJECTS stub entries (curia, alperortac-com)", () => {
 	const find = (slug: string) => {
 		const project = PROJECTS.find((p) => p.slug === slug);
 		if (!project) throw new Error(`Missing project: ${slug}`);
@@ -57,8 +57,8 @@ describe("PROJECTS stub entries (curia, claude-statusline, alperortac-com)", () 
 	};
 
 	// Absence pins are deliberate (per plan Out of Scope): each authoring
-	// ticket (#48/#49/#50) deletes this project's absence assertions when its
-	// real subpage payload lands. `panelColor` is the one exception (ui fix
+	// ticket (#48/#50) deletes this project's absence assertions when its
+	// real subpage payload lands (claude-statusline's landed with #49). `panelColor` is the one exception (ui fix
 	// round): it is card-adjacent - it tints the band card's icon tile as well
 	// as the panel surface - so each stub carries its own distinct tint,
 	// pinned exactly, none near the band's terracotta accent (#b4531f).
@@ -77,25 +77,6 @@ describe("PROJECTS stub entries (curia, claude-statusline, alperortac-com)", () 
 		expect(curia.solution).toBeUndefined();
 		expect(curia.outcome).toBeUndefined();
 		expect(curia.stack).toBeUndefined();
-	});
-
-	it("claude-statusline: card copy verbatim, band tint pinned, subpage payload absent", () => {
-		const cs = find("claude-statusline");
-		expect(cs.title).toBe("claude-statusline");
-		expect(cs.desc).toBe(
-			"Single-file Bash statusline for Claude Code: model, context, and rate-limit windows at a glance.",
-		);
-		expect(cs.link).toBe("https://github.com/alp82/claude-statusline");
-		expect(cs.status).toBe("shipped");
-		expect(cs.highlight).toBe(false);
-		expect(cs.tags).toEqual(["Claude Code", "Bash"]);
-		expect(cs.panelColor).toBe("#365314");
-		expect(cs.panelLight).toBeUndefined();
-		expect(cs.media).toBeUndefined();
-		expect(cs.problem).toBeUndefined();
-		expect(cs.solution).toBeUndefined();
-		expect(cs.outcome).toBeUndefined();
-		expect(cs.stack).toBeUndefined();
 	});
 
 	it("alperortac-com: card copy verbatim, band tint pinned, subpage payload absent", () => {
@@ -202,6 +183,40 @@ describe("PROJECTS verbatim copy", () => {
 			webm: "/videos/forge-pipeline.webm",
 			poster: "/videos/forge-pipeline-poster.webp",
 		});
+	});
+
+	// wayfinder #49: the authored claude-statusline subpage. Deliberately
+	// lighter than the flagship mold - no problem/solution/outcome, no media.
+	// Copy is Alper's README wording; the strip artwork is slug-gated in
+	// ProjectPanel, not data.
+	it("claude-statusline: card copy verbatim plus the authored light payload (how-to-read section, demo link, requirements stack; no flagship triad, no media)", () => {
+		const cs = find("claude-statusline");
+		expect(cs.title).toBe("claude-statusline");
+		expect(cs.desc).toBe(
+			"Single-file Bash statusline for Claude Code: model, context, and rate-limit windows at a glance.",
+		);
+		expect(cs.link).toBe("https://github.com/alp82/claude-statusline");
+		expect(cs.status).toBe("shipped");
+		expect(cs.highlight).toBe(false);
+		expect(cs.tags).toEqual(["Claude Code", "Bash"]);
+		expect(cs.panelColor).toBe("#365314");
+		expect(cs.extraLinks).toEqual([
+			{
+				label: "See it in motion",
+				href: "https://alp82.github.io/claude-statusline/",
+			},
+		]);
+		expect(cs.extraSection).toEqual({
+			heading: "How to read it",
+			body: "The top half of each cell is how much of the window you have used. The bottom half is how much of the window has gone by. If the top reaches further right than the bottom, you are using it faster than the clock, and you will run out before it resets. Colour follows usage: green under 50%, yellow between 50 and 80%, red above 80%.",
+		});
+		expect(cs.stack).toEqual(["Bash", "jq", "curl", "Open Source"]);
+		// The light shape stays light: the flagship triad and media never
+		// sneak in without a deliberate decision.
+		expect(cs.problem).toBeUndefined();
+		expect(cs.solution).toBeUndefined();
+		expect(cs.outcome).toBeUndefined();
+		expect(cs.media).toBeUndefined();
 	});
 
 	it("manaschmiede: desc/problem/solution/outcome/tags are the locked deck-builder copy", () => {
