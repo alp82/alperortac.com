@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { CURIA_LEGS } from "../../components/_layout/projects/CuriaThread";
 import { PROJECTS } from "../projects";
 
 describe("PROJECTS data", () => {
@@ -49,7 +50,7 @@ describe("PROJECTS data", () => {
 	});
 });
 
-describe("PROJECTS stub entries (curia, alperortac-com)", () => {
+describe("PROJECTS stub entries (alperortac-com)", () => {
 	const find = (slug: string) => {
 		const project = PROJECTS.find((p) => p.slug === slug);
 		if (!project) throw new Error(`Missing project: ${slug}`);
@@ -57,28 +58,12 @@ describe("PROJECTS stub entries (curia, alperortac-com)", () => {
 	};
 
 	// Absence pins are deliberate (per plan Out of Scope): each authoring
-	// ticket (#48/#50) deletes this project's absence assertions when its
-	// real subpage payload lands (claude-statusline's landed with #49). `panelColor` is the one exception (ui fix
+	// ticket (#50) deletes this project's absence assertions when its
+	// real subpage payload lands (claude-statusline's landed with #49, curia's
+	// with #48). `panelColor` is the one exception (ui fix
 	// round): it is card-adjacent - it tints the band card's icon tile as well
 	// as the panel surface - so each stub carries its own distinct tint,
 	// pinned exactly, none near the band's terracotta accent (#b4531f).
-	it("curia: card copy verbatim, band tint pinned, subpage payload absent", () => {
-		const curia = find("curia");
-		expect(curia.title).toBe("Curia");
-		expect(curia.desc).toBe("AI chamber for the modern engineer.");
-		expect(curia.link).toBe("https://github.com/alp82/curia");
-		expect(curia.status).toBe("building");
-		expect(curia.highlight).toBe(false);
-		expect(curia.tags).toEqual(["AI", "Open Source"]);
-		expect(curia.panelColor).toBe("#164e63");
-		expect(curia.panelLight).toBeUndefined();
-		expect(curia.media).toBeUndefined();
-		expect(curia.problem).toBeUndefined();
-		expect(curia.solution).toBeUndefined();
-		expect(curia.outcome).toBeUndefined();
-		expect(curia.stack).toBeUndefined();
-	});
-
 	it("alperortac-com: card copy verbatim, band tint pinned, subpage payload absent", () => {
 		const site = find("alperortac-com");
 		expect(site.title).toBe("alperortac.com");
@@ -217,6 +202,50 @@ describe("PROJECTS verbatim copy", () => {
 		expect(cs.solution).toBeUndefined();
 		expect(cs.outcome).toBeUndefined();
 		expect(cs.media).toBeUndefined();
+	});
+
+	// wayfinder #48: the authored Curia subpage. "Flagship-lite" - the
+	// Problem/Solution pair plus one signature section, but deliberately no
+	// Outcome (still being built) and no media band (no demo asset exists).
+	// The Discord-thread artwork is slug-gated in ProjectPanel, not data.
+	it("curia: card copy verbatim plus the authored flagship-lite payload (problem, solution, golden-thread section, stack; no outcome, no media)", () => {
+		const curia = find("curia");
+		expect(curia.title).toBe("Curia");
+		expect(curia.desc).toBe("AI chamber for the modern engineer.");
+		expect(curia.link).toBe("https://github.com/alp82/curia");
+		expect(curia.status).toBe("building");
+		expect(curia.highlight).toBe(false);
+		expect(curia.tags).toEqual(["AI", "Open Source"]);
+		expect(curia.panelColor).toBe("#164e63");
+		expect(curia.problem).toBe(
+			"My agents run on a box at home. I do not. Knowing what is takeable, dispatching it, answering the one question a worker gets stuck on, and looking at what came out all live on the desktop I walked away from.",
+		);
+		expect(curia.solution).toBe(
+			"Curia is an always-on daemon that makes the phone a first-class client. It reads my GitHub trackers as its awareness source, dispatches a worker on a ticket into its own git worktree and tmux session, and bridges every question that worker has to Discord. Five verbs cover it: frontier, start, status, cancel, attach.",
+		);
+		expect(curia.extraSection).toEqual({
+			heading: "The golden thread",
+			body: "Phone → Discord → frontier → dispatch → escalate → answer → resolve → map → preview → attach, with one command spoken rather than typed. A preview link publishes the worker's dev server to the tailnet so the page opens on the phone; attach drops any device into the same live terminal session.",
+		});
+		expect(curia.stack).toEqual([
+			"Node",
+			"MCP",
+			"Discord",
+			"tmux",
+			"Tailscale",
+			"Open Source",
+		]);
+		// Flagship-lite stays lite: a WIP project gets no Outcome, and no media
+		// band appears without a real demo asset.
+		expect(curia.outcome).toBeUndefined();
+		expect(curia.media).toBeUndefined();
+		// The section body names the legs in order; the artwork renders the same
+		// list, so the two can never drift apart silently.
+		for (const leg of CURIA_LEGS) {
+			expect(curia.extraSection?.body.toLowerCase()).toContain(
+				leg.toLowerCase(),
+			);
+		}
 	});
 
 	it("manaschmiede: desc/problem/solution/outcome/tags are the locked deck-builder copy", () => {

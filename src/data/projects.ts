@@ -234,6 +234,21 @@ export const PROJECTS: Project[] = [
 		// four flagship tints, and from the band's terracotta accent (#b4531f).
 		// Cyan-900, staying in the card's own cyan family.
 		panelColor: "#164e63",
+		// Authored subpage (wayfinder #48), "flagship-lite": the Problem /
+		// Solution pair a system this size earns, one signature section, and
+		// stack chips - but no Outcome (it is still being built) and no media
+		// band (no demo asset exists). The artwork is the #curia Discord thread
+		// itself, slug-gated in ProjectPanel like Forge's pipeline and the
+		// statusline strip.
+		problem:
+			"My agents run on a box at home. I do not. Knowing what is takeable, dispatching it, answering the one question a worker gets stuck on, and looking at what came out all live on the desktop I walked away from.",
+		solution:
+			"Curia is an always-on daemon that makes the phone a first-class client. It reads my GitHub trackers as its awareness source, dispatches a worker on a ticket into its own git worktree and tmux session, and bridges every question that worker has to Discord. Five verbs cover it: frontier, start, status, cancel, attach.",
+		extraSection: {
+			heading: "The golden thread",
+			body: "Phone → Discord → frontier → dispatch → escalate → answer → resolve → map → preview → attach, with one command spoken rather than typed. A preview link publishes the worker's dev server to the tailnet so the page opens on the phone; attach drops any device into the same live terminal session.",
+		},
+		stack: ["Node", "MCP", "Discord", "tmux", "Tailscale", "Open Source"],
 	},
 	// Authored subpage (wayfinder #49), deliberately lighter than the flagship
 	// problem/solution/outcome mold: lead blurb, the statusline itself rendered

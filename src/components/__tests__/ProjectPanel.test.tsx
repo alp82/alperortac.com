@@ -592,6 +592,91 @@ describe("ProjectPanel claude-statusline strip", () => {
 	});
 });
 
+// wayfinder #48: the authored Curia subpage - flagship-lite, whose
+// extraSection artwork is the #curia Discord thread on a phone (CuriaThread),
+// slug-gated beside the statusline strip and Forge's pipeline.
+describe("ProjectPanel curia thread", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	const curiaProject: Project = {
+		slug: "curia",
+		title: "Curia",
+		desc: "AI chamber for the modern engineer.",
+		link: "https://github.com/alp82/curia",
+		status: "building",
+		highlight: false,
+		tags: ["AI", "Open Source"],
+		color: "bg-cyan-100 text-cyan-800",
+		iconKey: "Landmark",
+		panelColor: "#164e63",
+		problem: "test problem",
+		solution: "test solution",
+		extraSection: {
+			heading: "The golden thread",
+			body: "test golden thread body",
+		},
+		stack: ["Node", "MCP"],
+	};
+
+	function findExtraSection(container: HTMLElement) {
+		return Array.from(container.querySelectorAll("section")).find((section) =>
+			Array.from(section.querySelectorAll("h3")).some(
+				(h) => h.textContent?.trim() === "The golden thread",
+			),
+		);
+	}
+
+	it("renders the thread inside the extraSection, above the body copy", () => {
+		const { container } = render(
+			<ProjectPanel project={curiaProject} open={true} onClose={vi.fn()} />,
+		);
+		const section = findExtraSection(container as HTMLElement);
+		expect(section).not.toBeUndefined();
+		if (!section) throw new Error("extraSection not found");
+
+		const thread = section.querySelector('[role="img"]');
+		expect(thread).not.toBeNull();
+		expect(thread?.getAttribute("aria-label")).toMatch(/golden thread/i);
+
+		const body = screen.getByText(curiaProject.extraSection?.body ?? "");
+		if (!thread) throw new Error("thread not found");
+		expect(
+			thread.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("wins over the stage chain even if stages sneak into the data", () => {
+		const { container } = render(
+			<ProjectPanel
+				project={{
+					...curiaProject,
+					extraSection: {
+						heading: "The golden thread",
+						body: "test golden thread body",
+						stages: ["🅰 One", "🅱 Two"],
+					},
+				}}
+				open={true}
+				onClose={vi.fn()}
+			/>,
+		);
+		const section = findExtraSection(container as HTMLElement);
+		expect(section?.querySelector('[role="img"]')).not.toBeNull();
+		expect(section?.querySelector("ul")).toBeNull();
+	});
+
+	it("keeps the flagship-lite shape: Problem and Solution render, Outcome does not", () => {
+		render(
+			<ProjectPanel project={curiaProject} open={true} onClose={vi.fn()} />,
+		);
+		expect(screen.getByText("Problem")).not.toBeNull();
+		expect(screen.getByText("Solution")).not.toBeNull();
+		expect(screen.queryByText("Outcome")).toBeNull();
+	});
+});
+
 describe("ProjectPanel stub degradation", () => {
 	afterEach(() => {
 		cleanup();

@@ -6,6 +6,7 @@ import {
 	type Project,
 } from "../data/projects";
 import { useReducedMotion } from "./_layout/dive/useReducedMotion";
+import { CuriaThread } from "./_layout/projects/CuriaThread";
 import { ForgePipeline } from "./_layout/projects/ForgePipeline";
 import { StatuslineStrip } from "./_layout/projects/StatuslineStrip";
 import { SubpageClose } from "./_layout/SubpageClose";
@@ -249,6 +250,11 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 								    body, never the stage chain. */}
 								{project.slug === "claude-statusline" ? (
 									<StatuslineStrip />
+								) : /* wayfinder #48: Curia's artwork is the #curia Discord
+								      thread on a phone, walking the golden thread the
+								      section body names. */
+								project.slug === "curia" ? (
+									<CuriaThread />
 								) : (
 									project.extraSection.stages &&
 									project.extraSection.stages.length > 0 &&

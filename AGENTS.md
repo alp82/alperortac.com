@@ -33,13 +33,15 @@ Seven projects, locked (ticket #43). `src/data/projects.ts` is the single source
 | AIStack | shipped | yes | aistack.to | exists |
 | Forge | shipped | no | github.com/alp82/forge | exists |
 | Manaschmiede | shipped | no | github.com/alp82/manaschmiede | exists |
-| Curia | building | no | github.com/alp82/curia | stub (card + degraded panel) |
+| Curia | building | no | github.com/alp82/curia | authored, flagship-lite (#48) |
 | claude-statusline | shipped | no | github.com/alp82/claude-statusline | authored, light shape (#49) |
 | alperortac.com | shipped | no | github.com/alp82/alperortac.com | stub (card + degraded panel) |
 
 - **Card core** (required): title, desc, link, status, highlight, tags, color, iconKey.
-- **Subpage payload** (panelColor, panelLight, media, problem, solution, outcome, stack): OPTIONAL - the Option A relaxation landed with the three stub projects. ProjectPanel degrades to title/desc/tags/link when the payload is absent (no media band, no Problem/Solution/Outcome/Stack, shared dark-slate fallback colors) and renders `desc` as an always-on lead paragraph on every subpage, flagships included. Real stub content is authored by tickets #48/#50.
+- **Subpage payload** (panelColor, panelLight, media, problem, solution, outcome, stack): OPTIONAL - the Option A relaxation landed with the three stub projects. ProjectPanel degrades to title/desc/tags/link when the payload is absent (no media band, no Problem/Solution/Outcome/Stack, shared dark-slate fallback colors) and renders `desc` as an always-on lead paragraph on every subpage, flagships included. Real stub content is authored by ticket #50 (Curia's landed with #48, claude-statusline's with #49).
 - **Small projects get a lighter subpage shape** (precedent set by claude-statusline, #49): no problem/solution/outcome triad, no media band. Its page is lead blurb + one "How to read it" section whose artwork is the statusline itself (`StatuslineStrip`, a static faithful HTML render of the script's output in its own truecolor palette, slug-gated in ProjectPanel like Forge's pipeline) + the README requirements as stack chips + a "See it in motion" demo link. Copy comes from the project's own README, never invented.
+- **A WIP system gets "flagship-lite"** (precedent set by Curia, #48): the Problem / Solution pair a system-sized project earns, one signature section, and stack chips, but **no Outcome** (nothing has landed yet to report) and **no media band** (no demo asset exists). Its signature section is "The golden thread", whose artwork is the `#curia` Discord thread rendered on a phone (`CuriaThread`, a static faithful render in Discord's own dark palette, slug-gated in ProjectPanel beside the statusline strip and Forge's pipeline). The three subpage shapes are therefore: flagship (triad + media), flagship-lite (pair + signature section), light (blurb + one section).
+- **Artwork never publishes real infrastructure hostnames.** `CuriaThread` shows `box.tailnet.ts.net`, not the real box: curia's attach surface sits behind tailnet membership alone, so a public page must not hand out the exact target. Pinned by test.
 - External link = the project's canonical home: the live app for apps, the GitHub repo for the repo-based ones. The self-reference (alperortac.com) points external at its own repo to avoid a circular link.
 
 ## Feel
