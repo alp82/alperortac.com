@@ -50,6 +50,7 @@ Seven projects, locked (ticket #43). `src/data/projects.ts` is the single source
 ## Mechanics
 
 - **Scroll** drives the day → dusk → night transition, sun arc setting, moon arc rising.
+- **Vertical rhythm** is one variable: `gapVh` in `src/data/celestial.ts`, rendered as `RhythmGap`. Section roots add NO vertical padding on an edge they share with a gap, so every boundary is exactly `gapVh` (ticket #51 - ad-hoc per-section padding had made the perceived boundary run 270px to 590px). Hero's `pt-24` (nav clearance) and the footer's `pb-16` (page end) are not boundaries and stay.
 - **Progress bar / minimap** always visible. Honest linear progress.
 - **Sidetracks** slide in as full-screen overlay panels with a RETURN edge connector.
 - **Persistence** via localStorage, for found items only. Sky tuning is deliberately NOT persisted: `src/data/celestial.ts` is the single source of truth, the dev-only Tune panel edits session state, and a reload always returns to the committed values.

@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
-import { useRef } from "react";
+import { memo, useRef } from "react";
 import {
 	PANEL_FALLBACK_COLOR,
 	PROJECT_ICONS,
@@ -22,6 +22,20 @@ import { SectionTitle, useSectionNightPhase } from "./SectionTitle";
 // Locked terracotta ink + glow RGB (ticket #45 accent decision).
 const PROJECTS_ACCENT = "#b4531f";
 const PROJECTS_GLOW = "251,146,60";
+
+// The locked accent works as DECORATION but fails as TEXT. Measured in the
+// running app (ticket #51): the band sits at scroll progress ~0.17, so its
+// backdrop is daylight sky, and #b4531f on that sky is 2.87:1 - under the 4.5:1
+// floor the 12px/900 eyebrow needs. C4 predicted this would bite at night; the
+// band never reaches night (NIGHT_UI_THRESHOLD is 0.55), so it bites in the one
+// phase the band actually occupies. Same hue (20.9deg) and saturation as the
+// locked accent, lightness moved until both clear 4.5:1 against the skies the
+// eyebrow is really seen against - the day tone across the band's whole scroll
+// range (5.02:1 on noon, 4.58:1 as the sky warms), the night tone against
+// SKY_NIGHT (4.64:1) so the eyebrow stays legible if the band ever drifts late.
+// The undarkened accent stays on the underline, which is decorative and exempt.
+const PROJECTS_ACCENT_TEXT_DAY = "#7a3815";
+const PROJECTS_ACCENT_TEXT_NIGHT = "#cc5e23";
 
 const hostOf = (link: string) => {
 	try {
@@ -126,7 +140,9 @@ function ProjectSplitCard({
 						{project.tags.map((t) => (
 							<span
 								key={t}
-								className="text-[10px] font-black uppercase tracking-widest text-slate-700/80"
+								// Full opacity, not /80: at 10px/900 these need 4.5:1, and the
+								// 80% wash measured 4.31:1 on the frosted card (ticket #51).
+								className="text-[10px] font-black uppercase tracking-widest text-slate-700"
 							>
 								#{t}
 							</span>
@@ -143,13 +159,19 @@ function ProjectSplitCard({
 			</button>
 
 			{/* external escape hatch - stops the dive, opens a new tab */}
+			{/* The pill clears the 24px WCAG floor at 28px, but the dive button sits
+			    directly under it on every side with NO buffer, so a near-miss fired
+			    the dive instead of the link (measured on touch, ticket #51: 4px out
+			    in any direction hit the card). The ::after grows the hit area 8px
+			    past the visible pill without moving or resizing it, so the margin of
+			    error resolves to the link the finger was aiming at. */}
 			<a
 				href={project.link}
 				target="_blank"
 				rel="noopener noreferrer"
 				onClick={(e) => e.stopPropagation()}
 				aria-label={`Visit ${project.title} (opens in new tab)`}
-				className={`absolute right-3 top-3 inline-flex min-h-7 items-center gap-1.5 border border-white/70 bg-white/50 px-2.5 py-1 text-[11px] font-black tracking-wider text-slate-900 backdrop-blur transition-colors hover:bg-white/80 ${focusRing}`}
+				className={`absolute right-3 top-3 inline-flex min-h-7 items-center gap-1.5 border border-white/70 bg-white/50 px-2.5 py-1 text-[11px] font-black tracking-wider text-slate-900 backdrop-blur transition-colors after:absolute after:-inset-2 after:content-[''] hover:bg-white/80 ${focusRing}`}
 			>
 				{hostOf(project.link)}
 				<ArrowUpRight size={13} aria-hidden="true" />
@@ -158,7 +180,7 @@ function ProjectSplitCard({
 	);
 }
 
-export function ProjectsSection({
+function ProjectsSectionInner({
 	lastTriggerRef,
 }: {
 	lastTriggerRef: React.RefObject<HTMLElement | null>;
@@ -175,7 +197,11 @@ export function ProjectsSection({
 				<header className="mb-12">
 					<p
 						className="mb-2 text-xs font-black uppercase tracking-[0.3em]"
-						style={{ color: PROJECTS_ACCENT }}
+						style={{
+							color: night
+								? PROJECTS_ACCENT_TEXT_NIGHT
+								: PROJECTS_ACCENT_TEXT_DAY,
+						}}
 					>
 						Selected work
 					</p>
@@ -242,3 +268,9 @@ export function ProjectsSection({
 		</section>
 	);
 }
+
+// Memoised: LayoutHost holds state that changes for reasons unrelated to this
+// section (the About dropdown, the settled scroll position, a dive). Without
+// this, every one of those re-rendered the whole page - the About-menu open was
+// a ~150ms main-thread task on its own.
+export const ProjectsSection = memo(ProjectsSectionInner);

@@ -1,5 +1,5 @@
 import { ExternalLink, Sun } from "lucide-react";
-import { Fragment } from "react";
+import { Fragment, memo } from "react";
 import { FOOTER_PROJECTS_INTRO } from "../../../data/footer";
 import { PROJECTS } from "../../../data/projects";
 import { handleScrollTopClick, SECTION_IDS } from "../../../data/sections";
@@ -9,11 +9,13 @@ import { FooterHeadline } from "./FooterHeadline";
 
 const currentYear = new Date().getFullYear();
 
-export function FooterSection() {
+function FooterSectionInner() {
 	return (
 		<footer
 			id={SECTION_IDS.contact}
-			className="py-16 px-6 border-t border-current/20 bg-slate-900/40 backdrop-blur-md transition-colors duration-100"
+			// pb only: the top edge is a section boundary and belongs to RhythmGap
+			// (ticket #51); the bottom is the end of the page, not a boundary.
+			className="pb-16 px-6 border-t border-current/20 bg-slate-900/40 backdrop-blur-md transition-colors duration-100"
 			style={{ color: "#f8fafc" }}
 		>
 			<div className="max-w-6xl mx-auto flex flex-col gap-24">
@@ -61,3 +63,9 @@ export function FooterSection() {
 		</footer>
 	);
 }
+
+// Memoised: LayoutHost holds state that changes for reasons unrelated to this
+// section (the About dropdown, the settled scroll position, a dive). Without
+// this, every one of those re-rendered the whole page - the About-menu open was
+// a ~150ms main-thread task on its own.
+export const FooterSection = memo(FooterSectionInner);

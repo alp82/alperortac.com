@@ -91,7 +91,7 @@ return {"--sun-x":sp[0]+"%","--sun-y":sp[1]+"%","--sun-o":so,"--moon-x":mp[0]+"%
 //     cold-entry scroll (TanStack scrollRestoration is off; see router.tsx). A
 //     subpage doesn't scroll (its panel opens over the parked topic).
 //   - colours the sky: `--sky-now` + body background for the landed position.
-//   - positions the minimap: `--mm-top/-h/-dim/-band` so the current-section
+//   - positions the minimap: `--mm-top/-h/-top-px` so the current-section
 //     indicator is right from frame one instead of snapping in at hydration.
 // React re-owns all of these at hydration. Wrapped in try/catch so it can never
 // blank the page.
@@ -114,11 +114,13 @@ var color=skyAt(p);
 s.setProperty("--sky-now",color);
 document.body.style.backgroundColor=color;
 var vr=window.innerHeight/doc.scrollHeight;
-var vt=p*(1-vr)*100,vh=Math.max(vr*100,4),vb=vt+vh;
+var vt=p*(1-vr)*100,vh=Math.max(vr*100,4);
 s.setProperty("--mm-top",vt+"%");
 s.setProperty("--mm-h",vh+"%");
-s.setProperty("--mm-dim","linear-gradient(to bottom,black 0%,black "+vt+"%,transparent "+vt+"%,transparent "+vb+"%,black "+vb+"%,black 100%)");
-s.setProperty("--mm-band","linear-gradient(to bottom,transparent 0%,transparent "+vt+"%,black "+vt+"%,black "+vb+"%,transparent "+vb+"%,transparent 100%)");
+// The minimap's dim/band masks are static (built once from the viewport ratio)
+// and the layers carrying them are TRANSLATED into place, so the boot script
+// only has to seed that offset - it no longer emits mask gradients at all.
+s.setProperty("--mm-top-px",(vt/100)*window.innerHeight+"px");
 var SC=scene(p,vt,vh);for(var k in SC){s.setProperty(k,SC[k]);}
 }catch(e){}})();`;
 }

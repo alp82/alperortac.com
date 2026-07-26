@@ -16,9 +16,9 @@ afterEach(() => {
 
 function renderMinimap(): HTMLElement {
 	vi.spyOn(window, "scrollTo").mockImplementation(() => {});
-	const { container } = render(
-		<Minimap scrollProgress={0} celestial={DEFAULT_CELESTIAL} />,
-	);
+	// The `journey` prop is the scroll driver's handle; the cursor affordance
+	// under test does not involve it.
+	const { container } = render(<Minimap celestial={DEFAULT_CELESTIAL} />);
 	const el = container.firstElementChild as HTMLElement;
 	el.setPointerCapture = vi.fn();
 	el.hasPointerCapture = vi.fn().mockReturnValue(false);

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { memo, useRef } from "react";
 import { SECTION_IDS } from "../../data/sections";
 import { SectionTitle, useSectionNightPhase } from "./SectionTitle";
 import { ShortsCarousel } from "./social/ShortsCarousel";
@@ -67,7 +67,7 @@ function SocialChip({
 	);
 }
 
-export function FindMeSection() {
+function FindMeSectionInner() {
 	const sectionRef = useRef<HTMLElement>(null);
 	// ONE frozen phase for the whole section, measured at the section root:
 	// the heading, every chip, and the scrollbar must all agree. The title
@@ -79,7 +79,8 @@ export function FindMeSection() {
 		<section
 			ref={sectionRef}
 			id={SECTION_IDS.findMe}
-			className="pt-4 pb-64 px-6 relative overflow-hidden text-slate-900"
+			// No vertical padding: RhythmGap owns every boundary (ticket #51).
+			className="px-6 relative overflow-hidden text-slate-900"
 		>
 			{/* Cards are fluid thirds of the rail (.short-card calc in styles.css),
 			    so ANY container width shows exactly 3 shorts. The box is max-w-3xl
@@ -116,3 +117,9 @@ export function FindMeSection() {
 		</section>
 	);
 }
+
+// Memoised: LayoutHost holds state that changes for reasons unrelated to this
+// section (the About dropdown, the settled scroll position, a dive). Without
+// this, every one of those re-rendered the whole page - the About-menu open was
+// a ~150ms main-thread task on its own.
+export const FindMeSection = memo(FindMeSectionInner);

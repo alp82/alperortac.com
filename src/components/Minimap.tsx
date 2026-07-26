@@ -1,112 +1,61 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
 import { DEFAULT_SKY_ANCHORS, type SkyAnchors, skyAt } from "../data/skyCurve";
 import {
-	celestialPosition,
-	MOON_WINDOW,
-	SUN_WINDOW,
-	windowedProgress,
-} from "./minimap/helpers";
+	moverMasks,
+	viewportHeightPctFor,
+} from "./_layout/scrollJourney/journeyValues";
+import type { Journey } from "./_layout/scrollJourney/useScrollJourney";
+import { useJourneyRepaint } from "./_layout/scrollJourney/useScrollJourney";
 
-// Distance (% of minimap container height) over which the live-color band
-// fades into the surrounding sky-snapshot gradient at its top and bottom
-// edges. Tuned in the (now-deleted) /minimap-lab - ease-in-out at 20 lands
-// the smoothest seam against the page sky.
-const TRANSITION_DISTANCE = 20;
-
-// Returns the inner ease-in-out stops of a fade region. Endpoints are emitted
-// by the caller. Empty when the region collapses to zero width.
-function fadeStops(
-	startPct: number,
-	endPct: number,
-	fadingToTransparent: boolean,
-): string {
-	const D = endPct - startPct;
-	if (D <= 0) return "";
-	const a1 = fadingToTransparent ? 0.8 : 0.2;
-	const a2 = fadingToTransparent ? 0.2 : 0.8;
-	return `rgba(0,0,0,${a1}) ${(startPct + D * 0.3).toFixed(2)}%, rgba(0,0,0,${a2}) ${(startPct + D * 0.7).toFixed(2)}%`;
-}
-
-function buildDimMask(vpTopPct: number, vpHeightPct: number): string {
-	const A1 = Math.max(0, vpTopPct - TRANSITION_DISTANCE);
-	const B1 = vpTopPct;
-	const A2 = vpTopPct + vpHeightPct;
-	const B2 = Math.min(100, vpTopPct + vpHeightPct + TRANSITION_DISTANCE);
-	const topInner = fadeStops(A1, B1, true);
-	const botInner = fadeStops(A2, B2, false);
-	const stops = [
-		"black 0%",
-		`black ${A1.toFixed(2)}%`,
-		...(topInner ? [topInner] : []),
-		`transparent ${B1.toFixed(2)}%`,
-		`transparent ${A2.toFixed(2)}%`,
-		...(botInner ? [botInner] : []),
-		`black ${B2.toFixed(2)}%`,
-		"black 100%",
-	];
-	return `linear-gradient(to bottom, ${stops.join(", ")})`;
-}
-
-function buildBandMask(vpTopPct: number, vpHeightPct: number): string {
-	const A1 = Math.max(0, vpTopPct - TRANSITION_DISTANCE);
-	const B1 = vpTopPct;
-	const A2 = vpTopPct + vpHeightPct;
-	const B2 = Math.min(100, vpTopPct + vpHeightPct + TRANSITION_DISTANCE);
-	const topInner = fadeStops(A1, B1, false);
-	const botInner = fadeStops(A2, B2, true);
-	const stops = [
-		"transparent 0%",
-		`transparent ${A1.toFixed(2)}%`,
-		...(topInner ? [topInner] : []),
-		`black ${B1.toFixed(2)}%`,
-		`black ${A2.toFixed(2)}%`,
-		...(botInner ? [botInner] : []),
-		`transparent ${B2.toFixed(2)}%`,
-		"transparent 100%",
-	];
-	return `linear-gradient(to bottom, ${stops.join(", ")})`;
-}
-
-// SSR / pre-boot fallbacks for the CSS-var-driven indicator (progress 0, the
-// viewportRatio-0 height floor). The boot script overrides these before paint
-// for a cold deep-link; React owns the vars after hydration.
-const DIM_MASK_0 = buildDimMask(0, 4);
-const BAND_MASK_0 = buildBandMask(0, 4);
+// The right-edge journey minimap: a snapshot of the whole day/night gradient,
+// with the current viewport window shown in live colour and everything outside
+// it dimmed.
+//
+// Nothing here recomputes on scroll. Both masks used to be rebuilt as fresh
+// gradient strings every tick, which forced the browser to re-rasterize an
+// 80px x 100vh mask each frame. Their shape only depends on the viewport ratio
+// (resize), so they are built once here against a 300%-tall layer whose window
+// sits at 1/3 of its height; the driver then just translates that layer. See
+// journeyValues.ts for the geometry and journeyTargets.ts for the writes.
 
 type MinimapProps = {
-	scrollProgress: number;
 	celestial: CelestialState;
 	// Atmosphere toy: palette anchors so the minimap gradient mirrors the toy's
 	// selected world. Defaults to Earth = unchanged.
 	anchors?: SkyAnchors;
+	journey?: Journey | undefined;
 };
 
-export function Minimap({
-	scrollProgress,
+function MinimapInner({
 	celestial,
 	anchors = DEFAULT_SKY_ANCHORS,
+	journey,
 }: MinimapProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
-	const [viewportRatio, setViewportRatio] = useState(0);
 	const isDraggingRef = useRef(false);
 	const [grabbing, setGrabbing] = useState(false);
 
-	useEffect(() => {
-		const measure = () => {
-			const docHeight = document.documentElement.scrollHeight;
-			const winHeight = window.innerHeight;
-			setViewportRatio(winHeight / docHeight);
-		};
+	useJourneyRepaint(journey);
 
-		measure();
-		const raf = requestAnimationFrame(measure);
-		window.addEventListener("resize", measure);
-		return () => {
-			cancelAnimationFrame(raf);
-			window.removeEventListener("resize", measure);
-		};
-	}, []);
+	// Resize-only: the window's height changes, its shape does not.
+	const viewportHeightPct = viewportHeightPctFor(journey?.metrics ?? null);
+	const masks = useMemo(
+		() => moverMasks(viewportHeightPct),
+		[viewportHeightPct],
+	);
+
+	const minimapGradient = useMemo(() => {
+		const STOPS = 48;
+		const parts: string[] = [];
+		for (let i = 0; i < STOPS; i++) {
+			const p = i / (STOPS - 1);
+			parts.push(
+				`${skyAt(p, celestial.curve, anchors)} ${(p * 100).toFixed(2)}%`,
+			);
+		}
+		return `linear-gradient(to bottom, ${parts.join(", ")})`;
+	}, [celestial.curve, anchors]);
 
 	const scrollToY = (clientY: number) => {
 		const el = containerRef.current;
@@ -138,49 +87,18 @@ export function Minimap({
 		}
 	};
 
-	const viewportTopPct = scrollProgress * (1 - viewportRatio) * 100;
-	const viewportHeightPct = Math.max(viewportRatio * 100, 4);
-
-	const minimapGradient = useMemo(() => {
-		const STOPS = 48;
-		const parts: string[] = [];
-		for (let i = 0; i < STOPS; i++) {
-			const p = i / (STOPS - 1);
-			parts.push(`${skyAt(p, celestial.curve, anchors)} ${(p * 100).toFixed(2)}%`);
-		}
-		return `linear-gradient(to bottom, ${parts.join(", ")})`;
-	}, [celestial.curve, anchors]);
-
-	const sunPos = celestialPosition(
-		windowedProgress(scrollProgress, SUN_WINDOW),
-		celestial.sun,
-	);
-	const moonPos = celestialPosition(
-		windowedProgress(scrollProgress, MOON_WINDOW),
-		celestial.moon,
-	);
-	const sunY = viewportTopPct + (sunPos.y / 100) * viewportHeightPct;
-	const moonY = viewportTopPct + (moonPos.y / 100) * viewportHeightPct;
-
-	const dimMask = buildDimMask(viewportTopPct, viewportHeightPct);
-	const bandMask = buildBandMask(viewportTopPct, viewportHeightPct);
-	const bandColor = skyAt(scrollProgress, celestial.curve, anchors);
-
-	// Own the indicator + celestial-dot CSS vars after hydration. The boot script
-	// seeds them before the first paint (so the current-section indicator AND the
-	// sun/moon dots are right from frame one, not snapped in at hydration); this
-	// keeps them in sync as the user scrolls / resizes. The sun/moon x + opacity
-	// vars (--sun-x/-o, --moon-x/-o) are owned by PixelBackground; here we set
-	// only the minimap-remapped y positions.
-	useEffect(() => {
-		const s = document.documentElement.style;
-		s.setProperty("--mm-top", `${viewportTopPct}%`);
-		s.setProperty("--mm-h", `${viewportHeightPct}%`);
-		s.setProperty("--mm-dim", dimMask);
-		s.setProperty("--mm-band", bandMask);
-		s.setProperty("--mm-sun-y", `${sunY}%`);
-		s.setProperty("--mm-moon-y", `${moonY}%`);
-	}, [viewportTopPct, viewportHeightPct, dimMask, bandMask, sunY, moonY]);
+	// The three layers that track the viewport share one translateY, written by
+	// the driver. `top: -100%` + `height: 300%` keeps the mover covering the
+	// container across the whole travel range.
+	const moverStyle: React.CSSProperties = {
+		position: "absolute",
+		left: 0,
+		right: 0,
+		top: "-100%",
+		height: "300%",
+		transform: "translateY(var(--mm-top-px, 0px))",
+		willChange: "transform",
+	};
 
 	return (
 		<div
@@ -192,20 +110,27 @@ export function Minimap({
 			role="presentation"
 			aria-hidden="true"
 			className={`hidden md:block fixed right-0 top-0 w-20 h-screen border-l-2 border-white/20 ${grabbing ? "cursor-grabbing" : "cursor-grab"} select-none z-40 overflow-hidden touch-none`}
-			style={{
-				background: minimapGradient,
-				willChange: "transform",
-			}}
+			style={{ background: minimapGradient }}
 		>
+			{/* live sky colour, revealed only inside the viewport window */}
+			<div className="absolute inset-0 overflow-hidden pointer-events-none">
+				<div
+					ref={(el) => {
+						if (journey) journey.targets.mmBand = el;
+					}}
+					style={{
+						...moverStyle,
+						backgroundColor: "var(--sky-now)",
+						maskImage: masks.band,
+						WebkitMaskImage: masks.band,
+					}}
+				/>
+			</div>
+
 			<div
-				className="absolute inset-0 pointer-events-none"
-				style={{
-					backgroundColor: bandColor,
-					maskImage: `var(--mm-band, ${BAND_MASK_0})`,
-					WebkitMaskImage: `var(--mm-band, ${BAND_MASK_0})`,
+				ref={(el) => {
+					if (journey) journey.targets.mmSun = el;
 				}}
-			/>
-			<div
 				className="absolute -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-yellow-200 border border-yellow-400 shadow-[0_0_6px_rgba(253,224,71,0.7)] pointer-events-none"
 				style={{
 					left: `var(--sun-x, ${DEFAULT_CELESTIAL.sun.startX}%)`,
@@ -214,6 +139,9 @@ export function Minimap({
 				}}
 			/>
 			<div
+				ref={(el) => {
+					if (journey) journey.targets.mmMoon = el;
+				}}
 				className="absolute -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-100 border border-slate-300 pointer-events-none"
 				style={{
 					left: `var(--moon-x, ${DEFAULT_CELESTIAL.moon.startX}%)`,
@@ -221,21 +149,38 @@ export function Minimap({
 					opacity: "var(--moon-o, 0)",
 				}}
 			/>
+
+			{/* dim everything outside the viewport window */}
+			<div className="absolute inset-0 overflow-hidden pointer-events-none">
+				<div
+					ref={(el) => {
+						if (journey) journey.targets.mmDim = el;
+					}}
+					style={{
+						...moverStyle,
+						backgroundColor: "#020617",
+						opacity: 0.4,
+						maskImage: masks.dim,
+						WebkitMaskImage: masks.dim,
+					}}
+				/>
+			</div>
+
+			{/* the indicator frame */}
 			<div
-				className="absolute inset-0 pointer-events-none bg-slate-950"
-				style={{
-					opacity: 0.4,
-					maskImage: `var(--mm-dim, ${DIM_MASK_0})`,
-					WebkitMaskImage: `var(--mm-dim, ${DIM_MASK_0})`,
+				ref={(el) => {
+					if (journey) journey.targets.mmInd = el;
 				}}
-			/>
-			<div
 				className="absolute left-0 right-0 border-y-2 border-white/20 pointer-events-none"
 				style={{
-					top: "var(--mm-top, 0%)",
+					top: 0,
 					height: "var(--mm-h, 4%)",
+					transform: "translateY(var(--mm-top-px, 0px))",
+					willChange: "transform",
 				}}
 			/>
 		</div>
 	);
 }
+
+export const Minimap = memo(MinimapInner);

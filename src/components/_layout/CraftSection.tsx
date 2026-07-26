@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, memo } from "react";
 import { SECTION_IDS } from "../../data/sections";
 import { TOPICS } from "../../data/topics";
 import { LINKS } from "./composer/index";
@@ -27,7 +27,7 @@ type CraftSectionProps = {
 	gapVh: number;
 };
 
-export function CraftSection({
+function CraftSectionInner({
 	lastTriggerRef,
 	isNight,
 	composer,
@@ -67,3 +67,9 @@ export function CraftSection({
 		</section>
 	);
 }
+
+// Memoised: LayoutHost holds state that changes for reasons unrelated to this
+// section (the About dropdown, the settled scroll position, a dive). Without
+// this, every one of those re-rendered the whole page - the About-menu open was
+// a ~150ms main-thread task on its own.
+export const CraftSection = memo(CraftSectionInner);

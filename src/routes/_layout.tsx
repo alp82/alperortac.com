@@ -31,6 +31,7 @@ import {
 	usePlayground,
 } from "../components/_layout/playground/AtmosphereToy";
 import { RhythmGap } from "../components/_layout/RhythmGap";
+import { useScrollJourney } from "../components/_layout/scrollJourney/useScrollJourney";
 import { Minimap } from "../components/Minimap";
 import { NarrativeWatermark } from "../components/NarrativeWatermark";
 import { SUBPAGE_WORDS } from "../components/narrativeWatermark";
@@ -45,31 +46,30 @@ import {
 	shouldArmSmoothForClick,
 } from "../data/sections";
 import { coldEntryFor } from "../data/skyBoot";
-import { NIGHT_UI_THRESHOLD, scrollProgressAt, skyAt } from "../data/skyCurve";
+import { NIGHT_UI_THRESHOLD } from "../data/skyCurve";
 import { PANEL_KEY_TO_TOPIC_ID, TOPICS } from "../data/topics";
 
 export const Route = createFileRoute("/_layout")({ component: LayoutHost });
 
 function LayoutHost() {
+	// The SETTLED scroll position, mirrored into React only for the consumers
+	// that need a render (the night UI flip, the atmosphere dial). The live
+	// per-frame value never comes through here - see useScrollJourney.
 	const [scrollProgress, setScrollProgress] = useState(0);
-	const [scrollY, setScrollY] = useState(0);
 	// Session-only tuning state, seeded from the source-of-truth defaults. Nothing
 	// is persisted, so an edit to celestial.ts always shows up on the next reload.
 	const [celestial, setCelestial] = useState<CelestialState>(DEFAULT_CELESTIAL);
-	// Mirror of celestial for the pre-paint seed (a []-dep layout effect that
-	// must read the current curve without re-subscribing). Synced in an effect,
-	// not during render, so concurrent rendering can't observe a torn value.
-	const celestialRef = useRef(celestial);
-	useEffect(() => {
-		celestialRef.current = celestial;
-	}, [celestial]);
-	// Atmosphere toy state (time-slice override + palette + extras). Held in a ref
-	// too so the []-dep sky painters can read it without resubscribing.
+	// Atmosphere toy state (time-slice override + palette + extras). The scroll
+	// driver keeps its own refs on the curve and the palette, so nothing needs to
+	// be mirrored here.
 	const [playground, playgroundApi] = usePlayground();
-	const playgroundRef = useRef(playground);
-	useEffect(() => {
-		playgroundRef.current = playground;
-	}, [playground]);
+	// Hoisted above the scroll driver, which needs both.
+	const paletteAnchors = paletteAnchorsFor(playground.palette);
+	const sliceFor = useCallback(
+		(raw: number) =>
+			playground.time != null ? softSlice(playground.time, raw) : raw,
+		[playground.time],
+	);
 	const [skyOpen, setSkyOpen] = useState(false);
 	const [aboutOpen, setAboutOpen] = useState(false);
 	const aboutMenuRef = useRef<HTMLDivElement | null>(null);
@@ -96,6 +96,11 @@ function LayoutHost() {
 	// from scroll while in a subpage. The html scroller is also locked (CSS), but
 	// this gate is the guaranteed freeze.
 	const panelOpenRef = useRef(false);
+	// Assigned right after useScrollJourney below; read by the []-stable
+	// onPanelChange callback.
+	const journeyRef = useRef<ReturnType<typeof useScrollJourney>>(
+		null as unknown as ReturnType<typeof useScrollJourney>,
+	);
 
 	// Drive the live-landscape dive from the panel host. On open, aim the zoom at
 	// the trigger's on-screen center and push --dive-u to 1 (CSS transitions the
@@ -135,14 +140,11 @@ function LayoutHost() {
 					if (el) {
 						const targetY = el.offsetTop;
 						window.scrollTo(0, targetY);
-						const progress = scrollProgressAt(
-							targetY,
-							document.documentElement.scrollHeight,
-							window.innerHeight,
-						);
+						// Paint through the driver even though the panel is open: a cold
+						// subpage load has to show the parked time-of-day behind it.
+						const { progress } = journeyRef.current.applyAt(targetY);
 						scrollProgressRef.current = progress;
 						setScrollProgress(progress);
-						setScrollY(targetY);
 					}
 					return;
 				}
@@ -218,50 +220,40 @@ function LayoutHost() {
 	const [designComposer, setDesignComposer] =
 		useState<ComposerState>(DEFAULT_STATE);
 
-	// Paint the sky for the current progress: the body background (the void the
-	// dive's 3D transform can expose at the landscape edges) and the --sky-now
-	// custom property that PixelBackground's base layer reads. React owns
-	// --sky-now after hydration; the pre-hydration boot script (skyBoot.ts) sets
-	// it for the first frame. Frozen while a subpage is open.
-	// Paint the sky for a RAW scroll progress, applying the atmosphere toy's soft
-	// time-slice override + palette anchors when active. Both paint sites (this
-	// reactive effect and seedSkyAt's pre-paint) route through here so they always
-	// agree. Reads refs so it stays []-stable.
-	const paintSky = useCallback((rawProgress: number) => {
-		const pg = playgroundRef.current;
-		const eff = pg.time != null ? softSlice(pg.time, rawProgress) : rawProgress;
-		const anchors = paletteAnchorsFor(pg.palette);
-		const color = skyAt(eff, celestialRef.current.curve, anchors);
-		document.body.style.backgroundColor = color;
-		document.documentElement.style.setProperty("--sky-now", color);
+	// The scroll journey. The driver owns every scroll-linked value in the scene:
+	// it samples the maths once per animation frame and writes the results
+	// straight onto the elements that consume them, so the whole day/night
+	// journey costs zero React renders. React state below carries only the
+	// SETTLED position, for the handful of things that genuinely need a render
+	// (the night UI flip, the atmosphere dial readout).
+	const onSettle = useCallback((progress: number) => {
+		scrollProgressRef.current = progress;
+		setScrollProgress(progress);
 	}, []);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: celestial + playground are repaint triggers - paintSky reads them via refs, so a palette/time/curve change must re-run this effect to recolour --sky-now without waiting for a scroll.
-	useEffect(() => {
-		paintSky(scrollProgress);
-	}, [scrollProgress, celestial, playground, paintSky]);
+	const journey = useScrollJourney({
+		celestial,
+		anchors: paletteAnchors,
+		sliceFor,
+		frozenRef: panelOpenRef,
+		onSettle,
+	});
+	// onPanelChange is []-stable by design (a changing identity re-fired the dive
+	// close); it reaches the driver through this ref instead of a dependency.
+	journeyRef.current = journey;
 
-	// Seed the day/night driver (and the sky it paints) from a given scroll
-	// offset. Callers pass window.scrollY for anchors/restoration, or a parked
-	// topic's offsetTop for a subpage whose window hasn't scrolled there yet.
+	// Seed the journey (and the React mirror of it) from a given scroll offset.
+	// Callers pass window.scrollY for anchors/restoration, or a parked topic's
+	// offsetTop for a subpage whose window hasn't scrolled there yet.
 	const seedSkyAt = useCallback(
 		(y: number) => {
 			// Freeze the driver while a detail subpage is open - the subpage's own
 			// scroll must not advance the time of day.
 			if (panelOpenRef.current) return;
-			const progress = scrollProgressAt(
-				y,
-				document.documentElement.scrollHeight,
-				window.innerHeight,
-			);
+			const { progress } = journey.applyAt(y);
 			scrollProgressRef.current = progress;
 			setScrollProgress(progress);
-			setScrollY(y);
-			// Paint immediately so the pre-paint seed leaves no default-day frame
-			// before the reactive effect above catches up. paintSky applies any
-			// active atmosphere-toy override/palette.
-			paintSky(progress);
 		},
-		[paintSky],
+		[journey],
 	);
 
 	// Seed React sky state BEFORE the first post-hydration paint so it matches
@@ -297,15 +289,6 @@ function LayoutHost() {
 		});
 	}, []);
 
-	// Track scrolling after the initial seed.
-	useEffect(() => {
-		const onScroll = () => seedSkyAt(window.scrollY);
-		window.addEventListener("scroll", onScroll);
-		return () => {
-			window.removeEventListener("scroll", onScroll);
-		};
-	}, [seedSkyAt]);
-
 	// A rhythm-gap change (the dev Tune panel slider) moves the document height
 	// under a stationary scroll position - no scroll event fires, so re-seed from
 	// the current scroll (seedSkyAt re-derives progress against the new height and
@@ -339,7 +322,6 @@ function LayoutHost() {
 		playground.time != null
 			? softSlice(playground.time, scrollProgress)
 			: scrollProgress;
-	const paletteAnchors = paletteAnchorsFor(playground.palette);
 	const paletteVisuals = paletteVisualsFor(playground.palette);
 	const isNight = skyProgress >= NIGHT_UI_THRESHOLD;
 	const navColor = isNight ? "white" : "#0f172a";
@@ -348,22 +330,20 @@ function LayoutHost() {
 	return (
 		<div className="font-sans text-slate-900 selection:bg-yellow-200">
 			<PixelBackground
-				scrollProgress={skyProgress}
-				celestial={celestial}
+				journey={journey}
 				dive={dive}
 				landscapeColor={paletteVisuals.landscape}
 				sunColor={paletteVisuals.sun}
 				extras={playground.extras}
 			/>
 			<NarrativeWatermark
-				scrollProgress={scrollProgress}
-				scrollY={scrollY}
+				journey={journey}
 				override={subpageKey ? SUBPAGE_WORDS[subpageKey] : undefined}
 				isNight={isNight}
 			/>
 			{subpageKey === null && (
 				<Minimap
-					scrollProgress={skyProgress}
+					journey={journey}
 					celestial={celestial}
 					anchors={paletteAnchors}
 				/>

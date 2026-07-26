@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CELESTIAL_PRESETS, DEFAULT_CELESTIAL } from "../../../data/celestial";
@@ -47,6 +49,49 @@ describe("locked rhythm", () => {
 	it("ships a 30vh landscape gap between sections", () => {
 		expect(DEFAULT_CELESTIAL.gapVh).toBe(30);
 	});
+});
+
+// Ticket #51 (manual walk). The four boundary gaps were all a correct 30vh,
+// but the SPACE between sections was not: each section root also carried its
+// own ad-hoc vertical padding (hero pb-48, socials pt-4 pb-64, footer py-16),
+// so the perceived boundary ran 270px -> 590px and the cadence read uneven.
+// gapVh is now the single variable that sets every boundary, which only holds
+// while no section root re-adds padding on an edge it shares with a RhythmGap.
+// Asserted on the root element's own class list (inner padding is untouched):
+// a render test cannot see this, because the defect is spacing that LOOKS
+// deliberate at every individual seam and only reads wrong across the page.
+describe("one variable owns every boundary", () => {
+	const ROOTS: Array<{ file: string; tag: string; allowed: RegExp | null }> = [
+		// pt-24 clears the fixed nav; it is page-top spacing, not a boundary.
+		{ file: "HeroSection.tsx", tag: "section", allowed: /^pt-24$/ },
+		{ file: "FindMeSection.tsx", tag: "section", allowed: null },
+		{ file: "ProjectsSection.tsx", tag: "section", allowed: null },
+		{ file: "CraftSection.tsx", tag: "section", allowed: null },
+		// pb-16 is the end of the page, not a seam with a RhythmGap.
+		{ file: "footer/FooterSection.tsx", tag: "footer", allowed: /^pb-16$/ },
+	];
+
+	for (const { file, tag, allowed } of ROOTS) {
+		it(`${file} root adds no padding on an edge a RhythmGap owns`, () => {
+			const src = readFileSync(
+				resolve(process.cwd(), "src/components/_layout", file),
+				"utf8",
+			);
+			const open = src.slice(src.indexOf(`<${tag}`));
+			const className = /className=(?:"([^"]*)"|\{`([^`]*)`\})/.exec(
+				open.slice(0, open.indexOf(">")),
+			);
+			expect(className, `no root className found in ${file}`).not.toBeNull();
+			const vertical = (className?.[1] ?? className?.[2] ?? "")
+				.split(/\s+/)
+				.filter((c) => /^(pt|pb|py)-/.test(c))
+				.filter((c) => !allowed?.test(c));
+			expect(
+				vertical,
+				`${file} root re-added boundary padding: ${vertical.join(", ")}`,
+			).toEqual([]);
+		});
+	}
 });
 
 describe("RhythmGap", () => {

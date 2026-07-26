@@ -60,18 +60,32 @@ export const SECTION_IDS = {
 // so cold loads, hash-on-load, and back/forward restoration - which never call
 // this - always land instantly. Reduced-motion users stay instant because the
 // gated CSS rule never matches, making the class a no-op for them.
+// The disarm for the gesture currently in flight, so a second gesture can tear
+// the first one down before arming its own.
+let inflightDisarm: (() => void) | null = null;
+
 export function armSmoothScroll() {
 	if (typeof document === "undefined") return;
+	// Single-flight. Each call used to leave BOTH its own scrollend listener and
+	// its own 1200ms timeout running, cancelling neither: click two nav items in
+	// quick succession and the first click's timer fired part-way through the
+	// SECOND scroll, dropping html.smooth-scroll while it was still animating.
+	// Retiring the previous gesture first keeps exactly one disarm pending.
+	inflightDisarm?.();
 	const root = document.documentElement;
 	root.classList.add("smooth-scroll");
+	let timer = 0;
 	const disarm = () => {
-		root.classList.remove("smooth-scroll");
+		window.clearTimeout(timer);
 		window.removeEventListener("scrollend", disarm);
+		inflightDisarm = null;
+		root.classList.remove("smooth-scroll");
 	};
+	inflightDisarm = disarm;
 	// scrollend fires when the smooth scroll finishes; the timeout is the
 	// fallback for browsers without scrollend or when no scroll actually occurs.
 	window.addEventListener("scrollend", disarm);
-	window.setTimeout(disarm, 1200);
+	timer = window.setTimeout(disarm, 1200);
 }
 
 // True when a click should arm smooth scrolling: a plain left-click (no

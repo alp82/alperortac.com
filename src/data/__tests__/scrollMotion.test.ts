@@ -67,6 +67,42 @@ describe("armSmoothScroll", () => {
 			false,
 		);
 	});
+
+	// Single-flight arming. Clicking opposing nav items in quick succession used
+	// to leave the FIRST click's 1200ms timer running, so it fired part-way
+	// through the second scroll and dropped the class mid-animation.
+	it("stays armed for the full window of a second, later gesture", () => {
+		armSmoothScroll();
+		vi.advanceTimersByTime(300);
+		armSmoothScroll();
+
+		// The first gesture's timer would have fired here.
+		vi.advanceTimersByTime(900);
+		expect(document.documentElement.classList.contains(SMOOTH_CLASS)).toBe(
+			true,
+		);
+
+		// The second gesture's own window still expires on schedule.
+		vi.advanceTimersByTime(300);
+		expect(document.documentElement.classList.contains(SMOOTH_CLASS)).toBe(
+			false,
+		);
+	});
+
+	it("retires the previous gesture's listener, so one scrollend is enough", () => {
+		armSmoothScroll();
+		armSmoothScroll();
+		window.dispatchEvent(new Event("scrollend"));
+		expect(document.documentElement.classList.contains(SMOOTH_CLASS)).toBe(
+			false,
+		);
+
+		// A stale listener from the retired gesture must not re-disarm a NEW one.
+		armSmoothScroll();
+		expect(document.documentElement.classList.contains(SMOOTH_CLASS)).toBe(
+			true,
+		);
+	});
 });
 
 describe("scrollToTop", () => {

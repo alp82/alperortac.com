@@ -323,6 +323,67 @@ describe("ProjectsSection", () => {
 		expect(header.getByRole("heading", { name: "Projects" })).toBeTruthy();
 	});
 
+	// Ticket #51 (manual walk of the shipped band). The eyebrow used to paint
+	// the raw identity accent #b4531f with no phase branch. Measured off real
+	// pixels in the running app that is 2.87:1 on the band's daylight sky -
+	// under the 4.5:1 the 12px/900 eyebrow needs. C4 predicted the failure at
+	// NIGHT; the band sits at progress ~0.17 and NIGHT_UI_THRESHOLD is 0.55, so
+	// it never gets there and the failure is in the ONE phase it does occupy.
+	// Pins both that the eyebrow tracks the phase and that neither tone is the
+	// raw accent - reverting either half goes red.
+	it("PS-16 the eyebrow paints the contrast-safe accent for its phase, never the raw decorative accent (#51/C4)", () => {
+		const RAW_ACCENT = "rgb(180, 83, 31)"; // #b4531f, decorative-only
+		const DAY = "rgb(122, 56, 21)"; // #7a3815
+		const NIGHT = "rgb(204, 94, 35)"; // #cc5e23
+		for (const night of [false, true]) {
+			nightPhase.value = night;
+			renderSection();
+			const eyebrow = screen.getByText("Selected work");
+			expect(eyebrow.style.color, `night=${night}`).toBe(night ? NIGHT : DAY);
+			expect(
+				eyebrow.style.color,
+				`night=${night} fell back to raw accent`,
+			).not.toBe(RAW_ACCENT);
+			cleanup();
+		}
+	});
+
+	// Ticket #51: the tag wash was text-slate-700/80, which composites to
+	// 4.31:1 on the frosted card - a marginal miss of the 4.5:1 floor that
+	// 10px/900 text needs. Dropping back to any /NN opacity re-breaks it.
+	it("PS-17 tag chips carry full-opacity slate-700, not an opacity wash (#51)", () => {
+		renderSection();
+		const project = PROJECTS[0] as Project;
+		const tag = screen.getByText(`#${project.tags[0]}`);
+		expect(tag.classList.contains("text-slate-700")).toBe(true);
+		for (const cls of Array.from(tag.classList)) {
+			expect(cls, `tag re-introduced an opacity wash: "${cls}"`).not.toMatch(
+				/^text-slate-\d+\/\d+$/,
+			);
+		}
+	});
+
+	// Ticket #51: the pill clears the 24px target floor at 28px, but the dive
+	// button sits under it on every side with no buffer - measured on touch, a
+	// 4px miss in any direction fired the dive instead of opening the link. The
+	// ::after extends the hit area past the visible pill without resizing it.
+	it("PS-18 every escape-hatch pill extends its hit area past the visible pill (#51)", () => {
+		renderSection();
+		for (const project of PROJECTS) {
+			const hatch = escapeHatch(project.title);
+			for (const cls of [
+				"after:absolute",
+				"after:-inset-2",
+				"after:content-['']",
+			]) {
+				expect(
+					hatch.classList.contains(cls),
+					`${project.title} pill missing "${cls}"`,
+				).toBe(true);
+			}
+		}
+	});
+
 	// The tier signal is derived INSIDE the component (`const big =
 	// project.highlight`, no prop carries it), so only a rendered-output
 	// assertion keeps it alive: without this case, `big` going constant or

@@ -1,21 +1,29 @@
-import { useMemo, useRef } from "react";
-import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
+import { memo, useMemo, useRef } from "react";
+import { DEFAULT_CELESTIAL } from "../data/celestial";
 import { rgbToCss, SKY_NOON } from "../data/skyCurve";
 import type { DiveRenderState } from "./_layout/dive/diveConstants";
 import { useHandheldJitter } from "./_layout/dive/useHandheldJitter";
-import {
-	celestialPosition,
-	MOON_WINDOW,
-	moonOpacityAt,
-	SUN_WINDOW,
-	sunOpacityAt,
-	windowedProgress,
-} from "./minimap/helpers";
-import { useIsomorphicLayoutEffect } from "./useIsomorphicLayoutEffect";
+import { CLOUDS, cloudTransform } from "./_layout/scrollJourney/journeyValues";
+import type { Journey } from "./_layout/scrollJourney/useScrollJourney";
+import { useJourneyRepaint } from "./_layout/scrollJourney/useScrollJourney";
 
-// Progress-0 (day) positions = celestialPosition at localProgress 0 = start
-// coords. Used as the CSS-var fallback for the raw SSR frame before the boot
-// script runs.
+// The celestial scene: sky, stars, sun, moon, parallax clouds, landscape.
+//
+// Nothing here recomputes on scroll. The scroll journey is owned by
+// useScrollJourney, which writes the sun/moon positions, the star opacities,
+// the sky colour, the cloud transforms and the landscape fade directly onto the
+// elements registered in `journey.targets`. This component renders once and
+// then holds still - see journeyTargets.ts for why direct writes rather than
+// custom properties on the root.
+//
+// The inline `var(--sun-x, ...)` references remain as the pre-hydration seed:
+// the boot script (skyBoot.ts) sets those vars before the first paint on a cold
+// deep-link, so the scene is at the right time-of-day from frame one. The
+// driver takes over after hydration, and useJourneyRepaint re-asserts it after
+// any re-render (which would otherwise restore these var references).
+
+// Progress-0 (day) positions, used as the CSS-var fallback for the raw SSR
+// frame before the boot script runs.
 const SUN_DAY = DEFAULT_CELESTIAL.sun;
 const MOON_DAY = DEFAULT_CELESTIAL.moon;
 
@@ -39,9 +47,11 @@ function mulberry32(seed: number): () => number {
 function Stars({
 	dense = false,
 	forceShoot = false,
+	journey,
 }: {
 	dense?: boolean;
 	forceShoot?: boolean;
+	journey?: Journey | undefined;
 }) {
 	const stars = useMemo(() => {
 		const rand = mulberry32(0x5eed);
@@ -64,14 +74,16 @@ function Stars({
 		}));
 	}, []);
 
-	// Opacities are driven by --stars-o / --shoot-o: the boot script sets them
-	// for a cold deep-link before paint, and PixelBackground's effect owns them
-	// after hydration (so the star field doesn't fade in a beat late). Fallbacks
-	// are the progress-0 (day = hidden) values for the raw SSR frame.
 	return (
 		<div className="absolute inset-0 overflow-hidden pointer-events-none">
+			{/* The two fade layers are driven directly. They used to carry
+			    `transition-opacity duration-100`, which - fed a per-frame driver -
+			    only held the star field 100ms behind the scroll. */}
 			<div
-				className="absolute inset-0 transition-opacity duration-100 ease-linear"
+				ref={(el) => {
+					if (journey) journey.targets.stars = el;
+				}}
+				className="absolute inset-0"
 				style={{ opacity: "var(--stars-o, 0)" }}
 			>
 				{stars.map((star) => (
@@ -91,7 +103,12 @@ function Stars({
 				))}
 			</div>
 			<div
-				className="absolute inset-0 transition-opacity duration-100 ease-linear"
+				ref={(el) => {
+					// The toy's forced-shooting-star override wins; when it is on, the
+					// driver must not fight it for this element.
+					if (journey) journey.targets.shoot = forceShoot ? null : el;
+				}}
+				className="absolute inset-0"
 				style={{ opacity: forceShoot ? 1 : "var(--shoot-o, 0)" }}
 			>
 				{shootingStars.map((star) => (
@@ -112,18 +129,21 @@ function Stars({
 	);
 }
 
-type PixelCloudProps = {
-	x: number;
-	y: number;
-	scale: number;
-	speed: number;
-	scrollPos: number;
-};
-
-function PixelCloud({ x, y, scale, speed, scrollPos }: PixelCloudProps) {
-	const transform = `translate(${x + scrollPos * speed}px, ${y}px) scale(${scale})`;
+// Geometry comes from the shared CLOUDS table so the driver rebuilds the same
+// transform this renders initially. The old `transition: transform 0.1s linear`
+// is gone: with a per-frame driver it smoothed nothing and visibly lagged.
+function PixelCloud({
+	index,
+	journey,
+}: {
+	index: number;
+	journey?: Journey | undefined;
+}) {
 	return (
 		<svg
+			ref={(el) => {
+				if (journey) journey.targets.clouds[index] = el;
+			}}
 			viewBox="0 0 100 60"
 			className="absolute opacity-40 select-none pointer-events-none"
 			style={{
@@ -131,8 +151,8 @@ function PixelCloud({ x, y, scale, speed, scrollPos }: PixelCloudProps) {
 				height: "auto",
 				left: 0,
 				top: 0,
-				transform,
-				transition: "transform 0.1s linear",
+				transform: cloudTransform(index, 0),
+				willChange: "transform",
 			}}
 			aria-hidden="true"
 		>
@@ -144,9 +164,8 @@ function PixelCloud({ x, y, scale, speed, scrollPos }: PixelCloudProps) {
 	);
 }
 
-export function PixelBackground({
-	scrollProgress,
-	celestial,
+function PixelBackgroundInner({
+	journey,
 	dive,
 	// Atmosphere toy: palette + celestial-extras overrides. All optional; the
 	// defaults reproduce the original scene exactly.
@@ -154,8 +173,7 @@ export function PixelBackground({
 	sunColor,
 	extras,
 }: {
-	scrollProgress: number;
-	celestial: CelestialState;
+	journey?: Journey | undefined;
 	dive?: DiveRenderState | undefined;
 	landscapeColor?: string;
 	sunColor?: { bg: string; border: string } | undefined;
@@ -172,6 +190,10 @@ export function PixelBackground({
 		active: dive?.technique === "handheld" && dive.u === 1,
 	});
 
+	// Any re-render (a dive, a palette change) restores the var() references
+	// below, so put the live frame back before the browser paints.
+	useJourneyRepaint(journey);
+
 	const sceneStyle = dive
 		? ({
 				"--dive-u": dive.u,
@@ -180,54 +202,6 @@ export function PixelBackground({
 				"--dive-focal-depth": dive.focalDepth,
 			} as React.CSSProperties)
 		: undefined;
-
-	// Celestial scene values, mirrored to CSS custom properties. The boot script
-	// (skyBoot.ts) sets these before paint for a cold deep-link so the sun/moon/
-	// stars sit at the right time-of-day from frame one instead of their day/
-	// initial position; this effect owns them after hydration. The markup reads
-	// the vars with progress-0 (day) fallbacks for the raw SSR frame.
-	const sunPos = celestialPosition(
-		windowedProgress(scrollProgress, SUN_WINDOW),
-		celestial.sun,
-	);
-	const sunOpacity = sunOpacityAt(scrollProgress);
-	const moonPos = celestialPosition(
-		windowedProgress(scrollProgress, MOON_WINDOW),
-		celestial.moon,
-	);
-	const moonOpacity = moonOpacityAt(scrollProgress);
-	const [phase2Start, phase2End] = celestial.curve.phase2;
-	const starsOpacity = Math.min(
-		1,
-		Math.max(
-			0,
-			(scrollProgress - phase2Start) / Math.max(phase2End - phase2Start, 0.001),
-		),
-	);
-	const shootOpacity = Math.min(
-		1,
-		Math.max(0, (scrollProgress - phase2End) / Math.max(1 - phase2End, 0.001)),
-	);
-	useIsomorphicLayoutEffect(() => {
-		const s = document.documentElement.style;
-		s.setProperty("--sun-x", `${sunPos.x}%`);
-		s.setProperty("--sun-y", `${sunPos.y}%`);
-		s.setProperty("--sun-o", `${sunOpacity}`);
-		s.setProperty("--moon-x", `${moonPos.x}%`);
-		s.setProperty("--moon-y", `${moonPos.y}%`);
-		s.setProperty("--moon-o", `${moonOpacity}`);
-		s.setProperty("--stars-o", `${starsOpacity}`);
-		s.setProperty("--shoot-o", `${shootOpacity}`);
-	}, [
-		sunPos.x,
-		sunPos.y,
-		sunOpacity,
-		moonPos.x,
-		moonPos.y,
-		moonOpacity,
-		starsOpacity,
-		shootOpacity,
-	]);
 
 	return (
 		<div className="dive-viewport fixed inset-y-0 left-0 right-0 md:right-20 -z-10">
@@ -267,15 +241,16 @@ export function PixelBackground({
 				{...(dive ? { "data-technique": dive.technique } : {})}
 			>
 				<div
-					className="dive-layer absolute inset-0 transition-colors duration-100 ease-linear"
+					ref={(el) => {
+						if (journey) journey.targets.sky = el;
+					}}
+					className="dive-layer absolute inset-0"
 					data-depth="0"
 					style={
 						{
-							// Driven by the --sky-now custom property so the pre-hydration
-							// boot script (skyBoot.ts) can colour the sky for a cold deep-link
-							// before the first paint. React owns --sky-now after hydration
-							// (see _layout's seedSky / body-background effect). The fallback is
-							// day (skyAt(0)) for the raw SSR frame before the boot script runs.
+							// Seeded from --sky-now (boot script owns the first frame, the
+							// driver owns it after). The old `transition-colors duration-100`
+							// is gone - it held the sky a tenth of a second behind the scroll.
 							backgroundColor: `var(--sky-now, ${rgbToCss(SKY_NOON)})`,
 							"--layer-depth": 0,
 						} as React.CSSProperties
@@ -290,10 +265,14 @@ export function PixelBackground({
 					<Stars
 						dense={extras?.denseStars ?? false}
 						forceShoot={extras?.shootingStar ?? false}
+						journey={journey}
 					/>
 				</div>
 
 				<div
+					ref={(el) => {
+						if (journey) journey.targets.sun = el;
+					}}
 					className="dive-layer absolute"
 					data-depth="0.12"
 					style={
@@ -302,7 +281,6 @@ export function PixelBackground({
 							top: `var(--sun-y, ${SUN_DAY.startY}%)`,
 							transform: "translate(-50%, -50%)",
 							opacity: "var(--sun-o, 1)",
-							transition: "opacity 100ms linear",
 							"--layer-depth": 0.12,
 						} as React.CSSProperties
 					}
@@ -318,6 +296,9 @@ export function PixelBackground({
 				</div>
 
 				<div
+					ref={(el) => {
+						if (journey) journey.targets.moon = el;
+					}}
 					className="dive-layer absolute"
 					data-depth="0.12"
 					style={
@@ -326,7 +307,6 @@ export function PixelBackground({
 							top: `var(--moon-y, ${MOON_DAY.startY}%)`,
 							transform: "translate(-50%, -50%)",
 							opacity: "var(--moon-o, 0)",
-							transition: "opacity 100ms linear",
 							"--layer-depth": 0.12,
 						} as React.CSSProperties
 					}
@@ -341,6 +321,9 @@ export function PixelBackground({
 				{/* Atmosphere toy: extra companion moon (celestial extra). */}
 				{extras?.extraMoon && (
 					<div
+						ref={(el) => {
+							if (journey) journey.targets.moon2 = el;
+						}}
 						className="dive-layer absolute"
 						data-depth="0.12"
 						style={
@@ -349,7 +332,6 @@ export function PixelBackground({
 								top: `var(--moon-y, ${MOON_DAY.startY}%)`,
 								transform: "translate(-165%, -150%)",
 								opacity: "var(--moon-o, 0)",
-								transition: "opacity 100ms linear",
 								"--layer-depth": 0.12,
 							} as React.CSSProperties
 						}
@@ -358,52 +340,26 @@ export function PixelBackground({
 					</div>
 				)}
 
-				<div
-					className="dive-layer"
-					data-depth="0.55"
-					style={{ "--layer-depth": 0.55 } as React.CSSProperties}
-				>
-					<PixelCloud
-						x={100}
-						y={150}
-						scale={1.2}
-						speed={0.05}
-						scrollPos={scrollProgress * 1000}
-					/>
-				</div>
-				<div
-					className="dive-layer"
-					data-depth="0.8"
-					style={{ "--layer-depth": 0.8 } as React.CSSProperties}
-				>
-					<PixelCloud
-						x={600}
-						y={100}
-						scale={0.8}
-						speed={-0.08}
-						scrollPos={scrollProgress * 1000}
-					/>
-				</div>
-				<div
-					className="dive-layer"
-					data-depth="0.3"
-					style={{ "--layer-depth": 0.3 } as React.CSSProperties}
-				>
-					<PixelCloud
-						x={1000}
-						y={250}
-						scale={1}
-						speed={0.03}
-						scrollPos={scrollProgress * 1000}
-					/>
-				</div>
+				{CLOUDS.map((cloud, i) => (
+					<div
+						key={`cloud-${cloud.x}-${cloud.y}`}
+						className="dive-layer"
+						data-depth={cloud.depth}
+						style={{ "--layer-depth": cloud.depth } as React.CSSProperties}
+					>
+						<PixelCloud index={i} journey={journey} />
+					</div>
+				))}
 
 				<div
-					className="dive-layer absolute bottom-0 w-full h-[40vh] pointer-events-none transition-opacity duration-100 ease-linear"
+					ref={(el) => {
+						if (journey) journey.targets.land = el;
+					}}
+					className="dive-layer absolute bottom-0 w-full h-[40vh] pointer-events-none"
 					data-depth="0.55"
 					style={
 						{
-							opacity: Math.max(0.1, 0.4 - scrollProgress * 0.2),
+							opacity: "var(--land-o, 0.4)",
 							"--layer-depth": 0.55,
 						} as React.CSSProperties
 					}
@@ -427,3 +383,7 @@ export function PixelBackground({
 		</div>
 	);
 }
+
+// Memoised: the driver writes inline styles imperatively, so an unrelated
+// re-render of LayoutHost must not walk this subtree (150-340 star nodes).
+export const PixelBackground = memo(PixelBackgroundInner);

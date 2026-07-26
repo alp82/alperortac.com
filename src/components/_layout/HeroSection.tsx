@@ -1,8 +1,12 @@
+import { memo } from "react";
 import { HeroSubtitle } from "./HeroSubtitle";
 
-export function HeroSection() {
+// No bottom padding: RhythmGap is the ONLY thing that separates sections, so
+// gapVh alone controls every boundary (ticket #51). pt-24 stays - it clears the
+// fixed nav, it is not boundary spacing.
+function HeroSectionInner() {
 	return (
-		<section className="min-h-[80vh] flex flex-col items-center justify-center px-6 pt-24 pb-48 text-center">
+		<section className="min-h-[80vh] flex flex-col items-center justify-center px-6 pt-24 text-center">
 			<img
 				src="/alper-avatar.webp"
 				alt="Alp portrait"
@@ -15,3 +19,9 @@ export function HeroSection() {
 		</section>
 	);
 }
+
+// Memoised: LayoutHost holds state that changes for reasons unrelated to this
+// section (the About dropdown, the settled scroll position, a dive). Without
+// this, every one of those re-rendered the whole page - the About-menu open was
+// a ~150ms main-thread task on its own.
+export const HeroSection = memo(HeroSectionInner);
