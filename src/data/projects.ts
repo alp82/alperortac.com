@@ -216,7 +216,7 @@ export const PROJECTS: Project[] = [
 		stack: ["TypeScript", "React", "Open Source"],
 	},
 	// Card-core-only stubs (no subpage payload yet): real content is authored by
-	// tickets #48/#49/#50. Card copy is Alper's own writing from the repos.
+	// tickets #48/#50. Card copy is Alper's own writing from the repos.
 	{
 		slug: "curia",
 		title: "Curia",
@@ -235,6 +235,12 @@ export const PROJECTS: Project[] = [
 		// Cyan-900, staying in the card's own cyan family.
 		panelColor: "#164e63",
 	},
+	// Authored subpage (wayfinder #49), deliberately lighter than the flagship
+	// problem/solution/outcome mold: lead blurb, the statusline itself rendered
+	// as the section artwork (StatuslineStrip, slug-gated in ProjectPanel), one
+	// how-to-read section, and the README's requirements as stack chips. All
+	// copy is Alper's own README wording (punctuation adapted to the site's
+	// no-em-dash rule).
 	{
 		slug: "claude-statusline",
 		title: "claude-statusline",
@@ -248,6 +254,18 @@ export const PROJECTS: Project[] = [
 		iconKey: "Gauge",
 		// Lime-900: the olive-green counterpart of the card's lime family.
 		panelColor: "#365314",
+		// The README's "See it in motion" demo page, second only to the repo.
+		extraLinks: [
+			{
+				label: "See it in motion",
+				href: "https://alp82.github.io/claude-statusline/",
+			},
+		],
+		extraSection: {
+			heading: "How to read it",
+			body: "The top half of each cell is how much of the window you have used. The bottom half is how much of the window has gone by. If the top reaches further right than the bottom, you are using it faster than the clock, and you will run out before it resets. Colour follows usage: green under 50%, yellow between 50 and 80%, red above 80%.",
+		},
+		stack: ["Bash", "jq", "curl", "Open Source"],
 	},
 	{
 		slug: "alperortac-com",

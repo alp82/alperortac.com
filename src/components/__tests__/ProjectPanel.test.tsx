@@ -497,6 +497,101 @@ describe("ProjectPanel regressions after the copy/media pass", () => {
 	});
 });
 
+// wayfinder #49: the authored claude-statusline subpage - a light shape whose
+// extraSection artwork is the statusline itself (StatuslineStrip), slug-gated
+// where Forge gates its pipeline.
+describe("ProjectPanel claude-statusline strip", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	const statuslineProject: Project = {
+		slug: "claude-statusline",
+		title: "claude-statusline",
+		desc: "Single-file Bash statusline for Claude Code: model, context, and rate-limit windows at a glance.",
+		link: "https://github.com/alp82/claude-statusline",
+		status: "shipped",
+		highlight: false,
+		tags: ["Claude Code", "Bash"],
+		color: "bg-lime-100 text-lime-800",
+		iconKey: "Gauge",
+		panelColor: "#365314",
+		extraSection: {
+			heading: "How to read it",
+			body: "test how-to-read body",
+		},
+		stack: ["Bash", "jq", "curl"],
+	};
+
+	function findExtraSection(container: HTMLElement) {
+		return Array.from(container.querySelectorAll("section")).find((section) =>
+			Array.from(section.querySelectorAll("h3")).some(
+				(h) => h.textContent?.trim() === "How to read it",
+			),
+		);
+	}
+
+	it("renders the strip inside the extraSection, above the body copy", () => {
+		const { container } = render(
+			<ProjectPanel
+				project={statuslineProject}
+				open={true}
+				onClose={vi.fn()}
+			/>,
+		);
+		const section = findExtraSection(container as HTMLElement);
+		expect(section).not.toBeUndefined();
+		if (!section) throw new Error("extraSection not found");
+
+		const strip = section.querySelector('[role="img"]');
+		expect(strip).not.toBeNull();
+		expect(strip?.getAttribute("aria-label")).toMatch(/statusline/i);
+
+		const body = screen.getByText(statuslineProject.extraSection?.body ?? "");
+		if (!strip) throw new Error("strip not found");
+		expect(
+			strip.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("wins over the stage chain even if stages sneak into the data", () => {
+		const { container } = render(
+			<ProjectPanel
+				project={{
+					...statuslineProject,
+					extraSection: {
+						heading: "How to read it",
+						body: "test how-to-read body",
+						stages: ["🅰 One", "🅱 Two"],
+					},
+				}}
+				open={true}
+				onClose={vi.fn()}
+			/>,
+		);
+		const section = findExtraSection(container as HTMLElement);
+		expect(section?.querySelector('[role="img"]')).not.toBeNull();
+		expect(section?.querySelector("ul")).toBeNull();
+	});
+
+	it("does not leak the strip into other projects' panels", () => {
+		const { container } = render(
+			<ProjectPanel
+				project={{
+					...mockVideoProject,
+					extraSection: { heading: "How it works", body: "test body" },
+				}}
+				open={true}
+				onClose={vi.fn()}
+			/>,
+		);
+		const sections = Array.from(container.querySelectorAll("section"));
+		for (const section of sections) {
+			expect(section.querySelector('[role="img"]')).toBeNull();
+		}
+	});
+});
+
 describe("ProjectPanel stub degradation", () => {
 	afterEach(() => {
 		cleanup();
