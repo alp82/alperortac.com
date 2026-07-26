@@ -1,4 +1,3 @@
-* flickering and slow bg transitions
 * subpage triggers 3d tilted towards background, hover tilts landscape
 * https://elder-plinius.github.io/FABLE-SHOWCASE/paper-garden/index.html
 * https://elder-plinius.github.io/FABLE-SHOWCASE/lsystem-garden/index.html

@@ -107,10 +107,12 @@ function renderSection() {
 
 // Card titles are <span>s, not headings: a <button>'s content model is
 // phrasing content, so a real <h3> inside the card button would be invalid
-// HTML. Known trade-off of the locked whole-card-button design: ARIA's
-// presentational-children rule for role=button is honored by Safari/VoiceOver
-// but NOT by NVDA (which announces headings nested in buttons), so the titles
-// are out of the heading tree uniformly - including for NVDA users.
+// HTML. #52 accepted that rather than restructuring, because heading
+// navigation is a SKIP mechanism and adjacent single-control cards have
+// nothing to skip - the `B` (next button) route reaches the same 7 targets.
+// What #52 fixed instead is that route's accessible names; see PS-19/PS-20.
+// This helper resolves the button THROUGH the title node, so it also pins
+// that the visible title stays inside the button.
 function cardButton(title: string): HTMLButtonElement {
 	const titleEl = screen.getByText(title);
 	const button = titleEl.closest("button");
@@ -514,6 +516,50 @@ describe("ProjectsSection", () => {
 		expect(realRegulars.length).toBe(5);
 		for (const title of ["Curia", "claude-statusline", "alperortac.com"]) {
 			expect(realRegulars.some((p) => p.title === title)).toBe(true);
+		}
+	});
+
+	// #52: the band is held to "survey the 7 projects without linear reading",
+	// and the route that has to carry that is the button list, since the cards
+	// contribute no headings. Without aria-label the name computes from the
+	// button's whole subtree - 102 characters of title + desc + tags + "View
+	// details" per card, measured on the #52 prototype - which turns the button
+	// list back into the linear read it was supposed to replace. `name` here is
+	// the REAL computed accessible name (testing-library runs the full
+	// algorithm), not the raw attribute, so this fails if the label is ever
+	// dropped and the subtree starts naming the button again.
+	it("PS-19 every card button's accessible name is exactly the project title, not its whole subtree (#52)", () => {
+		renderSection();
+		for (const project of PROJECTS) {
+			const button = screen.getByRole("button", { name: project.title });
+			expect(button.tagName).toBe("BUTTON");
+			// The desc is the bulk of what the old subtree-derived name dragged
+			// in; assert it is gone from the name rather than only that the name
+			// matches, so a future label like `${title} ${desc}` still fails.
+			expect(
+				(button.getAttribute("aria-label") ?? "").includes(project.desc),
+			).toBe(false);
+		}
+	});
+
+	// The short name is for the button LIST; a keyboard+SR user tabbing to a
+	// card would otherwise lose the description the long name used to carry by
+	// accident. aria-describedby hands it back on focus. It points at the
+	// card's own desc node (a descendant of the button, which is legal and
+	// keeps the text single-sourced), so this pins the wiring, not a duplicate.
+	it("PS-20 every card button describes itself with its own description node, so focus still announces the desc (#52)", () => {
+		renderSection();
+		for (const project of PROJECTS) {
+			const button = cardButton(project.title);
+			const id = button.getAttribute("aria-describedby");
+			expect(
+				id,
+				`no aria-describedby on the "${project.title}" card`,
+			).toBeTruthy();
+			const desc = document.getElementById(id as string);
+			expect(desc, `aria-describedby="${id}" resolves to nothing`).toBeTruthy();
+			expect(desc?.textContent).toBe(project.desc);
+			expect(button.contains(desc)).toBe(true);
 		}
 	});
 });

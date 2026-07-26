@@ -677,6 +677,141 @@ describe("ProjectPanel curia thread", () => {
 	});
 });
 
+// wayfinder #50: the authored alperortac.com subpage - a fourth shape whose
+// prose sections carry authored headings (`narrative`) and whose extraSection
+// artwork is the site's own journey minimap, frozen (JourneyColumn), slug-gated
+// beside the statusline strip, the Curia thread, and Forge's pipeline.
+describe("ProjectPanel alperortac.com journey column", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	const siteProject: Project = {
+		slug: "alperortac-com",
+		title: "alperortac.com",
+		desc: "Personal portfolio site: a vertical-scroll journey through atmosphere, time, and depth.",
+		link: "https://github.com/alp82/alperortac.com",
+		status: "shipped",
+		highlight: false,
+		tags: ["Portfolio", "Open Source"],
+		color: "bg-sky-100 text-sky-800",
+		iconKey: "Globe",
+		panelColor: "#0369a1",
+		narrative: [
+			{ heading: "Why I built it", body: "test motivation body" },
+			{ heading: "The vision", body: "test vision body" },
+		],
+		extraSection: { heading: "The journey", body: "test journey body" },
+		stack: ["TanStack Start", "Bun"],
+	};
+
+	function findExtraSection(container: HTMLElement) {
+		return Array.from(container.querySelectorAll("section")).find((section) =>
+			Array.from(section.querySelectorAll("h3")).some(
+				(h) => h.textContent?.trim() === "The journey",
+			),
+		);
+	}
+
+	it("renders the column inside the extraSection, above the body copy", () => {
+		const { container } = render(
+			<ProjectPanel project={siteProject} open={true} onClose={vi.fn()} />,
+		);
+		const section = findExtraSection(container as HTMLElement);
+		expect(section).not.toBeUndefined();
+		if (!section) throw new Error("extraSection not found");
+
+		const column = section.querySelector('[role="img"]');
+		expect(column).not.toBeNull();
+		expect(column?.getAttribute("aria-label")).toMatch(/minimap/i);
+
+		const body = screen.getByText(siteProject.extraSection?.body ?? "");
+		if (!column) throw new Error("column not found");
+		expect(
+			column.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("wins over the stage chain even if stages sneak into the data", () => {
+		const { container } = render(
+			<ProjectPanel
+				project={{
+					...siteProject,
+					extraSection: {
+						heading: "The journey",
+						body: "test journey body",
+						stages: ["🅰 One", "🅱 Two"],
+					},
+				}}
+				open={true}
+				onClose={vi.fn()}
+			/>,
+		);
+		const section = findExtraSection(container as HTMLElement);
+		expect(section?.querySelector('[role="img"]')).not.toBeNull();
+		expect(section?.querySelector("ul")).toBeNull();
+	});
+
+	it("renders the narrative headings in order, in the pair's slot: after the blurb, before the signature section", () => {
+		const { container } = render(
+			<ProjectPanel project={siteProject} open={true} onClose={vi.fn()} />,
+		);
+		const headings = Array.from(container.querySelectorAll("h3")).map((h) =>
+			h.textContent?.trim(),
+		);
+		expect(headings).toEqual([
+			"Why I built it",
+			"The vision",
+			"The journey",
+			"Stack",
+		]);
+		expect(screen.getByText("test motivation body")).not.toBeNull();
+		expect(screen.getByText("test vision body")).not.toBeNull();
+	});
+
+	it("keeps the fourth shape: no Problem/Solution/Outcome headings, no media band", () => {
+		const { container } = render(
+			<ProjectPanel project={siteProject} open={true} onClose={vi.fn()} />,
+		);
+		for (const heading of ["Problem", "Solution", "Outcome"]) {
+			expect(
+				screen.queryByRole("heading", { level: 3, name: heading }),
+			).toBeNull();
+		}
+		expect(container.querySelector("video")).toBeNull();
+		expect(container.querySelector('[class*="h-[35vh]"]')).toBeNull();
+	});
+
+	it("does not leak the column into other projects' panels", () => {
+		const { container } = render(
+			<ProjectPanel
+				project={{
+					...mockVideoProject,
+					extraSection: { heading: "The journey", body: "test body" },
+				}}
+				open={true}
+				onClose={vi.fn()}
+			/>,
+		);
+		const section = findExtraSection(container as HTMLElement);
+		expect(section?.querySelector('[role="img"]')).toBeNull();
+	});
+
+	// A project with no narrative renders none of these sections: the field is
+	// additive, so the flagships' fixed triad is untouched.
+	it("renders no narrative sections when the field is omitted", () => {
+		const { container } = render(
+			<ProjectPanel project={mockVideoProject} open={true} onClose={vi.fn()} />,
+		);
+		const headings = Array.from(container.querySelectorAll("h3")).map((h) =>
+			h.textContent?.trim(),
+		);
+		expect(headings).not.toContain("Why I built it");
+		expect(headings).not.toContain("The vision");
+		expect(headings).toContain("Problem");
+	});
+});
+
 describe("ProjectPanel stub degradation", () => {
 	afterEach(() => {
 		cleanup();

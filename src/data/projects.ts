@@ -59,7 +59,7 @@ export type ProjectStatus = "building" | "shipped";
 // - Card core (title, desc, link, status, highlight, tags, color, iconKey):
 //   what the band card + split control render. Required.
 // - Subpage payload (panelColor, panelLight, media, problem, solution, outcome,
-//   stack): what ProjectPanel renders. OPTIONAL per Option A (relaxation landed
+//   narrative, stack): what ProjectPanel renders. OPTIONAL per Option A (landed
 //   with the first card-only projects: curia, claude-statusline,
 //   alperortac-com): a project may appear on the band before its subpage is
 //   authored, and ProjectPanel degrades to title/desc/tags/link when they are
@@ -93,6 +93,12 @@ export type Project = {
 	problem?: string;
 	solution?: string;
 	outcome?: string;
+	// Authored-heading prose sections, rendered in order where the
+	// Problem/Solution pair would sit. The self-reference (#50) needs them: its
+	// page is about the motivation and the vision behind the site, and "Problem"
+	// / "Solution" are the wrong two words for that. Every other project keeps
+	// the fixed triad, so this stays empty for them.
+	narrative?: { heading: string; body: string }[];
 	stack?: string[];
 	extraLinks?: { label: string; href: string }[];
 	extraSection?: { heading: string; body: string; stages?: string[] };
@@ -215,8 +221,9 @@ export const PROJECTS: Project[] = [
 			"An easy and pleasant user experience to go quickly from a deck idea to a full PDF printout so that I can try different strategies with my kids.",
 		stack: ["TypeScript", "React", "Open Source"],
 	},
-	// Card-core-only stubs (no subpage payload yet): real content is authored by
-	// tickets #48/#50. Card copy is Alper's own writing from the repos.
+	// The three late additions (#43). They shipped card-core-only and had their
+	// subpages authored one ticket each: Curia #48, claude-statusline #49,
+	// alperortac.com #50. All copy is Alper's own writing.
 	{
 		slug: "curia",
 		title: "Curia",
@@ -299,5 +306,33 @@ export const PROJECTS: Project[] = [
 		// as the same color; the -700 value keeps the sky family while staying
 		// clearly apart from Curia's dark teal.
 		panelColor: "#0369a1",
+		// Authored subpage (wayfinder #50), a fourth shape for the one project
+		// that is the page you are standing on: no Problem / Solution, because
+		// the ticket's framing is Alper's motivation and vision, not a market
+		// gap. Hence `narrative` (authored headings) instead of the fixed triad,
+		// one signature section, and stack chips. No media band: the demo is the
+		// site itself.
+		narrative: [
+			{
+				heading: "Why I built it",
+				body: "I wanted to create a personal page about myself in an authentic way, showing both my professional and personal passions. It had to be unique and stand out in a sea of always the same portfolio pages.",
+			},
+			{
+				heading: "The vision",
+				body: "Visitors should be able to learn about me, follow my content, getting interested and contact me.",
+			},
+		],
+		extraSection: {
+			heading: "The journey",
+			body: "A vertical scroll journey through atmosphere, time, and depth. Scroll drives the day to dusk to night transition, the sun arc setting and the moon arc rising. Sidetracks are the depth surface: a card dives into a floating panel while the landscape stays visible around it. The column is the site's own minimap, frozen, drawn from the same sky curve you are scrolling through right now.",
+		},
+		stack: [
+			"TanStack Start",
+			"React",
+			"Bun",
+			"TypeScript",
+			"Tailwind",
+			"Biome",
+		],
 	},
 ];

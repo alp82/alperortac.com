@@ -90,12 +90,26 @@ function ProjectSplitCard({
 	// still spans the card - the dive aims at that rect. Everything INSIDE the
 	// button is phrasing content (<span className="block/flex ...">, the house
 	// pattern from the Craft trigger body): a <button> may not contain flow
-	// content, so the title cannot be a heading here. Known trade-off of the
-	// locked whole-card-button design: ARIA's presentational-children rule for
-	// role=button is honored by Safari/VoiceOver but NOT by NVDA (which does
-	// announce headings nested in buttons), so rendering the titles as <span>s
-	// removes them from the heading tree uniformly - including for NVDA users
-	// who previously could heading-jump to them.
+	// content, so the title cannot be a heading here.
+	//
+	// Ticket #52 settled what that costs and what to do about it. The band is
+	// held to "a screen-reader user can survey the 7 projects without linear
+	// reading", NOT to heading-jump parity - heading navigation is a SKIP
+	// mechanism, and there is nothing between these cards to skip, so the `B`
+	// (next button) route reaches the identical 7 targets. What #52 measured is
+	// that the `B` route was the broken one: with no aria-label the button's
+	// accessible name computes from its whole subtree, so each card announced
+	// as 102 characters of title + desc + tags + "View details" before the user
+	// learned which project it was. aria-label fixes the name to the title
+	// alone (5 chars), which is what the button list and the elements list read;
+	// aria-describedby then hands the description back on FOCUS, so tabbing
+	// still gets the context that the long name used to carry by accident.
+	// Rejected: an sr-only <h3> outside the button (buys a heading we do not
+	// need, leaves the 102-char name untouched, and stutters the title in
+	// browse mode) and restructuring to an inset-0 overlay button (works, and
+	// also restores headings, but rewrites six tests and puts the escape pill
+	// in a stacking contest for a bar we are not holding).
+	const descId = `projects-card-desc-${project.slug}`;
 	return (
 		<div
 			className={`group relative h-full border border-white/50 bg-white/25 text-slate-900 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.35)] backdrop-blur-md transition-transform hover:-translate-y-1 ${
@@ -104,6 +118,8 @@ function ProjectSplitCard({
 		>
 			<button
 				type="button"
+				aria-label={project.title}
+				aria-describedby={descId}
 				onClick={(e) => {
 					lastTriggerRef.current = e.currentTarget;
 					navigate({
@@ -133,7 +149,10 @@ function ProjectSplitCard({
 					>
 						{project.title}
 					</span>
-					<span className="block text-sm leading-snug text-slate-800/80">
+					<span
+						id={descId}
+						className="block text-sm leading-snug text-slate-800/80"
+					>
 						{project.desc}
 					</span>
 					<span className="flex flex-wrap gap-2">

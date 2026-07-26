@@ -50,21 +50,22 @@ describe("PROJECTS data", () => {
 	});
 });
 
-describe("PROJECTS stub entries (alperortac-com)", () => {
+// wayfinder #50: the authored alperortac.com subpage, the last of the three
+// late additions to leave stub state. A fourth shape: authored-heading prose
+// (`narrative`) instead of the fixed Problem/Solution pair, because the page is
+// about the motivation and the vision behind the site, not a market gap. The
+// journey-column artwork is slug-gated in ProjectPanel, not data.
+describe("PROJECTS self-reference (alperortac-com)", () => {
 	const find = (slug: string) => {
 		const project = PROJECTS.find((p) => p.slug === slug);
 		if (!project) throw new Error(`Missing project: ${slug}`);
 		return project;
 	};
 
-	// Absence pins are deliberate (per plan Out of Scope): each authoring
-	// ticket (#50) deletes this project's absence assertions when its
-	// real subpage payload lands (claude-statusline's landed with #49, curia's
-	// with #48). `panelColor` is the one exception (ui fix
-	// round): it is card-adjacent - it tints the band card's icon tile as well
-	// as the panel surface - so each stub carries its own distinct tint,
-	// pinned exactly, none near the band's terracotta accent (#b4531f).
-	it("alperortac-com: card copy verbatim, band tint pinned, subpage payload absent", () => {
+	// `panelColor` is card-adjacent: it tints the band card's icon tile as well
+	// as the panel surface, so it stays pinned exactly, clear of the band's
+	// terracotta accent (#b4531f).
+	it("card copy verbatim and the band tint stay put", () => {
 		const site = find("alperortac-com");
 		expect(site.title).toBe("alperortac.com");
 		expect(site.desc).toBe(
@@ -76,11 +77,57 @@ describe("PROJECTS stub entries (alperortac-com)", () => {
 		expect(site.tags).toEqual(["Portfolio", "Open Source"]);
 		expect(site.panelColor).toBe("#0369a1");
 		expect(site.panelLight).toBeUndefined();
-		expect(site.media).toBeUndefined();
+	});
+
+	it("carries the authored narrative pair verbatim: Alper's motivation, then his vision", () => {
+		const site = find("alperortac-com");
+		expect(site.narrative).toEqual([
+			{
+				heading: "Why I built it",
+				body: "I wanted to create a personal page about myself in an authentic way, showing both my professional and personal passions. It had to be unique and stand out in a sea of always the same portfolio pages.",
+			},
+			{
+				heading: "The vision",
+				body: "Visitors should be able to learn about me, follow my content, getting interested and contact me.",
+			},
+		]);
+	});
+
+	it("carries the journey signature section and the stack chips", () => {
+		const site = find("alperortac-com");
+		expect(site.extraSection).toEqual({
+			heading: "The journey",
+			body: "A vertical scroll journey through atmosphere, time, and depth. Scroll drives the day to dusk to night transition, the sun arc setting and the moon arc rising. Sidetracks are the depth surface: a card dives into a floating panel while the landscape stays visible around it. The column is the site's own minimap, frozen, drawn from the same sky curve you are scrolling through right now.",
+		});
+		expect(site.stack).toEqual([
+			"TanStack Start",
+			"React",
+			"Bun",
+			"TypeScript",
+			"Tailwind",
+			"Biome",
+		]);
+	});
+
+	// The fourth shape stays a fourth shape: the fixed triad never sneaks back
+	// in beside the authored headings (it would render "Problem" above "Why I
+	// built it"), and no media band appears - the demo is the site itself.
+	it("uses narrative instead of the fixed triad, and carries no media band", () => {
+		const site = find("alperortac-com");
 		expect(site.problem).toBeUndefined();
 		expect(site.solution).toBeUndefined();
 		expect(site.outcome).toBeUndefined();
-		expect(site.stack).toBeUndefined();
+		expect(site.media).toBeUndefined();
+	});
+
+	// Only the self-reference bends the section headings. Every other project
+	// keeps the fixed vocabulary, so `narrative` cannot quietly become the way
+	// projects are written.
+	it("is the only project using narrative", () => {
+		const withNarrative = PROJECTS.filter((p) => p.narrative).map(
+			(p) => p.slug,
+		);
+		expect(withNarrative).toEqual(["alperortac-com"]);
 	});
 });
 

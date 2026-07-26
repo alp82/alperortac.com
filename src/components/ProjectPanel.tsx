@@ -8,6 +8,7 @@ import {
 import { useReducedMotion } from "./_layout/dive/useReducedMotion";
 import { CuriaThread } from "./_layout/projects/CuriaThread";
 import { ForgePipeline } from "./_layout/projects/ForgePipeline";
+import { JourneyColumn } from "./_layout/projects/JourneyColumn";
 import { StatuslineStrip } from "./_layout/projects/StatuslineStrip";
 import { SubpageClose } from "./_layout/SubpageClose";
 
@@ -240,6 +241,19 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 							</section>
 						)}
 
+						{/* wayfinder #50: authored-heading prose, in place of the fixed
+						    Problem/Solution pair. Only the self-reference uses it, so it
+						    renders after the triad guards above and before the signature
+						    section - the same slot the pair occupies. */}
+						{project.narrative?.map((section) => (
+							<section key={section.heading} className="mb-10">
+								<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2">
+									{section.heading}
+								</h3>
+								<p className="text-lg leading-relaxed">{section.body}</p>
+							</section>
+						))}
+
 						{project.extraSection && (
 							<section className="mb-10">
 								<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2">
@@ -255,6 +269,10 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 								      section body names. */
 								project.slug === "curia" ? (
 									<CuriaThread />
+								) : /* wayfinder #50: the self-reference's artwork is the
+								      site's own journey minimap, frozen. */
+								project.slug === "alperortac-com" ? (
+									<JourneyColumn />
 								) : (
 									project.extraSection.stages &&
 									project.extraSection.stages.length > 0 &&

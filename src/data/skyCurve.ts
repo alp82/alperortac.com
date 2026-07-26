@@ -24,10 +24,26 @@ export const LEGACY_NEUTRAL_PARAMS: SkyCurve = {
 	boost: 0,
 };
 
+// Retuned on wayfinder #53. The old phase1 start of 0.162 sat AFTER the
+// Projects band, so Hero, Socials and Projects all rendered bit-identical noon
+// and the whole day → dusk → night arc happened inside Craft. Craft's share of
+// scroll is not the problem: it is 10 of the 14 full-height screens, so its 73%
+// tracks its content.
+//
+// The band's progress is viewport-dependent (0.124 mobile, 0.178 desktop for the
+// same section), and one knob has to serve both, so 0.060 is a deliberate
+// compromise rather than a per-device tuning: it puts mobile at ΔE 6.0 from noon
+// (over the "obviously different" line) and desktop at 16.9. Starting earlier
+// than 0.050 warms Socials past ΔE 2 and the page loses its noon top.
+//
+// phase2End is load-bearing beyond the sky: it is also the shooting-star cue
+// (`shootO` in journeyValues.ts), and the scroll after it is their fade-in
+// budget. Raising it shrinks that window, and at 1.0 the shooting stars never
+// appear at all. It stays at 0.787.
 export const DEFAULT_SKY_CURVE: SkyCurve = {
 	enabled: true,
-	phase1: [0.162, 0.436],
-	phase2: [0.466, 0.787],
+	phase1: [0.06, 0.448],
+	phase2: [0.453, 0.787],
 	boost: 0.8,
 };
 
