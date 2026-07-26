@@ -7,6 +7,7 @@ import {
 } from "../data/projects";
 import { useReducedMotion } from "./_layout/dive/useReducedMotion";
 import { ForgePipeline } from "./_layout/projects/ForgePipeline";
+import { StatuslineStrip } from "./_layout/projects/StatuslineStrip";
 import { SubpageClose } from "./_layout/SubpageClose";
 
 export const getProjectPanelTitleId = (slug: string) => `project-${slug}-title`;
@@ -243,7 +244,13 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 								<h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2">
 									{project.extraSection.heading}
 								</h3>
-								{project.extraSection.stages &&
+								{/* wayfinder #49: claude-statusline's artwork is the statusline
+								    itself - a static faithful strip above the how-to-read
+								    body, never the stage chain. */}
+								{project.slug === "claude-statusline" ? (
+									<StatuslineStrip />
+								) : (
+									project.extraSection.stages &&
 									project.extraSection.stages.length > 0 &&
 									// wayfinder #30: Forge's stage chain becomes the interactive
 									// classify → walk pipeline; every other project keeps the
@@ -278,7 +285,8 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 												);
 											})}
 										</ul>
-									))}
+									))
+								)}
 								<p className="text-lg leading-relaxed">
 									{project.extraSection.body}
 								</p>
