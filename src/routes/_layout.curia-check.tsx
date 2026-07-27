@@ -42,21 +42,21 @@ function CuriaCheck() {
 			className="fixed inset-0 z-[100] overflow-y-auto bg-white text-slate-900 font-sans"
 		>
 			<style>{`div[aria-hidden]:has(main[data-curia-check]) { display: block !important; }`}</style>
-			<div className="mx-auto max-w-xl px-6 py-16">
-				<h1 className="text-3xl font-black uppercase tracking-tighter mb-8">
+			<div className="mx-auto max-w-xl px-8 py-24">
+				<h1 className="text-3xl font-black uppercase tracking-tighter mb-14">
 					Curia Check
 				</h1>
 				<ul className="border-2 border-slate-900 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.25)] divide-y-2 divide-slate-900">
 					{LEGS.map((leg) => (
 						<li
 							key={leg.name}
-							className="flex items-center justify-between gap-4 px-4 py-3"
+							className="flex items-center justify-between gap-8 px-7 py-6"
 						>
 							<span className="font-bold text-sm uppercase tracking-widest">
 								{leg.name}
 							</span>
 							<span
-								className={`px-2 py-1 border-2 border-slate-900 font-black text-xs uppercase tracking-widest ${CHIP[leg.state]}`}
+								className={`px-3 py-1.5 border-2 border-slate-900 font-black text-xs uppercase tracking-widest ${CHIP[leg.state]}`}
 							>
 								{leg.state}
 							</span>
