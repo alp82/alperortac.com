@@ -1,14 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 
 // Throwaway test fixture for the curia golden-thread run (#67). A later
 // ticket deletes this page. Hard-coded data by design - no data source.
 //
-// The _layout Outlet renders inside display:none (subpage content normally
-// arrives via PanelHost), so this page portals its scoreboard to
-// document.body to be visible. Client-only: the portal mounts after
-// hydration.
+// The _layout Outlet renders inside an inline display:none wrapper (subpage
+// content normally arrives via PanelHost). The scoped <style> below unhides
+// that wrapper only while this route's <main> is inside it, so the
+// scoreboard is visible in the server-rendered HTML - no waiting on
+// hydration. The wrapper keeps aria-hidden; acceptable for a disposable
+// visual fixture. The fixed z-[100] overlay covers the homepage behind it.
 
 type LegState = "pass" | "pending" | "fail";
 
@@ -36,13 +36,13 @@ export const Route = createFileRoute("/_layout/curia-check")({
 });
 
 function CuriaCheck() {
-	const [mounted, setMounted] = useState(false);
-	useEffect(() => setMounted(true), []);
-	if (!mounted) return null;
-
-	return createPortal(
-		<div className="fixed inset-0 z-[100] overflow-y-auto bg-white text-slate-900 font-sans">
-			<main className="mx-auto max-w-xl px-6 py-16">
+	return (
+		<main
+			data-curia-check="true"
+			className="fixed inset-0 z-[100] overflow-y-auto bg-white text-slate-900 font-sans"
+		>
+			<style>{`div[aria-hidden]:has(main[data-curia-check]) { display: block !important; }`}</style>
+			<div className="mx-auto max-w-xl px-6 py-16">
 				<h1 className="text-3xl font-black uppercase tracking-tighter mb-8">
 					Curia Check
 				</h1>
@@ -63,8 +63,7 @@ function CuriaCheck() {
 						</li>
 					))}
 				</ul>
-			</main>
-		</div>,
-		document.body,
+			</div>
+		</main>
 	);
 }
