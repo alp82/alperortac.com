@@ -8,6 +8,7 @@ import {
 	JOURNEY_WAYPOINTS,
 	JourneyColumn,
 	MOON_TRAIL,
+	SECTION_SPANS,
 	SUN_TRAIL,
 	YOU_ARE_HERE,
 } from "../JourneyColumn";
@@ -55,6 +56,67 @@ describe("JourneyColumn waypoints", () => {
 	});
 });
 
+describe("JourneyColumn measured ladder (#55)", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	// The whole point of the rework: the ladder is no longer 25% steps. If these
+	// go, the drawing has silently gone back to claiming Projects sits at dusk.
+	it("carries a span for every waypoint, contiguous from the top of the journey to the bottom", () => {
+		const spans = JOURNEY_WAYPOINTS.map((w) => SECTION_SPANS[w.id]);
+		expect(spans.every(Boolean)).toBe(true);
+		const first = spans[0];
+		const last = spans[spans.length - 1];
+		if (!first || !last) throw new Error("missing span");
+		expect(first[0]).toBe(0);
+		expect(last[1]).toBe(1);
+		for (let i = 1; i < spans.length; i += 1) {
+			const previous = spans[i - 1];
+			const current = spans[i];
+			if (!previous || !current) throw new Error("missing span");
+			// Bands run forward and never overlap.
+			expect(current[0]).toBeGreaterThanOrEqual(previous[1]);
+			expect(current[1]).toBeGreaterThan(current[0]);
+		}
+	});
+
+	it("gives Craft more of the journey than every other section combined", () => {
+		const craft = SECTION_SPANS.craft;
+		if (!craft) throw new Error("missing Craft span");
+		const craftShare = craft[1] - craft[0];
+		const rest = JOURNEY_WAYPOINTS.filter((w) => w.id !== "craft").reduce(
+			(total, w) => {
+				const span = SECTION_SPANS[w.id];
+				return total + (span ? span[1] - span[0] : 0);
+			},
+			0,
+		);
+		expect(craftShare).toBeGreaterThan(rest);
+	});
+
+	it("puts the you-are-here mark in daylight, before the sky starts turning", () => {
+		const projects = SECTION_SPANS[YOU_ARE_HERE];
+		if (!projects) throw new Error("missing Projects span");
+		const mid = (projects[0] + projects[1]) / 2;
+		// phase1[1] is where the dusk plateau begins. The mark sits well above it.
+		expect(mid).toBeLessThan(DEFAULT_CELESTIAL.curve.phase1[1]);
+	});
+
+	it("brackets Craft alone and ticks the rest", () => {
+		const { container } = render(<JourneyColumn />);
+		const bracketed = Array.from(
+			container.querySelectorAll("[data-journey-waypoint]"),
+		).filter((el) =>
+			(el.firstElementChild?.getAttribute("style") ?? "").includes(
+				"border-right",
+			),
+		);
+		expect(bracketed).toHaveLength(1);
+		expect(bracketed[0]?.getAttribute("data-journey-waypoint")).toBe("craft");
+	});
+});
+
 describe("JourneyColumn celestial fidelity", () => {
 	afterEach(() => {
 		cleanup();
@@ -94,6 +156,24 @@ describe("JourneyColumn celestial fidelity", () => {
 		expect(first.p).toBeGreaterThan(0.5);
 		expect(last.p).toBe(1);
 		expect(last.o).toBeGreaterThan(first.o);
+	});
+
+	// #55: the two trails used to share the sample at 0.583 and drew ten pixels
+	// apart, which read as a smudge instead of a handover. The moon's opacity
+	// floor keeps one body per frame.
+	it("never draws the sun and the moon in the same frame", () => {
+		const sunAt = new Set(SUN_TRAIL.map((body) => body.p));
+		for (const moon of MOON_TRAIL) {
+			expect(sunAt.has(moon.p)).toBe(false);
+		}
+	});
+
+	it("draws no stars: the sun and the moon are the only bodies", () => {
+		const { container } = render(<JourneyColumn />);
+		const inColumn = container.querySelectorAll(
+			'[style*="linear-gradient"] > span',
+		);
+		expect(inColumn).toHaveLength(SUN_TRAIL.length + MOON_TRAIL.length);
 	});
 
 	it("renders one dot per trail sample", () => {

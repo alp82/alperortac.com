@@ -44,7 +44,7 @@ export const MINIMAP_BOUNDARIES = [
 	{ id: "socials", label: "Socials" },
 	{ id: "projects", label: "Projects" },
 	{ id: "craft", label: "Craft" },
-	{ id: "contact", label: "Collab" },
+	{ id: "contact", label: "Contact" },
 ] as const;
 
 export const SECTION_IDS = {
