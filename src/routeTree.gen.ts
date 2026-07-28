@@ -15,7 +15,6 @@ import { Route as LayoutTravelRouteImport } from './routes/_layout.travel'
 import { Route as LayoutMusicRouteImport } from './routes/_layout.music'
 import { Route as LayoutMoviesRouteImport } from './routes/_layout.movies'
 import { Route as LayoutEarlyDaysRouteImport } from './routes/_layout.early-days'
-import { Route as LayoutCuriaCheckRouteImport } from './routes/_layout.curia-check'
 import { Route as LayoutCareerRouteImport } from './routes/_layout.career'
 import { Route as LayoutProjectsSlugRouteImport } from './routes/_layout.projects.$slug'
 
@@ -48,11 +47,6 @@ const LayoutEarlyDaysRoute = LayoutEarlyDaysRouteImport.update({
   path: '/early-days',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutCuriaCheckRoute = LayoutCuriaCheckRouteImport.update({
-  id: '/curia-check',
-  path: '/curia-check',
-  getParentRoute: () => LayoutRoute,
-} as any)
 const LayoutCareerRoute = LayoutCareerRouteImport.update({
   id: '/career',
   path: '/career',
@@ -67,7 +61,6 @@ const LayoutProjectsSlugRoute = LayoutProjectsSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
   '/career': typeof LayoutCareerRoute
-  '/curia-check': typeof LayoutCuriaCheckRoute
   '/early-days': typeof LayoutEarlyDaysRoute
   '/movies': typeof LayoutMoviesRoute
   '/music': typeof LayoutMusicRoute
@@ -76,7 +69,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/career': typeof LayoutCareerRoute
-  '/curia-check': typeof LayoutCuriaCheckRoute
   '/early-days': typeof LayoutEarlyDaysRoute
   '/movies': typeof LayoutMoviesRoute
   '/music': typeof LayoutMusicRoute
@@ -88,7 +80,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_layout': typeof LayoutRouteWithChildren
   '/_layout/career': typeof LayoutCareerRoute
-  '/_layout/curia-check': typeof LayoutCuriaCheckRoute
   '/_layout/early-days': typeof LayoutEarlyDaysRoute
   '/_layout/movies': typeof LayoutMoviesRoute
   '/_layout/music': typeof LayoutMusicRoute
@@ -101,7 +92,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/career'
-    | '/curia-check'
     | '/early-days'
     | '/movies'
     | '/music'
@@ -110,7 +100,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/career'
-    | '/curia-check'
     | '/early-days'
     | '/movies'
     | '/music'
@@ -121,7 +110,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_layout'
     | '/_layout/career'
-    | '/_layout/curia-check'
     | '/_layout/early-days'
     | '/_layout/movies'
     | '/_layout/music'
@@ -178,13 +166,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutEarlyDaysRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/curia-check': {
-      id: '/_layout/curia-check'
-      path: '/curia-check'
-      fullPath: '/curia-check'
-      preLoaderRoute: typeof LayoutCuriaCheckRouteImport
-      parentRoute: typeof LayoutRoute
-    }
     '/_layout/career': {
       id: '/_layout/career'
       path: '/career'
@@ -204,7 +185,6 @@ declare module '@tanstack/react-router' {
 
 interface LayoutRouteChildren {
   LayoutCareerRoute: typeof LayoutCareerRoute
-  LayoutCuriaCheckRoute: typeof LayoutCuriaCheckRoute
   LayoutEarlyDaysRoute: typeof LayoutEarlyDaysRoute
   LayoutMoviesRoute: typeof LayoutMoviesRoute
   LayoutMusicRoute: typeof LayoutMusicRoute
@@ -215,7 +195,6 @@ interface LayoutRouteChildren {
 
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutCareerRoute: LayoutCareerRoute,
-  LayoutCuriaCheckRoute: LayoutCuriaCheckRoute,
   LayoutEarlyDaysRoute: LayoutEarlyDaysRoute,
   LayoutMoviesRoute: LayoutMoviesRoute,
   LayoutMusicRoute: LayoutMusicRoute,
