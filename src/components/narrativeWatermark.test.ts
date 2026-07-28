@@ -123,6 +123,17 @@ describe("SUBPAGE_WORDS", () => {
 		>;
 		expect(words["alperortac-com"]).toEqual(["ALPER", "ORTAC"]);
 	});
+
+	// The eighth project (#76). HQ is Alfredo's own word for the one dashboard
+	// every project reports to, so the pair names the product and the thing it
+	// gives you.
+	it("TC-S-07: alfredo pair is [ALFREDO, HQ]", () => {
+		const words = SUBPAGE_WORDS as unknown as Record<
+			string,
+			readonly [string, string] | undefined
+		>;
+		expect(words.alfredo).toEqual(["ALFREDO", "HQ"]);
+	});
 });
 
 // ---------------------------------------------------------------------------

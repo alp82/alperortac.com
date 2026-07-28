@@ -67,10 +67,10 @@ vi.mock("../SectionTitle", async (importOriginal) => {
 // iconKey, panelColor, panelLight, media, ...) matches it exactly - only
 // title/link/desc/status/slug are overridden, making `status` the sole
 // structurally-meaningful difference for PS-03b's comparison. `slug` is
-// pushed outside the real slug union (Project["slug"] now spans all seven
-// real projects - the four flagships plus curia, claude-statusline, and
-// alperortac-com - and "vaporware" still sits outside that union) so it can
-// never collide with a real entry's React key.
+// pushed outside the real slug union (Project["slug"] now spans all eight
+// real projects - the four flagships plus curia, claude-statusline,
+// alperortac-com, and alfredo - and "vaporware" still sits outside that
+// union) so it can never collide with a real entry's React key.
 vi.mock("../../../data/projects", async (importOriginal) => {
 	const actual =
 		await importOriginal<typeof import("../../../data/projects")>();
@@ -109,7 +109,7 @@ function renderSection() {
 // phrasing content, so a real <h3> inside the card button would be invalid
 // HTML. #52 accepted that rather than restructuring, because heading
 // navigation is a SKIP mechanism and adjacent single-control cards have
-// nothing to skip - the `B` (next button) route reaches the same 7 targets.
+// nothing to skip - the `B` (next button) route reaches the same targets.
 // What #52 fixed instead is that route's accessible names; see PS-19/PS-20.
 // This helper resolves the button THROUGH the title node, so it also pins
 // that the visible title stays inside the button.
@@ -482,12 +482,16 @@ describe("ProjectsSection", () => {
 	});
 
 	// PS-15 (ticket #47 follow-up, B2-respecced): the module mock appends the
-	// `vaporware` fixture to the regular tier, so SIX regular cards render
-	// inside this file (5 real + the fixture), not five. The real-data 2+5
-	// shape the request locks is pinned separately, with the fixture filtered
-	// out by slug (no hardcoded count assumption about which real projects
-	// exist beyond that filter).
-	it("PS-15 featured is exactly the 2 highlights; regular is exactly the non-highlight set (6 in-file, 5 real)", () => {
+	// `vaporware` fixture to the regular tier, so SEVEN regular cards render
+	// inside this file (6 real + the fixture), not six. The real-data 2+6
+	// shape is pinned separately, with the fixture filtered out by slug (no
+	// hardcoded count assumption about which real projects exist beyond that
+	// filter).
+	//
+	// The regular count moved 5 -> 6 with Alfredo, the eighth project (#76).
+	// This case is the band-layout half of that decision's guard - see AGENTS.md
+	// for why 2 + 6 is the shape the two grids want.
+	it("PS-15 featured is exactly the 2 highlights; regular is exactly the non-highlight set (7 in-file, 6 real)", () => {
 		renderSection();
 		const featured = screen.getByTestId("projects-featured");
 		const regular = screen.getByTestId("projects-regular");
@@ -501,7 +505,7 @@ describe("ProjectsSection", () => {
 		}
 
 		const regularProjects = PROJECTS.filter((p) => !p.highlight);
-		expect(regularProjects.length).toBe(6);
+		expect(regularProjects.length).toBe(7);
 		for (const project of regularProjects) {
 			expect(within(regular).getByText(project.title)).toBeTruthy();
 		}
@@ -513,8 +517,13 @@ describe("ProjectsSection", () => {
 		const realHighlights = realProjects.filter((p) => p.highlight);
 		const realRegulars = realProjects.filter((p) => !p.highlight);
 		expect(realHighlights.length).toBe(2);
-		expect(realRegulars.length).toBe(5);
-		for (const title of ["Curia", "claude-statusline", "alperortac.com"]) {
+		expect(realRegulars.length).toBe(6);
+		for (const title of [
+			"Curia",
+			"claude-statusline",
+			"alperortac.com",
+			"Alfredo",
+		]) {
 			expect(realRegulars.some((p) => p.title === title)).toBe(true);
 		}
 	});

@@ -6,6 +6,7 @@ import {
 	Landmark,
 	Palette,
 	PlaySquare,
+	Server,
 } from "lucide-react";
 import type { PanelKey } from "./sections";
 
@@ -16,7 +17,8 @@ export type ProjectIconKey =
 	| "Palette"
 	| "Landmark"
 	| "Gauge"
-	| "Globe";
+	| "Globe"
+	| "Server";
 
 export const PROJECT_ICONS: Record<
 	ProjectIconKey,
@@ -29,6 +31,7 @@ export const PROJECT_ICONS: Record<
 	Landmark,
 	Gauge,
 	Globe,
+	Server,
 };
 
 // Shared neutral fallbacks for projects with no authored subpage payload.
@@ -76,6 +79,7 @@ export type Project = {
 		| "curia"
 		| "claude-statusline"
 		| "alperortac-com"
+		| "alfredo"
 	>;
 	title: string;
 	desc: string;
@@ -334,5 +338,55 @@ export const PROJECTS: Project[] = [
 			"Tailwind",
 			"Biome",
 		],
+	},
+	// The eighth project (#76), and the first addition since the seven-project
+	// lock (#43). Authored subpage, "flagship-lite" - the shape Curia set for a
+	// WIP system: the Problem / Solution pair, one signature section, and stack
+	// chips, but no Outcome (the waitlist is still open, nothing has shipped to
+	// report) and no media band (no demo asset exists). Every line of copy is
+	// lifted verbatim from getalfredo.com, Alper's own writing. The tree artwork
+	// is slug-gated in ProjectPanel beside the other three.
+	{
+		slug: "alfredo",
+		title: "Alfredo",
+		// The first two sentences of getalfredo.com's own meta/OG description,
+		// verbatim. Truncated at a sentence boundary (the third reads "Watch them
+		// all from one HQ."), never reworded - the same treatment extraSection
+		// gets below.
+		desc: "Alfredo is the home for your projects. Your next one is live in minutes, with auth, email, database and analytics already wired.",
+		// The live app, per the AGENTS.md rule - getalfredo.com is up and taking
+		// waitlist signups. The repo takes the secondary link below.
+		link: "https://getalfredo.com",
+		status: "building",
+		// Two highlights and six regulars fill both grids exactly (3+3 on lg,
+		// 2+2+2 below). A third highlight would orphan one card inside the sun
+		// glow's two-column grid.
+		highlight: false,
+		tags: ["Self-Hosted", "Open Source"],
+		color: "bg-amber-100 text-amber-800",
+		iconKey: "Server",
+		// Amber-900, the warm brown nearest the landing page's own #1e1b10
+		// surface. Alfredo's real accent (#ff5d49, a coral) is deliberately not
+		// the card tint: it sits inside GoodWatch's red family and beside the
+		// band's terracotta (#b4531f). It is used inside the tree artwork
+		// instead, where neither can reach it.
+		panelColor: "#78350f",
+		extraLinks: [
+			{ label: "Source", href: "https://github.com/getalfredo/alfredo" },
+		],
+		problem:
+			"Every new project makes you set up the same boilerplate again. You have an idea. Then the setup starts. You have built all of this before, and you will build it again. Or you rent it from five managed services and pay five bills for something you do not own.",
+		solution:
+			"Alfredo wires all of it once, on your own server. Your next project is live in minutes. Every project runs on your servers and reports to one HQ. You do not collect another set of dashboards every time you ship.",
+		extraSection: {
+			heading: "Under the hood",
+			// The live page's own sentence ends "and the tree below is the real
+			// shape". Here the drawing sits ABOVE the body (ProjectPanel renders
+			// every signature artwork before its copy), so the clause is dropped
+			// rather than reworded - the copy rule adapts punctuation, never
+			// wording.
+			body: "Alfredo is one program on one server. You point it at a plain Ubuntu 24.04 VPS, and it runs each project as a Docker Compose stack you can read. Alfredo uses three words for the pieces of that setup. It ships as a single binary compiled with Bun. Installing it is one curl command that pulls the release from GitHub.",
+		},
+		stack: ["Bun", "TypeScript", "Docker Compose", "Ubuntu 24.04", "MIT"],
 	},
 ];

@@ -361,6 +361,14 @@ body.panel-open .main-shell {
 	);
 }
 
+/* INVARIANT (ticket #60): nothing on the panel/dive path may pause the scene.
+   A subpage freezes the SCROLL driver on purpose (frozenRef), so the time of day
+   holds still while somebody reads. The CSS keyframes must keep running, or the
+   card sits in front of a photograph. Walked at 1440x900 and 390x844: twinkle and
+   shooting-star stay `running` and advance 1:1 with the wall clock through the
+   dive, and the star dots keep painting under the 3D context below. Do not add
+   `animation-play-state: paused`, `animation: none`, or `display: none` under
+   body.panel-open or body.dive-active. */
 body.dive-active .dive-viewport {
 	perspective: 1400px;
 	perspective-origin: var(--dive-origin, 50% 50%);

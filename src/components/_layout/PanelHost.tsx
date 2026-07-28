@@ -123,6 +123,7 @@ export function PanelHost({
 	const curiaRef = useRef<HTMLDialogElement>(null);
 	const claudeStatuslineRef = useRef<HTMLDialogElement>(null);
 	const alperortacComRef = useRef<HTMLDialogElement>(null);
+	const alfredoRef = useRef<HTMLDialogElement>(null);
 	const musicRef = useRef<HTMLDialogElement>(null);
 	const moviesRef = useRef<HTMLDialogElement>(null);
 	const travelRef = useRef<HTMLDialogElement>(null);
@@ -145,6 +146,7 @@ export function PanelHost({
 			curia: curiaRef,
 			"claude-statusline": claudeStatuslineRef,
 			"alperortac-com": alperortacComRef,
+			alfredo: alfredoRef,
 			music: musicRef,
 			movies: moviesRef,
 			travel: travelRef,

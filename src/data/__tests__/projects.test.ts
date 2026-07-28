@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { ALFREDO_TERMS } from "../../components/_layout/projects/AlfredoTree";
 import { CURIA_LEGS } from "../../components/_layout/projects/CuriaThread";
 import { PROJECTS } from "../projects";
 
@@ -310,6 +311,68 @@ describe("PROJECTS verbatim copy", () => {
 			"An easy and pleasant user experience to go quickly from a deck idea to a full PDF printout so that I can try different strategies with my kids.",
 		);
 		expect(manaschmiede.tags).toEqual(["MTG", "Print & Play"]);
+	});
+
+	// wayfinder #76: Alfredo, the eighth project - the first addition since the
+	// seven-project lock (#43). Flagship-lite, the shape Curia set: a WIP system
+	// earns the Problem / Solution pair and one signature section, but no Outcome
+	// (nothing has shipped to report - the waitlist is still open) and no media
+	// band (no demo asset exists). Every line of copy is lifted verbatim from
+	// getalfredo.com, Alper's own writing, never distilled.
+	it("alfredo: card copy verbatim plus the authored flagship-lite payload (problem, solution, under-the-hood section, stack; no outcome, no media)", () => {
+		const alfredo = find("alfredo");
+		expect(alfredo.title).toBe("Alfredo");
+		expect(alfredo.desc).toBe(
+			"Alfredo is the home for your projects. Your next one is live in minutes, with auth, email, database and analytics already wired.",
+		);
+		// The AGENTS.md rule is the live app for apps, the repo for repo-based
+		// ones. getalfredo.com is live (the waitlist landing page), so the card
+		// escapes there and the repo takes the secondary link.
+		expect(alfredo.link).toBe("https://getalfredo.com");
+		expect(alfredo.status).toBe("building");
+		// Why false, and why amber over Alfredo's own coral: see the entry's own
+		// comments in projects.ts. The band-layout half is pinned by PS-15.
+		expect(alfredo.highlight).toBe(false);
+		expect(alfredo.tags).toEqual(["Self-Hosted", "Open Source"]);
+		expect(alfredo.color).toBe("bg-amber-100 text-amber-800");
+		expect(alfredo.panelColor).toBe("#78350f");
+		expect(alfredo.iconKey).toBe("Server");
+		expect(alfredo.problem).toBe(
+			"Every new project makes you set up the same boilerplate again. You have an idea. Then the setup starts. You have built all of this before, and you will build it again. Or you rent it from five managed services and pay five bills for something you do not own.",
+		);
+		expect(alfredo.solution).toBe(
+			"Alfredo wires all of it once, on your own server. Your next project is live in minutes. Every project runs on your servers and reports to one HQ. You do not collect another set of dashboards every time you ship.",
+		);
+		expect(alfredo.extraSection).toEqual({
+			heading: "Under the hood",
+			body: "Alfredo is one program on one server. You point it at a plain Ubuntu 24.04 VPS, and it runs each project as a Docker Compose stack you can read. Alfredo uses three words for the pieces of that setup. It ships as a single binary compiled with Bun. Installing it is one curl command that pulls the release from GitHub.",
+		});
+		expect(alfredo.stack).toEqual([
+			"Bun",
+			"TypeScript",
+			"Docker Compose",
+			"Ubuntu 24.04",
+			"MIT",
+		]);
+		expect(alfredo.extraLinks).toEqual([
+			{ label: "Source", href: "https://github.com/getalfredo/alfredo" },
+		]);
+		// Flagship-lite stays lite, and the fourth shape stays the self-
+		// reference's alone.
+		expect(alfredo.outcome).toBeUndefined();
+		expect(alfredo.media).toBeUndefined();
+		expect(alfredo.narrative).toBeUndefined();
+	});
+
+	// The copy/artwork drift guard Curia carries, in the half that belongs to the
+	// DATA: the body says "three words", so adding or dropping a node without
+	// touching the copy goes red instead of leaving the sentence lying. The other
+	// half - that the words are still HQ, PORTER and TRAY, so a RENAME goes red
+	// too - is pinned in AlfredoTree.test.tsx, next to the drawing it measures.
+	it("alfredo: the under-the-hood body names as many words as the tree draws", () => {
+		const alfredo = find("alfredo");
+		expect(ALFREDO_TERMS).toHaveLength(3);
+		expect(alfredo.extraSection?.body).toContain("three words");
 	});
 
 	it("keeps the three video media entries byte-identical", () => {

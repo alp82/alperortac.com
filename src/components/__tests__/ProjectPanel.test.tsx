@@ -812,6 +812,114 @@ describe("ProjectPanel alperortac.com journey column", () => {
 	});
 });
 
+// wayfinder #76: the authored Alfredo subpage - flagship-lite (the Curia
+// shape), whose extraSection artwork is the three-word tree Alfredo's own
+// landing page publishes (AlfredoTree), slug-gated beside the statusline strip,
+// the Curia thread, the journey column, and Forge's pipeline.
+describe("ProjectPanel alfredo tree", () => {
+	afterEach(() => {
+		cleanup();
+	});
+
+	const alfredoProject: Project = {
+		slug: "alfredo",
+		title: "Alfredo",
+		desc: "test alfredo desc",
+		link: "https://getalfredo.com",
+		status: "building",
+		highlight: false,
+		tags: ["Self-Hosted", "Open Source"],
+		color: "bg-amber-100 text-amber-800",
+		iconKey: "Server",
+		panelColor: "#78350f",
+		problem: "test problem",
+		solution: "test solution",
+		extraSection: {
+			heading: "Under the hood",
+			body: "test under the hood body",
+		},
+		stack: ["Bun", "MIT"],
+	};
+
+	function findExtraSection(container: HTMLElement) {
+		return Array.from(container.querySelectorAll("section")).find((section) =>
+			Array.from(section.querySelectorAll("h3")).some(
+				(h) => h.textContent?.trim() === "Under the hood",
+			),
+		);
+	}
+
+	it("renders the tree inside the extraSection, above the body copy", () => {
+		const { container } = render(
+			<ProjectPanel project={alfredoProject} open={true} onClose={vi.fn()} />,
+		);
+		const section = findExtraSection(container as HTMLElement);
+		expect(section).not.toBeUndefined();
+		if (!section) throw new Error("extraSection not found");
+
+		const tree = section.querySelector('[role="img"]');
+		expect(tree).not.toBeNull();
+		expect(tree?.getAttribute("aria-label")).toMatch(/hq/i);
+
+		const body = screen.getByText(alfredoProject.extraSection?.body ?? "");
+		if (!tree) throw new Error("tree not found");
+		expect(
+			tree.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	// Asserted through the stage LABELS, not through "no <ul> in the section"
+	// (the idiom the other three artworks use): the tree draws its trays as a
+	// list, so a bare `querySelector("ul")` here would pass on the artwork's own
+	// markup and prove nothing about the chain.
+	it("wins over the stage chain even if stages sneak into the data", () => {
+		const { container } = render(
+			<ProjectPanel
+				project={{
+					...alfredoProject,
+					extraSection: {
+						heading: "Under the hood",
+						body: "test under the hood body",
+						stages: ["🅰 One", "🅱 Two"],
+					},
+				}}
+				open={true}
+				onClose={vi.fn()}
+			/>,
+		);
+		const section = findExtraSection(container as HTMLElement);
+		expect(section?.querySelector('[role="img"]')).not.toBeNull();
+		expect(screen.queryByText("One")).toBeNull();
+		expect(screen.queryByText("Two")).toBeNull();
+	});
+
+	it("keeps the flagship-lite shape: Problem and Solution render, Outcome does not, and no media band appears", () => {
+		const { container } = render(
+			<ProjectPanel project={alfredoProject} open={true} onClose={vi.fn()} />,
+		);
+		expect(screen.getByText("Problem")).not.toBeNull();
+		expect(screen.getByText("Solution")).not.toBeNull();
+		expect(screen.queryByText("Outcome")).toBeNull();
+		expect(container.querySelector("video")).toBeNull();
+		expect(container.querySelector('[class*="h-[35vh]"]')).toBeNull();
+	});
+
+	it("does not leak the tree into other projects' panels", () => {
+		const { container } = render(
+			<ProjectPanel
+				project={{
+					...mockVideoProject,
+					extraSection: { heading: "Under the hood", body: "test body" },
+				}}
+				open={true}
+				onClose={vi.fn()}
+			/>,
+		);
+		const section = findExtraSection(container as HTMLElement);
+		expect(section?.querySelector('[role="img"]')).toBeNull();
+	});
+});
+
 describe("ProjectPanel stub degradation", () => {
 	afterEach(() => {
 		cleanup();

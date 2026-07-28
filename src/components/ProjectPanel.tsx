@@ -6,6 +6,7 @@ import {
 	type Project,
 } from "../data/projects";
 import { useReducedMotion } from "./_layout/dive/useReducedMotion";
+import { AlfredoTree } from "./_layout/projects/AlfredoTree";
 import { CuriaThread } from "./_layout/projects/CuriaThread";
 import { ForgePipeline } from "./_layout/projects/ForgePipeline";
 import { JourneyColumn } from "./_layout/projects/JourneyColumn";
@@ -273,6 +274,10 @@ export function ProjectPanel({ project, open, onClose }: ProjectPanelProps) {
 								      site's own journey minimap, frozen. */
 								project.slug === "alperortac-com" ? (
 									<JourneyColumn />
+								) : /* wayfinder #76: Alfredo's artwork is the three-word tree
+								      its own landing page publishes, transcribed and dated. */
+								project.slug === "alfredo" ? (
+									<AlfredoTree />
 								) : (
 									project.extraSection.stages &&
 									project.extraSection.stages.length > 0 &&

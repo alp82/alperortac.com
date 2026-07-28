@@ -107,15 +107,22 @@ describe("sections topology", () => {
 		}
 	});
 
-	// Pin: the three new stub projects (curia, claude-statusline,
-	// alperortac-com) have no Craft topic, so the derived supplement parks them
-	// at the Projects band itself.
-	it("curia, claude-statusline, and alperortac-com park at SECTION_IDS.projects", () => {
+	// Pin: the four band-only projects (curia, claude-statusline,
+	// alperortac-com, and alfredo - the eighth, #76) have no Craft topic, so the
+	// literal supplement parks them at the Projects band itself. Without an
+	// entry, a direct /projects/alfredo load would color the sky from the page
+	// top instead of from the band.
+	it("curia, claude-statusline, alperortac-com, and alfredo park at SECTION_IDS.projects", () => {
 		const parkMap = PANEL_KEY_TO_TOPIC_ID as unknown as Record<
 			string,
 			string | undefined
 		>;
-		for (const key of ["curia", "claude-statusline", "alperortac-com"]) {
+		for (const key of [
+			"curia",
+			"claude-statusline",
+			"alperortac-com",
+			"alfredo",
+		]) {
 			expect(
 				parkMap[key],
 				`Expected PANEL_KEY_TO_TOPIC_ID["${key}"] to park at SECTION_IDS.projects`,

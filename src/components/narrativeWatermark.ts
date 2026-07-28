@@ -47,6 +47,7 @@ export const SUBPAGE_WORDS: Partial<
 	curia: ["CURIA", "CHAMBER"],
 	"claude-statusline": ["STATUS", "LINE"],
 	"alperortac-com": ["ALPER", "ORTAC"],
+	alfredo: ["ALFREDO", "HQ"],
 	music: ["MUSIC", "AUDIO"],
 	movies: ["MOVIES", "SERIES"],
 	travel: ["TRAVEL", "WORLD"],

@@ -9,6 +9,7 @@ export type PanelKey =
 	| "curia"
 	| "claude-statusline"
 	| "alperortac-com"
+	| "alfredo"
 	| "music"
 	| "movies"
 	| "travel";
@@ -27,10 +28,12 @@ export const PANEL_SIDES: Record<Exclude<PanelKey, "sky">, "left" | "right"> = {
 	aistack: "right",
 	forge: "left",
 	manaschmiede: "right",
-	// The three stub projects continue the project alternation (L/R/L/R -> L/R/L).
+	// The four late projects continue the project alternation
+	// (L/R/L/R -> L/R/L/R). Alfredo, the eighth (#76), takes the next side.
 	curia: "left",
 	"claude-statusline": "right",
 	"alperortac-com": "left",
+	alfredo: "right",
 	music: "left",
 	// GoodWatch on the same band slides left; the second destination takes the
 	// opposite side so the dive aim reads distinct.

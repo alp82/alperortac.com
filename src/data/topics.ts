@@ -262,4 +262,5 @@ export const PANEL_KEY_TO_TOPIC_ID: Partial<
 	curia: SECTION_IDS.projects,
 	"claude-statusline": SECTION_IDS.projects,
 	"alperortac-com": SECTION_IDS.projects,
+	alfredo: SECTION_IDS.projects,
 };
