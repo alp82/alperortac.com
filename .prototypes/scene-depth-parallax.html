@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scene depth + scroll parallax - wayfinder #59</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #0b1020;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: #e7edf7;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* The scene. Mirrors the shipped structure:                           */
+  /*   .dive-viewport > .dive-scene > .dive-layer[--layer-depth]         */
+  /* ------------------------------------------------------------------ */
+  .viewport { position: fixed; inset: 0; z-index: -10; overflow: hidden; }
+  .scene {
+    position: absolute; inset: 0;
+    --dive-u: 0;
+    --dive-zoom-mul: 0.85;
+    --dive-focal-depth: 0.5;
+    --dive-blur-strength: 0;
+    transform-origin: var(--dive-origin, 50% 50%);
+    transition: transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .layer {
+    position: absolute; inset: 0;
+    transform-origin: var(--dive-origin, 50% 50%);
+    /* real formula, copied from styles.css:344-358 */
+    --z: calc(1 + var(--layer-depth) * 4.6 * var(--dive-u, 0) * var(--dive-zoom-mul, 0.85));
+    --gain: calc(0.8 * (0.25 + 1.5 * var(--layer-depth)));
+    --layer-scale: calc(1 + (var(--z) - 1) * var(--gain));
+    --blur: calc(
+      var(--dive-blur-strength, 0) *
+      max(var(--layer-depth) - var(--dive-focal-depth), var(--dive-focal-depth) - var(--layer-depth)) *
+      var(--dive-u, 0) * 1px
+    );
+  }
+  /* At rest: NO transform and NO filter on a layer - the shipped rule. */
+  body.dive-active .layer {
+    transition: transform 760ms cubic-bezier(0.22, 1, 0.36, 1),
+                filter 760ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform: scale(var(--layer-scale));
+    filter: blur(var(--blur));
+  }
+  body.dive-active .layer--crisp { transform: none; filter: none; }
+
+  /* MODE B (naive): scroll parallax written into `transform`. The dive's
+     scale lives in the same channel, so one clobbers the other. */
+  body.naive.dive-active .layer { transform: translate(var(--px, 0px), var(--py, 0px)); }
+
+  .sky { position: absolute; inset: 0; }
+
+  .stars { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .star {
+    position: absolute; background: #fff; border-radius: 50%;
+    animation: twinkle var(--dur) ease-in-out infinite;
+    animation-delay: var(--del);
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.35); }
+  }
+
+  .body-wrap { position: absolute; transform: translate(-50%, -50%); }
+  .sun {
+    width: 96px; height: 96px; border-radius: 50%;
+    background: #fef08a; border: 4px solid #fde047;
+    box-shadow: 0 0 40px rgba(253,224,71,0.5);
+  }
+  .moon {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: #f1f5f9; border: 4px solid #cbd5e1;
+    box-shadow: 0 0 60px rgba(255,255,255,0.2);
+  }
+
+  .cloud { position: absolute; left: 0; top: 0; width: 120px; opacity: 0.4; will-change: transform; }
+
+  /* A ridge is OPAQUE, so it occludes the stars behind it. Delicacy comes from
+     the fill sitting close to the sky colour, not from alpha.
+     It also overscans the viewport by the parallax travel (--ox / --oy), so a
+     layer that drifts never exposes an edge. Below the silhouette, .ridge-base
+     carries the same fill down past the bottom edge. */
+  .scene { --ox: 12px; --oy: 12px; }
+  .ridge {
+    position: absolute; pointer-events: none;
+    left: calc(-1 * var(--ox)); right: calc(-1 * var(--ox));
+    bottom: calc(-1 * var(--oy));
+    height: calc(var(--rh, 30vh) + var(--oy));
+  }
+  .ridge svg {
+    display: block; position: absolute; left: 0; right: 0; top: 0;
+    width: 100%; height: var(--rh, 30vh);
+  }
+  .ridge-base { position: absolute; left: 0; right: 0; top: var(--rh, 30vh); bottom: 0; }
+
+  /* ------------------------------------------------------------------ */
+  /* Page content: enough scroll to walk the whole day.                  */
+  /* ------------------------------------------------------------------ */
+  .page { position: relative; z-index: 1; }
+  .screen {
+    height: 100vh; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 8px;
+  }
+  .screen h2 { margin: 0; font-size: 40px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: rgba(255,255,255,0.55); mix-blend-mode: overlay; }
+  .screen p { margin: 0; font-size: 12px; color: rgba(255,255,255,0.4); }
+
+  /* ------------------------------------------------------------------ */
+  /* Dock                                                                */
+  /* ------------------------------------------------------------------ */
+  .dock {
+    position: fixed; top: 12px; right: 12px; width: 310px; z-index: 50;
+    background: rgba(8,12,24,0.9); border: 1px solid rgba(125,211,252,0.25);
+    border-radius: 10px; padding: 12px; font-size: 11px;
+    max-height: calc(100vh - 24px); overflow-y: auto;
+    backdrop-filter: blur(8px);
+  }
+  .dock.hidden { display: none; }
+  .dock h1 { font-size: 12px; margin: 0 0 2px; letter-spacing: 0.08em; color: #7dd3fc; }
+  .dock .sub { color: #94a3b8; margin: 0 0 10px; line-height: 1.5; }
+  .grp { border-top: 1px solid rgba(125,211,252,0.14); padding-top: 8px; margin-top: 8px; }
+  .grp > .lbl { color: #7dd3fc; letter-spacing: 0.08em; text-transform: uppercase; font-size: 9px; margin-bottom: 6px; }
+  .fld { margin-bottom: 8px; }
+  .fld label { display: flex; justify-content: space-between; color: #cbd5e1; margin-bottom: 3px; }
+  .fld label b { color: #fff; font-weight: 600; }
+  .fld input[type=range] { width: 100%; accent-color: #7dd3fc; height: 2px; }
+  .row { display: flex; gap: 4px; flex-wrap: wrap; }
+  button {
+    background: rgba(125,211,252,0.1); border: 1px solid rgba(125,211,252,0.3);
+    color: #e7edf7; border-radius: 5px; padding: 4px 7px; cursor: pointer;
+    font-family: inherit; font-size: 10px;
+  }
+  button:hover { background: rgba(125,211,252,0.22); }
+  button.on { background: #7dd3fc; color: #08111f; border-color: #7dd3fc; }
+  .readout { color: #94a3b8; line-height: 1.6; font-size: 10px; }
+  .readout b { color: #7dd3fc; }
+  .warn { color: #fca5a5; }
+  .dock-toggle {
+    position: fixed; top: 12px; right: 12px; z-index: 51;
+  }
+
+  .frame-mobile .page, .frame-mobile .viewport {
+    left: 50%; right: auto; width: 390px; transform: translateX(-50%);
+  }
+  .frame-mobile .viewport { border-left: 1px solid rgba(125,211,252,0.3); border-right: 1px solid rgba(125,211,252,0.3); }
+
+  /* Reduced motion: parallax is motion. Pinned to zero, exactly like the
+     watermark drift and the dive scene already do. */
+  body.rm .layer { translate: none !important; }
+  body.rm .star { animation: none !important; }
+  body.rm .cloud { transition: none; }
+</style>
+</head>
+<body>
+
+<div class="viewport" id="viewport">
+  <div class="scene" id="scene"></div>
+</div>
+
+<div class="page" id="page"></div>
+
+<button class="dock-toggle" id="dockToggle" style="display:none">panel</button>
+
+<aside class="dock" id="dock">
+  <h1>DEPTH + SCROLL PARALLAX</h1>
+  <p class="sub">wayfinder #59. Scroll the page. Everything below is live.</p>
+
+  <div class="grp">
+    <div class="lbl">Baseline (your ladder: 10 / 0.93 / 0.21 / haze 0.80 / weight 0.25)</div>
+    <div class="row">
+      <button data-preset="locked" class="on">LOCKED +160</button>
+      <button data-preset="rise80">rise +80</button>
+      <button data-preset="rise130">rise +130</button>
+      <button data-preset="sink80">sink -80</button>
+      <button data-preset="sink120">sink -120</button>
+      <button data-preset="flat">no drift</button>
+      <button data-preset="yours">yours (+280)</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Other ladders</div>
+    <div class="row">
+      <button data-preset="shipped">shipped</button>
+      <button data-preset="timid">timid (3)</button>
+      <button data-preset="house">house (8)</button>
+      <button data-preset="rich">rich (14)</button>
+      <button data-preset="toomuch">too much (24)</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Depth ladder</div>
+    <div class="fld">
+      <label>ridge layers <b id="vCount">6</b></label>
+      <input type="range" id="count" min="0" max="24" step="1" value="6">
+    </div>
+    <div class="fld">
+      <label>nearest ridge depth <b id="vNear">0.92</b></label>
+      <input type="range" id="near" min="0.55" max="1" step="0.01" value="0.92">
+    </div>
+    <div class="fld">
+      <label>farthest ridge depth <b id="vFar">0.20</b></label>
+      <input type="range" id="far" min="0.05" max="0.55" step="0.01" value="0.20">
+    </div>
+    <div class="fld">
+      <label>aerial haze (static tone) <b id="vHaze">0.70</b></label>
+      <input type="range" id="haze" min="0" max="1" step="0.05" value="0.70">
+    </div>
+    <div class="fld">
+      <label>ridge weight <b id="vWeight">0.45</b></label>
+      <input type="range" id="weight" min="0.05" max="1" step="0.05" value="0.45">
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Parallax</div>
+    <div class="row" style="margin-bottom:8px">
+      <button data-axis="none">off</button>
+      <button data-axis="x">x</button>
+      <button data-axis="y">y</button>
+      <button data-axis="xy" class="on">x + y</button>
+    </div>
+    <div class="fld">
+      <label>horizontal travel (px @ depth 1) <b id="vHx">220</b></label>
+      <input type="range" id="hx" min="0" max="900" step="10" value="220">
+    </div>
+    <div class="fld">
+      <label>vertical travel (px @ depth 1) <b id="vVy">70</b></label>
+      <input type="range" id="vy" min="-300" max="300" step="5" value="70">
+    </div>
+    <div class="fld">
+      <label>anchor depth (stays put) <b id="vAnchor">0.00</b></label>
+      <input type="range" id="anchor" min="0" max="1" step="0.01" value="0">
+    </div>
+    <div class="fld">
+      <label>scale travel with viewport width <b id="vScaleW">on</b></label>
+      <input type="range" id="scaleW" min="0" max="1" step="1" value="1">
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Composition (the contest)</div>
+    <div class="row" style="margin-bottom:6px">
+      <button data-mode="split" class="on">A: split channel</button>
+      <button data-mode="naive">B: one transform</button>
+    </div>
+    <p class="sub" id="modeNote" style="margin:0 0 8px"></p>
+    <div class="row">
+      <button id="dive">run dive (760ms)</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Checks</div>
+    <div class="row">
+      <button id="rm">reduced motion</button>
+      <button id="mobile">390px frame</button>
+      <button id="stars">stars: on</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="readout" id="readout"></div>
+  </div>
+</aside>
+
+<script>
+// ---------------------------------------------------------------------------
+// Ported constants. Real values from the repo, so what you see transfers.
+// ---------------------------------------------------------------------------
+const SKY_NOON  = { r: 135, g: 206, b: 235 };
+const SKY_DUSK  = { r: 244, g: 164, b: 96  };
+const SKY_NIGHT = { r: 20,  g: 10,  b: 50  };
+const CURVE = { phase1: [0.06, 0.448], phase2: [0.453, 0.787], boost: 0.8 };
+const LAND_COLOR = { r: 74, g: 122, b: 140 };            // #4a7a8c
+const CLOUDS = [                                          // journeyValues.ts:76
+  { x: 100, y: 150, scale: 1.2, speed: 0.05, depth: 0.55 },
+  { x: 600, y: 100, scale: 0.8, speed: -0.08, depth: 0.8 },
+  { x: 1000, y: 250, scale: 1,  speed: 0.03, depth: 0.3 },
+];
+const SUN_WINDOW  = { start: 0,    end: 0.65 };
+const MOON_WINDOW = { start: 0.45, end: 1.0  };
+const SUN_ARC  = { startX: 75, startY: 12, endX: 28, endY: 58, arcLift: 8 };
+const MOON_ARC = { startX: 27, startY: 45, endX: 16, endY: 13, arcLift: 6 };
+const LAND_PATH = "M0 400V300l100-50h50l100 100h50l150-150h50l100 80h100l200-180h100v300z";
+
+const clamp01 = x => Math.max(0, Math.min(1, x));
+const bell = t => Math.sin(t * Math.PI);
+const lerpRgb = (a, b, t) => ({
+  r: Math.round(a.r + (b.r - a.r) * t),
+  g: Math.round(a.g + (b.g - a.g) * t),
+  b: Math.round(a.b + (b.b - a.b) * t),
+});
+const css = c => `rgb(${c.r}, ${c.g}, ${c.b})`;
+
+function rgbToHsl({ r, g, b }) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  let h = 0, s = 0; const l = (mx + mn) / 2;
+  if (mx !== mn) {
+    const d = mx - mn;
+    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    if (mx === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return { h, s, l };
+}
+function hslToRgb({ h, s, l }) {
+  if (s === 0) { const v = Math.round(l * 255); return { r: v, g: v, b: v }; }
+  const hue = (p, q, t) => {
+    if (t < 0) t += 1; if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  return {
+    r: Math.round(hue(p, q, h + 1/3) * 255),
+    g: Math.round(hue(p, q, h) * 255),
+    b: Math.round(hue(p, q, h - 1/3) * 255),
+  };
+}
+function boostSat(rgb, boost, weight) {
+  const hsl = rgbToHsl(rgb);
+  hsl.s = clamp01(hsl.s * (1 + boost * weight));
+  return hslToRgb(hsl);
+}
+function skyRgbAt(p) {
+  const [s1, e1] = CURVE.phase1, [s2, e2] = CURVE.phase2;
+  if (p <= s1) return SKY_NOON;
+  if (p < e1) { const t = (p - s1) / (e1 - s1); return boostSat(lerpRgb(SKY_NOON, SKY_DUSK, t), CURVE.boost, bell(t)); }
+  if (p <= s2) return SKY_DUSK;
+  if (p < e2) { const t = (p - s2) / (e2 - s2); return boostSat(lerpRgb(SKY_DUSK, SKY_NIGHT, t), CURVE.boost, bell(t)); }
+  return SKY_NIGHT;
+}
+function windowed(p, w) { return clamp01((p - w.start) / (w.end - w.start)); }
+function arc(t, a) {
+  return {
+    x: a.startX + (a.endX - a.startX) * t,
+    y: a.startY + (a.endY - a.startY) * t - Math.sin(t * Math.PI) * a.arcLift,
+  };
+}
+const sunOpacityAt  = p => (p < 0.45 ? 1 : Math.max(0, 1 - (p - 0.45) / 0.2));
+const moonOpacityAt = p => (p < 0.5 ? 0 : Math.min(1, (p - 0.5) / 0.2));
+
+function mulberry32(seed) {
+  let a = seed;
+  return () => {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+const S = {
+  // LOCKED 2026-07-28. Alper's ladder, vertical travel +160 rise, chosen after
+  // seeing rise and sink side by side across the safe band.
+  count: 10, near: 0.93, far: 0.21, haze: 0.80, weight: 0.25,
+  axis: "y", hx: 220, vy: 160, anchor: 0, scaleW: 1,
+  mode: "split", stars: true, rm: false, mobile: false,
+};
+
+// fps probe state, declared up here because render() runs during dock setup
+let frames = 0, fps = 0, last = performance.now();
+
+const scene = document.getElementById("scene");
+const page = document.getElementById("page");
+const readout = document.getElementById("readout");
+
+// Page content: 14 full screens, matching the shipped document's rough length.
+const SCREENS = ["hero", "socials", "projects", "craft", "craft", "craft", "craft",
+                 "craft", "craft", "craft", "craft", "craft", "craft", "footer"];
+page.innerHTML = SCREENS.map((n, i) =>
+  `<section class="screen"><h2>${n}</h2><p>screen ${i + 1} / ${SCREENS.length}</p></section>`).join("");
+
+// ---------------------------------------------------------------------------
+// Ridge geometry. One seeded silhouette per layer, so a layer-count change is
+// a real change in the art, not a repeat of the same path.
+// ---------------------------------------------------------------------------
+// Diagonal slopes with flat runs between them - the same vocabulary as the
+// shipped landscape path (`M0 400V300l100-50h50l100 100...`).
+function ridgePath(seed, roughness) {
+  const rand = mulberry32(seed);
+  const pts = [];
+  let x = 0;
+  let y = 150 + rand() * 90;
+  pts.push(`M0 400V${y.toFixed(0)}`);
+  while (x < 1000) {
+    const run = 40 + rand() * 120;
+    const slope = 50 + rand() * 130;
+    const dy = (rand() - 0.5) * 2 * roughness;
+    const ny = Math.max(50, Math.min(370, y + dy));
+    const sx = Math.min(1000 - x, slope);
+    pts.push(`l${sx.toFixed(0)} ${(ny - y).toFixed(0)}`);
+    x += sx; y = ny;
+    if (x >= 1000) break;
+    const rx = Math.min(1000 - x, run);
+    pts.push(`h${rx.toFixed(0)}`);
+    x += rx;
+  }
+  pts.push("V400", "H0", "Z");
+  return pts.join("");
+}
+
+// ---------------------------------------------------------------------------
+// Build the scene
+// ---------------------------------------------------------------------------
+let layers = [];   // { el, depth, kind }
+let starEls = [];
+let cloudEls = [];
+let sunEl, moonEl, skyEl;
+
+function build() {
+  scene.innerHTML = "";
+  layers = []; starEls = []; cloudEls = [];
+
+  // Every layer is appended in DEPTH ORDER, not authoring order, so paint order
+  // and the depth ladder agree. (The shipped scene appends in authoring order,
+  // which is how the cloud at 0.8 ended up behind the landscape at 0.55.)
+  const pending = [];
+  const add = (depth, kind, inner, cls = "") => {
+    const el = document.createElement("div");
+    el.className = "layer " + cls;
+    el.dataset.depth = depth;
+    el.style.setProperty("--layer-depth", depth);
+    el.innerHTML = inner;
+    pending.push({ el, depth, kind });
+    return el;
+  };
+  const flush = () => {
+    pending.sort((a, b) => a.depth - b.depth);
+    for (const l of pending) { scene.appendChild(l.el); layers.push(l); }
+  };
+
+  // sky (0)
+  skyEl = add(0, "sky", "");
+  skyEl.classList.add("sky");
+
+  // stars (0.05) - crisp layer, never transformed (shipped rule)
+  const rand = mulberry32(0x5eed);
+  const starHtml = Array.from({ length: 150 }, () => {
+    const x = rand() * 100, y = rand() * 100, s = rand() * 2.5 + 0.5;
+    const d = rand() * 5, du = rand() * 3 + 2;
+    return `<div class="star" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%;width:${s.toFixed(2)}px;height:${s.toFixed(2)}px;--del:${d.toFixed(2)}s;--dur:${du.toFixed(2)}s"></div>`;
+  }).join("");
+  const starLayer = add(0.05, "stars", `<div class="stars">${starHtml}</div>`, "layer--crisp");
+  starLayer.style.opacity = "0";
+  starEls = [starLayer];
+
+  // sun + moon (0.12)
+  sunEl = add(0.12, "sun", `<div class="body-wrap"><div class="sun"></div></div>`);
+  moonEl = add(0.12, "moon", `<div class="body-wrap"><div class="moon"></div></div>`);
+
+  // ridges, farthest to nearest
+  for (const r of ridgeSpecs()) add(r.depth, "ridge", ridgeSvg(r), "");
+
+  // clouds (0.3 / 0.55 / 0.8)
+  CLOUDS.forEach((c) => {
+    const el = add(c.depth, "cloud", `<svg class="cloud" viewBox="0 0 100 60"><path fill="white" d="M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z"/></svg>`);
+    cloudEls.push({ wrap: el, svg: el.querySelector("svg"), spec: c });
+  });
+
+  // the shipped landscape silhouette (0.55), kept as the reference
+  const land = add(0.55, "land",
+    `<div class="ridge" style="--rh:40vh">
+       <svg viewBox="0 0 1000 400" preserveAspectRatio="none" style="opacity:0.3"><path fill="#4a7a8c" d="${LAND_PATH}" style="shape-rendering:crispEdges"/></svg>
+       <div class="ridge-base" style="background-color:rgba(74,122,140,0.3)"></div>
+     </div>`);
+  land.style.opacity = "0.4";
+
+  flush();
+  frame();
+}
+
+function ridgeSpecs() {
+  const out = [];
+  const n = S.count;
+  if (n === 0) return out;
+  for (let i = 0; i < n; i++) {
+    // farthest first, so index 0 is the horizon
+    const t = n === 1 ? 0 : i / (n - 1);
+    const depth = S.far + (S.near - S.far) * t;
+    out.push({ depth, t, seed: 0xa1e + i * 977, index: i });
+  }
+  return out;
+}
+
+function ridgeSvg(r) {
+  // Aerial perspective: far ridges wash toward the sky colour, near ridges sit
+  // dark. Static tone, NOT blur - blur on the scroll path re-rasters per frame
+  // (docs/audits/scene-frame-budget.md).
+  // Far ridges sit HIGH and jagged (they read as the horizon). Near ridges sit
+  // low and gentle, and are drawn in front, so the far ones peek over them.
+  const heightVh = 44 - r.t * 30;
+  const rough = 140 - r.t * 110;
+  return `<div class="ridge" data-ridge="${r.index}" style="--rh:${heightVh.toFixed(1)}vh">
+    <svg viewBox="0 0 1000 400" preserveAspectRatio="none">
+      <path d="${ridgePath(r.seed, rough)}" style="shape-rendering:crispEdges" fill="#000"/>
+    </svg>
+    <div class="ridge-base"></div></div>`;
+}
+
+// ---------------------------------------------------------------------------
+// The driver. One rAF per scroll event, like useScrollJourney.
+// ---------------------------------------------------------------------------
+let progress = 0;
+let ticking = false;
+// `#pfix=0.62` pins progress without scrolling - used for screenshots.
+let pinned = null;
+let inverted = false;
+let spread = 1;
+let sunk = false;
+
+function onScroll() {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => { ticking = false; frame(); });
+}
+
+function frame() {
+  const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  progress = pinned !== null ? pinned : clamp01(window.scrollY / max);
+
+  const sky = skyRgbAt(progress);
+  if (skyEl) skyEl.style.backgroundColor = css(sky);
+  document.body.style.backgroundColor = css(sky);
+
+  // stars / land, as shipped
+  const [p2s, p2e] = CURVE.phase2;
+  const starsO = clamp01((progress - p2s) / Math.max(p2e - p2s, 0.001));
+  if (starEls[0]) starEls[0].style.opacity = S.stars ? String(starsO) : "0";
+
+  const sp = arc(windowed(progress, SUN_WINDOW), SUN_ARC);
+  const mp = arc(windowed(progress, MOON_WINDOW), MOON_ARC);
+  if (sunEl) {
+    const w = sunEl.querySelector(".body-wrap");
+    w.style.left = sp.x + "%"; w.style.top = sp.y + "%";
+    sunEl.style.opacity = String(sunOpacityAt(progress));
+  }
+  if (moonEl) {
+    const w = moonEl.querySelector(".body-wrap");
+    w.style.left = mp.x + "%"; w.style.top = mp.y + "%";
+    moonEl.style.opacity = String(moonOpacityAt(progress));
+  }
+
+  const cloudPos = progress * 1000;
+  cloudEls.forEach(c => {
+    c.svg.style.transform = `translate(${c.spec.x + cloudPos * c.spec.speed}px, ${c.spec.y}px) scale(${c.spec.scale})`;
+  });
+
+  const landLayer = layers.find(l => l.kind === "land");
+  if (landLayer) landLayer.el.style.opacity = String(Math.max(0.1, 0.4 - progress * 0.2));
+
+  // Aerial-perspective tone, recomputed against the live sky.
+  //
+  // The fill is OPAQUE. Delicacy is a colour that sits near the sky, not a low
+  // alpha - alpha let the star field read straight through the mountains.
+  // `weight` is now contrast against the sky, and it maps 1:1 onto the alpha
+  // ramp it replaces, so a setting keeps the look it had.
+  // The tones ACCUMULATE from the horizon forward. Where ridge i is the
+  // frontmost one covering a pixel, ridges 0..i sit under it, so its opaque
+  // fill is the composite of all of them over the sky. This reproduces the
+  // stacked wash that translucent layers gave, and it still hides the stars.
+  const ridges = ridgeSpecs();
+  let acc = sky;
+  layers.filter(l => l.kind === "ridge").forEach((l, i) => {
+    const r = ridges[i];
+    if (!r) return;
+    const wash = S.haze * (1 - r.t);
+    const tone = lerpRgb(LAND_COLOR, sky, wash);
+    const dark = lerpRgb(tone, { r: 0, g: 0, b: 0 }, 0.10 + r.t * 0.30);
+    acc = lerpRgb(acc, dark, clamp01((0.55 + r.t * 0.35) * S.weight));
+    const fill = css(acc);
+    l.el.querySelector("path").setAttribute("fill", fill);
+    l.el.querySelector(".ridge-base").style.backgroundColor = fill;
+    l.el.style.opacity = "1";
+  });
+
+  applyParallax();
+  render();
+}
+
+// THE COMPOSITION DECISION, live.
+//   split: scroll writes the `translate` LONGHAND. `transform` and `filter`
+//          stay free for the dive, which is untouched at rest and at depth.
+//   naive: scroll writes `transform`. The dive writes `transform` too.
+function applyParallax() {
+  const wScale = S.scaleW ? Math.min(1, window.innerWidth / 1440) : 1;
+  const hx = S.hx * wScale;
+  const vy = S.vy * wScale;
+  const useX = S.axis === "x" || S.axis === "xy";
+  const useY = S.axis === "y" || S.axis === "xy";
+
+  // Overscan every bottom-anchored layer by the full travel at depth 1, so a
+  // drifting ridge never pulls its own edge into the viewport.
+  scene.style.setProperty("--ox", (useX ? Math.abs(hx) + 12 : 12).toFixed(0) + "px");
+  scene.style.setProperty("--oy", (useY ? Math.abs(vy) + 12 : 12).toFixed(0) + "px");
+
+  // Vertical travel has a hard ceiling the eye cannot argue with: lift a near
+  // ridge far enough and its top edge climbs ABOVE a farther ridge's, so the
+  // ladder reads back to front. Flag it live rather than leaving it to taste.
+  let prevTop = Infinity;
+  let lo = Infinity, hi = -Infinity;
+  inverted = false;
+  for (const r of ridgeSpecs()) {
+    const boxPx = window.innerHeight * (44 - r.t * 30) / 100;
+    const py = useY ? -((progress - 0.5) * 2 * vy * (r.depth - S.anchor)) : 0;
+    const top = boxPx - py;
+    if (top > prevTop + 1) inverted = true;
+    prevTop = top;
+    lo = Math.min(lo, top); hi = Math.max(hi, top);
+  }
+  // Even short of a full inversion, travel squeezes every ridge top toward one
+  // line and the ladder reads as a single flat mass. Measure that squeeze
+  // against the at-rest spread.
+  spread = S.count > 1 ? (hi - lo) / (window.innerHeight * 0.30) : 1;
+  // The other end of the same limit: sink a near ridge far enough and its
+  // silhouette drops out of the viewport, leaving a bare strip at the bottom.
+  sunk = S.count > 0 && lo < 0;
+
+  for (const l of layers) {
+    const rel = l.depth - S.anchor;
+    const px = useX ? -(progress * hx * rel) : 0;
+    const py = useY ? -((progress - 0.5) * 2 * vy * rel) : 0;
+
+    l.el.style.setProperty("--px", px.toFixed(2) + "px");
+    l.el.style.setProperty("--py", py.toFixed(2) + "px");
+
+    if (S.mode === "split") {
+      l.el.style.transform = "";
+      l.el.style.translate = (px === 0 && py === 0) ? "" : `${px.toFixed(2)}px ${py.toFixed(2)}px`;
+    } else {
+      l.el.style.translate = "";
+      l.el.style.transform = (px === 0 && py === 0) ? "" : `translate(${px.toFixed(2)}px, ${py.toFixed(2)}px)`;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dive: the real thing, 760ms each way.
+// ---------------------------------------------------------------------------
+function runDive() {
+  scene.style.setProperty("--dive-origin", "50% 45%");
+  scene.style.setProperty("--dive-blur-strength", "8");
+  document.body.classList.add("dive-active");
+  requestAnimationFrame(() => scene.style.setProperty("--dive-u", "1"));
+  setTimeout(() => {
+    scene.style.setProperty("--dive-u", "0");
+    setTimeout(() => document.body.classList.remove("dive-active"), 800);
+  }, 2200);
+}
+
+// ---------------------------------------------------------------------------
+// Dock
+// ---------------------------------------------------------------------------
+function bindRange(id, key, fmt, rebuild) {
+  const el = document.getElementById(id);
+  const out = document.getElementById("v" + id[0].toUpperCase() + id.slice(1));
+  el.value = S[key];
+  const sync = () => {
+    S[key] = parseFloat(el.value);
+    if (out) out.textContent = fmt ? fmt(S[key]) : S[key];
+    if (rebuild) build(); else frame();
+  };
+  el.addEventListener("input", sync);
+  sync();
+}
+
+bindRange("count", "count", v => v, true);
+bindRange("near", "near", v => v.toFixed(2), true);
+bindRange("far", "far", v => v.toFixed(2), true);
+bindRange("haze", "haze", v => v.toFixed(2), false);
+bindRange("weight", "weight", v => v.toFixed(2), false);
+bindRange("hx", "hx", v => v, false);
+bindRange("vy", "vy", v => v, false);
+bindRange("anchor", "anchor", v => v.toFixed(2), false);
+bindRange("scaleW", "scaleW", v => (v ? "on" : "off"), false);
+
+document.querySelectorAll("[data-axis]").forEach(b => b.addEventListener("click", () => {
+  S.axis = b.dataset.axis;
+  document.querySelectorAll("[data-axis]").forEach(x => x.classList.toggle("on", x === b));
+  frame();
+}));
+
+const modeNote = document.getElementById("modeNote");
+function setMode(m) {
+  S.mode = m;
+  document.querySelectorAll("[data-mode]").forEach(x => x.classList.toggle("on", x.dataset.mode === m));
+  document.body.classList.toggle("naive", m === "naive");
+  modeNote.innerHTML = m === "split"
+    ? "Scroll writes the <b>translate</b> longhand. The dive keeps <b>transform</b> + <b>filter</b>. Run the dive: parallax offset holds, zoom rides on top."
+    : "<span class='warn'>Scroll writes transform. The dive writes transform.</span> Run the dive: the zoom is lost, or the parallax offset snaps to zero. This is the contest, visible.";
+  frame();
+}
+document.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+setMode("split");
+
+document.getElementById("dive").addEventListener("click", runDive);
+
+const rmBtn = document.getElementById("rm");
+rmBtn.addEventListener("click", () => {
+  S.rm = !S.rm;
+  document.body.classList.toggle("rm", S.rm);
+  rmBtn.classList.toggle("on", S.rm);
+  frame();
+});
+const mobBtn = document.getElementById("mobile");
+mobBtn.addEventListener("click", () => {
+  S.mobile = !S.mobile;
+  document.body.classList.toggle("frame-mobile", S.mobile);
+  mobBtn.classList.toggle("on", S.mobile);
+  frame();
+});
+const starBtn = document.getElementById("stars");
+starBtn.addEventListener("click", () => {
+  S.stars = !S.stars;
+  starBtn.textContent = "stars: " + (S.stars ? "on" : "off");
+  starBtn.classList.toggle("on", !S.stars);
+  frame();
+});
+
+// The baseline ladder Alper picked on 2026-07-28. Only the vertical travel
+// varies across the first row, so rise and sink are compared like for like.
+const BASE = { count: 10, near: 0.93, far: 0.21, haze: 0.80, weight: 0.25, axis: "y", hx: 220, anchor: 0, scaleW: 1 };
+
+const PRESETS = {
+  locked:  { ...BASE, vy: 160 },   // decided 2026-07-28
+  rise80:  { ...BASE, vy: 80 },
+  rise130: { ...BASE, vy: 130 },   // top of the safe band
+  sink80:  { ...BASE, vy: -80 },
+  sink120: { ...BASE, vy: -120 },  // bottom of the safe band
+  flat:    { ...BASE, vy: 0, axis: "none" },
+  yours:   { ...BASE, vy: 280 },   // squashes the ladder at desktop width
+  shipped: { count: 0, near: 0.93, far: 0.21, axis: "none", hx: 220, vy: 70, haze: 0.7, anchor: 0, weight: 0.45, scaleW: 1 },
+  timid:   { count: 3, near: 0.92, far: 0.20, axis: "x",  hx: 120, vy: 30, haze: 0.75, anchor: 0, weight: 0.35, scaleW: 1 },
+  house:   { count: 8, near: 0.92, far: 0.20, axis: "xy", hx: 220, vy: 70, haze: 0.70, anchor: 0, weight: 0.45, scaleW: 1 },
+  rich:    { count: 14, near: 0.92, far: 0.20, axis: "xy", hx: 320, vy: 90, haze: 0.62, anchor: 0, weight: 0.5, scaleW: 1 },
+  toomuch: { count: 24, near: 0.92, far: 0.20, axis: "xy", hx: 780, vy: 260, haze: 0.30, anchor: 0, weight: 0.9, scaleW: 1 },
+};
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
+  Object.assign(S, PRESETS[b.dataset.preset]);
+  syncDock();
+  document.querySelectorAll("[data-preset]").forEach(x => x.classList.toggle("on", x === b));
+  build();
+}));
+
+const DECIMAL = new Set(["haze", "anchor", "weight", "near", "far"]);
+function syncDock() {
+  for (const id of ["count", "near", "far", "haze", "weight", "hx", "vy", "anchor", "scaleW"]) {
+    const el = document.getElementById(id);
+    el.value = S[id];
+    const out = document.getElementById("v" + id[0].toUpperCase() + id.slice(1));
+    if (!out) continue;
+    out.textContent = id === "scaleW" ? (S[id] ? "on" : "off")
+      : DECIMAL.has(id) ? S[id].toFixed(2) : S[id];
+  }
+  document.querySelectorAll("[data-axis]").forEach(x => x.classList.toggle("on", x.dataset.axis === S.axis));
+}
+syncDock();
+
+// fps probe
+function tick(now) {
+  frames++;
+  if (now - last >= 1000) { fps = frames; frames = 0; last = now; render(); }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+function render() {
+  const animating = S.stars ? 150 : 0;
+  readout.innerHTML = [
+    `progress <b>${progress.toFixed(3)}</b>`,
+    `depth layers <b>${layers.length}</b> (shipped: 8)`,
+    `driver writes <b>${layers.length}</b> el/frame (budget 35-50)`,
+    `animating els <b>${animating}</b> (budget ~250 mobile)`,
+    `fps <b>${fps}</b>`,
+    `viewport <b>${window.innerWidth}x${window.innerHeight}</b>`,
+    inverted
+      ? `<span class="warn">LADDER INVERTED - a near ridge sits above a far one.</span>`
+      : sunk
+      ? `<span class="warn">RIDGE LOST - a near ridge has sunk past the bottom edge.</span>`
+      : spread < 0.6
+        ? `<span class="warn">LADDER SQUASHED - tops spread <b>${(spread * 100).toFixed(0)}%</b> of rest. Cut the vertical travel.</span>`
+        : `ladder spread <b>${(spread * 100).toFixed(0)}%</b> of rest`,
+  ].join("<br>");
+}
+
+window.addEventListener("scroll", onScroll, { passive: true });
+window.addEventListener("resize", () => { frame(); });
+build();
+
+// Shareable state: #preset=toomuch&p=0.9&mode=naive&rm=1&mobile=1
+(function fromHash() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  if (q.get("preset") && PRESETS[q.get("preset")]) {
+    document.querySelector(`[data-preset="${q.get("preset")}"]`).click();
+  }
+  for (const k of ["count", "near", "far", "haze", "weight", "hx", "vy", "anchor", "scaleW"]) {
+    if (q.get(k) !== null) S[k] = parseFloat(q.get(k));
+  }
+  if (q.get("axis")) S.axis = q.get("axis");
+  syncDock(); build();
+  if (q.get("mode")) setMode(q.get("mode"));
+  if (q.get("rm") === "1") rmBtn.click();
+  if (q.get("mobile") === "1") mobBtn.click();
+  if (q.get("p")) {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    window.scrollTo(0, parseFloat(q.get("p")) * max);
+    frame();
+  }
+  if (q.get("nodock") === "1") {
+    document.getElementById("dock").classList.add("hidden");
+    document.getElementById("dockToggle").style.display = "block";
+  }
+  if (q.get("pfix")) { pinned = parseFloat(q.get("pfix")); frame(); }
+  // `#dive=1` parks the scene AT depth with no transition, for screenshots.
+  if (q.get("dive") === "1") {
+    scene.style.setProperty("--dive-origin", "50% 45%");
+    scene.style.setProperty("--dive-blur-strength", "8");
+    scene.style.transition = "none";
+    document.body.classList.add("dive-active");
+    scene.style.setProperty("--dive-u", "1");
+  }
+})();
+
+// panel hide with `h`
+document.addEventListener("keydown", e => {
+  if (e.key === "h") {
+    const d = document.getElementById("dock"), t = document.getElementById("dockToggle");
+    d.classList.toggle("hidden");
+    t.style.display = d.classList.contains("hidden") ? "block" : "none";
+  }
+});
+document.getElementById("dockToggle").addEventListener("click", () => {
+  document.getElementById("dock").classList.remove("hidden");
+  document.getElementById("dockToggle").style.display = "none";
+});
+</script>
+</body>
+</html>
