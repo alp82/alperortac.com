@@ -378,8 +378,6 @@ function PixelBackgroundInner({
 					</svg>
 				</div>
 			</div>
-
-			<div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
 		</div>
 	);
 }

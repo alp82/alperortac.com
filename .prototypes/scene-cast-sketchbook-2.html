@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cast roster pass 2 - wayfinder #58</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: #0b1020; font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #e7edf7; }
+
+  .viewport { position: fixed; inset: 0; z-index: -10; overflow: hidden; }
+  .scene { position: absolute; inset: 0; --ox: 12px; --oy: 12px; }
+  .layer { position: absolute; inset: 0; }
+
+  .sky { position: absolute; inset: 0; }
+  .stars { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .star { position: absolute; background: #fff; border-radius: 50%;
+          animation: twinkle var(--dur) ease-in-out infinite; animation-delay: var(--del); }
+  @keyframes twinkle { 0%,100% { opacity: .2; transform: scale(1); } 50% { opacity: 1; transform: scale(1.35); } }
+
+  .body-wrap { position: absolute; transform: translate(-50%, -50%); }
+  .sun  { width: 96px; height: 96px; border-radius: 50%; background: #fef08a;
+          border: 4px solid #fde047; box-shadow: 0 0 40px rgba(253,224,71,.5); }
+  .moon { width: 80px; height: 80px; border-radius: 50%; background: #f1f5f9;
+          border: 4px solid #cbd5e1; box-shadow: 0 0 60px rgba(255,255,255,.2); }
+
+  /* Ridge: opaque, overscanned. Locked on #59. */
+  .ridge { position: absolute; pointer-events: none;
+           left: calc(-1 * var(--ox)); right: calc(-1 * var(--ox));
+           bottom: calc(-1 * var(--oy)); height: calc(var(--rh, 30vh) + var(--oy)); }
+  .ridge > svg.silhouette { display: block; position: absolute; left: 0; right: 0; top: 0;
+                            width: 100%; height: var(--rh, 30vh); }
+  .ridge-base { position: absolute; left: 0; right: 0; top: var(--rh, 30vh); bottom: 0; }
+
+  /* A cast instance. All motion is a CSS keyframe - the #60 rule. */
+  .cast { position: absolute; display: block; pointer-events: none; }
+  .cast > svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .cast path, .cast rect { shape-rendering: crispEdges; }
+
+  /* 3-frame stepped flap: the pixel-art way. Each pose is its own path and the
+     keyframes hard-cut between them. scaleY on one pose reads as a squash, not
+     a wingbeat. */
+  .pose { opacity: 0; }
+  .f3 .pose:nth-child(1) { animation: pose3a var(--beat, .7s) step-end infinite; }
+  .f3 .pose:nth-child(2) { animation: pose3b var(--beat, .7s) step-end infinite; }
+  .f3 .pose:nth-child(3) { animation: pose3c var(--beat, .7s) step-end infinite; }
+  @keyframes pose3a { 0% { opacity: 1 } 33% { opacity: 0 } 66% { opacity: 0 } 100% { opacity: 1 } }
+  @keyframes pose3b { 0% { opacity: 0 } 33% { opacity: 1 } 66% { opacity: 0 } }
+  @keyframes pose3c { 0% { opacity: 0 } 66% { opacity: 1 } 100% { opacity: 0 } }
+  .f1 .pose:nth-child(1) { opacity: 1; }
+
+  @keyframes drift-x { from { transform: translateX(0) } to { transform: translateX(var(--travel, 120vw)) } }
+  @keyframes glow    { 0%,100% { opacity: .1 } 50% { opacity: 1 } }
+  @keyframes sway    { 0%,100% { transform: rotate(0) } 50% { transform: rotate(var(--sway, 2deg)) } }
+  @keyframes breathe { 0%,100% { opacity: .55 } 50% { opacity: 1 } }
+
+  body.rm .star, body.rm .cast, body.rm .cast * { animation: none !important; }
+  body.rm .pose:nth-child(2) { opacity: 1 !important; }
+  body.rm .pose:nth-child(1), body.rm .pose:nth-child(3) { opacity: 0 !important; }
+
+  .page { position: relative; z-index: 1; }
+  .screen { height: 100vh; display: flex; align-items: center; justify-content: center;
+            flex-direction: column; gap: 8px; }
+  .screen h2 { margin: 0; font-size: 40px; letter-spacing: .12em; text-transform: uppercase;
+               color: rgba(255,255,255,.5); mix-blend-mode: overlay; }
+  .screen p { margin: 0; font-size: 12px; color: rgba(255,255,255,.35); }
+
+  /* ---- sheet ---- */
+  .sheet { position: fixed; inset: 0 auto 0 0; width: 460px; z-index: 60;
+           background: rgba(6,10,20,.95); border-right: 1px solid rgba(125,211,252,.22);
+           overflow-y: auto; padding: 12px; font-size: 11px; }
+  body.sheet-hidden .sheet { display: none; }
+  .sheet h1 { margin: 0 0 2px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #7dd3fc; }
+  .sheet .sub { margin: 0 0 12px; color: rgba(231,237,247,.45); font-size: 10px; line-height: 1.55; }
+
+  .member { border: 1px solid rgba(125,211,252,.18); border-radius: 8px; margin-bottom: 10px;
+            background: rgba(255,255,255,.02); overflow: hidden; }
+  .member > h3 { margin: 0; padding: 7px 9px; font-size: 11px; letter-spacing: .06em;
+                 background: rgba(125,211,252,.1); display: flex; align-items: center; gap: 7px; }
+  .member > h3 .note { font-weight: normal; font-size: 9.5px; color: rgba(231,237,247,.5); }
+
+  .vrow { border-top: 1px solid rgba(125,211,252,.1); padding: 7px 9px; display: grid;
+          grid-template-columns: 84px 1fr; gap: 8px; align-items: start; }
+  .vrow.off { opacity: .35; }
+  .vtile { border: 1px solid rgba(255,255,255,.12); border-radius: 5px; overflow: hidden; cursor: pointer; }
+  .vtile svg { display: block; width: 100%; height: 46px; }
+  .vtile svg path, .vtile svg rect { shape-rendering: crispEdges; }
+  .vtile span { display: block; text-align: center; font-size: 8.5px; padding: 2px 0;
+                background: rgba(0,0,0,.45); color: rgba(231,237,247,.72); }
+  .vtile.sel { outline: 2px solid #7dd3fc; outline-offset: -2px; }
+
+  .knobs { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px; }
+  .knob { display: flex; align-items: center; gap: 5px; }
+  .knob label { width: 34px; color: rgba(231,237,247,.45); font-size: 9.5px; }
+  .knob input[type=range] { flex: 1; height: 13px; min-width: 0; }
+  .knob b { width: 34px; text-align: right; color: #7dd3fc; font-size: 9.5px; }
+
+  .phase { position: relative; height: 15px; margin-top: 5px; grid-column: 1 / -1; border-radius: 4px;
+           background: linear-gradient(90deg,#87ceeb 0%,#87ceeb 6%,#f4a460 45%,#f4a460 48%,#140a32 79%,#140a32 100%); }
+  .phase .win { position: absolute; top: 0; bottom: 0; background: rgba(255,255,255,.5);
+                border-left: 2px solid #fff; border-right: 2px solid #fff; }
+  .phase .now { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #ff4d8d; }
+  .phase input { position: absolute; left: 0; right: 0; top: 0; width: 100%; margin: 0; height: 15px;
+                 -webkit-appearance: none; appearance: none; background: none; pointer-events: none; }
+  .phase input::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto;
+    width: 12px; height: 15px; background: transparent; cursor: ew-resize; }
+  .phase input::-moz-range-thumb { pointer-events: auto; width: 12px; height: 15px;
+    background: transparent; border: 0; cursor: ew-resize; }
+
+  .form { display: flex; gap: 3px; margin-top: 4px; grid-column: 1 / -1; }
+  .form button { font-size: 9px; padding: 2px 6px; }
+
+  /* ---- dock ---- */
+  .dock { position: fixed; top: 12px; right: 12px; width: 296px; z-index: 70;
+          background: rgba(8,12,24,.93); border: 1px solid rgba(125,211,252,.25);
+          border-radius: 10px; padding: 12px; font-size: 11px;
+          max-height: calc(100vh - 24px); overflow-y: auto; }
+  .dock .lbl { color: rgba(125,211,252,.8); text-transform: uppercase; letter-spacing: .1em;
+               font-size: 10px; margin: 10px 0 4px; }
+  .dock .lbl:first-child { margin-top: 0; }
+  .row { display: flex; gap: 5px; flex-wrap: wrap; }
+  button { font: inherit; font-size: 10px; padding: 4px 7px; border-radius: 6px; cursor: pointer;
+           background: rgba(125,211,252,.12); border: 1px solid rgba(125,211,252,.35); color: #e7edf7; }
+  button.on { background: rgba(125,211,252,.45); }
+  .readout { font-size: 10px; line-height: 1.65; color: rgba(231,237,247,.72); }
+  .readout .warn { color: #fca5a5; } .readout .ok { color: #86efac; }
+  textarea { width: 100%; height: 150px; font: inherit; font-size: 9px; line-height: 1.4;
+             background: rgba(0,0,0,.45); color: #cbd5e1; border: 1px solid rgba(125,211,252,.25);
+             border-radius: 6px; padding: 6px; }
+  body.mobile .viewport { left: 50%; width: 390px; transform: translateX(-50%);
+                          box-shadow: 0 0 0 1px rgba(125,211,252,.35); }
+</style>
+</head>
+<body class="sheet-hidden">
+
+<div class="viewport"><div class="scene" id="scene"></div></div>
+<div class="page" id="page"></div>
+
+<aside class="sheet" id="sheet">
+  <h1>Cast roster - pass 2</h1>
+  <p class="sub">
+    Cut down to what survived pass 1. Three fixes are in: conifers now live <b>inside</b> a ridge layer and take
+    that ridge's depth and parallax, fireflies and mist sit <b>above</b> the crest line, and birds flap on a
+    3-frame stepped cycle instead of a squash. Clouds are the real exploration - six types, each with its own
+    depth, count, size and phase. Water is redrawn as sky showing through the landscape rather than a white shape.
+  </p>
+  <div id="cards"></div>
+</aside>
+
+<aside class="dock">
+  <div class="lbl">Day</div>
+  <div class="knob"><label>prog</label><input id="prog" type="range" min="0" max="1000" value="0"><b id="vProg">0.000</b></div>
+  <div class="row">
+    <button data-pin="0">noon</button><button data-pin="0.25">afternoon</button>
+    <button data-pin="0.45">dusk</button><button data-pin="0.62">twilight</button>
+    <button data-pin="0.85">night</button>
+  </div>
+  <div class="row" style="margin-top:5px">
+    <button id="toggleSheet">sheet</button><button id="rm">reduced motion</button>
+    <button id="mobile">390px</button><button id="bare">hide ridges</button>
+  </div>
+  <div class="lbl">Roster</div>
+  <div class="readout" id="readout"></div>
+  <div class="lbl">Export</div>
+  <textarea id="export" readonly></textarea>
+</aside>
+
+<script>
+// ---------------------------------------------------------------------------
+// Ported constants - real repo values.
+// ---------------------------------------------------------------------------
+const SKY_NOON  = { r: 135, g: 206, b: 235 };
+const SKY_DUSK  = { r: 244, g: 164, b: 96  };
+const SKY_NIGHT = { r: 20,  g: 10,  b: 50  };
+const CURVE = { phase1: [0.06, 0.448], phase2: [0.453, 0.787], boost: 0.8 };
+const SUN_WINDOW  = { start: 0,    end: 0.65 };
+const MOON_WINDOW = { start: 0.45, end: 1.0  };
+const SUN_ARC  = { startX: 75, startY: 12, endX: 28, endY: 58, arcLift: 8 };
+const MOON_ARC = { startX: 27, startY: 45, endX: 16, endY: 13, arcLift: 6 };
+const LADDER   = { count: 10, far: 0.21, near: 0.93, haze: 0.80, weight: 0.25, vy: 160 };
+const LAND     = { r: 74, g: 122, b: 140 };
+const CONIFER_GREEN = { r: 46, g: 92, b: 62 };
+
+const clamp01 = x => Math.max(0, Math.min(1, x));
+const bell = t => Math.sin(t * Math.PI);
+const lerpRgb = (a, b, t) => ({ r: Math.round(a.r + (b.r - a.r) * t),
+                                g: Math.round(a.g + (b.g - a.g) * t),
+                                b: Math.round(a.b + (b.b - a.b) * t) });
+const css = c => `rgb(${c.r}, ${c.g}, ${c.b})`;
+
+function rgbToHsl({ r, g, b }) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  let h = 0, s = 0; const l = (mx + mn) / 2;
+  if (mx !== mn) { const d = mx - mn;
+    s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+    if (mx === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
+    h /= 6; }
+  return { h, s, l };
+}
+function hslToRgb({ h, s, l }) {
+  if (s === 0) { const v = Math.round(l * 255); return { r: v, g: v, b: v }; }
+  const hue = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t; if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; };
+  const q = l < .5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  return { r: Math.round(hue(p, q, h + 1/3) * 255), g: Math.round(hue(p, q, h) * 255),
+           b: Math.round(hue(p, q, h - 1/3) * 255) };
+}
+function boostSat(rgb, boost, weight) { const hsl = rgbToHsl(rgb); hsl.s = clamp01(hsl.s * (1 + boost * weight)); return hslToRgb(hsl); }
+function skyRgbAt(p) {
+  const [s1, e1] = CURVE.phase1, [s2, e2] = CURVE.phase2;
+  if (p <= s1) return SKY_NOON;
+  if (p < e1) { const t = (p - s1) / (e1 - s1); return boostSat(lerpRgb(SKY_NOON, SKY_DUSK, t), CURVE.boost, bell(t)); }
+  if (p <= s2) return SKY_DUSK;
+  if (p < e2) { const t = (p - s2) / (e2 - s2); return boostSat(lerpRgb(SKY_DUSK, SKY_NIGHT, t), CURVE.boost, bell(t)); }
+  return SKY_NIGHT;
+}
+const windowed = (p, w) => clamp01((p - w.start) / (w.end - w.start));
+const arc = (t, a) => ({ x: a.startX + (a.endX - a.startX) * t,
+                         y: a.startY + (a.endY - a.startY) * t - Math.sin(t * Math.PI) * a.arcLift });
+const sunOpacityAt  = p => (p < .45 ? 1 : Math.max(0, 1 - (p - .45) / .2));
+const moonOpacityAt = p => (p < .5 ? 0 : Math.min(1, (p - .5) / .2));
+function mulberry32(seed) { let a = seed; return () => { a |= 0; a = (a + 0x6d2b79f5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+// ---------------------------------------------------------------------------
+// BIRDS - 5 variations. Each is a 3-pose flap cycle (up / mid / down) drawn in
+// a 0 0 100 100 box. The stepped keyframes hard-cut between the poses.
+// ---------------------------------------------------------------------------
+const BIRDS = {
+  gull: { name: "gull", beat: .9, poses: [
+    "M46 50h8v10h-8zM46 52L20 30l-4 5 24 23zM54 52l26-22 4 5-24 23z",
+    "M46 50h8v10h-8zM46 52L16 48l-2 6 30 4zM54 52l30-4 2 6-30 4z",
+    "M46 50h8v10h-8zM46 54L22 74l4 5 22-19zM54 54l24 20-4 5-22-19z" ] },
+  swift: { name: "swift", beat: .42, poses: [
+    "M47 48h6v12h-6zM47 50L30 28l-6 3 20 24zM53 50l17-22 6 3-20 24z",
+    "M47 48h6v12h-6zM47 52L24 44l-3 6 25 6zM53 52l23-8 3 6-25 6z",
+    "M47 48h6v12h-6zM47 56L28 70l3 6 18-14zM53 56l19 14-3 6-18-14z" ] },
+  raptor: { name: "raptor", beat: 1.6, poses: [
+    "M44 46h12v14H44zM44 48L18 26l-5 3 6 4-6 1 8 6-4 1 24 16zM56 48l26-22 5 3-6 4 6 1-8 6 4 1-24 16z",
+    "M44 46h12v14H44zM44 50L14 44l-4 4 8 2-6 3 10 2-4 3 26 4zM56 50l30-6 4 4-8 2 6 3-10 2 4 3-26 4z",
+    "M44 46h12v14H44zM44 56L18 76l5 4 21-16zM56 56l26 20-5 4-21-16z" ] },
+  songbird: { name: "songbird", beat: .3, poses: [
+    "M48 50h4v8h-4zM48 51L36 38l-3 3 12 15zM52 51l12-13 3 3-12 15z",
+    "M48 50h4v8h-4zM48 53L34 50l-1 4 14 3zM52 53l14-3 1 4-14 3z",
+    "M48 50h4v8h-4zM48 56L36 66l3 4 10-9zM52 56l12 10-3 4-10-9z" ] },
+  speck: { name: "far speck", beat: 1.1, poses: [
+    "M50 44l-13 9 13-5 13 5z",
+    "M50 48l-13 3 13-2 13 2z",
+    "M50 54l-13-9 13 5 13-5z" ] },
+};
+
+// Formation: how a flight of birds arranges itself. Offsets are in multiples of
+// the bird's own size, so a flock scales with its members.
+const FORMS = {
+  single: [[0, 0, 1]],
+  pair:   [[0, 0, 1], [1.3, .55, .85]],
+  vee:    [[0, 0, 1], [1.2, .6, .9], [2.4, 1.2, .82], [-1.2, .6, .9], [-2.4, 1.2, .82]],
+  line:   [[0, 0, 1], [1.6, .2, .92], [3.2, .45, .85], [-1.6, .25, .92], [-3.2, .5, .85]],
+  scatter:[[0, 0, 1], [1.8, -.9, .8], [-1.5, .8, .88], [2.6, 1.4, .72], [-2.8, -.4, .76]],
+};
+
+// ---------------------------------------------------------------------------
+// CLOUDS - six types in a 0 0 100 60 box, the shipped cloud's own viewBox.
+// ---------------------------------------------------------------------------
+const CLOUD_TYPES = {
+  puff:    { name: "puff (shipped)", d: "M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z" },
+  cumulus: { name: "cumulus", d: "M18 44h10V32h8V22h12V14h16v8h10v10h8v12h10v10H8V44z" },
+  cirrus:  { name: "cirrus streak", d: "M4 26h22v5H4zM14 34h40v5H14zM40 24h44v5H40zM56 34h34v5H56z" },
+  mass:    { name: "closeup mass", d: "M6 50V34h10V24h14V16h26v8h16v6h14v6h10v10z" },
+  shelf:   { name: "shelf bank", d: "M8 46h84v8H8zM20 38h56v8H20zM34 30h30v8H34z" },
+  twin:    { name: "twin puffs", d: "M8 36h8v8H8zM16 28h20v8H16zM36 36h8v8h-8zM4 44h44v8H4zM56 40h6v6h-6zM62 34h16v6H62zM78 40h6v6h-6zM54 46h34v6H54z" },
+};
+
+// MIST - the same family, stretched flat. Sits ABOVE the crest line.
+const MIST_TYPES = {
+  thin:  { name: "thin veil",  d: "M0 20h100v10H0zM12 34h64v8H12z" },
+  layers:{ name: "layers",     d: "M0 14h100v7H0zM0 28h72v7H0zM24 42h76v6H24z" },
+  torn:  { name: "torn band",  d: "M0 22h28v10H0zM34 22h22v10H34zM62 18h38v10H62zM40 36h48v8H40z" },
+};
+
+// CONIFER - two survivors from pass 1.
+const CONIFERS = {
+  spire: { name: "spire", d: "M50 8l10 26h-6l14 28h-8l16 30H54v4h-8v-4H24l16-30h-8l14-28h-6z" },
+  broad: { name: "broad fir", d: "M50 14l18 30h-7l20 34H54v18h-8V78H19l20-34h-7z" },
+};
+
+// FIREFLY - two survivors.
+const FLIES = {
+  sparse:    { name: "sparse",    d: "M18 40h4v4h-4zM42 56h4v4h-4zM66 34h4v4h-4zM80 62h4v4h-4zM30 72h4v4h-4z", n: 5 },
+  clustered: { name: "clustered", d: "M38 44h4v4h-4zM46 38h3v3h-3zM52 48h4v4h-4zM44 54h3v3h-3zM58 40h3v3h-3zM34 56h3v3h-3zM50 60h4v4h-4z", n: 7 },
+};
+
+// WATER - redrawn. Water is NOT a white shape: it is the sky showing through a
+// hole in the landscape. The fill is the live sky colour, so it reads as a flat
+// reflecting plane and it uses the exact vocabulary the ridges already use.
+const WATERS = {
+  tarn:  { name: "valley tarn",  d: "M14 30h72v10H14zM6 40h88v14H6zM18 54h64v8H18z" },
+  river: { name: "river run",    d: "M40 0h18v14h6v14h8v18h10v22H18V46h10V28h8V14h4z" },
+  shore: { name: "near shore",   d: "M0 24h100v40H0z" },
+};
+
+// ---------------------------------------------------------------------------
+// Roster state. Every variant is independently on/off with its own knobs -
+// this is the "count / position / type changes on scroll" surface.
+// ---------------------------------------------------------------------------
+function V(o) { return Object.assign({ on: false, depth: .5, phase: [0, 1], n: 4, size: 8, y: 60 }, o); }
+
+const ROSTER = [
+  { key: "clouds", name: "Clouds", note: "type, count, position and size all move across the day",
+    kind: "cloud", table: CLOUD_TYPES, vars: {
+      puff:    V({ on: true,  depth: .30, phase: [0.00, 0.62], n: 3, size: 16, y: 72 }),
+      cumulus: V({ on: true,  depth: .45, phase: [0.00, 0.40], n: 2, size: 22, y: 62 }),
+      cirrus:  V({ on: true,  depth: .18, phase: [0.18, 0.72], n: 3, size: 26, y: 80 }),
+      mass:    V({ on: true,  depth: .68, phase: [0.30, 0.58], n: 1, size: 58, y: 52 }),
+      shelf:   V({ on: false, depth: .38, phase: [0.40, 0.80], n: 2, size: 34, y: 46 }),
+      twin:    V({ on: false, depth: .26, phase: [0.00, 0.35], n: 3, size: 14, y: 76 }),
+    } },
+  { key: "mist", name: "Mist", note: "same family as the clouds, flattened, ABOVE the crest line",
+    kind: "mist", table: MIST_TYPES, vars: {
+      thin:   V({ on: true,  depth: .50, phase: [0.28, 0.70], n: 2, size: 40, y: 30 }),
+      layers: V({ on: false, depth: .58, phase: [0.34, 0.66], n: 2, size: 46, y: 26 }),
+      torn:   V({ on: false, depth: .42, phase: [0.20, 0.60], n: 2, size: 44, y: 34 }),
+    } },
+  { key: "birds", name: "Birds", note: "5 variations, 3-frame stepped flap, flock or pair",
+    kind: "bird", table: BIRDS, vars: {
+      gull:     V({ on: true,  depth: .34, phase: [0.00, 0.50], n: 2, size: 5.5, y: 62, form: "vee" }),
+      swift:    V({ on: true,  depth: .28, phase: [0.10, 0.46], n: 2, size: 4.0, y: 70, form: "pair" }),
+      raptor:   V({ on: true,  depth: .40, phase: [0.00, 0.34], n: 1, size: 7.5, y: 56, form: "single" }),
+      songbird: V({ on: false, depth: .55, phase: [0.00, 0.30], n: 3, size: 3.2, y: 46, form: "scatter" }),
+      speck:    V({ on: true,  depth: .22, phase: [0.00, 0.58], n: 3, size: 2.6, y: 78, form: "line" }),
+    } },
+  { key: "conifer", name: "Conifers", note: "drawn INSIDE a ridge layer - depth comes from the ridge",
+    kind: "conifer", table: CONIFERS, vars: {
+      spire: V({ on: true, phase: [0.00, 1.00], n: 5, size: 1.0, r0: 4, r1: 9, green: .55 }),
+      broad: V({ on: true, phase: [0.00, 1.00], n: 3, size: 1.3, r0: 6, r1: 9, green: .70 }),
+    } },
+  { key: "fireflies", name: "Fireflies", note: "above the mountains and close to them; late day into night",
+    kind: "fly", table: FLIES, vars: {
+      sparse:    V({ on: true, depth: .86, phase: [0.42, 0.86], n: 5, size: 9, y: 22 }),
+      clustered: V({ on: true, depth: .90, phase: [0.46, 0.82], n: 2, size: 11, y: 17 }),
+    } },
+  { key: "water", name: "Water", note: "the sky showing THROUGH the landscape, not a white shape",
+    kind: "water", table: WATERS, vars: {
+      tarn:  V({ on: false, depth: .49, phase: [0.00, 1.00], n: 1, size: 26, y: 30 }),
+      river: V({ on: false, depth: .57, phase: [0.00, 1.00], n: 1, size: 20, y: 22 }),
+      shore: V({ on: false, depth: .95, phase: [0.00, 1.00], n: 1, size: 70, y: 0 }),
+    } },
+];
+const byKey = Object.fromEntries(ROSTER.map(m => [m.key, m]));
+
+const S = { progress: 0, rm: false, mobile: false, bare: false, sheet: false };
+
+const scene = document.getElementById("scene");
+const page = document.getElementById("page");
+const readout = document.getElementById("readout");
+const exportEl = document.getElementById("export");
+const cardsEl = document.getElementById("cards");
+
+const SCREENS = ["hero","socials","projects","craft","craft","craft","craft",
+                 "craft","craft","craft","craft","craft","craft","footer"];
+page.innerHTML = SCREENS.map((n, i) =>
+  `<section class="screen"><h2>${n}</h2><p>screen ${i+1} / ${SCREENS.length}</p></section>`).join("");
+
+// ---------------------------------------------------------------------------
+// Ridge geometry. ridgePath now also returns the crest polyline, so a conifer
+// can be planted ON the silhouette instead of floating over it.
+// ---------------------------------------------------------------------------
+function ridgePath(seed, roughness) {
+  const rand = mulberry32(seed);
+  const d = []; const pts = [];
+  let x = 0, y = 150 + rand() * 90;
+  d.push(`M0 400V${y.toFixed(0)}`); pts.push({ x: 0, y });
+  while (x < 1000) {
+    const run = 40 + rand() * 120, slope = 50 + rand() * 130;
+    const ny = Math.max(50, Math.min(370, y + (rand() - .5) * 2 * roughness));
+    const sx = Math.min(1000 - x, slope);
+    d.push(`l${sx.toFixed(0)} ${(ny - y).toFixed(0)}`);
+    x += sx; y = ny; pts.push({ x, y });
+    if (x >= 1000) break;
+    const rx = Math.min(1000 - x, run);
+    d.push(`h${rx.toFixed(0)}`); x += rx; pts.push({ x, y });
+  }
+  d.push("V400", "H0", "Z");
+  return { d: d.join(""), pts };
+}
+function crestY(pts, x) {
+  for (let i = 1; i < pts.length; i++) {
+    if (x <= pts[i].x) {
+      const a = pts[i - 1], b = pts[i];
+      const t = b.x === a.x ? 0 : (x - a.x) / (b.x - a.x);
+      return a.y + (b.y - a.y) * t;
+    }
+  }
+  return pts[pts.length - 1].y;
+}
+function ridgeSpecs() {
+  const out = [];
+  for (let i = 0; i < LADDER.count; i++) {
+    const t = i / (LADDER.count - 1);
+    const geo = ridgePath(0xa1e + i * 977, 140 - t * 110);
+    out.push({ index: i, t, depth: LADDER.far + (LADDER.near - LADDER.far) * t,
+               heightVh: 44 - t * 30, d: geo.d, pts: geo.pts });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Build
+// ---------------------------------------------------------------------------
+let layers = [], ridgeLayers = [], castLayers = [], coniferHosts = [];
+let skyEl, sunEl, moonEl, starLayer;
+
+function build() {
+  scene.innerHTML = "";
+  layers = []; ridgeLayers = []; castLayers = []; coniferHosts = [];
+  const pending = [];
+  const add = (depth, kind, inner, cls = "") => {
+    const el = document.createElement("div");
+    el.className = "layer " + cls;
+    el.dataset.depth = depth; el.dataset.kind = kind;
+    el.style.setProperty("--layer-depth", depth);
+    el.innerHTML = inner;
+    pending.push({ el, depth, kind });
+    return el;
+  };
+
+  skyEl = add(0, "sky", ""); skyEl.classList.add("sky");
+
+  const rand = mulberry32(0x5eed);
+  const starHtml = Array.from({ length: 150 }, () => {
+    const x = rand() * 100, y = rand() * 100, s = rand() * 2.5 + .5;
+    return `<div class="star" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%;width:${s.toFixed(2)}px;height:${s.toFixed(2)}px;--del:${(rand()*5).toFixed(2)}s;--dur:${(rand()*3+2).toFixed(2)}s"></div>`;
+  }).join("");
+  starLayer = add(.05, "stars", `<div class="stars">${starHtml}</div>`);
+  starLayer.style.opacity = "0";
+
+  sunEl  = add(.12, "sun",  `<div class="body-wrap"><div class="sun"></div></div>`);
+  moonEl = add(.12, "moon", `<div class="body-wrap"><div class="moon"></div></div>`);
+
+  // Sky-band cast that must paint BEHIND every ridge gets its own layer, sorted
+  // by depth like everything else.
+  for (const m of ROSTER) {
+    if (m.kind === "conifer") continue;      // conifers are ridge children
+    for (const [vk, v] of Object.entries(m.vars)) {
+      if (!v.on) continue;
+      const el = add(v.depth, `${m.key}:${vk}`, "");
+      castLayers.push({ el, m, vk, v });
+    }
+  }
+
+  for (const spec of ridgeSpecs()) {
+    const el = add(spec.depth, "ridge",
+      `<div class="ridge" style="--rh:${spec.heightVh.toFixed(1)}vh">
+         <svg class="silhouette" viewBox="0 0 1000 400" preserveAspectRatio="none">
+           <path d="${spec.d}" fill="#000"/>
+         </svg>
+         <div class="ridge-base"></div>
+       </div>`);
+    ridgeLayers.push({ el, spec, ridge: el.querySelector(".ridge") });
+  }
+
+  pending.sort((a, b) => a.depth - b.depth);
+  for (const l of pending) { scene.appendChild(l.el); layers.push(l); }
+
+  paintCast();
+  plantConifers();
+  frame();
+}
+
+// ---------------------------------------------------------------------------
+// Conifers: children of a ridge layer. They inherit the ridge's depth, its
+// parallax translate, and its paint order, and they stand on its crest line.
+// This is the fix for "their depth based on the layer they are drawn on".
+// ---------------------------------------------------------------------------
+function plantConifers() {
+  coniferHosts = [];
+  const m = byKey.conifer;
+  for (const { ridge, spec } of ridgeLayers) {
+    ridge.querySelectorAll(".conifers").forEach(n => n.remove());
+    const wrap = document.createElement("div");
+    wrap.className = "conifers";
+    wrap.style.cssText = "position:absolute;inset:0;pointer-events:none";
+    let html = "";
+    let count = 0;
+    for (const [vk, v] of Object.entries(m.vars)) {
+      if (!v.on) continue;
+      if (spec.index < v.r0 || spec.index > v.r1) continue;
+      const rand = mulberry32(0x7e5 + spec.index * 613 + vk.length * 97);
+      // Trees get smaller and denser on the far ridges - aerial perspective in
+      // the count as well as the tone.
+      const n = Math.max(1, Math.round(v.n * (0.6 + spec.t * 0.9)));
+      for (let i = 0; i < n; i++) {
+        const xv = rand() * 1000;
+        const y = crestY(spec.pts, xv);
+        // Height in vh, scaled by the ridge's own height so a far tree is small.
+        const h = spec.heightVh * 0.16 * v.size * (0.72 + rand() * 0.5);
+        html += `<div class="cast conifer" data-i="${count}" style="
+          left:${(xv / 10).toFixed(2)}%;
+          bottom:calc(var(--rh) * ${(1 - y / 400).toFixed(4)} + var(--oy) - ${(h * 0.06).toFixed(2)}vh);
+          width:${h.toFixed(2)}vh;height:${h.toFixed(2)}vh;
+          transform-origin:50% 100%;
+          animation: sway ${(5 + rand() * 4).toFixed(1)}s ease-in-out infinite;
+          animation-delay:-${(rand() * 6).toFixed(2)}s;
+          --sway:${(0.8 + rand() * 1.4).toFixed(2)}deg">
+          <svg viewBox="0 0 100 100"><path d="${m.table[vk].d}" fill="#000"/></svg></div>`;
+        count++;
+      }
+    }
+    wrap.innerHTML = html;
+    ridge.appendChild(wrap);
+    coniferHosts.push({ wrap, spec, count });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Everything else. Instances are built once per knob change, not per frame.
+// ---------------------------------------------------------------------------
+function paintCast() {
+  for (const { el, m, vk, v } of castLayers) {
+    const spec = m.table[vk];
+    const rand = mulberry32(0xc45 + vk.length * 131 + m.key.length * 7919);
+    let html = "";
+
+    if (m.kind === "bird") {
+      const form = FORMS[v.form || "single"];
+      for (let g = 0; g < v.n; g++) {
+        const gx = rand() * 96, gy = v.y + (rand() - .5) * 16;
+        const dur = 26 + rand() * 40, delay = -rand() * dur;
+        const dir = rand() < .5 ? 1 : -1;
+        html += `<div class="cast" data-i="${g}" style="left:0;bottom:0;width:100%;height:100%;
+                   animation: drift-x ${dur.toFixed(1)}s linear infinite;
+                   animation-delay:${delay.toFixed(2)}s;
+                   --travel:${(dir * (110 + rand() * 60)).toFixed(0)}vw">`;
+        for (const [ox, oy, sc] of form) {
+          const sz = v.size * sc;
+          html += `<div class="cast f3" style="left:${(gx + ox * sz * .9).toFixed(2)}%;
+                     bottom:${(gy - oy * sz * .5).toFixed(2)}vh;
+                     width:${sz.toFixed(2)}vmin;height:${sz.toFixed(2)}vmin;
+                     --beat:${spec.beat}s;
+                     transform:scaleX(${dir})">
+                     <svg viewBox="0 0 100 100">
+                       ${spec.poses.map(p => `<path class="pose" d="${p}" fill="#fff"/>`).join("")}
+                     </svg></div>`;
+        }
+        html += `</div>`;
+      }
+    } else if (m.kind === "cloud" || m.kind === "mist") {
+      const vb = m.kind === "cloud" ? "0 0 100 60" : "0 0 100 60";
+      for (let i = 0; i < v.n; i++) {
+        const dur = (m.kind === "mist" ? 220 : 90) + rand() * 120;
+        const dir = rand() < .5 ? 1 : -1;
+        const sz = v.size * (.75 + rand() * .6);
+        html += `<div class="cast" style="left:${(rand() * 100 - 20).toFixed(1)}%;
+                   bottom:${(v.y + (rand() - .5) * 14).toFixed(1)}vh;
+                   width:${sz.toFixed(1)}vw;height:${(sz * .6).toFixed(1)}vw;
+                   animation: drift-x ${dur.toFixed(0)}s linear infinite;
+                   animation-delay:-${(rand() * dur).toFixed(0)}s;
+                   --travel:${(dir * 140).toFixed(0)}vw">
+                   <svg viewBox="${vb}" preserveAspectRatio="none"><path d="${spec.d}" fill="#fff"/></svg>
+                 </div>`;
+      }
+    } else if (m.kind === "fly") {
+      for (let i = 0; i < v.n; i++) {
+        const sz = v.size * (.7 + rand() * .7);
+        html += `<div class="cast" style="left:${(rand() * 94).toFixed(1)}%;
+                   bottom:${(v.y + (rand() - .5) * 12).toFixed(1)}vh;
+                   width:${sz.toFixed(1)}vmin;height:${sz.toFixed(1)}vmin;
+                   animation: glow ${(2.2 + rand() * 3.2).toFixed(1)}s ease-in-out infinite;
+                   animation-delay:-${(rand() * 5).toFixed(2)}s">
+                   <svg viewBox="0 0 100 100"><path d="${spec.d}" fill="#ffe9a8"/></svg>
+                 </div>`;
+      }
+    } else if (m.kind === "water") {
+      // One instance. The fill is set per frame to the live sky colour.
+      html = `<div class="cast water" style="left:${(50 - v.size / 2).toFixed(1)}%;
+                bottom:${v.y}vh;width:${v.size}vw;height:${(v.size * .5).toFixed(1)}vw;
+                animation: breathe 9s ease-in-out infinite">
+                <svg viewBox="0 0 100 64" preserveAspectRatio="none"><path d="${spec.d}" fill="#fff"/></svg>
+              </div>`;
+    }
+    el.innerHTML = html;
+  }
+  frame();
+}
+
+// ---------------------------------------------------------------------------
+// Presence: a trapezoid over the phase window. Full count across the middle,
+// ramping over the outer fifth each side.
+// ---------------------------------------------------------------------------
+function presenceAt(p, win) {
+  if (p < win[0] || p > win[1]) return 0;
+  const t = (p - win[0]) / Math.max(win[1] - win[0], .001);
+  if (t < .2) return t / .2;
+  if (t > .8) return (1 - t) / .2;
+  return 1;
+}
+
+// ---------------------------------------------------------------------------
+// Driver
+// ---------------------------------------------------------------------------
+let ticking = false, liveCount = 0;
+function onScroll() { if (ticking) return; ticking = true;
+  requestAnimationFrame(() => { ticking = false; frame(); }); }
+
+function frame() {
+  const p = S.progress;
+  const sky = skyRgbAt(p);
+  skyEl.style.backgroundColor = css(sky);
+  document.body.style.backgroundColor = css(sky);
+
+  const [p2s, p2e] = CURVE.phase2;
+  starLayer.style.opacity = String(clamp01((p - p2s) / Math.max(p2e - p2s, .001)));
+
+  const sp = arc(windowed(p, SUN_WINDOW), SUN_ARC), mp = arc(windowed(p, MOON_WINDOW), MOON_ARC);
+  let w = sunEl.querySelector(".body-wrap"); w.style.left = sp.x + "%"; w.style.top = sp.y + "%";
+  sunEl.style.opacity = String(sunOpacityAt(p));
+  w = moonEl.querySelector(".body-wrap"); w.style.left = mp.x + "%"; w.style.top = mp.y + "%";
+  moonEl.style.opacity = String(moonOpacityAt(p));
+
+  const vwScale = window.innerWidth / 1440;
+  ridgeLayers.forEach(({ el, spec }, i) => {
+    const base = lerpRgb(LAND, sky, LADDER.haze * (1 - spec.t));
+    const acc = lerpRgb(sky, base, clamp01(LADDER.weight + spec.t * .55));
+    const fill = css(acc);
+    el.querySelector("svg.silhouette path").setAttribute("fill", fill);
+    el.querySelector(".ridge-base").style.backgroundColor = fill;
+    el.style.translate = `0px ${(-((p - .5) * 2 * LADDER.vy * spec.depth) * vwScale).toFixed(1)}px`;
+    el.style.opacity = S.bare ? "0" : "1";
+
+    // Conifers: the ridge's own tone pushed toward green, so a far tree stays
+    // washed out and a near one reads as a tree.
+    const host = coniferHosts[i];
+    if (host) {
+      const tint = css(lerpRgb(acc, CONIFER_GREEN, 0.5 + spec.t * 0.35));
+      host.wrap.querySelectorAll("path").forEach(pt => pt.setAttribute("fill", tint));
+    }
+  });
+
+  liveCount = 0;
+  for (const { el, m, vk, v } of castLayers) {
+    const pres = presenceAt(p, v.phase);
+    el.style.visibility = pres > 0 ? "visible" : "hidden";
+    const alpha = m.kind === "mist" ? .20 : m.kind === "cloud" ? .42 : m.kind === "water" ? 1 : m.kind === "fly" ? 1 : .78;
+    el.style.opacity = String(pres * alpha);
+    if (pres <= 0) continue;
+    const groups = el.children;
+    const live = Math.max(m.kind === "water" ? 1 : 0, Math.round(v.n * pres));
+    for (let i = 0; i < groups.length; i++) groups[i].style.display = i < live ? "block" : "none";
+    liveCount += m.kind === "bird" ? live * (FORMS[v.form || "single"].length) : live;
+    if (m.kind === "water") {
+      // Water is a hole: it paints the CURRENT sky, lifted a little so it reads
+      // as a surface rather than a gap.
+      const lit = lerpRgb(sky, { r: 255, g: 255, b: 255 }, .10);
+      el.querySelectorAll("path").forEach(pt => pt.setAttribute("fill", css(lit)));
+    }
+  }
+  // Conifers are always present (phase 0-1 by default) but still count.
+  let coniferCount = 0;
+  for (const h of coniferHosts) coniferCount += h.count;
+  liveCount += coniferCount;
+
+  render();
+}
+
+// ---------------------------------------------------------------------------
+// Sheet
+// ---------------------------------------------------------------------------
+function tileSvg(m, vk) {
+  const s = m.table[vk];
+  if (m.kind === "bird")
+    return `<svg viewBox="0 0 100 100"><path d="${s.poses[1]}" fill="rgba(255,255,255,.92)"/></svg>`;
+  if (m.kind === "cloud" || m.kind === "mist")
+    return `<svg viewBox="0 0 100 60"><path d="${s.d}" fill="rgba(255,255,255,.9)"/></svg>`;
+  if (m.kind === "water")
+    return `<svg viewBox="0 0 100 64"><path d="${s.d}" fill="rgba(190,225,255,.95)"/></svg>`;
+  if (m.kind === "fly")
+    return `<svg viewBox="0 0 100 100"><path d="${s.d}" fill="#ffe9a8"/></svg>`;
+  return `<svg viewBox="0 0 100 100"><path d="${s.d}" fill="rgba(120,190,140,.95)"/></svg>`;
+}
+
+function buildCards() {
+  let html = "";
+  for (const m of ROSTER) {
+    html += `<div class="member" data-m="${m.key}">
+      <h3>${m.name} <span class="note">${m.note}</span></h3>`;
+    for (const vk of Object.keys(m.vars)) {
+      const v = m.vars[vk];
+      const isConifer = m.kind === "conifer";
+      html += `<div class="vrow ${v.on ? "" : "off"}" data-v="${vk}">
+        <div class="vtile ${v.on ? "sel" : ""}">${tileSvg(m, vk)}<span>${m.table[vk].name}</span></div>
+        <div class="knobs">
+          ${isConifer ? `
+            <div class="knob"><label>ridges</label><input data-k="r0" type="range" min="0" max="9" value="${v.r0}"><b data-b="r0">${v.r0}</b></div>
+            <div class="knob"><label>to</label><input data-k="r1" type="range" min="0" max="9" value="${v.r1}"><b data-b="r1">${v.r1}</b></div>
+            <div class="knob"><label>n/ridge</label><input data-k="n" type="range" min="1" max="24" value="${v.n}"><b data-b="n">${v.n}</b></div>
+            <div class="knob"><label>size</label><input data-k="size" type="range" min="4" max="30" value="${Math.round(v.size*10)}"><b data-b="size">${v.size.toFixed(1)}</b></div>
+          ` : `
+            <div class="knob"><label>depth</label><input data-k="depth" type="range" min="0" max="100" value="${Math.round(v.depth*100)}"><b data-b="depth">${v.depth.toFixed(2)}</b></div>
+            <div class="knob"><label>n</label><input data-k="n" type="range" min="1" max="24" value="${v.n}"><b data-b="n">${v.n}</b></div>
+            <div class="knob"><label>size</label><input data-k="size" type="range" min="1" max="90" value="${Math.round(v.size)}"><b data-b="size">${Math.round(v.size)}</b></div>
+            <div class="knob"><label>y</label><input data-k="y" type="range" min="0" max="95" value="${Math.round(v.y)}"><b data-b="y">${Math.round(v.y)}</b></div>
+          `}
+          ${m.kind === "bird" ? `<div class="form">${Object.keys(FORMS).map(f =>
+            `<button data-form="${f}" class="${v.form === f ? "on" : ""}">${f}</button>`).join("")}</div>` : ""}
+          <div class="phase"><div class="win"></div><div class="now"></div>
+            <input data-k="p0" type="range" min="0" max="1000" value="${Math.round(v.phase[0]*1000)}">
+            <input data-k="p1" type="range" min="0" max="1000" value="${Math.round(v.phase[1]*1000)}">
+          </div>
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  cardsEl.innerHTML = html;
+  wire();
+}
+
+function wire() {
+  cardsEl.querySelectorAll(".member").forEach(mel => {
+    const m = byKey[mel.dataset.m];
+    mel.querySelectorAll(".vrow").forEach(row => {
+      const vk = row.dataset.v, v = m.vars[vk];
+      row.querySelector(".vtile").addEventListener("click", () => {
+        v.on = !v.on;
+        row.classList.toggle("off", !v.on);
+        row.querySelector(".vtile").classList.toggle("sel", v.on);
+        build();
+      });
+      row.querySelectorAll(".form button").forEach(b => b.addEventListener("click", () => {
+        v.form = b.dataset.form;
+        row.querySelectorAll(".form button").forEach(o => o.classList.toggle("on", o === b));
+        paintCast();
+      }));
+      row.querySelectorAll("input[data-k]").forEach(inp => inp.addEventListener("input", () => {
+        const k = inp.dataset.k, val = +inp.value;
+        if (k === "p0" || k === "p1") {
+          let a = +row.querySelector('[data-k=p0]').value / 1000;
+          let b = +row.querySelector('[data-k=p1]').value / 1000;
+          if (a > b) { const t = a; a = b; b = t; }
+          v.phase = [a, b]; frame(); return;
+        }
+        if (k === "depth") { v.depth = val / 100; row.querySelector('[data-b=depth]').textContent = v.depth.toFixed(2); build(); return; }
+        if (k === "size" && m.kind === "conifer") { v.size = val / 10; row.querySelector('[data-b=size]').textContent = v.size.toFixed(1); plantConifers(); frame(); return; }
+        v[k] = val;
+        const b = row.querySelector(`[data-b=${k}]`);
+        if (b) b.textContent = k === "size" || k === "y" ? Math.round(val) : val;
+        if (m.kind === "conifer") { plantConifers(); frame(); } else paintCast();
+      }));
+    });
+  });
+}
+
+function syncBars() {
+  cardsEl.querySelectorAll(".member").forEach(mel => {
+    const m = byKey[mel.dataset.m];
+    mel.querySelectorAll(".vrow").forEach(row => {
+      const v = m.vars[row.dataset.v];
+      const win = row.querySelector(".win");
+      win.style.left = (v.phase[0] * 100) + "%";
+      win.style.width = ((v.phase[1] - v.phase[0]) * 100) + "%";
+      row.querySelector(".now").style.left = (S.progress * 100) + "%";
+    });
+  });
+}
+
+function render() {
+  syncBars();
+  const budget = liveCount + 156;
+  const verdict = budget <= 250
+    ? `<span class="ok">${budget} / ~250 animating</span>`
+    : `<span class="warn">${budget} / ~250 animating - over the #57 budget</span>`;
+  const on = ROSTER.flatMap(m => Object.entries(m.vars).filter(([, v]) => v.on).map(([vk]) => `${m.key}.${vk}`));
+  readout.innerHTML = [
+    `progress <b>${S.progress.toFixed(3)}</b>`,
+    `variants on: <b>${on.length}</b>`,
+    `instances now: <b>${liveCount}</b>`,
+    verdict,
+    `depth layers <b>${layers.length}</b>`,
+  ].join("<br>");
+
+  exportEl.value = ROSTER.flatMap(m =>
+    Object.entries(m.vars).filter(([, v]) => v.on).map(([vk, v]) =>
+      m.kind === "conifer"
+        ? `${m.name}/${m.table[vk].name} | on ridges ${v.r0}-${v.r1} | ${v.n} per ridge | size ${v.size.toFixed(1)} | depth = ridge depth`
+        : `${m.name}/${m.table[vk].name} | depth ${v.depth.toFixed(2)} | n ${v.n} | size ${v.size} | y ${v.y}vh | phase ${v.phase[0].toFixed(2)}-${v.phase[1].toFixed(2)}${v.form ? ` | ${v.form}` : ""}`
+    )).join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Dock
+// ---------------------------------------------------------------------------
+const prog = document.getElementById("prog");
+function setProg(p) { S.progress = p; prog.value = p * 1000;
+  document.getElementById("vProg").textContent = p.toFixed(3); frame(); }
+prog.addEventListener("input", () => setProg(+prog.value / 1000));
+document.querySelectorAll("[data-pin]").forEach(b => b.addEventListener("click", () => setProg(+b.dataset.pin)));
+document.getElementById("toggleSheet").addEventListener("click", e => {
+  S.sheet = !S.sheet; document.body.classList.toggle("sheet-hidden", !S.sheet); e.target.classList.toggle("on", S.sheet); });
+document.getElementById("rm").addEventListener("click", e => {
+  S.rm = !S.rm; document.body.classList.toggle("rm", S.rm); e.target.classList.toggle("on", S.rm); });
+document.getElementById("mobile").addEventListener("click", e => {
+  S.mobile = !S.mobile; document.body.classList.toggle("mobile", S.mobile); e.target.classList.toggle("on", S.mobile); frame(); });
+document.getElementById("bare").addEventListener("click", e => {
+  S.bare = !S.bare; e.target.classList.toggle("on", S.bare); frame(); });
+
+window.addEventListener("scroll", () => {
+  const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  S.progress = clamp01(window.scrollY / max);
+  prog.value = S.progress * 1000;
+  document.getElementById("vProg").textContent = S.progress.toFixed(3);
+  onScroll();
+}, { passive: true });
+window.addEventListener("resize", () => frame());
+
+buildCards();
+build();
+document.getElementById("toggleSheet").click();
+</script>
+</body>
+</html>

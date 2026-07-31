@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cast roster sketchbook - wayfinder #58</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #0b1020;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: #e7edf7;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Scene. Same structure as the shipped one and as prototype #59:      */
+  /*   .viewport > .scene > .layer[--layer-depth]                        */
+  /* ------------------------------------------------------------------ */
+  .viewport { position: fixed; inset: 0; z-index: -10; overflow: hidden; }
+  .scene { position: absolute; inset: 0; --ox: 12px; --oy: 12px; }
+  .layer { position: absolute; inset: 0; }
+
+  .sky { position: absolute; inset: 0; }
+
+  .stars { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .star {
+    position: absolute; background: #fff; border-radius: 50%;
+    animation: twinkle var(--dur) ease-in-out infinite;
+    animation-delay: var(--del);
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.35); }
+  }
+
+  .body-wrap { position: absolute; transform: translate(-50%, -50%); }
+  .sun  { width: 96px; height: 96px; border-radius: 50%; background: #fef08a;
+          border: 4px solid #fde047; box-shadow: 0 0 40px rgba(253,224,71,0.5); }
+  .moon { width: 80px; height: 80px; border-radius: 50%; background: #f1f5f9;
+          border: 4px solid #cbd5e1; box-shadow: 0 0 60px rgba(255,255,255,0.2); }
+
+  .cloud { position: absolute; left: 0; top: 0; width: 120px; opacity: 0.4; }
+
+  /* Ridge: opaque, overscanned. Locked on #59. */
+  .ridge {
+    position: absolute; pointer-events: none;
+    left: calc(-1 * var(--ox)); right: calc(-1 * var(--ox));
+    bottom: calc(-1 * var(--oy));
+    height: calc(var(--rh, 30vh) + var(--oy));
+  }
+  .ridge svg { display: block; position: absolute; left: 0; right: 0; top: 0;
+               width: 100%; height: var(--rh, 30vh); }
+  .ridge-base { position: absolute; left: 0; right: 0; top: var(--rh, 30vh); bottom: 0; }
+
+  /* A cast member instance. Positioned in % of the viewport, sized in vmin so
+     it scales with the frame. Motion comes from CSS keyframes only - the #60
+     rule: anything the scroll driver writes is a still frame behind an open
+     subpage. */
+  .cast { position: absolute; display: block; will-change: transform; }
+  .cast svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .cast path, .cast rect { shape-rendering: crispEdges; }
+
+  @keyframes drift-x   { from { transform: translateX(0); } to { transform: translateX(var(--travel, 120px)); } }
+  @keyframes bob       { 0%,100% { transform: translateY(0); } 50% { transform: translateY(var(--bob, -6px)); } }
+  @keyframes flap      { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(var(--flap, 0.62)); } }
+  @keyframes glow      { 0%,100% { opacity: 0.15; } 50% { opacity: 1; } }
+  @keyframes sway      { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(var(--sway, 2.5deg)); } }
+  @keyframes shimmer   { 0%,100% { opacity: 0.35; } 50% { opacity: 0.75; } }
+
+  body.rm .star, body.rm .cast, body.rm .cast * { animation: none !important; }
+
+  /* ------------------------------------------------------------------ */
+  /* Page: enough scroll to walk the whole day.                          */
+  /* ------------------------------------------------------------------ */
+  .page { position: relative; z-index: 1; }
+  .screen { height: 100vh; display: flex; align-items: center; justify-content: center;
+            flex-direction: column; gap: 8px; }
+  .screen h2 { margin: 0; font-size: 40px; letter-spacing: 0.12em; text-transform: uppercase;
+               color: rgba(255,255,255,0.55); mix-blend-mode: overlay; }
+  .screen p { margin: 0; font-size: 12px; color: rgba(255,255,255,0.4); }
+
+  /* ------------------------------------------------------------------ */
+  /* Sheet: the contact sheet of candidates.                             */
+  /* ------------------------------------------------------------------ */
+  .sheet {
+    position: fixed; inset: 0 auto 0 0; width: 430px; z-index: 60;
+    background: rgba(6,10,20,0.94); border-right: 1px solid rgba(125,211,252,0.22);
+    overflow-y: auto; padding: 12px; font-size: 11px;
+  }
+  body.sheet-hidden .sheet { display: none; }
+
+  .sheet h1 { margin: 0 0 2px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+              color: #7dd3fc; }
+  .sheet .sub { margin: 0 0 10px; color: rgba(231,237,247,0.45); font-size: 10px; line-height: 1.5; }
+
+  .band-hd { margin: 14px 0 6px; padding-bottom: 4px; font-size: 10px; letter-spacing: 0.14em;
+             text-transform: uppercase; color: rgba(125,211,252,0.75);
+             border-bottom: 1px solid rgba(125,211,252,0.18); }
+
+  .card { border: 1px solid rgba(125,211,252,0.16); border-radius: 8px; padding: 8px;
+          margin-bottom: 8px; background: rgba(255,255,255,0.02); }
+  .card.on { border-color: rgba(125,211,252,0.6); background: rgba(125,211,252,0.07); }
+  .card.cut { opacity: 0.34; }
+
+  .card-hd { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .card-hd b { font-size: 11px; letter-spacing: 0.04em; }
+  .card-hd .why { color: rgba(231,237,247,0.42); font-size: 10px; font-weight: normal; }
+  .card-hd .sp { margin-left: auto; display: flex; gap: 4px; }
+
+  .vars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .var { border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;
+         cursor: pointer; background: #87ceeb; }
+  .var.sel { outline: 2px solid #7dd3fc; outline-offset: -2px; }
+  .var svg { display: block; width: 100%; height: 74px; }
+  .var svg path, .var svg rect { shape-rendering: crispEdges; }
+  .var span { display: block; text-align: center; font-size: 9px; padding: 2px 0;
+              background: rgba(0,0,0,0.4); color: rgba(231,237,247,0.7); }
+
+  .knobs { margin-top: 7px; display: grid; grid-template-columns: 1fr; gap: 4px; }
+  .knob { display: flex; align-items: center; gap: 6px; }
+  .knob label { width: 52px; color: rgba(231,237,247,0.5); font-size: 10px; }
+  .knob input[type=range] { flex: 1; height: 14px; }
+  .knob b { width: 62px; text-align: right; color: #7dd3fc; font-size: 10px; }
+
+  /* Phase window: a two-handle bar over the day. */
+  .phase { position: relative; height: 16px; margin-top: 5px; border-radius: 4px;
+           background: linear-gradient(90deg, #87ceeb 0%, #87ceeb 6%, #f4a460 45%, #f4a460 48%, #140a32 79%, #140a32 100%); }
+  .phase .win { position: absolute; top: 0; bottom: 0; background: rgba(255,255,255,0.55);
+                border-left: 2px solid #fff; border-right: 2px solid #fff; }
+  .phase .now { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #ff4d8d; }
+  .phase input { position: absolute; left: 0; right: 0; top: 0; width: 100%; margin: 0;
+                 -webkit-appearance: none; appearance: none; background: none; pointer-events: none; height: 16px; }
+  .phase input::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto;
+    width: 12px; height: 16px; background: transparent; cursor: ew-resize; }
+  .phase input::-moz-range-thumb { pointer-events: auto; width: 12px; height: 16px;
+    background: transparent; border: none; cursor: ew-resize; }
+
+  /* ------------------------------------------------------------------ */
+  /* Dock                                                                */
+  /* ------------------------------------------------------------------ */
+  .dock {
+    position: fixed; top: 12px; right: 12px; width: 300px; z-index: 70;
+    background: rgba(8,12,24,0.92); border: 1px solid rgba(125,211,252,0.25);
+    border-radius: 10px; padding: 12px; font-size: 11px;
+    max-height: calc(100vh - 24px); overflow-y: auto;
+  }
+  .dock .lbl { color: rgba(125,211,252,0.8); text-transform: uppercase; letter-spacing: 0.1em;
+               font-size: 10px; margin: 10px 0 4px; }
+  .dock .lbl:first-child { margin-top: 0; }
+  .row { display: flex; gap: 5px; flex-wrap: wrap; }
+  button { font: inherit; font-size: 10px; padding: 4px 7px; border-radius: 6px; cursor: pointer;
+           background: rgba(125,211,252,0.12); border: 1px solid rgba(125,211,252,0.35); color: #e7edf7; }
+  button.on { background: rgba(125,211,252,0.45); }
+  .readout { font-size: 10px; line-height: 1.65; color: rgba(231,237,247,0.72); }
+  .readout .warn { color: #fca5a5; }
+  .readout .ok { color: #86efac; }
+  textarea { width: 100%; height: 150px; font: inherit; font-size: 9.5px; line-height: 1.45;
+             background: rgba(0,0,0,0.45); color: #cbd5e1; border: 1px solid rgba(125,211,252,0.25);
+             border-radius: 6px; padding: 6px; }
+
+  body.mobile .viewport { left: 50%; width: 390px; transform: translateX(-50%);
+                          box-shadow: 0 0 0 1px rgba(125,211,252,0.35); }
+</style>
+</head>
+<body class="sheet-hidden">
+
+<div class="viewport"><div class="scene" id="scene"></div></div>
+<div class="page" id="page"></div>
+
+<aside class="sheet" id="sheet">
+  <h1>Cast roster sketchbook</h1>
+  <p class="sub">
+    Longlist for wayfinder #58. Every candidate is drawn as pixel-crisp SVG, three silhouettes each.
+    Tiles sit on the live sky colour, so judge them at the time of day the scrubber is showing.
+    Toggle <b>in</b> to place a member in the scene at its depth, count and phase window.
+    <b>Cut</b> what does not belong. The roster readout at the bottom right is the answer.
+  </p>
+  <div id="cards"></div>
+</aside>
+
+<aside class="dock">
+  <div class="lbl">Day</div>
+  <div class="knob">
+    <label>progress</label>
+    <input id="prog" type="range" min="0" max="1000" value="0">
+    <b id="vProg">0.000</b>
+  </div>
+  <div class="row">
+    <button id="toggleSheet">sheet</button>
+    <button id="rm">reduced motion</button>
+    <button id="mobile">390px</button>
+    <button id="soloBtn">solo selected</button>
+  </div>
+  <div class="row" style="margin-top:5px">
+    <button data-pin="0">noon</button>
+    <button data-pin="0.25">afternoon</button>
+    <button data-pin="0.45">dusk</button>
+    <button data-pin="0.62">twilight</button>
+    <button data-pin="0.85">night</button>
+  </div>
+
+  <div class="lbl">Roster</div>
+  <div class="readout" id="readout"></div>
+
+  <div class="lbl">Export</div>
+  <textarea id="export" readonly></textarea>
+</aside>
+
+<script>
+// ---------------------------------------------------------------------------
+// Ported constants - real repo values, so what you see transfers.
+// ---------------------------------------------------------------------------
+const SKY_NOON  = { r: 135, g: 206, b: 235 };
+const SKY_DUSK  = { r: 244, g: 164, b: 96  };
+const SKY_NIGHT = { r: 20,  g: 10,  b: 50  };
+const CURVE = { phase1: [0.06, 0.448], phase2: [0.453, 0.787], boost: 0.8 };
+const CLOUDS = [
+  { x: 100, y: 150, scale: 1.2, speed: 0.05, depth: 0.55 },
+  { x: 600, y: 100, scale: 0.8, speed: -0.08, depth: 0.8 },
+  { x: 1000, y: 250, scale: 1,  speed: 0.03, depth: 0.3 },
+];
+const SUN_WINDOW  = { start: 0,    end: 0.65 };
+const MOON_WINDOW = { start: 0.45, end: 1.0  };
+const SUN_ARC  = { startX: 75, startY: 12, endX: 28, endY: 58, arcLift: 8 };
+const MOON_ARC = { startX: 27, startY: 45, endX: 16, endY: 13, arcLift: 6 };
+
+// LOCKED on #59: ten ridges, depth 0.21 -> 0.93.
+const LADDER = { count: 10, far: 0.21, near: 0.93, haze: 0.80, weight: 0.25, vy: 160 };
+const LAND_COLOR = { r: 74, g: 122, b: 140 };
+
+const clamp01 = x => Math.max(0, Math.min(1, x));
+const bell = t => Math.sin(t * Math.PI);
+const lerpRgb = (a, b, t) => ({
+  r: Math.round(a.r + (b.r - a.r) * t),
+  g: Math.round(a.g + (b.g - a.g) * t),
+  b: Math.round(a.b + (b.b - a.b) * t),
+});
+const css = c => `rgb(${c.r}, ${c.g}, ${c.b})`;
+const cssA = (c, a) => `rgba(${c.r}, ${c.g}, ${c.b}, ${a})`;
+
+function rgbToHsl({ r, g, b }) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  let h = 0, s = 0; const l = (mx + mn) / 2;
+  if (mx !== mn) {
+    const d = mx - mn;
+    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    if (mx === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return { h, s, l };
+}
+function hslToRgb({ h, s, l }) {
+  if (s === 0) { const v = Math.round(l * 255); return { r: v, g: v, b: v }; }
+  const hue = (p, q, t) => {
+    if (t < 0) t += 1; if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  return { r: Math.round(hue(p, q, h + 1/3) * 255),
+           g: Math.round(hue(p, q, h) * 255),
+           b: Math.round(hue(p, q, h - 1/3) * 255) };
+}
+function boostSat(rgb, boost, weight) {
+  const hsl = rgbToHsl(rgb);
+  hsl.s = clamp01(hsl.s * (1 + boost * weight));
+  return hslToRgb(hsl);
+}
+function skyRgbAt(p) {
+  const [s1, e1] = CURVE.phase1, [s2, e2] = CURVE.phase2;
+  if (p <= s1) return SKY_NOON;
+  if (p < e1) { const t = (p - s1) / (e1 - s1); return boostSat(lerpRgb(SKY_NOON, SKY_DUSK, t), CURVE.boost, bell(t)); }
+  if (p <= s2) return SKY_DUSK;
+  if (p < e2) { const t = (p - s2) / (e2 - s2); return boostSat(lerpRgb(SKY_DUSK, SKY_NIGHT, t), CURVE.boost, bell(t)); }
+  return SKY_NIGHT;
+}
+function windowed(p, w) { return clamp01((p - w.start) / (w.end - w.start)); }
+function arc(t, a) {
+  return { x: a.startX + (a.endX - a.startX) * t,
+           y: a.startY + (a.endY - a.startY) * t - Math.sin(t * Math.PI) * a.arcLift };
+}
+const sunOpacityAt  = p => (p < 0.45 ? 1 : Math.max(0, 1 - (p - 0.45) / 0.2));
+const moonOpacityAt = p => (p < 0.5 ? 0 : Math.min(1, (p - 0.5) / 0.2));
+
+function mulberry32(seed) {
+  let a = seed;
+  return () => {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// THE LONGLIST
+// ---------------------------------------------------------------------------
+// Every path is drawn in a 0 0 100 100 box. Ground members stand on y=96, sky
+// members float around the middle. Axis-aligned runs plus clean diagonals -
+// the same vocabulary as the shipped landscape path and the pixel cloud.
+//
+// `band` decides how an instance is placed:
+//   sky    - free in the upper air, above the ridge line
+//   ridge  - standing ON a ridge, at that ridge's depth, scaled by depth
+//   fore   - the nearest band, big, bottom-anchored, few of them
+//   veil   - a full-width horizontal wash (mist, water), no scatter
+//
+// `phase` is the [start, end] window over journey progress, and presence is a
+// bell over that window - the mechanism SUN_WINDOW/MOON_WINDOW already use.
+// `peak` is the instance count at the middle of the window.
+// `motion` names the CSS keyframe, because #60 says driver-written motion is a
+// still frame behind an open subpage.
+const CAST = [
+  // ---- SKY ---------------------------------------------------------------
+  { key: "birds", name: "Birds", band: "sky", why: "already named in the map",
+    depth: 0.34, phase: [0.00, 0.52], peak: 5, size: 5.0, motion: "drift-x",
+    variants: [
+      { name: "v-flock", d: "M20 40l8-8 8 8-8-4zM44 30l9-9 9 9-9-4zM68 44l7-7 7 7-7-3zM36 56l6-6 6 6-6-3zM58 60l6-6 6 6-6-3z" },
+      { name: "lone glider", d: "M14 54l24-18 12 7 12-7 24 18-24-10-12 5-12-5z" },
+      { name: "darting pair", d: "M30 48l10-10 10 10-10-5zM56 58l8-8 8 8-8-4z" },
+    ] },
+  { key: "bats", name: "Bats", band: "sky", why: "the night answer to birds",
+    depth: 0.30, phase: [0.55, 1.00], peak: 4, size: 4.4, motion: "flap",
+    variants: [
+      { name: "flutter trio", d: "M18 48l7-10 5 6 5-6 7 10-7-4-5 5-5-5zM46 34l8-11 6 7 6-7 8 11-8-4-6 5-6-5zM70 54l6-8 4 5 4-5 6 8-6-3-4 4-4-4z" },
+      { name: "lone", d: "M22 56l14-19 9 11 5-5 5 5 9-11 14 19-14-7-9 7-5-5-5 5-9-7z" },
+      { name: "scatter", d: "M12 40l4-6 3 4 3-4 4 6-4-2-3 3-3-3zM34 58l4-6 3 4 3-4 4 6-4-2-3 3-3-3zM56 32l4-6 3 4 3-4 4 6-4-2-3 3-3-3zM76 50l4-6 3 4 3-4 4 6-4-2-3 3-3-3zM60 68l4-6 3 4 3-4 4 6-4-2-3 3-3-3z" },
+    ] },
+
+  // ---- RIDGE -------------------------------------------------------------
+  { key: "conifer", name: "Conifer", band: "ridge", why: "the default landscape object",
+    depth: 0.62, phase: [0.00, 1.00], peak: 14, size: 6.5, motion: "sway",
+    variants: [
+      { name: "spire", d: "M50 8l10 26h-6l14 28h-8l16 30H54v4h-8v-4H24l16-30h-8l14-28h-6z" },
+      { name: "broad fir", d: "M50 14l18 30h-7l20 34H54v18h-8V78H19l20-34h-7z" },
+      { name: "cluster", d: "M24 34l12 24h-7l14 26H10l14-26h-7zM58 18l16 32h-9l18 34H33l18-34h-9zM86 46l8 16h-5l10 22H73l10-22h-5z" },
+    ] },
+  { key: "broadleaf", name: "Broadleaf tree", band: "ridge", why: "a rounder mass next to the firs",
+    depth: 0.58, phase: [0.00, 1.00], peak: 8, size: 6.8, motion: "sway",
+    variants: [
+      { name: "round oak", d: "M30 20h40v8h8v16h-8v8H54v44h-8V52H30v-8h-8V28h8z" },
+      { name: "windswept", d: "M36 22h40v8h8v14h-8v8H58l-4 44h-8l4-44H36v-8h-8V30h8z" },
+      { name: "bare winter", d: "M46 96V62L30 46v-6l16 16V38L36 28v-6l10 10V18h8v18l10-14v6l-10 14v16l16-16v6L54 62v34z" },
+    ] },
+  { key: "rock", name: "Rocks", band: "ridge", why: "mass without a growing thing",
+    depth: 0.70, phase: [0.00, 1.00], peak: 9, size: 5.5, motion: "none",
+    variants: [
+      { name: "boulder", d: "M14 96V72l12-14h18l14-16h16l16 22v32z" },
+      { name: "stack", d: "M30 96V76h44v20zM36 76V60h32v16zM44 60V46h18v14z" },
+      { name: "scree", d: "M8 96V82l8-8h14l6 8v14zM40 96V72l10-10h16l8 10v24zM76 96V78l6-6h14v24z" },
+    ] },
+  { key: "cabin", name: "Cabin", band: "ridge", why: "the one made thing; a lit window at night",
+    depth: 0.66, phase: [0.00, 1.00], peak: 1, size: 6.0, motion: "none",
+    variants: [
+      { name: "gable + chimney", d: "M24 96V58l26-24 26 24v38zM62 36V20h10v22z" },
+      { name: "long barn", d: "M12 96V62l16-16h44l16 16v34z" },
+      { name: "tiny hut", d: "M34 96V66l16-14 16 14v30z" },
+    ] },
+  { key: "landmark", name: "Landmark", band: "ridge", why: "one tall thing that fixes the horizon",
+    depth: 0.50, phase: [0.00, 1.00], peak: 1, size: 8.5, motion: "none",
+    variants: [
+      { name: "windmill", d: "M42 96V44h16v52zM48 8h4v28h28v4H52v28h-4V40H20v-4h28z" },
+      { name: "lattice tower", d: "M38 96l8-64h8l8 64h-8l-4-34-4 34z" },
+      { name: "lighthouse", d: "M38 96V38h24v58zM42 38V26h16v12zM44 26V14h12v12z" },
+    ] },
+  { key: "deer", name: "Deer", band: "ridge", why: "the only living body in the cast",
+    depth: 0.78, phase: [0.10, 0.62], peak: 2, size: 5.2, motion: "bob",
+    variants: [
+      { name: "standing", d: "M30 60h34v14H30zM32 74h5v22h-5zM40 74h5v22h-5zM50 74h5v22h-5zM58 74h5v22h-5zM62 60V42h8v-6h10v6h-8v18zM68 36v-8h4v8zM76 36v-12h4v12z" },
+      { name: "grazing", d: "M28 56h34v14H28zM30 70h5v26h-5zM38 70h5v26h-5zM48 70h5v26h-5zM56 70h5v26h-5zM62 56h8v22h12v6H62zM66 50v-8h4v8zM74 52v-10h4v10z" },
+      { name: "with fawn", d: "M22 54h26v11H22zM24 65h4v20h-4zM30 65h4v20h-4zM38 65h4v20h-4zM44 65h4v20h-4zM46 54V40h7v-5h8v5h-6v14zM52 34v-7h3v7zM59 34v-9h3v9zM62 76h18v8H62zM63 84h3v12h-3zM68 84h3v12h-3zM74 84h3v12h-3zM77 76v-9h5v-4h6v4h-4v9z" },
+    ] },
+
+  // ---- FOREGROUND --------------------------------------------------------
+  { key: "grass", name: "Grass", band: "fore", why: "the nearest band; sells the parallax",
+    depth: 0.95, phase: [0.00, 1.00], peak: 5, size: 13, motion: "sway",
+    variants: [
+      { name: "reeds", d: "M20 96V56h3v40zM28 96V48h3v48zM36 96V60h3v36zM46 96V44h3v52zM56 96V58h3v38zM64 96V50h3v46zM74 96V62h3v34zM82 96V52h3v44z" },
+      { name: "tussock", d: "M48 96L30 54l4-2 14 34 4-38h4l4 38 14-34 4 2-18 42z" },
+      { name: "fern", d: "M48 96V38h4v58zM48 58L32 50v-4l16 6zM52 58l16-8v-4l-16 6zM48 72L30 64v-4l18 6zM52 72l18-8v-4l-18 6zM48 46l-12-7v-4l12 6zM52 46l12-7v-4l-12 6z" },
+    ] },
+  { key: "fence", name: "Trail marks", band: "fore", why: "a human trace on the path",
+    depth: 0.90, phase: [0.00, 1.00], peak: 2, size: 11, motion: "none",
+    variants: [
+      { name: "post row", d: "M12 96V62h6v34zM32 96V62h6v34zM52 96V62h6v34zM72 96V62h6v34zM8 68h84v5H8zM8 80h84v5H8z" },
+      { name: "gate", d: "M16 96V56h6v40zM78 96V56h6v40zM22 62h56v5H22zM22 78h56v5H22zM22 68l56 8v5l-56-8z" },
+      { name: "markers", d: "M20 96V66h5v30zM48 96V60h5v36zM76 96V70h5v26zM16 62h13v5H16zM44 56h13v5H44zM72 66h13v5H72z" },
+    ] },
+  { key: "fireflies", name: "Fireflies", band: "fore", why: "night warmth low in the frame",
+    depth: 0.88, phase: [0.60, 1.00], peak: 12, size: 2.4, motion: "glow",
+    variants: [
+      { name: "sparse", d: "M18 40h4v4h-4zM42 56h4v4h-4zM66 34h4v4h-4zM80 62h4v4h-4zM30 72h4v4h-4z" },
+      { name: "clustered", d: "M38 44h4v4h-4zM46 38h3v3h-3zM52 48h4v4h-4zM44 54h3v3h-3zM58 40h3v3h-3zM34 56h3v3h-3zM50 60h4v4h-4z" },
+      { name: "single spark", d: "M46 46h8v8h-8z" },
+    ] },
+
+  // ---- VEIL --------------------------------------------------------------
+  { key: "mist", name: "Mist", band: "veil", why: "separates the ridges without blur",
+    depth: 0.44, phase: [0.30, 0.72], peak: 3, size: 0, motion: "shimmer",
+    variants: [
+      { name: "thin band", d: "M0 58h100v6H0zM10 68h60v4H10z" },
+      { name: "two bands", d: "M0 50h100v5H0zM0 66h78v5H0zM22 80h78v4H22z" },
+      { name: "valley pool", d: "M0 70h100v22H0zM12 62h76v8H12z" },
+    ] },
+  { key: "water", name: "Water", band: "veil", why: "a flat plane that catches the sky",
+    depth: 0.84, phase: [0.00, 1.00], peak: 1, size: 0, motion: "shimmer",
+    variants: [
+      { name: "lake band", d: "M0 74h100v22H0z" },
+      { name: "river bend", d: "M0 96l32-18h20l24-12h24v10H60L36 90H0z" },
+      { name: "glints only", d: "M10 78h30v3H10zM52 84h24v3H52zM24 90h40v3H24z" },
+    ] },
+];
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+const S = { progress: 0, rm: false, mobile: false, solo: false, sheet: false };
+const pick = {};          // key -> { variant, on, cut, depth, phase, peak }
+for (const m of CAST) {
+  pick[m.key] = { variant: 0, on: false, cut: false,
+                  depth: m.depth, phase: m.phase.slice(), peak: m.peak };
+}
+
+const scene = document.getElementById("scene");
+const page = document.getElementById("page");
+const readout = document.getElementById("readout");
+const exportEl = document.getElementById("export");
+const cardsEl = document.getElementById("cards");
+
+// 14 screens, the shipped document's rough length.
+const SCREENS = ["hero", "socials", "projects", "craft", "craft", "craft", "craft",
+                 "craft", "craft", "craft", "craft", "craft", "craft", "footer"];
+page.innerHTML = SCREENS.map((n, i) =>
+  `<section class="screen"><h2>${n}</h2><p>screen ${i + 1} / ${SCREENS.length}</p></section>`).join("");
+
+// ---------------------------------------------------------------------------
+// Ridge geometry, ported from #59 so the ladder is the locked one.
+// ---------------------------------------------------------------------------
+function ridgePath(seed, roughness) {
+  const rand = mulberry32(seed);
+  const pts = []; let x = 0; let y = 150 + rand() * 90;
+  pts.push(`M0 400V${y.toFixed(0)}`);
+  while (x < 1000) {
+    const run = 40 + rand() * 120;
+    const slope = 50 + rand() * 130;
+    const dy = (rand() - 0.5) * 2 * roughness;
+    const ny = Math.max(50, Math.min(370, y + dy));
+    const sx = Math.min(1000 - x, slope);
+    pts.push(`l${sx.toFixed(0)} ${(ny - y).toFixed(0)}`);
+    x += sx; y = ny;
+    if (x >= 1000) break;
+    const rx = Math.min(1000 - x, run);
+    pts.push(`h${rx.toFixed(0)}`);
+    x += rx;
+  }
+  pts.push("V400", "H0", "Z");
+  return pts.join("");
+}
+function ridgeSpecs() {
+  const out = [];
+  for (let i = 0; i < LADDER.count; i++) {
+    const t = i / (LADDER.count - 1);
+    out.push({ depth: LADDER.far + (LADDER.near - LADDER.far) * t, t,
+               seed: 0xa1e + i * 977, index: i,
+               heightVh: 44 - t * 30 });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Build
+// ---------------------------------------------------------------------------
+let layers = [];       // { el, depth, kind }
+let ridgeLayers = [];
+let castLayers = [];   // { el, member }
+let skyEl, sunEl, moonEl, starLayer;
+let cloudEls = [];
+
+function build() {
+  scene.innerHTML = "";
+  layers = []; ridgeLayers = []; castLayers = []; cloudEls = [];
+
+  const pending = [];
+  const add = (depth, kind, inner, cls = "") => {
+    const el = document.createElement("div");
+    el.className = "layer " + cls;
+    el.dataset.depth = depth;
+    el.style.setProperty("--layer-depth", depth);
+    el.innerHTML = inner;
+    pending.push({ el, depth, kind });
+    return el;
+  };
+
+  skyEl = add(0, "sky", ""); skyEl.classList.add("sky");
+
+  const rand = mulberry32(0x5eed);
+  const starHtml = Array.from({ length: 150 }, () => {
+    const x = rand() * 100, y = rand() * 100, s = rand() * 2.5 + 0.5;
+    const d = rand() * 5, du = rand() * 3 + 2;
+    return `<div class="star" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%;width:${s.toFixed(2)}px;height:${s.toFixed(2)}px;--del:${d.toFixed(2)}s;--dur:${du.toFixed(2)}s"></div>`;
+  }).join("");
+  starLayer = add(0.05, "stars", `<div class="stars">${starHtml}</div>`);
+  starLayer.style.opacity = "0";
+
+  sunEl  = add(0.12, "sun",  `<div class="body-wrap"><div class="sun"></div></div>`);
+  moonEl = add(0.12, "moon", `<div class="body-wrap"><div class="moon"></div></div>`);
+
+  for (const r of ridgeSpecs()) {
+    const el = add(r.depth, "ridge",
+      `<div class="ridge" style="--rh:${r.heightVh.toFixed(1)}vh">
+         <svg viewBox="0 0 1000 400" preserveAspectRatio="none">
+           <path d="${ridgePath(r.seed, 140 - r.t * 110)}" fill="#000"/>
+         </svg>
+         <div class="ridge-base"></div>
+       </div>`);
+    ridgeLayers.push({ el, spec: r });
+  }
+
+  CLOUDS.forEach((c) => {
+    const el = add(c.depth, "cloud",
+      `<svg class="cloud" viewBox="0 0 100 60"><path fill="white" d="M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z"/></svg>`);
+    cloudEls.push({ svg: el.querySelector("svg"), spec: c });
+  });
+
+  // Cast members, one layer each, at their own depth.
+  for (const m of CAST) {
+    const p = pick[m.key];
+    if (p.cut) continue;
+    const el = add(p.depth, "cast:" + m.key, "");
+    castLayers.push({ el, member: m });
+  }
+
+  pending.sort((a, b) => a.depth - b.depth);
+  for (const l of pending) { scene.appendChild(l.el); layers.push(l); }
+
+  paintCast();
+  frame();
+}
+
+// ---------------------------------------------------------------------------
+// Cast placement. Rebuilt only when a member's variant / depth / peak changes -
+// NOT per scroll frame. Per frame the driver writes opacity and count-gating
+// only, and all real motion is a CSS keyframe (#60).
+// ---------------------------------------------------------------------------
+function presenceAt(p, win) {
+  if (p < win[0] || p > win[1]) return 0;
+  const t = (p - win[0]) / Math.max(win[1] - win[0], 0.001);
+  // Trapezoid, not a bell: full presence across the middle 60% of the window,
+  // ramping over the outer 20% each side. A bell never reaches full count.
+  if (t < 0.2) return t / 0.2;
+  if (t > 0.8) return (1 - t) / 0.2;
+  return 1;
+}
+
+function paintCast() {
+  for (const { el, member } of castLayers) {
+    const p = pick[member.key];
+    const v = member.variants[p.variant];
+    const rand = mulberry32(0xc45 + member.key.length * 131 + p.variant * 7919);
+    const n = p.peak;
+    let html = "";
+
+    if (member.band === "veil") {
+      // Full-width wash. One instance, bottom-anchored, no scatter.
+      const h = member.key === "water" ? 26 : 40;
+      const bottom = member.key === "water" ? 0 : 22;
+      html = `<div class="cast" data-i="0" style="left:0;width:100%;bottom:${bottom}vh;height:${h}vh;
+                 animation: shimmer 7s ease-in-out infinite">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="${v.d}" fill="#fff"/></svg>
+              </div>`;
+    } else {
+      for (let i = 0; i < n; i++) {
+        const x = rand() * 100;
+        const jitter = rand();
+        const dur = (member.motion === "drift-x" ? 34 : 5) + rand() * 12;
+        const delay = -rand() * dur;
+        const size = member.size * (0.7 + rand() * 0.6);
+        let bottom, anim, extra = "";
+
+        if (member.band === "sky") {
+          bottom = 46 + rand() * 40;            // vh, upper air
+          anim = member.motion === "flap"
+            ? `flap ${(0.5 + rand() * 0.5).toFixed(2)}s ease-in-out infinite`
+            : `drift-x ${dur.toFixed(1)}s linear infinite`;
+          extra = `--travel:${(60 + rand() * 90).toFixed(0)}vw;`;
+        } else if (member.band === "ridge") {
+          // Stand on a ridge: pick one, sit at its crest height.
+          const ri = Math.min(ridgeLayers.length - 1, Math.floor(jitter * ridgeLayers.length));
+          const spec = ridgeLayers[ri].spec;
+          bottom = spec.heightVh * (0.42 + rand() * 0.30);
+          anim = member.motion === "sway"
+            ? `sway ${(4 + rand() * 4).toFixed(1)}s ease-in-out infinite`
+            : member.motion === "bob"
+            ? `bob ${(3 + rand() * 3).toFixed(1)}s ease-in-out infinite`
+            : "none";
+        } else { // fore
+          bottom = -2 + rand() * 6;
+          anim = member.motion === "sway"
+            ? `sway ${(5 + rand() * 4).toFixed(1)}s ease-in-out infinite`
+            : member.motion === "glow"
+            ? `glow ${(2 + rand() * 3).toFixed(1)}s ease-in-out infinite`
+            : "none";
+        }
+
+        html += `<div class="cast" data-i="${i}" style="left:${x.toFixed(1)}%;bottom:${bottom.toFixed(1)}vh;
+                   width:${size.toFixed(1)}vmin;height:${size.toFixed(1)}vmin;
+                   transform-origin:50% 100%;${extra}
+                   animation:${anim};animation-delay:${delay.toFixed(2)}s">
+                   <svg viewBox="0 0 100 100"><path d="${v.d}" fill="#fff"/></svg>
+                 </div>`;
+      }
+    }
+    el.innerHTML = html;
+  }
+  frame();
+}
+
+// ---------------------------------------------------------------------------
+// The driver. One rAF per scroll event, like useScrollJourney.
+// ---------------------------------------------------------------------------
+let ticking = false;
+function onScroll() {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => { ticking = false; frame(); });
+}
+
+let liveCount = 0;
+
+function frame() {
+  const p = S.progress;
+  const sky = skyRgbAt(p);
+  if (skyEl) skyEl.style.backgroundColor = css(sky);
+  document.body.style.backgroundColor = css(sky);
+
+  const [p2s, p2e] = CURVE.phase2;
+  starLayer.style.opacity = String(clamp01((p - p2s) / Math.max(p2e - p2s, 0.001)));
+
+  const sp = arc(windowed(p, SUN_WINDOW), SUN_ARC);
+  const mp = arc(windowed(p, MOON_WINDOW), MOON_ARC);
+  let w = sunEl.querySelector(".body-wrap");
+  w.style.left = sp.x + "%"; w.style.top = sp.y + "%";
+  sunEl.style.opacity = String(sunOpacityAt(p));
+  w = moonEl.querySelector(".body-wrap");
+  w.style.left = mp.x + "%"; w.style.top = mp.y + "%";
+  moonEl.style.opacity = String(moonOpacityAt(p));
+
+  // Ridges: aerial-perspective wash toward the sky colour, accumulated.
+  const cloudPos = p * 1000;
+  const land = { r: 74, g: 122, b: 140 };
+  ridgeLayers.forEach(({ el, spec }) => {
+    const base = lerpRgb(land, sky, LADDER.haze * (1 - spec.t));
+    const acc = lerpRgb(sky, base, clamp01(LADDER.weight + spec.t * 0.55));
+    const fill = css(acc);
+    el.querySelector("path").setAttribute("fill", fill);
+    el.querySelector(".ridge-base").style.backgroundColor = fill;
+    // Vertical parallax only, on `translate` - the #59 split.
+    const rise = -((p - 0.5) * 2 * LADDER.vy * spec.depth) * (window.innerWidth / 1440);
+    el.style.translate = `0px ${rise.toFixed(1)}px`;
+  });
+
+  cloudEls.forEach(({ svg, spec }) => {
+    const x = ((spec.x + cloudPos * spec.speed) % 1200 + 1200) % 1200 - 100;
+    svg.style.transform = `translate(${x.toFixed(0)}px, ${spec.y}px) scale(${spec.scale})`;
+  });
+
+  // Cast: presence gates opacity and count. This is the schedule, in miniature.
+  liveCount = 0;
+  for (const { el, member } of castLayers) {
+    const pk = pick[member.key];
+    if (!pk.on || (S.solo && !pk.solo)) { el.style.opacity = "0"; el.style.visibility = "hidden"; continue; }
+    const pres = presenceAt(p, pk.phase);
+    el.style.visibility = pres > 0 ? "visible" : "hidden";
+    // Alpha keeps every member delicate; nothing in the cast is a solid white.
+    const alpha = member.band === "veil" ? 0.16 : member.band === "sky" ? 0.55 : 0.9;
+    el.style.opacity = String(pres * alpha);
+    if (pres <= 0) continue;
+    // Count on progress: instances beyond the live count are hidden, not deleted.
+    const live = member.band === "veil" ? 1 : Math.round(pk.peak * pres);
+    const kids = el.children;
+    for (let i = 0; i < kids.length; i++) {
+      kids[i].style.display = i < live ? "block" : "none";
+    }
+    liveCount += live;
+    // Ridge members darken with their own depth so they read as part of the ladder.
+    if (member.band === "ridge") {
+      const t = clamp01((pk.depth - LADDER.far) / (LADDER.near - LADDER.far));
+      const base = lerpRgb(land, sky, LADDER.haze * (1 - t));
+      const fill = css(lerpRgb(sky, base, clamp01(LADDER.weight + t * 0.55)));
+      el.querySelectorAll("path").forEach(pt => pt.setAttribute("fill", fill));
+    }
+  }
+
+  render();
+}
+
+// ---------------------------------------------------------------------------
+// Sheet + readout
+// ---------------------------------------------------------------------------
+function skyTile() { return css(skyRgbAt(S.progress)); }
+
+function buildCards() {
+  const bands = [
+    ["sky",   "Sky band - free air above the ridges"],
+    ["ridge", "Ridge band - stands on the ladder"],
+    ["fore",  "Foreground band - nearest, sells the parallax"],
+    ["veil",  "Veil - a full-width wash, not a scatter"],
+  ];
+  let html = "";
+  for (const [band, title] of bands) {
+    html += `<div class="band-hd">${title}</div>`;
+    for (const m of CAST.filter(x => x.band === band)) {
+      const p = pick[m.key];
+      html += `
+      <div class="card ${p.on ? "on" : ""} ${p.cut ? "cut" : ""}" data-key="${m.key}">
+        <div class="card-hd">
+          <b>${m.name}</b><span class="why">${m.why}</span>
+          <span class="sp">
+            <button data-act="in" class="${p.on ? "on" : ""}">in</button>
+            <button data-act="cut" class="${p.cut ? "on" : ""}">cut</button>
+          </span>
+        </div>
+        <div class="vars">
+          ${m.variants.map((v, i) => `
+            <div class="var ${p.variant === i ? "sel" : ""}" data-var="${i}">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet">
+                <path d="${v.d}" fill="rgba(255,255,255,0.92)"/>
+              </svg>
+              <span>${v.name}</span>
+            </div>`).join("")}
+        </div>
+        <div class="knobs">
+          <div class="knob">
+            <label>depth</label>
+            <input data-act="depth" type="range" min="0" max="100" value="${Math.round(p.depth * 100)}">
+            <b data-v="depth">${p.depth.toFixed(2)}</b>
+          </div>
+          <div class="knob">
+            <label>peak n</label>
+            <input data-act="peak" type="range" min="1" max="30" value="${p.peak}">
+            <b data-v="peak">${p.peak}</b>
+          </div>
+        </div>
+        <div class="phase" data-phase>
+          <div class="win"></div><div class="now"></div>
+          <input data-act="p0" type="range" min="0" max="1000" value="${Math.round(p.phase[0] * 1000)}">
+          <input data-act="p1" type="range" min="0" max="1000" value="${Math.round(p.phase[1] * 1000)}">
+        </div>
+      </div>`;
+    }
+  }
+  cardsEl.innerHTML = html;
+  wireCards();
+  syncTiles();
+}
+
+function wireCards() {
+  cardsEl.querySelectorAll(".card").forEach(card => {
+    const key = card.dataset.key;
+    const p = pick[key];
+    card.querySelectorAll(".var").forEach(v => v.addEventListener("click", () => {
+      p.variant = +v.dataset.var;
+      card.querySelectorAll(".var").forEach(o => o.classList.toggle("sel", o === v));
+      paintCast();
+    }));
+    card.querySelector('[data-act=in]').addEventListener("click", (e) => {
+      p.on = !p.on; p.solo = p.on;
+      e.target.classList.toggle("on", p.on);
+      card.classList.toggle("on", p.on);
+      frame();
+    });
+    card.querySelector('[data-act=cut]').addEventListener("click", (e) => {
+      p.cut = !p.cut; if (p.cut) p.on = false;
+      e.target.classList.toggle("on", p.cut);
+      card.classList.toggle("cut", p.cut);
+      card.classList.toggle("on", p.on);
+      card.querySelector('[data-act=in]').classList.toggle("on", p.on);
+      build();
+    });
+    card.querySelector('[data-act=depth]').addEventListener("input", (e) => {
+      p.depth = +e.target.value / 100;
+      card.querySelector('[data-v=depth]').textContent = p.depth.toFixed(2);
+      build();
+    });
+    card.querySelector('[data-act=peak]').addEventListener("input", (e) => {
+      p.peak = +e.target.value;
+      card.querySelector('[data-v=peak]').textContent = p.peak;
+      paintCast();
+    });
+    const p0 = card.querySelector('[data-act=p0]');
+    const p1 = card.querySelector('[data-act=p1]');
+    const onPhase = () => {
+      let a = +p0.value / 1000, b = +p1.value / 1000;
+      if (a > b) { const t = a; a = b; b = t; }
+      p.phase = [a, b];
+      frame();
+    };
+    p0.addEventListener("input", onPhase);
+    p1.addEventListener("input", onPhase);
+  });
+}
+
+function syncTiles() {
+  const tone = skyTile();
+  cardsEl.querySelectorAll(".var").forEach(v => { v.style.background = tone; });
+  cardsEl.querySelectorAll(".card").forEach(card => {
+    const p = pick[card.dataset.key];
+    const win = card.querySelector(".win");
+    win.style.left = (p.phase[0] * 100) + "%";
+    win.style.width = ((p.phase[1] - p.phase[0]) * 100) + "%";
+    card.querySelector(".now").style.left = (S.progress * 100) + "%";
+  });
+}
+
+function render() {
+  syncTiles();
+  const inCast = CAST.filter(m => pick[m.key].on && !pick[m.key].cut);
+  const cut = CAST.filter(m => pick[m.key].cut);
+  const budget = liveCount + 156;   // + the shipped star field
+  const verdict = budget <= 250
+    ? `<span class="ok">${budget} / ~250 animating</span>`
+    : `<span class="warn">${budget} / ~250 animating - over the #57 budget</span>`;
+
+  readout.innerHTML = [
+    `progress <b>${S.progress.toFixed(3)}</b>`,
+    `roster in: <b>${inCast.length}</b> of ${CAST.length}` + (cut.length ? ` (cut ${cut.length})` : ""),
+    `on screen now: <b>${liveCount}</b> cast instances`,
+    verdict,
+    `depth layers <b>${layers.length}</b>`,
+  ].join("<br>");
+
+  exportEl.value = inCast.map(m => {
+    const p = pick[m.key];
+    return `${m.name} | ${m.variants[p.variant].name} | band ${m.band} | depth ${p.depth.toFixed(2)} | phase ${p.phase[0].toFixed(2)}-${p.phase[1].toFixed(2)} | peak ${p.peak} | motion ${m.motion}`;
+  }).join("\n") + (cut.length ? `\n\nCUT: ${cut.map(m => m.name).join(", ")}` : "");
+}
+
+// ---------------------------------------------------------------------------
+// Dock
+// ---------------------------------------------------------------------------
+const prog = document.getElementById("prog");
+prog.addEventListener("input", () => {
+  S.progress = +prog.value / 1000;
+  document.getElementById("vProg").textContent = S.progress.toFixed(3);
+  frame();
+});
+document.querySelectorAll("[data-pin]").forEach(b => b.addEventListener("click", () => {
+  S.progress = +b.dataset.pin;
+  prog.value = S.progress * 1000;
+  document.getElementById("vProg").textContent = S.progress.toFixed(3);
+  frame();
+}));
+document.getElementById("toggleSheet").addEventListener("click", (e) => {
+  S.sheet = !S.sheet;
+  document.body.classList.toggle("sheet-hidden", !S.sheet);
+  e.target.classList.toggle("on", S.sheet);
+});
+document.getElementById("rm").addEventListener("click", (e) => {
+  S.rm = !S.rm; document.body.classList.toggle("rm", S.rm); e.target.classList.toggle("on", S.rm);
+});
+document.getElementById("mobile").addEventListener("click", (e) => {
+  S.mobile = !S.mobile; document.body.classList.toggle("mobile", S.mobile);
+  e.target.classList.toggle("on", S.mobile); frame();
+});
+document.getElementById("soloBtn").addEventListener("click", (e) => {
+  S.solo = !S.solo; e.target.classList.toggle("on", S.solo); frame();
+});
+
+window.addEventListener("scroll", () => {
+  const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  S.progress = clamp01(window.scrollY / max);
+  prog.value = S.progress * 1000;
+  document.getElementById("vProg").textContent = S.progress.toFixed(3);
+  onScroll();
+}, { passive: true });
+window.addEventListener("resize", () => frame());
+
+// Start with the whole longlist ON, so the first look is the maximal scene and
+// the work is cutting rather than adding.
+for (const m of CAST) pick[m.key].on = true;
+
+buildCards();
+build();
+document.getElementById("toggleSheet").click();
+</script>
+</body>
+</html>

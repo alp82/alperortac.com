@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grain overlay: restore or drop</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    font-family: ui-monospace, monospace;
+    background: #0b0b12;
+    color: #cfd3dc;
+    min-height: 100vh;
+    padding: 1.5rem;
+  }
+  h1 { font-size: 1rem; font-weight: 600; margin-bottom: .25rem; }
+  p.sub { font-size: .8rem; color: #8b8fa0; margin-bottom: 1.25rem; }
+  .controls {
+    display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;
+    margin-bottom: 1.25rem; font-size: .8rem;
+  }
+  .controls label { display: flex; gap: .5rem; align-items: center; cursor: pointer; }
+  .controls input[type="range"] { width: 180px; accent-color: #f4a460; }
+  .controls .val { min-width: 4ch; color: #f4a460; }
+  .panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  .panel { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; }
+  .panel .tag {
+    position: absolute; top: .5rem; left: .6rem; z-index: 3;
+    font-size: .7rem; letter-spacing: .08em; text-transform: uppercase;
+    color: rgba(255,255,255,.75); text-shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+  .sky { position: absolute; inset: 0; }
+  .noon  .sky { background: linear-gradient(rgb(135,206,235), rgb(180,225,245)); }
+  .dusk  .sky { background: linear-gradient(rgb(90,70,120), rgb(244,164,96)); }
+  .night .sky { background: linear-gradient(rgb(8,4,24), rgb(20,10,50)); }
+  .land { position: absolute; inset: auto 0 0 0; height: 45%; z-index: 1; }
+  .land svg { width: 100%; height: 100%; display: block; }
+  .noon  .land path { fill: #4a7a8c; opacity: .35; }
+  .dusk  .land path { fill: #2e3a52; opacity: .55; }
+  .night .land path { fill: #0d0820; opacity: .8; }
+  .grain {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    opacity: var(--grain-o, 0.03);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  body.grain-off .grain { display: none; }
+</style>
+</head>
+<body>
+  <h1>Grain overlay: restore or drop</h1>
+  <p class="sub">The site requested this noise from a dead URL. This is what it looks like when it works. Shipped value was opacity 0.03.</p>
+
+  <div class="controls">
+    <label><input type="checkbox" id="on" checked> grain on</label>
+    <label>opacity <input type="range" id="o" min="0" max="0.12" step="0.005" value="0.03">
+      <span class="val" id="ov">0.030</span></label>
+  </div>
+
+  <div class="panels">
+    <div class="panel noon">
+      <span class="tag">noon</span>
+      <div class="sky"></div>
+      <div class="land"><svg viewBox="0 0 1000 400" preserveAspectRatio="none"><path shape-rendering="crispEdges" d="M0 400V300l100-50h50l100 100h50l150-150h50l100 80h100l200-180h100v300z"/></svg></div>
+      <div class="grain"></div>
+    </div>
+    <div class="panel dusk">
+      <span class="tag">dusk</span>
+      <div class="sky"></div>
+      <div class="land"><svg viewBox="0 0 1000 400" preserveAspectRatio="none"><path shape-rendering="crispEdges" d="M0 400V300l100-50h50l100 100h50l150-150h50l100 80h100l200-180h100v300z"/></svg></div>
+      <div class="grain"></div>
+    </div>
+    <div class="panel night">
+      <span class="tag">night</span>
+      <div class="sky"></div>
+      <div class="land"><svg viewBox="0 0 1000 400" preserveAspectRatio="none"><path shape-rendering="crispEdges" d="M0 400V300l100-50h50l100 100h50l150-150h50l100 80h100l200-180h100v300z"/></svg></div>
+      <div class="grain"></div>
+    </div>
+  </div>
+
+<script>
+  const on = document.getElementById('on');
+  const o = document.getElementById('o');
+  const ov = document.getElementById('ov');
+  function apply() {
+    document.body.classList.toggle('grain-off', !on.checked);
+    document.documentElement.style.setProperty('--grain-o', o.value);
+    ov.textContent = Number(o.value).toFixed(3);
+  }
+  on.addEventListener('change', apply);
+  o.addEventListener('input', apply);
+  apply();
+</script>
+</body>
+</html>
