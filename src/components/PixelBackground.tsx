@@ -203,6 +203,192 @@ function PixelBackgroundInner({
 			} as React.CSSProperties)
 		: undefined;
 
+	// Paint order equals depth order (#73). Layers are authored below in the
+	// old authoring order, then stable-sorted by --layer-depth before painting.
+	// Authoring order used to decide paint order, which left the depth-0.8
+	// cloud behind the depth-0.55 landscape. The sort is stable, so equal
+	// depths (sun/moon/moon2 at 0.12, the 0.55 cloud under the land) keep
+	// their authoring order.
+	const layers: { depth: number; node: React.ReactNode }[] = [
+		{
+			depth: 0,
+			node: (
+				<div
+					key="sky"
+					ref={(el) => {
+						if (journey) journey.targets.sky = el;
+					}}
+					className="dive-layer absolute inset-0"
+					data-depth="0"
+					style={
+						{
+							// Seeded from --sky-now (boot script owns the first frame, the
+							// driver owns it after). The old `transition-colors duration-100`
+							// is gone - it held the sky a tenth of a second behind the scroll.
+							backgroundColor: `var(--sky-now, ${rgbToCss(SKY_NOON)})`,
+							"--layer-depth": 0,
+						} as React.CSSProperties
+					}
+				/>
+			),
+		},
+		{
+			depth: 0.05,
+			node: (
+				<div
+					key="stars"
+					className="dive-layer dive-layer--crisp"
+					data-depth="0.05"
+					style={{ "--layer-depth": 0.05 } as React.CSSProperties}
+				>
+					<Stars
+						dense={extras?.denseStars ?? false}
+						forceShoot={extras?.shootingStar ?? false}
+						journey={journey}
+					/>
+				</div>
+			),
+		},
+		{
+			depth: 0.12,
+			node: (
+				<div
+					key="sun"
+					ref={(el) => {
+						if (journey) journey.targets.sun = el;
+					}}
+					className="dive-layer absolute"
+					data-depth="0.12"
+					style={
+						{
+							left: `var(--sun-x, ${SUN_DAY.startX}%)`,
+							top: `var(--sun-y, ${SUN_DAY.startY}%)`,
+							transform: "translate(-50%, -50%)",
+							opacity: "var(--sun-o, 1)",
+							"--layer-depth": 0.12,
+						} as React.CSSProperties
+					}
+				>
+					<div
+						className="w-24 h-24 bg-yellow-200 rounded-full shadow-[0_0_40px_rgba(253,224,71,0.5)] border-4 border-yellow-300"
+						style={
+							sunColor
+								? { backgroundColor: sunColor.bg, borderColor: sunColor.border }
+								: undefined
+						}
+					/>
+				</div>
+			),
+		},
+		{
+			depth: 0.12,
+			node: (
+				<div
+					key="moon"
+					ref={(el) => {
+						if (journey) journey.targets.moon = el;
+					}}
+					className="dive-layer absolute"
+					data-depth="0.12"
+					style={
+						{
+							left: `var(--moon-x, ${MOON_DAY.startX}%)`,
+							top: `var(--moon-y, ${MOON_DAY.startY}%)`,
+							transform: "translate(-50%, -50%)",
+							opacity: "var(--moon-o, 0)",
+							"--layer-depth": 0.12,
+						} as React.CSSProperties
+					}
+				>
+					<div className="w-20 h-20 bg-slate-100 rounded-full shadow-[0_0_60px_rgba(255,255,255,0.2)] border-4 border-slate-300 flex items-center justify-center overflow-hidden">
+						<div className="w-6 h-6 rounded-full bg-slate-200 absolute top-2 right-4 opacity-60" />
+						<div className="w-8 h-8 rounded-full bg-slate-200 absolute bottom-4 left-2 opacity-40" />
+						<div className="w-4 h-4 rounded-full bg-slate-200 absolute top-8 left-8 opacity-50" />
+					</div>
+				</div>
+			),
+		},
+	];
+
+	// Atmosphere toy: extra companion moon (celestial extra).
+	if (extras?.extraMoon) {
+		layers.push({
+			depth: 0.12,
+			node: (
+				<div
+					key="moon2"
+					ref={(el) => {
+						if (journey) journey.targets.moon2 = el;
+					}}
+					className="dive-layer absolute"
+					data-depth="0.12"
+					style={
+						{
+							left: `var(--moon-x, ${MOON_DAY.startX}%)`,
+							top: `var(--moon-y, ${MOON_DAY.startY}%)`,
+							transform: "translate(-165%, -150%)",
+							opacity: "var(--moon-o, 0)",
+							"--layer-depth": 0.12,
+						} as React.CSSProperties
+					}
+				>
+					<div className="w-12 h-12 bg-slate-100 rounded-full shadow-[0_0_40px_rgba(255,255,255,0.2)] border-4 border-slate-300" />
+				</div>
+			),
+		});
+	}
+
+	CLOUDS.forEach((cloud, i) => {
+		layers.push({
+			depth: cloud.depth,
+			node: (
+				<div
+					key={`cloud-${cloud.x}-${cloud.y}`}
+					className="dive-layer"
+					data-depth={cloud.depth}
+					style={{ "--layer-depth": cloud.depth } as React.CSSProperties}
+				>
+					<PixelCloud index={i} journey={journey} />
+				</div>
+			),
+		});
+	});
+
+	layers.push({
+		depth: 0.55,
+		node: (
+			<div
+				key="land"
+				ref={(el) => {
+					if (journey) journey.targets.land = el;
+				}}
+				className="dive-layer absolute bottom-0 w-full h-[40vh] pointer-events-none"
+				data-depth="0.55"
+				style={
+					{
+						opacity: "var(--land-o, 0.4)",
+						"--layer-depth": 0.55,
+					} as React.CSSProperties
+				}
+			>
+				<svg
+					viewBox="0 0 1000 400"
+					preserveAspectRatio="none"
+					className="w-full h-full opacity-30"
+					aria-hidden="true"
+				>
+					<path
+						fill={landscapeColor}
+						d="M0 400V300l100-50h50l100 100h50l150-150h50l100 80h100l200-180h100v300z"
+						style={{ shapeRendering: "crispEdges" }}
+					/>
+				</svg>
+			</div>
+		),
+	});
+
+	layers.sort((a, b) => a.depth - b.depth);
+
 	return (
 		<div className="dive-viewport fixed inset-y-0 left-0 right-0 md:right-20 -z-10">
 			{/* Opt-in fisheye filter for the lens-warp technique. techniqueFor never
@@ -240,143 +426,7 @@ function PixelBackgroundInner({
 				style={sceneStyle}
 				{...(dive ? { "data-technique": dive.technique } : {})}
 			>
-				<div
-					ref={(el) => {
-						if (journey) journey.targets.sky = el;
-					}}
-					className="dive-layer absolute inset-0"
-					data-depth="0"
-					style={
-						{
-							// Seeded from --sky-now (boot script owns the first frame, the
-							// driver owns it after). The old `transition-colors duration-100`
-							// is gone - it held the sky a tenth of a second behind the scroll.
-							backgroundColor: `var(--sky-now, ${rgbToCss(SKY_NOON)})`,
-							"--layer-depth": 0,
-						} as React.CSSProperties
-					}
-				/>
-
-				<div
-					className="dive-layer dive-layer--crisp"
-					data-depth="0.05"
-					style={{ "--layer-depth": 0.05 } as React.CSSProperties}
-				>
-					<Stars
-						dense={extras?.denseStars ?? false}
-						forceShoot={extras?.shootingStar ?? false}
-						journey={journey}
-					/>
-				</div>
-
-				<div
-					ref={(el) => {
-						if (journey) journey.targets.sun = el;
-					}}
-					className="dive-layer absolute"
-					data-depth="0.12"
-					style={
-						{
-							left: `var(--sun-x, ${SUN_DAY.startX}%)`,
-							top: `var(--sun-y, ${SUN_DAY.startY}%)`,
-							transform: "translate(-50%, -50%)",
-							opacity: "var(--sun-o, 1)",
-							"--layer-depth": 0.12,
-						} as React.CSSProperties
-					}
-				>
-					<div
-						className="w-24 h-24 bg-yellow-200 rounded-full shadow-[0_0_40px_rgba(253,224,71,0.5)] border-4 border-yellow-300"
-						style={
-							sunColor
-								? { backgroundColor: sunColor.bg, borderColor: sunColor.border }
-								: undefined
-						}
-					/>
-				</div>
-
-				<div
-					ref={(el) => {
-						if (journey) journey.targets.moon = el;
-					}}
-					className="dive-layer absolute"
-					data-depth="0.12"
-					style={
-						{
-							left: `var(--moon-x, ${MOON_DAY.startX}%)`,
-							top: `var(--moon-y, ${MOON_DAY.startY}%)`,
-							transform: "translate(-50%, -50%)",
-							opacity: "var(--moon-o, 0)",
-							"--layer-depth": 0.12,
-						} as React.CSSProperties
-					}
-				>
-					<div className="w-20 h-20 bg-slate-100 rounded-full shadow-[0_0_60px_rgba(255,255,255,0.2)] border-4 border-slate-300 flex items-center justify-center overflow-hidden">
-						<div className="w-6 h-6 rounded-full bg-slate-200 absolute top-2 right-4 opacity-60" />
-						<div className="w-8 h-8 rounded-full bg-slate-200 absolute bottom-4 left-2 opacity-40" />
-						<div className="w-4 h-4 rounded-full bg-slate-200 absolute top-8 left-8 opacity-50" />
-					</div>
-				</div>
-
-				{/* Atmosphere toy: extra companion moon (celestial extra). */}
-				{extras?.extraMoon && (
-					<div
-						ref={(el) => {
-							if (journey) journey.targets.moon2 = el;
-						}}
-						className="dive-layer absolute"
-						data-depth="0.12"
-						style={
-							{
-								left: `var(--moon-x, ${MOON_DAY.startX}%)`,
-								top: `var(--moon-y, ${MOON_DAY.startY}%)`,
-								transform: "translate(-165%, -150%)",
-								opacity: "var(--moon-o, 0)",
-								"--layer-depth": 0.12,
-							} as React.CSSProperties
-						}
-					>
-						<div className="w-12 h-12 bg-slate-100 rounded-full shadow-[0_0_40px_rgba(255,255,255,0.2)] border-4 border-slate-300" />
-					</div>
-				)}
-
-				{CLOUDS.map((cloud, i) => (
-					<div
-						key={`cloud-${cloud.x}-${cloud.y}`}
-						className="dive-layer"
-						data-depth={cloud.depth}
-						style={{ "--layer-depth": cloud.depth } as React.CSSProperties}
-					>
-						<PixelCloud index={i} journey={journey} />
-					</div>
-				))}
-
-				<div
-					ref={(el) => {
-						if (journey) journey.targets.land = el;
-					}}
-					className="dive-layer absolute bottom-0 w-full h-[40vh] pointer-events-none"
-					data-depth="0.55"
-					style={
-						{
-							opacity: "var(--land-o, 0.4)",
-							"--layer-depth": 0.55,
-						} as React.CSSProperties
-					}
-				>
-					<svg
-						viewBox="0 0 1000 400"
-						preserveAspectRatio="none"
-						className="w-full h-full opacity-30"
-						aria-hidden="true"
-					>
-						<path
-							fill={landscapeColor}
-							d="M0 400V300l100-50h50l100 100h50l150-150h50l100 80h100l200-180h100v300z"
-							style={{ shapeRendering: "crispEdges" }}
-						/>
-					</svg>
-				</div>
+				{layers.map((layer) => layer.node)}
 			</div>
 		</div>
 	);

@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE (throwaway) - wayfinder ticket #63: the scene-authoring panel.
+  Question: what shape of UI authors the cast schedule, and how it emits committed code.
+  Three variants on one page, switchable with the bottom pill or arrow keys:
+    A - Day board: every member's day on one timeline, playhead synced to scroll.
+    B - Roster + detail: member list left, deep editor right (Sky-panel idiom).
+    C - Code sheet: the scene.ts table made touchable, emit preview always visible.
+  Shared: scrubber + live mini-scene, EMIT button that prints the committed form.
+  Open with: any browser, file:// is fine. No build, no persistence.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scene Authoring Panel - prototype #63</title>
+<style>
+  :root {
+    --ink: #0f172a;
+    --paper: #ffffff;
+    --dim: #64748b;
+    --line: #cbd5e1;
+    --accent: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: ui-monospace, "JetBrains Mono", Menlo, monospace;
+    background: #e2e8f0;
+    color: var(--ink);
+    min-height: 100vh;
+    padding-bottom: 90px;
+  }
+  h1 { font-size: 15px; text-transform: uppercase; letter-spacing: -0.5px; font-weight: 900; }
+  .frame { max-width: 1180px; margin: 0 auto; padding: 16px; }
+  .topbar { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+  .topbar .q { font-size: 11px; color: var(--dim); font-family: system-ui, sans-serif; }
+
+  /* ---------- live scene preview ---------- */
+  .scene-wrap { border: 2px solid var(--ink); background: var(--paper); margin-bottom: 14px; }
+  .scene {
+    position: relative; height: 170px; overflow: hidden;
+    image-rendering: pixelated;
+  }
+  .scene svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .scrub-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-top: 2px solid var(--ink); background: var(--paper);
+  }
+  .scrub-row label { font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--dim); white-space: nowrap; }
+  .scrub-row input[type=range] { flex: 1; accent-color: var(--ink); }
+  .scrub-row .val { font-size: 11px; font-weight: 700; width: 52px; text-align: right; font-variant-numeric: tabular-nums; }
+  .live-read {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    padding: 6px 12px 10px; background: var(--paper);
+  }
+  .chip {
+    font-size: 9px; text-transform: uppercase; font-weight: 700;
+    border: 1px solid var(--ink); padding: 3px 7px; letter-spacing: 0.4px;
+    display: flex; gap: 6px; align-items: center;
+  }
+  .chip .dotp { width: 8px; height: 8px; background: var(--ink); display: inline-block; }
+  .chip small { color: var(--dim); font-weight: 400; text-transform: none; }
+
+  /* ---------- panel shell ---------- */
+  .panel { border: 2px solid var(--ink); background: var(--paper); min-height: 420px; }
+  .panel-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; border-bottom: 2px solid var(--ink);
+  }
+  .panel-head h2 { font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.8px; }
+  .panel-head .sub { font-size: 10px; color: var(--dim); font-family: system-ui, sans-serif; margin-top: 2px; }
+  .btn {
+    border: 2px solid var(--ink); background: var(--ink); color: #fff;
+    font: inherit; font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; padding: 8px 14px; cursor: pointer;
+  }
+  .btn.ghost { background: #fff; color: var(--ink); }
+  .btn:hover { opacity: 0.85; }
+
+  /* ---------- variant A: day board ---------- */
+  .board { padding: 14px 16px; }
+  .board-row { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: center; margin-bottom: 4px; }
+  .board-name {
+    font-size: 10px; text-transform: uppercase; font-weight: 700; text-align: right;
+    cursor: pointer; padding: 6px 4px;
+  }
+  .board-name.sel { background: var(--ink); color: #fff; }
+  .track {
+    position: relative; height: 30px; background: #f1f5f9;
+    border: 1px solid var(--line); cursor: pointer;
+  }
+  .track .phase { position: absolute; top: 0; bottom: 0; background: rgba(15,23,42,0.05); pointer-events: none; }
+  .win {
+    position: absolute; top: 4px; bottom: 4px; background: var(--ink);
+    opacity: 0.85;
+  }
+  .win .ramp { position: absolute; top: 0; bottom: 0; background: var(--paper); opacity: 0.55; }
+  .win .grip {
+    position: absolute; top: -4px; bottom: -4px; width: 8px; cursor: ew-resize; z-index: 2;
+  }
+  .playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); pointer-events: none; z-index: 3; }
+  .board-axis { display: grid; grid-template-columns: 92px 1fr; gap: 10px; margin-bottom: 8px; }
+  .axis { position: relative; height: 16px; font-size: 8px; color: var(--dim); }
+  .axis span { position: absolute; transform: translateX(-50%); text-transform: uppercase; }
+  .board-params {
+    margin-top: 12px; border-top: 2px solid var(--ink); padding-top: 10px;
+  }
+  .board-params .hint { font-size: 10px; color: var(--dim); font-family: system-ui, sans-serif; margin-bottom: 8px; }
+
+  /* ---------- variant B: roster + detail ---------- */
+  .split { display: grid; grid-template-columns: 240px 1fr; min-height: 420px; }
+  .roster { border-right: 2px solid var(--ink); }
+  .roster-item {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    border-bottom: 1px solid var(--line); padding: 10px 12px; cursor: pointer; font: inherit;
+  }
+  .roster-item .nm { font-size: 11px; text-transform: uppercase; font-weight: 700; display: flex; justify-content: space-between; }
+  .roster-item .nm .now { color: var(--dim); font-weight: 400; font-size: 9px; }
+  .roster-item.sel { background: var(--ink); color: #fff; }
+  .roster-item.sel .spark polyline { stroke: #fff; }
+  .roster-item.sel .spark line { stroke: var(--accent); }
+  .spark { width: 100%; height: 22px; margin-top: 4px; }
+  .detail { padding: 14px 18px; }
+  .detail h3 { font-size: 13px; text-transform: uppercase; font-weight: 900; margin-bottom: 10px; }
+  .winrow { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .winrow .lbl { font-size: 9px; text-transform: uppercase; color: var(--dim); width: 58px; }
+  .winrow input[type=number] {
+    width: 62px; font: inherit; font-size: 11px; padding: 3px 4px;
+    border: 1px solid var(--line); text-align: right;
+  }
+  .winrow .x { border: 1px solid var(--ink); background: #fff; cursor: pointer; font: inherit; font-size: 10px; padding: 2px 7px; }
+
+  /* ---------- shared param editor ---------- */
+  .params { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+  .param { border: 1px solid var(--line); padding: 8px 10px; }
+  .param .p-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .param .p-name { font-size: 10px; text-transform: uppercase; font-weight: 700; }
+  .param .mode {
+    font-size: 8px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;
+    border: 1px solid var(--ink); background: #fff; cursor: pointer; padding: 2px 6px; font-family: inherit;
+  }
+  .param .mode.track { background: var(--ink); color: #fff; }
+  .param .p-body { display: flex; gap: 6px; align-items: center; }
+  .param .p-body input[type=number] {
+    width: 100%; font: inherit; font-size: 11px; padding: 3px 4px;
+    border: 1px solid var(--line); text-align: right;
+  }
+  .param .arrow { font-size: 10px; color: var(--dim); }
+  .param .derived { font-size: 9px; color: var(--dim); font-family: system-ui, sans-serif; }
+
+  /* ---------- variant C: code sheet ---------- */
+  .sheet-split { display: grid; grid-template-columns: 1fr 380px; min-height: 420px; }
+  .sheet { padding: 12px 14px; overflow-x: auto; border-right: 2px solid var(--ink); }
+  table.grid { border-collapse: collapse; width: 100%; }
+  table.grid th, table.grid td {
+    border: 1px solid var(--line); padding: 4px 6px; font-size: 10px; text-align: right;
+    white-space: nowrap;
+  }
+  table.grid th { background: #f1f5f9; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; }
+  table.grid td.nm { text-align: left; font-weight: 700; text-transform: uppercase; }
+  table.grid td input {
+    width: 52px; border: none; font: inherit; font-size: 10px; text-align: right; background: transparent;
+  }
+  table.grid td input:focus { outline: 2px solid var(--accent); }
+  table.grid td .cellmode {
+    font-size: 7px; border: 1px solid var(--ink); background: #fff; cursor: pointer;
+    text-transform: uppercase; padding: 1px 4px; font-family: inherit; margin-right: 3px;
+  }
+  table.grid td .cellmode.track { background: var(--ink); color: #fff; }
+  .emitpane { padding: 12px 14px; background: #0f172a; color: #e2e8f0; overflow: auto; }
+  .emitpane h3 { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 8px; }
+  .emitpane pre { font-size: 10px; line-height: 1.55; white-space: pre; }
+
+  /* ---------- emit modal ---------- */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none;
+    align-items: center; justify-content: center; z-index: 50;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: #0f172a; color: #e2e8f0; border: 2px solid #fff;
+    width: min(680px, 92vw); max-height: 80vh; display: flex; flex-direction: column;
+  }
+  .modal .m-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid #334155; }
+  .modal .m-head h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .modal pre { padding: 14px; overflow: auto; font-size: 11px; line-height: 1.55; }
+
+  /* ---------- switcher pill ---------- */
+  .switcher {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 0; z-index: 60;
+    background: var(--ink); color: #fff; border: 2px solid #fff;
+    box-shadow: 0 6px 24px rgba(15,23,42,0.45);
+  }
+  .switcher button {
+    background: none; border: none; color: #fff; font: inherit; font-size: 16px;
+    padding: 10px 14px; cursor: pointer;
+  }
+  .switcher button:hover { background: rgba(255,255,255,0.15); }
+  .switcher .cur { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 0 10px; min-width: 240px; text-align: center; }
+
+  .footnote { font-size: 10px; color: var(--dim); font-family: system-ui, sans-serif; margin-top: 12px; line-height: 1.6; }
+  .footnote b { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="topbar">
+    <h1>Scene Authoring Panel</h1>
+    <div class="q">prototype #63 - three shapes for the same schedule. Scrub the day, edit, then EMIT.</div>
+  </div>
+
+  <!-- live scene preview + scrubber, shared by all variants -->
+  <div class="scene-wrap">
+    <div class="scene" id="scene"></div>
+    <div class="scrub-row">
+      <label for="scrub">scroll progress</label>
+      <input type="range" id="scrub" min="0" max="1" step="0.001" value="0.18">
+      <div class="val" id="scrubval">0.180</div>
+      <button class="btn" id="emitBtn">Emit scene.ts</button>
+    </div>
+    <div class="live-read" id="liveRead"></div>
+  </div>
+
+  <div class="panel" id="panel"></div>
+
+  <div class="footnote">
+    <b>Tracks are stop arrays now:</b> a number is fixed, an array of 2+ evenly spaced stops rides windowed
+    progress, for example count [2, 5, 3]. The + and &#8722; buttons on a TRACK param add and remove stops.
+    Drags snap to 0.005 and EMIT rounds to 3 decimals.
+    Windows ramp inside themselves: presence rises over rampIn after start, falls over rampOut before end.
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="m-head">
+      <h3>src/data/scene.ts - committed form</h3>
+      <div>
+        <button class="btn ghost" id="copyBtn">Copy</button>
+        <button class="btn" id="closeModal">Close</button>
+      </div>
+    </div>
+    <pre id="emitOut"></pre>
+  </div>
+</div>
+
+<div class="switcher">
+  <button id="prevV" aria-label="previous variant">&#8592;</button>
+  <div class="cur" id="curV"></div>
+  <button id="nextV" aria-label="next variant">&#8594;</button>
+</div>
+
+<script>
+"use strict";
+
+/* ============ schedule state (the thing all variants edit) ============ */
+
+const PARAMS = ["count", "intensity", "position", "size"];
+
+const schedule = {
+  clouds: {
+    windows: [{ start: 0.00, rampIn: 0.00, end: 0.60, rampOut: 0.10 }],
+    count: [5, 2], intensity: 1, position: 0.3, size: 1,
+  },
+  mist: {
+    windows: [{ start: 0.30, rampIn: 0.08, end: 0.62, rampOut: 0.08 }],
+    count: 4, intensity: [0.6, 1], position: 0.55, size: 1,
+  },
+  birds: {
+    windows: [{ start: 0.02, rampIn: 0.03, end: 0.42, rampOut: 0.06 }],
+    count: [1, 3, 2], intensity: 1, position: 0.25, size: 1,
+  },
+  fireflies: {
+    windows: [{ start: 0.45, rampIn: 0.05, end: 0.80, rampOut: 0.06 }],
+    count: [6, 24], intensity: [0.5, 1], position: 0.75, size: 1,
+  },
+  conifers: {
+    windows: [{ start: 0.00, rampIn: 0.00, end: 1.00, rampOut: 0.00 }],
+    count: 12, intensity: 1, position: 0.85, size: 1,
+  },
+  water: {
+    windows: [{ start: 0.40, rampIn: 0.12, end: 1.00, rampOut: 0.00 }],
+    count: 1, intensity: 1, position: 0.9, size: [0.2, 1],
+  },
+};
+const MEMBERS = Object.keys(schedule);
+
+/* sky phases from skyCurve (#53): phase1 noon->dusk, phase2 dusk->night */
+const PHASE1 = [0.060, 0.448], PHASE2 = [0.453, 0.787];
+
+let progress = 0.18;
+let selected = "clouds";
+let variant = (location.hash || "#a").slice(1);
+if (!["a", "b", "c"].includes(variant)) variant = "a";
+
+/* ============ schedule math ============ */
+
+function windowValue(w, t) {
+  if (t < w.start || t > w.end) return 0;
+  if (w.rampIn > 0 && t < w.start + w.rampIn) return (t - w.start) / w.rampIn;
+  if (w.rampOut > 0 && t > w.end - w.rampOut) return (w.end - t) / w.rampOut;
+  return 1;
+}
+function presence(m, t) {
+  return Math.max(0, ...schedule[m].windows.map(w => windowValue(w, t)));
+}
+function windowedU(m, t) {
+  let best = 0, u = 0;
+  for (const w of schedule[m].windows) {
+    const v = windowValue(w, t);
+    if (v > best) { best = v; u = Math.min(1, Math.max(0, (t - w.start) / Math.max(1e-6, w.end - w.start))); }
+  }
+  return u;
+}
+/* a track is an array of evenly spaced stops riding windowed progress */
+function paramValue(m, p, t) {
+  const spec = schedule[m][p];
+  if (typeof spec === "number") return spec;
+  const u = windowedU(m, t);
+  const seg = u * (spec.length - 1);
+  const i = Math.min(spec.length - 2, Math.floor(seg));
+  return spec[i] + (spec[i + 1] - spec[i]) * (seg - i);
+}
+
+/* ============ sky color for the preview ============ */
+
+function lerp(a, b, u) { return a + (b - a) * u; }
+function mix(c1, c2, u) { return c1.map((v, i) => Math.round(lerp(v, c2[i], u))); }
+function skyColors(t) {
+  const noonT = [[126, 190, 228], [180, 220, 240]];
+  const duskT = [[244, 150, 100], [90, 70, 120]];
+  const nightT = [[10, 16, 42], [24, 32, 64]];
+  let top, bot;
+  if (t <= PHASE1[0]) { top = noonT[0]; bot = noonT[1]; }
+  else if (t <= PHASE1[1]) {
+    const u = (t - PHASE1[0]) / (PHASE1[1] - PHASE1[0]);
+    top = mix(noonT[0], duskT[1], u); bot = mix(noonT[1], duskT[0], u);
+  } else if (t <= PHASE2[1]) {
+    const u = Math.max(0, (t - PHASE2[0]) / (PHASE2[1] - PHASE2[0]));
+    top = mix(duskT[1], nightT[0], u); bot = mix(duskT[0], nightT[1], u);
+  } else { top = nightT[0]; bot = nightT[1]; }
+  return [`rgb(${top.join(",")})`, `rgb(${bot.join(",")})`];
+}
+
+/* ============ live mini-scene ============ */
+
+const sceneEl = document.getElementById("scene");
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let z = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    z = (z + Math.imul(z ^ (z >>> 7), 61 | z)) ^ z;
+    return ((z ^ (z >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function renderScene() {
+  const [top, bot] = skyColors(progress);
+  const W = 1000, H = 170;
+  let s = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" shape-rendering="crispEdges">`;
+  s += `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="${top}"/><stop offset="1" stop-color="${bot}"/></linearGradient></defs>`;
+  s += `<rect width="${W}" height="${H}" fill="url(#sky)"/>`;
+
+  const night = Math.min(1, Math.max(0, (progress - PHASE2[0]) / (PHASE2[1] - PHASE2[0])));
+  if (night > 0) {
+    const r = mulberry32(7);
+    for (let i = 0; i < 40; i++) {
+      s += `<rect x="${(r() * W) | 0}" y="${(r() * H * 0.6) | 0}" width="2" height="2" fill="#fff" opacity="${(night * (0.3 + r() * 0.7)).toFixed(2)}"/>`;
+    }
+  }
+
+  /* water: sky through a hole, rises with its size track */
+  const pw = presence("water", progress);
+  if (pw > 0.01) {
+    const sz = paramValue("water", "size", progress) * pw;
+    s += `<rect x="600" y="${H - 26 * sz}" width="220" height="${26 * sz}" fill="${top}" opacity="0.9"/>`;
+  }
+
+  /* two ridges */
+  s += `<path d="M0 ${H} L0 120 L120 92 L260 118 L420 84 L600 122 L780 96 L1000 118 L1000 ${H} Z" fill="rgba(15,23,42,0.35)"/>`;
+  s += `<path d="M0 ${H} L0 142 L180 118 L360 140 L560 112 L760 142 L1000 124 L1000 ${H} Z" fill="rgba(15,23,42,0.6)"/>`;
+
+  /* conifers on the near crest */
+  const pc = presence("conifers", progress);
+  if (pc > 0.01) {
+    const n = Math.round(paramValue("conifers", "count", progress) * pc);
+    const r = mulberry32(21);
+    for (let i = 0; i < n; i++) {
+      const x = 30 + r() * 940, base = 128 + r() * 14, h = 14 + r() * 10;
+      s += `<path d="M${x} ${base - h} L${x - 5} ${base} L${x + 5} ${base} Z" fill="rgba(15,23,42,0.9)"/>`;
+    }
+  }
+
+  /* clouds */
+  const pcl = presence("clouds", progress);
+  if (pcl > 0.01) {
+    const n = Math.round(paramValue("clouds", "count", progress));
+    const r = mulberry32(3);
+    for (let i = 0; i < n; i++) {
+      const x = r() * 900, y = 14 + r() * 46, w = 60 + r() * 60;
+      s += `<g opacity="${(pcl * 0.85).toFixed(2)}"><rect x="${x}" y="${y}" width="${w}" height="10" fill="#fff"/><rect x="${x + w * 0.2}" y="${y - 7}" width="${w * 0.5}" height="8" fill="#fff"/></g>`;
+    }
+  }
+
+  /* mist band above the crest */
+  const pm = presence("mist", progress);
+  if (pm > 0.01) {
+    const inten = paramValue("mist", "intensity", progress);
+    s += `<rect x="0" y="100" width="${W}" height="16" fill="#fff" opacity="${(pm * inten * 0.28).toFixed(2)}"/>`;
+  }
+
+  /* birds */
+  const pb = presence("birds", progress);
+  if (pb > 0.01) {
+    const n = Math.round(paramValue("birds", "count", progress) * pb) || (pb > 0.5 ? 1 : 0);
+    const r = mulberry32(11);
+    for (let i = 0; i < n; i++) {
+      const x = 100 + r() * 700, y = 30 + r() * 40;
+      s += `<path d="M${x - 6} ${y} L${x} ${y - 4} L${x + 6} ${y}" stroke="rgba(15,23,42,0.8)" stroke-width="2" fill="none" opacity="${pb.toFixed(2)}"/>`;
+    }
+  }
+
+  /* fireflies */
+  const pf = presence("fireflies", progress);
+  if (pf > 0.01) {
+    const n = Math.round(paramValue("fireflies", "count", progress) * pf);
+    const inten = paramValue("fireflies", "intensity", progress);
+    const r = mulberry32(5);
+    for (let i = 0; i < n; i++) {
+      s += `<rect x="${(80 + r() * 840) | 0}" y="${(110 + r() * 46) | 0}" width="3" height="3" fill="#fbbf24" opacity="${(pf * inten * (0.4 + r() * 0.6)).toFixed(2)}"/>`;
+    }
+  }
+
+  s += `</svg>`;
+  sceneEl.innerHTML = s;
+
+  /* chips */
+  document.getElementById("liveRead").innerHTML = MEMBERS.map(m => {
+    const p = presence(m, progress);
+    const extras = PARAMS.filter(k => typeof schedule[m][k] !== "number" || k === "count")
+      .map(k => `${k[0]}=${(+paramValue(m, k, progress).toFixed(2))}`).join(" ");
+    return `<span class="chip" style="opacity:${Math.max(0.25, p)}">
+      <span class="dotp" style="opacity:${p}"></span>${m} <small>p=${p.toFixed(2)} ${extras}</small></span>`;
+  }).join("");
+}
+
+/* ============ shared param editor (used by A and B) ============ */
+
+function paramEditorHTML(m) {
+  return `<div class="params">` + PARAMS.map(p => {
+    const spec = schedule[m][p];
+    const isTrack = typeof spec !== "number";
+    const body = isTrack
+      ? spec.map((v, i) =>
+          `<input type="number" step="0.1" value="${v}" data-p="${p}" data-k="${i}">`
+        ).join(`<span class="arrow">&#8594;</span>`)
+        + `<button class="mode" data-addstop="${p}" title="add stop">+</button>`
+        + (spec.length > 2 ? `<button class="mode" data-delstop="${p}" title="remove last stop">&#8722;</button>` : "")
+      : `<input type="number" step="0.1" value="${spec}" data-p="${p}" data-k="fixed">`;
+    return `<div class="param">
+      <div class="p-head"><span class="p-name">${p}</span>
+        <button class="mode ${isTrack ? "track" : ""}" data-toggle="${p}">${isTrack ? "track" : "fixed"}</button>
+      </div>
+      <div class="p-body">${body}</div>
+      <div class="derived">now: ${(+paramValue(m, p, progress).toFixed(2))}</div>
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+function bindParamEditor(root, m) {
+  root.querySelectorAll(".param input").forEach(inp => {
+    inp.addEventListener("input", () => {
+      const p = inp.dataset.p, k = inp.dataset.k, v = Number(inp.value);
+      if (Number.isNaN(v)) return;
+      if (k === "fixed") schedule[m][p] = v;
+      else schedule[m][p][+k] = v;
+      renderScene(); refreshDerived(root, m);
+    });
+  });
+  root.querySelectorAll(".param .mode[data-toggle]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const p = btn.dataset.toggle, spec = schedule[m][p];
+      schedule[m][p] = typeof spec === "number" ? [spec, spec] : spec[0];
+      renderAll();
+    });
+  });
+  root.querySelectorAll(".param .mode[data-addstop]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const spec = schedule[m][btn.dataset.addstop];
+      spec.push(spec[spec.length - 1]);
+      renderAll();
+    });
+  });
+  root.querySelectorAll(".param .mode[data-delstop]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      schedule[m][btn.dataset.delstop].pop();
+      renderAll();
+    });
+  });
+}
+function refreshDerived(root, m) {
+  root.querySelectorAll(".param").forEach(el => {
+    const p = el.querySelector(".p-name").textContent;
+    el.querySelector(".derived").textContent = "now: " + (+paramValue(m, p, progress).toFixed(2));
+  });
+}
+
+/* ============ variant A: day board ============ */
+
+function renderA(panel) {
+  const axis = `<div class="board-axis"><div></div><div class="axis">
+    <span style="left:0%">hero</span>
+    <span style="left:${PHASE1[0] * 100}%">day</span>
+    <span style="left:${((PHASE1[1] + PHASE2[0]) / 2) * 100}%">dusk</span>
+    <span style="left:${PHASE2[1] * 100}%">night</span>
+    <span style="left:100%">end</span></div></div>`;
+
+  const rows = MEMBERS.map(m => {
+    const wins = schedule[m].windows.map((w, wi) => {
+      const l = w.start * 100, r = (1 - w.end) * 100;
+      const ri = (w.rampIn / Math.max(1e-6, w.end - w.start)) * 100;
+      const ro = (w.rampOut / Math.max(1e-6, w.end - w.start)) * 100;
+      return `<div class="win" style="left:${l}%;right:${r}%" data-m="${m}" data-w="${wi}">
+        <div class="ramp" style="left:0;width:${ri}%"></div>
+        <div class="ramp" style="right:0;width:${ro}%"></div>
+        <div class="grip" style="left:-4px" data-edge="start"></div>
+        <div class="grip" style="right:-4px" data-edge="end"></div>
+      </div>`;
+    }).join("");
+    return `<div class="board-row">
+      <div class="board-name ${m === selected ? "sel" : ""}" data-sel="${m}">${m}</div>
+      <div class="track" data-m="${m}">
+        <div class="phase" style="left:${PHASE1[0] * 100}%;width:${(PHASE1[1] - PHASE1[0]) * 100}%"></div>
+        <div class="phase" style="left:${PHASE2[0] * 100}%;width:${(PHASE2[1] - PHASE2[0]) * 100}%"></div>
+        ${wins}
+        <div class="playhead" style="left:${progress * 100}%"></div>
+      </div>
+    </div>`;
+  }).join("");
+
+  panel.innerHTML = `
+    <div class="panel-head">
+      <div><h2>A - Day Board</h2>
+      <div class="sub">The whole choreography on one screen. Drag window edges. Click a name for its params.</div></div>
+    </div>
+    <div class="board">${axis}${rows}
+      <div class="board-params">
+        <div class="hint">Params for <b style="text-transform:uppercase">${selected}</b>. Fixed by default, TRACK rides the member's windowed progress.</div>
+        ${paramEditorHTML(selected)}
+      </div>
+    </div>`;
+
+  panel.querySelectorAll("[data-sel]").forEach(el =>
+    el.addEventListener("click", () => { selected = el.dataset.sel; renderAll(); }));
+
+  /* drag window edges */
+  panel.querySelectorAll(".grip").forEach(grip => {
+    grip.addEventListener("pointerdown", e => {
+      e.preventDefault(); e.stopPropagation();
+      const winEl = grip.parentElement, track = winEl.parentElement;
+      const m = winEl.dataset.m, wi = +winEl.dataset.w, edge = grip.dataset.edge;
+      const rect = track.getBoundingClientRect();
+      const move = ev => {
+        let t = Math.min(1, Math.max(0, (ev.clientX - rect.left) / rect.width));
+        t = Math.round(t / 0.005) * 0.005;
+        const w = schedule[m].windows[wi];
+        if (edge === "start") w.start = Math.min(t, w.end - 0.02);
+        else w.end = Math.max(t, w.start + 0.02);
+        renderAll();
+      };
+      const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+      window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+    });
+  });
+
+  /* click a track to move the playhead */
+  panel.querySelectorAll(".track").forEach(track => {
+    track.addEventListener("click", e => {
+      if (e.target.closest(".win")) return;
+      const rect = track.getBoundingClientRect();
+      setProgress((e.clientX - rect.left) / rect.width);
+    });
+  });
+
+  bindParamEditor(panel, selected);
+}
+
+/* ============ variant B: roster + detail ============ */
+
+function sparkline(m, sel) {
+  let pts = [];
+  for (let i = 0; i <= 60; i++) {
+    const t = i / 60;
+    pts.push(`${(t * 100).toFixed(1)},${(20 - presence(m, t) * 18).toFixed(1)}`);
+  }
+  return `<svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
+    <polyline points="${pts.join(" ")}" fill="none" stroke="${sel ? "#fff" : "#0f172a"}" stroke-width="1.5"/>
+    <line x1="${progress * 100}" y1="0" x2="${progress * 100}" y2="22" stroke="#f59e0b" stroke-width="1.5"/>
+  </svg>`;
+}
+
+function renderB(panel) {
+  const items = MEMBERS.map(m => `
+    <button class="roster-item ${m === selected ? "sel" : ""}" data-sel="${m}">
+      <span class="nm">${m}<span class="now">p=${presence(m, progress).toFixed(2)}</span></span>
+      ${sparkline(m, m === selected)}
+    </button>`).join("");
+
+  const m = selected;
+  const winRows = schedule[m].windows.map((w, wi) => `
+    <div class="winrow" data-w="${wi}">
+      <span class="lbl">window ${wi + 1}</span>
+      start <input type="number" step="0.01" min="0" max="1" value="${w.start}" data-f="start">
+      ramp <input type="number" step="0.01" min="0" max="0.5" value="${w.rampIn}" data-f="rampIn">
+      end <input type="number" step="0.01" min="0" max="1" value="${w.end}" data-f="end">
+      ramp <input type="number" step="0.01" min="0" max="0.5" value="${w.rampOut}" data-f="rampOut">
+      ${schedule[m].windows.length > 1 ? `<button class="x" data-del="${wi}">x</button>` : ""}
+    </div>`).join("");
+
+  panel.innerHTML = `
+    <div class="panel-head">
+      <div><h2>B - Roster + Detail</h2>
+      <div class="sub">Sparklines show each member's whole day. The pane edits one member deeply.</div></div>
+    </div>
+    <div class="split">
+      <div class="roster">${items}</div>
+      <div class="detail">
+        <h3>${m}</h3>
+        ${winRows}
+        <div class="winrow"><button class="x" id="addWin">+ window</button></div>
+        <div style="height:10px"></div>
+        ${paramEditorHTML(m)}
+      </div>
+    </div>`;
+
+  panel.querySelectorAll("[data-sel]").forEach(el =>
+    el.addEventListener("click", () => { selected = el.dataset.sel; renderAll(); }));
+
+  panel.querySelectorAll(".winrow input").forEach(inp => {
+    inp.addEventListener("input", () => {
+      const wi = +inp.closest(".winrow").dataset.w;
+      const v = Number(inp.value);
+      if (Number.isNaN(v)) return;
+      schedule[m].windows[wi][inp.dataset.f] = v;
+      renderScene();
+      panel.querySelectorAll(".roster-item").forEach((el, i) => {
+        el.querySelector(".spark").outerHTML = sparkline(MEMBERS[i], MEMBERS[i] === selected);
+        el.querySelector(".now").textContent = "p=" + presence(MEMBERS[i], progress).toFixed(2);
+      });
+    });
+  });
+  panel.querySelectorAll("[data-del]").forEach(btn =>
+    btn.addEventListener("click", () => { schedule[m].windows.splice(+btn.dataset.del, 1); renderAll(); }));
+  const add = panel.querySelector("#addWin");
+  if (add) add.addEventListener("click", () => {
+    schedule[m].windows.push({ start: 0.5, rampIn: 0.05, end: 0.8, rampOut: 0.05 });
+    renderAll();
+  });
+
+  bindParamEditor(panel, m);
+}
+
+/* ============ variant C: code sheet ============ */
+
+function renderC(panel) {
+  const head = `<tr><th>member</th><th>win</th><th>start</th><th>rampIn</th><th>end</th><th>rampOut</th>
+    ${PARAMS.map(p => `<th>${p}</th>`).join("")}</tr>`;
+
+  const rows = MEMBERS.map(m => {
+    return schedule[m].windows.map((w, wi) => {
+      const winCells = ["start", "rampIn", "end", "rampOut"].map(f =>
+        `<td><input type="number" step="0.01" value="${w[f]}" data-m="${m}" data-w="${wi}" data-f="${f}"></td>`).join("");
+      const paramCells = wi === 0 ? PARAMS.map(p => {
+        const spec = schedule[m][p], isTrack = typeof spec !== "number";
+        const inner = isTrack
+          ? spec.map((v, i) => `<input type="number" step="0.1" value="${v}" data-m="${m}" data-p="${p}" data-k="${i}">`).join("&#8594;")
+          : `<input type="number" step="0.1" value="${spec}" data-m="${m}" data-p="${p}" data-k="fixed">`;
+        return `<td rowspan="${schedule[m].windows.length}">
+          <button class="cellmode ${isTrack ? "track" : ""}" data-m="${m}" data-toggle="${p}">${isTrack ? "tr" : "fx"}</button>${inner}</td>`;
+      }).join("") : "";
+      return `<tr>${wi === 0 ? `<td class="nm" rowspan="${schedule[m].windows.length}">${m}</td>` : ""}
+        <td>${wi + 1}</td>${winCells}${paramCells}</tr>`;
+    }).join("");
+  }).join("");
+
+  panel.innerHTML = `
+    <div class="panel-head">
+      <div><h2>C - Code Sheet</h2>
+      <div class="sub">The scene.ts table made touchable. The committed form is always in view, never stale.</div></div>
+    </div>
+    <div class="sheet-split">
+      <div class="sheet"><table class="grid">${head}${rows}</table></div>
+      <div class="emitpane"><h3>src/data/scene.ts (live)</h3><pre id="livePre">${emitSource()}</pre></div>
+    </div>`;
+
+  panel.querySelectorAll("td input").forEach(inp => {
+    inp.addEventListener("input", () => {
+      const v = Number(inp.value);
+      if (Number.isNaN(v)) return;
+      const m = inp.dataset.m;
+      if (inp.dataset.f) schedule[m].windows[+inp.dataset.w][inp.dataset.f] = v;
+      else if (inp.dataset.k === "fixed") schedule[m][inp.dataset.p] = v;
+      else schedule[m][inp.dataset.p][+inp.dataset.k] = v;
+      renderScene();
+      panel.querySelector("#livePre").textContent = emitSource();
+    });
+  });
+  panel.querySelectorAll(".cellmode").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const m = btn.dataset.m, p = btn.dataset.toggle, spec = schedule[m][p];
+      schedule[m][p] = typeof spec === "number" ? [spec, spec] : spec[0];
+      renderAll();
+    });
+  });
+}
+
+/* ============ emit ============ */
+
+/* emit quantizes: authored values read like a human wrote them */
+function round3(v) { return +v.toFixed(3); }
+function fmtSpec(spec) {
+  if (typeof spec === "number") return String(round3(spec));
+  return `[${spec.map(round3).join(", ")}]`;
+}
+function emitSource() {
+  let out = `import type { SceneSchedule } from "./sceneTypes";\n\n`;
+  out += `export const SCENE: SceneSchedule = {\n`;
+  for (const m of MEMBERS) {
+    const s = schedule[m];
+    out += `\t${m}: {\n\t\twindows: [\n`;
+    for (const w of s.windows) {
+      out += `\t\t\t{ start: ${round3(w.start)}, rampIn: ${round3(w.rampIn)}, end: ${round3(w.end)}, rampOut: ${round3(w.rampOut)} },\n`;
+    }
+    out += `\t\t],\n`;
+    for (const p of PARAMS) out += `\t\t${p}: ${fmtSpec(s[p])},\n`;
+    out += `\t},\n`;
+  }
+  out += `};\n`;
+  return out;
+}
+
+const modalBg = document.getElementById("modalBg");
+document.getElementById("emitBtn").addEventListener("click", () => {
+  document.getElementById("emitOut").textContent = emitSource();
+  modalBg.classList.add("open");
+});
+document.getElementById("closeModal").addEventListener("click", () => modalBg.classList.remove("open"));
+modalBg.addEventListener("click", e => { if (e.target === modalBg) modalBg.classList.remove("open"); });
+document.getElementById("copyBtn").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(emitSource()); } catch {}
+});
+
+/* ============ scrub + switcher ============ */
+
+const scrub = document.getElementById("scrub");
+function setProgress(t) {
+  progress = Math.min(1, Math.max(0, t));
+  scrub.value = progress;
+  document.getElementById("scrubval").textContent = progress.toFixed(3);
+  renderScene();
+  if (variant === "a") {
+    document.querySelectorAll(".playhead").forEach(el => { el.style.left = (progress * 100) + "%"; });
+    refreshDerived(document.getElementById("panel"), selected);
+  }
+  if (variant === "b") renderAll();
+}
+scrub.addEventListener("input", () => setProgress(Number(scrub.value)));
+
+const NAMES = { a: "A - Day Board", b: "B - Roster + Detail", c: "C - Code Sheet" };
+function renderAll() {
+  const panel = document.getElementById("panel");
+  if (variant === "a") renderA(panel);
+  else if (variant === "b") renderB(panel);
+  else renderC(panel);
+  document.getElementById("curV").textContent = NAMES[variant];
+  location.hash = variant;
+  renderScene();
+}
+function cycle(dir) {
+  const order = ["a", "b", "c"];
+  variant = order[(order.indexOf(variant) + dir + 3) % 3];
+  renderAll();
+}
+document.getElementById("prevV").addEventListener("click", () => cycle(-1));
+document.getElementById("nextV").addEventListener("click", () => cycle(1));
+window.addEventListener("keydown", e => {
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA") return;
+  if (e.key === "ArrowLeft") cycle(-1);
+  if (e.key === "ArrowRight") cycle(1);
+});
+
+renderAll();
+</script>
+</body>
+</html>

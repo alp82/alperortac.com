@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloudscape: the clouds across the whole day - wayfinder #78</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #0b1020;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: #e7edf7;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Scene shell - same structure as scene-depth-parallax.html.          */
+  /* ------------------------------------------------------------------ */
+  .viewport { position: fixed; inset: 0; z-index: -10; overflow: hidden; }
+  .scene { position: absolute; inset: 0; --calm: 1; }
+  .layer { position: absolute; inset: 0; }
+  .sky { position: absolute; inset: 0; }
+
+  .stars { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .star {
+    position: absolute; background: #fff; border-radius: 50%;
+    animation: twinkle var(--dur) ease-in-out infinite;
+    animation-delay: var(--del);
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.35); }
+  }
+
+  .body-wrap { position: absolute; transform: translate(-50%, -50%); }
+  .sun {
+    width: 96px; height: 96px; border-radius: 50%;
+    background: #fef08a; border: 4px solid #fde047;
+    box-shadow: 0 0 40px rgba(253,224,71,0.5);
+  }
+  .moon {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: #f1f5f9; border: 4px solid #cbd5e1;
+    box-shadow: 0 0 60px rgba(255,255,255,0.2);
+  }
+
+  .scene { --ox: 12px; --oy: 172px; }
+  .ridge {
+    position: absolute; pointer-events: none;
+    left: calc(-1 * var(--ox)); right: calc(-1 * var(--ox));
+    bottom: calc(-1 * var(--oy));
+    height: calc(var(--rh, 30vh) + var(--oy));
+  }
+  .ridge svg {
+    display: block; position: absolute; left: 0; right: 0; top: 0;
+    width: 100%; height: var(--rh, 30vh);
+  }
+  .ridge-base { position: absolute; left: 0; right: 0; top: var(--rh, 30vh); bottom: 0; }
+
+  /* ------------------------------------------------------------------ */
+  /* Clouds. One .layer per type at its depth; a pool of .cl elements.   */
+  /* Travel is smooth and runs on the CSS clock (rule from #60).         */
+  /* Sway amplitude scales with --calm via calc(), never the duration    */
+  /* (rule from #61), so evening can slow the drift without a re-time.   */
+  /* ------------------------------------------------------------------ */
+  .cl {
+    position: absolute; pointer-events: none;
+    transition: opacity 900ms ease;
+    animation: sway var(--sdur) ease-in-out var(--del) infinite alternate;
+  }
+  .cl svg { display: block; width: 100%; height: 100%; }
+  .cl path { shape-rendering: crispEdges; }
+  @keyframes sway {
+    from { translate: calc(-1 * var(--amp) * var(--calm, 1)) 0; }
+    to   { translate: calc(var(--amp) * var(--calm, 1)) 0; }
+  }
+  body.wrapmode .cl { animation: cwrap var(--wdur) linear var(--del) infinite; }
+  @keyframes cwrap {
+    from { translate: -45vw 0; }
+    to   { translate: 110vw 0; }
+  }
+  /* Count is prefix activation: an inactive element leaves the style
+     budget entirely - fade out, then stop the animation. */
+  .cl.off { opacity: 0 !important; animation-play-state: paused; }
+
+  .mist-veil { position: absolute; pointer-events: none; }
+  .mist-veil svg { display: block; width: 100%; height: 100%; }
+
+  /* ------------------------------------------------------------------ */
+  /* Mock page content: a 715px measure per screen, so the closeup        */
+  /* cloud's clearance of the content column is judged for real.          */
+  /* ------------------------------------------------------------------ */
+  .page { position: relative; z-index: 1; }
+  .screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 0 24px;
+  }
+  .col { width: 100%; max-width: 715px; }
+  .col h2 {
+    margin: 0 0 18px; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: rgba(255,255,255,0.5); mix-blend-mode: overlay;
+  }
+  .bar {
+    height: 12px; border-radius: 6px; margin-bottom: 12px;
+    background: rgba(255,255,255,0.14); mix-blend-mode: overlay;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Dock                                                                */
+  /* ------------------------------------------------------------------ */
+  .dock {
+    position: fixed; top: 12px; right: 12px; width: 330px; z-index: 50;
+    background: rgba(8,12,24,0.92); border: 1px solid rgba(125,211,252,0.25);
+    border-radius: 10px; padding: 12px; font-size: 11px;
+    max-height: calc(100vh - 24px); overflow-y: auto;
+    backdrop-filter: blur(8px);
+  }
+  .dock.hidden { display: none; }
+  .dock h1 { font-size: 12px; margin: 0 0 2px; letter-spacing: 0.08em; color: #7dd3fc; }
+  .dock .sub { color: #94a3b8; margin: 0 0 10px; line-height: 1.5; }
+  .grp { border-top: 1px solid rgba(125,211,252,0.14); padding-top: 8px; margin-top: 8px; }
+  .grp > .lbl { color: #7dd3fc; letter-spacing: 0.08em; text-transform: uppercase; font-size: 9px; margin-bottom: 6px; }
+  .fld { margin-bottom: 7px; }
+  .fld label { display: flex; justify-content: space-between; color: #cbd5e1; margin-bottom: 2px; }
+  .fld label b { color: #fff; font-weight: 600; }
+  .fld input[type=range] { width: 100%; accent-color: #7dd3fc; height: 2px; }
+  .fld input[type=text] {
+    width: 100%; background: rgba(125,211,252,0.08); border: 1px solid rgba(125,211,252,0.25);
+    color: #e7edf7; border-radius: 4px; padding: 3px 6px; font-family: inherit; font-size: 10px;
+  }
+  .row { display: flex; gap: 4px; flex-wrap: wrap; }
+  button {
+    background: rgba(125,211,252,0.1); border: 1px solid rgba(125,211,252,0.3);
+    color: #e7edf7; border-radius: 5px; padding: 4px 7px; cursor: pointer;
+    font-family: inherit; font-size: 10px;
+  }
+  button:hover { background: rgba(125,211,252,0.22); }
+  button.on { background: #7dd3fc; color: #08111f; border-color: #7dd3fc; }
+  .readout { color: #94a3b8; line-height: 1.6; font-size: 10px; }
+  .readout b { color: #7dd3fc; }
+  .warn { color: #fca5a5; }
+  .dock-toggle { position: fixed; top: 12px; right: 12px; z-index: 51; }
+
+  details.type { border-top: 1px solid rgba(125,211,252,0.14); padding: 5px 0; }
+  details.type summary {
+    cursor: pointer; display: flex; align-items: center; gap: 7px;
+    list-style: none; color: #cbd5e1;
+  }
+  details.type summary::-webkit-details-marker { display: none; }
+  details.type summary .nm { flex: 1; }
+  details.type summary .ct { color: #64748b; font-size: 9px; }
+  details.type .body { padding: 7px 0 3px 18px; }
+  details.type input[type=checkbox] { accent-color: #7dd3fc; }
+
+  .modal {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    background: rgba(4,8,18,0.7); align-items: center; justify-content: center;
+  }
+  .modal.open { display: flex; }
+  .modal .box {
+    width: min(680px, 92vw); max-height: 84vh; display: flex; flex-direction: column;
+    background: #0a1122; border: 1px solid rgba(125,211,252,0.35); border-radius: 10px; padding: 14px;
+  }
+  .modal textarea {
+    flex: 1; min-height: 380px; background: rgba(125,211,252,0.06); color: #e7edf7;
+    border: 1px solid rgba(125,211,252,0.2); border-radius: 6px; padding: 10px;
+    font-family: inherit; font-size: 10px; white-space: pre;
+  }
+  .modal .row { margin-top: 10px; justify-content: flex-end; }
+
+  .frame-mobile .page, .frame-mobile .viewport {
+    left: 50%; right: auto; width: 390px; transform: translateX(-50%);
+  }
+  .frame-mobile .viewport { border-left: 1px solid rgba(125,211,252,0.3); border-right: 1px solid rgba(125,211,252,0.3); }
+
+  /* Reduced motion: clouds freeze in the authored pose (brief rule 7). */
+  body.rm .cl { animation: none !important; translate: none !important; }
+  body.rm .star { animation: none !important; }
+  body.rm .layer { translate: none !important; }
+</style>
+</head>
+<body>
+
+<div class="viewport" id="viewport">
+  <div class="scene" id="scene"></div>
+</div>
+
+<div class="page" id="page"></div>
+
+<button class="dock-toggle" id="dockToggle" style="display:none">panel</button>
+
+<aside class="dock" id="dock">
+  <h1>CLOUDSCAPE</h1>
+  <p class="sub">wayfinder #78. Scroll = the whole day. Three day plans below, every knob live. Press <b>h</b> to hide.</p>
+
+  <div class="grp">
+    <div class="lbl">Day plans</div>
+    <div class="row">
+      <button data-preset="layered" class="on">D: layered</button>
+      <button data-preset="quiet">A: quiet sky</button>
+      <button data-preset="living">B: living day</button>
+      <button data-preset="dramatic">C: dramatic</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Jump</div>
+    <div class="row">
+      <button data-jump="0">hero (0)</button>
+      <button data-jump="0.2">morning</button>
+      <button data-jump="0.37">closeup</button>
+      <button data-jump="0.55">sunset</button>
+      <button data-jump="0.7">dusk</button>
+      <button data-jump="0.95">night</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Cloud types</div>
+    <div id="types"></div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Day-wide behavior</div>
+    <div class="row" style="margin-bottom:8px">
+      <button id="modeSway" class="on">drift: sway</button>
+      <button id="modeWrap">drift: wrap</button>
+    </div>
+    <div class="fld">
+      <label>evening calm (drift fades to) <b id="vCalm">0.35</b></label>
+      <input type="range" id="calm" min="0" max="1" step="0.05" value="0.35">
+    </div>
+    <div class="fld">
+      <label>day sink (px at day end) <b id="vSink">40</b></label>
+      <input type="range" id="sink" min="0" max="160" step="5" value="40">
+    </div>
+    <div class="fld">
+      <label>sky wash (aerial fade by depth) <b id="vWash">0.55</b></label>
+      <input type="range" id="wash" min="0" max="1" step="0.05" value="0.55">
+    </div>
+    <div class="fld">
+      <label>dusk shade (silhouette by night) <b id="vShade">0.45</b></label>
+      <input type="range" id="shade" min="0" max="1" step="0.05" value="0.45">
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Checks</div>
+    <div class="row">
+      <button id="mist">mist hint: on</button>
+      <button id="rm">reduced motion</button>
+      <button id="mobile">390px frame</button>
+      <button id="export">EXPORT SETTINGS</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="readout" id="readout"></div>
+  </div>
+</aside>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <h1 style="font-size:12px;color:#7dd3fc;margin:0 0 8px">CLOUDSCAPE SETTINGS</h1>
+    <textarea id="emit" readonly spellcheck="false"></textarea>
+    <div class="row">
+      <button id="copy">copy</button>
+      <button id="close">close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Ported constants - real values from the repo and the locked decisions, so
+// what you see transfers. Ladder + parallax are LOCKED (#59), not tunable here.
+// ---------------------------------------------------------------------------
+const SKY_NOON  = { r: 135, g: 206, b: 235 };
+const SKY_DUSK  = { r: 244, g: 164, b: 96  };
+const SKY_NIGHT = { r: 20,  g: 10,  b: 50  };
+const CURVE = { phase1: [0.06, 0.448], phase2: [0.453, 0.787], boost: 0.8 };
+const LAND_COLOR = { r: 74, g: 122, b: 140 };
+const SUN_WINDOW  = { start: 0,    end: 0.65 };
+const MOON_WINDOW = { start: 0.45, end: 1.0  };
+const SUN_ARC  = { startX: 75, startY: 12, endX: 28, endY: 58, arcLift: 8 };
+const MOON_ARC = { startX: 27, startY: 45, endX: 16, endY: 13, arcLift: 6 };
+const LADDER = { count: 10, near: 0.93, far: 0.21, haze: 0.80, weight: 0.25, vy: 160 };
+
+// The six types from scene-cast-sketchbook-2.html, viewBox 0 0 100 60.
+const CLOUD_TYPES = {
+  puff:    { name: "puff",          d: "M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z" },
+  cumulus: { name: "cumulus",       d: "M18 44h10V32h8V22h12V14h16v8h10v10h8v12h10v10H8V44z" },
+  cirrus:  { name: "cirrus streak", d: "M4 26h22v5H4zM14 34h40v5H14zM40 24h44v5H40zM56 34h34v5H56z" },
+  mass:    { name: "closeup mass",  d: "M6 50V34h10V24h14V16h26v8h16v6h14v6h10v10z" },
+  shelf:   { name: "shelf bank",    d: "M8 46h84v8H8zM20 38h56v8H20zM34 30h30v8H34z" },
+  twin:    { name: "twin puffs",    d: "M8 36h8v8H8zM16 28h20v8H16zM36 36h8v8h-8zM4 44h44v8H4zM56 40h6v6h-6zM62 34h16v6H62zM78 40h6v6h-6zM54 46h34v6H54z" },
+};
+const MIST_PATH = "M0 20h100v10H0zM12 34h64v8H12z";
+
+const clamp01 = x => Math.max(0, Math.min(1, x));
+const bell = t => Math.sin(t * Math.PI);
+const lerpRgb = (a, b, t) => ({
+  r: Math.round(a.r + (b.r - a.r) * t),
+  g: Math.round(a.g + (b.g - a.g) * t),
+  b: Math.round(a.b + (b.b - a.b) * t),
+});
+const css = c => `rgb(${c.r}, ${c.g}, ${c.b})`;
+const lum = c => (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b) / 255;
+
+function rgbToHsl({ r, g, b }) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  let h = 0, s = 0; const l = (mx + mn) / 2;
+  if (mx !== mn) {
+    const d = mx - mn;
+    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    if (mx === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return { h, s, l };
+}
+function hslToRgb({ h, s, l }) {
+  if (s === 0) { const v = Math.round(l * 255); return { r: v, g: v, b: v }; }
+  const hue = (p, q, t) => {
+    if (t < 0) t += 1; if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  return {
+    r: Math.round(hue(p, q, h + 1/3) * 255),
+    g: Math.round(hue(p, q, h) * 255),
+    b: Math.round(hue(p, q, h - 1/3) * 255),
+  };
+}
+function boostSat(rgb, boost, weight) {
+  const hsl = rgbToHsl(rgb);
+  hsl.s = clamp01(hsl.s * (1 + boost * weight));
+  return hslToRgb(hsl);
+}
+function skyRgbAt(p) {
+  const [s1, e1] = CURVE.phase1, [s2, e2] = CURVE.phase2;
+  if (p <= s1) return SKY_NOON;
+  if (p < e1) { const t = (p - s1) / (e1 - s1); return boostSat(lerpRgb(SKY_NOON, SKY_DUSK, t), CURVE.boost, bell(t)); }
+  if (p <= s2) return SKY_DUSK;
+  if (p < e2) { const t = (p - s2) / (e2 - s2); return boostSat(lerpRgb(SKY_DUSK, SKY_NIGHT, t), CURVE.boost, bell(t)); }
+  return SKY_NIGHT;
+}
+function windowed(p, w) { return clamp01((p - w.start) / (w.end - w.start)); }
+function arc(t, a) {
+  return {
+    x: a.startX + (a.endX - a.startX) * t,
+    y: a.startY + (a.endY - a.startY) * t - Math.sin(t * Math.PI) * a.arcLift,
+  };
+}
+const sunOpacityAt  = p => (p < 0.45 ? 1 : Math.max(0, 1 - (p - 0.45) / 0.2));
+const moonOpacityAt = p => (p < 0.5 ? 0 : Math.min(1, (p - 0.5) / 0.2));
+
+function mulberry32(seed) {
+  let a = seed;
+  return () => {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Presence with edge ramps INSIDE the window - the seed-schedule semantics.
+function presenceAt(p, w) {
+  if (p < w.start || p > w.end) return 0;
+  let v = 1;
+  if (w.rampIn > 0)  v = Math.min(v, (p - w.start) / w.rampIn);
+  if (w.rampOut > 0) v = Math.min(v, (w.end - p) / w.rampOut);
+  return clamp01(v);
+}
+// A track is 2+ evenly spaced stops riding windowed progress (the #63 model).
+function trackAt(stops, t) {
+  if (stops.length === 1) return stops[0];
+  const seg = (stops.length - 1) * clamp01(t);
+  const i = Math.min(stops.length - 2, Math.floor(seg));
+  return stops[i] + (stops[i + 1] - stops[i]) * (seg - i);
+}
+
+// ---------------------------------------------------------------------------
+// Per-type schedule. `window` is global progress. `band` is [top%, bottom%]
+// of the viewport. `count` is a stop track over the window. `lane: "gutter"`
+// keeps a type out of the 715px content column (the closeup rule).
+// ---------------------------------------------------------------------------
+function T(o) {
+  return Object.assign({
+    on: true, depth: 0.3, alpha: 1, window: { start: 0, rampIn: 0.06, end: 0.6, rampOut: 0.2 },
+    count: [2, 3, 2], band: [12, 35], size: 120, speed: 0.35, lane: "sky",
+  }, o);
+}
+
+const PRESETS = {
+  // D - Alper's layered approach (2026-08-01): an opacity + depth ladder.
+  // The mass is a soft far backdrop, cumulus a bit firmer, twins nearer,
+  // puffs crisp in front. Height bands stagger with depth: farther = higher.
+  layered: {
+    types: {
+      mass:    T({ on: true,  depth: 0.20, alpha: 0.30, window: { start: 0.00, rampIn: 0.00, end: 0.62, rampOut: 0.14 }, count: [1, 2, 1], band: [5, 16],  size: 500, speed: 0.20 }),
+      cirrus:  T({ on: true,  depth: 0.14, alpha: 0.35, window: { start: 0.15, rampIn: 0.10, end: 0.65, rampOut: 0.12 }, count: [2],       band: [3, 10],  size: 220, speed: 0.15 }),
+      cumulus: T({ on: true,  depth: 0.34, alpha: 0.50, window: { start: 0.00, rampIn: 0.00, end: 0.55, rampOut: 0.10 }, count: [2],       band: [13, 25], size: 200, speed: 0.30 }),
+      twin:    T({ on: true,  depth: 0.48, alpha: 0.70, window: { start: 0.00, rampIn: 0.00, end: 0.50, rampOut: 0.08 }, count: [2, 3, 2], band: [21, 33], size: 120, speed: 0.35 }),
+      puff:    T({ on: true,  depth: 0.62, alpha: 0.95, window: { start: 0.00, rampIn: 0.00, end: 0.60, rampOut: 0.12 }, count: [2, 3, 2], band: [27, 42], size: 140, speed: 0.40 }),
+      shelf:   T({ on: false, depth: 0.38, alpha: 0.60, window: { start: 0.42, rampIn: 0.07, end: 0.64, rampOut: 0.10 }, count: [1, 2],    band: [10, 24], size: 270, speed: 0.25 }),
+    },
+    globals: { calm: 0.35, sink: 30, wash: 0.55, shade: 0.45, wrap: true, mistHint: true },
+  },
+  // B - the recommended plan. Handoffs: twins and puffs open the hero, cumulus
+  // builds through the morning, the closeup mass passes once before noon's end,
+  // cirrus stretches the afternoon, a shelf bank rides the sunset out.
+  living: {
+    types: {
+      twin:    T({ on: true,  depth: 0.26, window: { start: 0.00, rampIn: 0.00, end: 0.30, rampOut: 0.08 }, count: [3, 2],    band: [10, 30], size: 95,  speed: 0.30 }),
+      puff:    T({ on: true,  depth: 0.30, window: { start: 0.00, rampIn: 0.00, end: 0.55, rampOut: 0.12 }, count: [2, 3, 2], band: [14, 36], size: 130, speed: 0.35 }),
+      cumulus: T({ on: true,  depth: 0.45, window: { start: 0.06, rampIn: 0.06, end: 0.44, rampOut: 0.08 }, count: [1, 2, 1], band: [18, 38], size: 185, speed: 0.30 }),
+      mass:    T({ on: true,  depth: 0.68, window: { start: 0.28, rampIn: 0.05, end: 0.46, rampOut: 0.06 }, count: [1],       band: [16, 26], size: 430, speed: 0.45, lane: "gutter" }),
+      cirrus:  T({ on: true,  depth: 0.18, window: { start: 0.16, rampIn: 0.08, end: 0.64, rampOut: 0.10 }, count: [2, 3, 2], band: [6, 20],  size: 210, speed: 0.20 }),
+      shelf:   T({ on: true,  depth: 0.38, window: { start: 0.42, rampIn: 0.07, end: 0.64, rampOut: 0.10 }, count: [1, 2],    band: [10, 24], size: 270, speed: 0.25 }),
+    },
+    globals: { calm: 0.35, sink: 40, wash: 0.55, shade: 0.45, wrap: false, mistHint: true },
+  },
+  // A - minimal. Puffs and cirrus only, no closeup, gentle everything.
+  quiet: {
+    types: {
+      twin:    T({ on: false, depth: 0.26, window: { start: 0.00, rampIn: 0.00, end: 0.30, rampOut: 0.08 }, count: [2],       band: [10, 30], size: 95,  speed: 0.25 }),
+      puff:    T({ on: true,  depth: 0.30, window: { start: 0.00, rampIn: 0.00, end: 0.60, rampOut: 0.20 }, count: [2, 3, 1], band: [12, 34], size: 125, speed: 0.25 }),
+      cumulus: T({ on: false, depth: 0.45, window: { start: 0.06, rampIn: 0.06, end: 0.44, rampOut: 0.08 }, count: [1, 2, 1], band: [18, 38], size: 185, speed: 0.25 }),
+      mass:    T({ on: false, depth: 0.68, window: { start: 0.28, rampIn: 0.05, end: 0.46, rampOut: 0.06 }, count: [1],       band: [16, 26], size: 430, speed: 0.35, lane: "gutter" }),
+      cirrus:  T({ on: true,  depth: 0.18, window: { start: 0.14, rampIn: 0.10, end: 0.62, rampOut: 0.14 }, count: [1, 2],    band: [6, 18],  size: 200, speed: 0.15 }),
+      shelf:   T({ on: false, depth: 0.38, window: { start: 0.42, rampIn: 0.07, end: 0.64, rampOut: 0.10 }, count: [1, 2],    band: [10, 24], size: 270, speed: 0.2 }),
+    },
+    globals: { calm: 0.45, sink: 20, wash: 0.6, shade: 0.4, wrap: false, mistHint: false },
+  },
+  // C - heavy weather. Shelf banks own the sky, the closeup lingers, counts up.
+  dramatic: {
+    types: {
+      twin:    T({ on: true,  depth: 0.26, window: { start: 0.00, rampIn: 0.00, end: 0.24, rampOut: 0.06 }, count: [3, 2],    band: [10, 30], size: 100, speed: 0.45 }),
+      puff:    T({ on: true,  depth: 0.30, window: { start: 0.00, rampIn: 0.00, end: 0.50, rampOut: 0.10 }, count: [3, 4, 2], band: [12, 38], size: 140, speed: 0.5 }),
+      cumulus: T({ on: true,  depth: 0.45, window: { start: 0.04, rampIn: 0.05, end: 0.50, rampOut: 0.08 }, count: [2, 3, 1], band: [16, 40], size: 210, speed: 0.45 }),
+      mass:    T({ on: true,  depth: 0.68, window: { start: 0.20, rampIn: 0.06, end: 0.55, rampOut: 0.08 }, count: [1, 2],    band: [14, 30], size: 520, speed: 0.55, lane: "gutter" }),
+      cirrus:  T({ on: true,  depth: 0.18, window: { start: 0.10, rampIn: 0.06, end: 0.66, rampOut: 0.10 }, count: [3, 4, 2], band: [5, 22],  size: 230, speed: 0.3 }),
+      shelf:   T({ on: true,  depth: 0.38, window: { start: 0.30, rampIn: 0.08, end: 0.68, rampOut: 0.10 }, count: [2, 3],    band: [8, 26],  size: 320, speed: 0.35 }),
+    },
+    globals: { calm: 0.5, sink: 70, wash: 0.45, shade: 0.55, wrap: false, mistHint: true },
+  },
+};
+
+// Live state: deep-copied from a preset, then edited freely.
+let CFG = JSON.parse(JSON.stringify(PRESETS.layered));
+const G = () => CFG.globals;
+
+// Mist hint - a fixed faint veil above the crest line, window from the seed
+// schedule (0.3 - 0.675). It only shows the handoff; the design is #79's.
+const MIST = { depth: 0.5, window: { start: 0.3, rampIn: 0.08, end: 0.675, rampOut: 0.08 }, y: 50, size: 420 };
+
+// ---------------------------------------------------------------------------
+// Scene build
+// ---------------------------------------------------------------------------
+const scene = document.getElementById("scene");
+const page = document.getElementById("page");
+const readout = document.getElementById("readout");
+
+const SCREENS = ["hero", "socials", "projects", "craft", "craft", "craft", "craft",
+                 "craft", "craft", "craft", "craft", "craft", "craft", "footer"];
+const rndBars = mulberry32(0xba75);
+page.innerHTML = SCREENS.map((n, i) => {
+  const bars = Array.from({ length: 6 }, () =>
+    `<div class="bar" style="width:${(38 + rndBars() * 58).toFixed(0)}%"></div>`).join("");
+  return `<section class="screen"><div class="col"><h2>${n} - screen ${i + 1}/${SCREENS.length}</h2>${bars}</div></section>`;
+}).join("");
+
+function ridgePath(seed, roughness) {
+  const rand = mulberry32(seed);
+  const pts = [];
+  let x = 0;
+  let y = 150 + rand() * 90;
+  pts.push(`M0 400V${y.toFixed(0)}`);
+  while (x < 1000) {
+    const run = 40 + rand() * 120;
+    const slope = 50 + rand() * 130;
+    const dy = (rand() - 0.5) * 2 * roughness;
+    const ny = Math.max(50, Math.min(370, y + dy));
+    const sx = Math.min(1000 - x, slope);
+    pts.push(`l${sx.toFixed(0)} ${(ny - y).toFixed(0)}`);
+    x += sx; y = ny;
+    if (x >= 1000) break;
+    const rx = Math.min(1000 - x, run);
+    pts.push(`h${rx.toFixed(0)}`);
+    x += rx;
+  }
+  pts.push("V400", "H0", "Z");
+  return pts.join("");
+}
+function ridgeSpecs() {
+  const out = [];
+  for (let i = 0; i < LADDER.count; i++) {
+    const t = i / (LADDER.count - 1);
+    const depth = LADDER.far + (LADDER.near - LADDER.far) * t;
+    out.push({ depth, t, seed: 0xa1e + i * 977, index: i });
+  }
+  return out;
+}
+
+let layers = [];       // { el, depth, kind }
+let cloudGroups = {};  // key -> { layer, els: [{el, home:{x,y}, idx}], paths: [] }
+let mistEl = null;
+let sunEl, moonEl, skyEl, starLayer;
+
+function build() {
+  scene.innerHTML = "";
+  layers = []; cloudGroups = {}; mistEl = null;
+
+  const pending = [];
+  const add = (depth, kind, inner = "", cls = "") => {
+    const el = document.createElement("div");
+    el.className = "layer " + cls;
+    el.style.setProperty("--layer-depth", depth);
+    el.innerHTML = inner;
+    pending.push({ el, depth, kind });
+    return el;
+  };
+
+  // sky (0)
+  skyEl = add(0, "sky", "");
+  skyEl.classList.add("sky");
+
+  // stars (0.05)
+  const rand = mulberry32(0x5eed);
+  const starHtml = Array.from({ length: 150 }, () => {
+    const x = rand() * 100, y = rand() * 100, s = rand() * 2.5 + 0.5;
+    const d = rand() * 5, du = rand() * 3 + 2;
+    return `<div class="star" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%;width:${s.toFixed(2)}px;height:${s.toFixed(2)}px;--del:${d.toFixed(2)}s;--dur:${du.toFixed(2)}s"></div>`;
+  }).join("");
+  starLayer = add(0.05, "stars", `<div class="stars">${starHtml}</div>`);
+  starLayer.style.opacity = "0";
+
+  // sun + moon (0.12)
+  sunEl = add(0.12, "sun", `<div class="body-wrap"><div class="sun"></div></div>`);
+  moonEl = add(0.12, "moon", `<div class="body-wrap"><div class="moon"></div></div>`);
+
+  // ridges
+  for (const r of ridgeSpecs()) {
+    const heightVh = 44 - r.t * 30;
+    const rough = 140 - r.t * 110;
+    add(r.depth, "ridge",
+      `<div class="ridge" data-ridge="${r.index}" style="--rh:${heightVh.toFixed(1)}vh">
+        <svg viewBox="0 0 1000 400" preserveAspectRatio="none">
+          <path d="${ridgePath(r.seed, rough)}" style="shape-rendering:crispEdges" fill="#000"/>
+        </svg>
+        <div class="ridge-base"></div></div>`);
+  }
+
+  // mist hint (0.5)
+  const mistLayer = add(MIST.depth, "mist",
+    `<div class="mist-veil" style="left:10%;top:${MIST.y}%;width:${MIST.size}px;height:${MIST.size * 0.6}px;opacity:0">
+       <svg viewBox="0 0 100 60" preserveAspectRatio="none"><path d="${MIST_PATH}" fill="rgba(255,255,255,0.35)"/></svg>
+     </div>`);
+  mistEl = mistLayer.querySelector(".mist-veil");
+
+  // cloud pools - one layer per type at its depth, max count rendered once
+  const vw = window.innerWidth;
+  const colHalf = Math.min(715, vw * 0.92) / 2 + 40;
+  for (const [key, t] of Object.entries(CFG.types)) {
+    const maxN = Math.max(...t.count.map(v => Math.round(v)), 1);
+    const layer = add(t.depth, "clouds:" + key);
+    const g = { layer, els: [], paths: [], key };
+    const rnd = mulberry32(0xc10d + key.length * 7919 + Math.round(t.depth * 997));
+    for (let i = 0; i < maxN; i++) {
+      const w = t.size * (0.75 + rnd() * 0.5);
+      const h = w * 0.6;
+      let xPct;
+      if (t.lane === "gutter" && vw > colHalf * 2 + 200) {
+        // keep the element's box inside a side gutter, clear of the column
+        const side = rnd() < 0.5 ? -1 : 1;
+        const gutterW = vw / 2 - colHalf;
+        // off-screen overhang is fine (overflow hidden); clamping would pull
+        // the box back over the column and break the clearance being judged
+        const x = vw / 2 + side * (colHalf + rnd() * Math.max(20, gutterW - w)) - (side < 0 ? w : 0);
+        xPct = (x / vw) * 100;
+      } else {
+        xPct = rnd() * 88;
+      }
+      const yPct = t.band[0] + rnd() * Math.max(1, t.band[1] - t.band[0]);
+      const amp = (20 + t.speed * 160) * (0.75 + rnd() * 0.5);
+      const durMul = (1.6 - t.depth) * (0.8 + rnd() * 0.5);
+      const sdur = (30 - t.speed * 18) * durMul;
+      const wdur = (150 - t.speed * 110) * durMul;
+      const del = -(rnd() * Math.max(sdur, 8));
+      const el = document.createElement("div");
+      el.className = "cl";
+      el.style.cssText = `left:${xPct.toFixed(2)}%;top:${yPct.toFixed(2)}%;width:${w.toFixed(0)}px;height:${h.toFixed(0)}px;` +
+        `--amp:${amp.toFixed(0)}px;--sdur:${sdur.toFixed(1)}s;--wdur:${wdur.toFixed(1)}s;--del:${del.toFixed(1)}s;`;
+      el.innerHTML = `<svg viewBox="0 0 100 60" preserveAspectRatio="none"><path d="${CLOUD_TYPES[key].d}"/></svg>`;
+      layer.appendChild(el);
+      g.els.push(el);
+      g.paths.push(el.querySelector("path"));
+    }
+    cloudGroups[key] = g;
+  }
+
+  // depth order is paint order (#73)
+  pending.sort((a, b) => a.depth - b.depth);
+  for (const l of pending) { scene.appendChild(l.el); layers.push(l); }
+  frame();
+}
+
+// ---------------------------------------------------------------------------
+// The driver. One rAF per scroll event. Per frame it writes, per cloud type:
+// group opacity, group translate (parallax + sink), one fill, and the count
+// activation classes - the member x few-properties budget from #61.
+// ---------------------------------------------------------------------------
+let progress = 0;
+let ticking = false;
+let pinned = null;
+let activeCloudCount = 0;
+
+function onScroll() {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => { ticking = false; frame(); });
+}
+
+function frame() {
+  if (!skyEl) return; // dock bindings fire before the first build()
+  const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  progress = pinned !== null ? pinned : clamp01(window.scrollY / max);
+
+  const sky = skyRgbAt(progress);
+  skyEl.style.backgroundColor = css(sky);
+  document.body.style.backgroundColor = css(sky);
+
+  const [p2s, p2e] = CURVE.phase2;
+  starLayer.style.opacity = String(clamp01((progress - p2s) / Math.max(p2e - p2s, 0.001)));
+
+  const sp = arc(windowed(progress, SUN_WINDOW), SUN_ARC);
+  const mp = arc(windowed(progress, MOON_WINDOW), MOON_ARC);
+  const sw = sunEl.querySelector(".body-wrap");
+  sw.style.left = sp.x + "%"; sw.style.top = sp.y + "%";
+  sunEl.style.opacity = String(sunOpacityAt(progress));
+  const mw = moonEl.querySelector(".body-wrap");
+  mw.style.left = mp.x + "%"; mw.style.top = mp.y + "%";
+  moonEl.style.opacity = String(moonOpacityAt(progress));
+
+  // ridges: locked aerial-perspective accumulation from #59
+  const ridges = ridgeSpecs();
+  let acc = sky;
+  layers.filter(l => l.kind === "ridge").forEach((l, i) => {
+    const r = ridges[i];
+    const washR = LADDER.haze * (1 - r.t);
+    const tone = lerpRgb(LAND_COLOR, sky, washR);
+    const dark = lerpRgb(tone, { r: 0, g: 0, b: 0 }, 0.10 + r.t * 0.30);
+    acc = lerpRgb(acc, dark, clamp01((0.55 + r.t * 0.35) * LADDER.weight));
+    const fill = css(acc);
+    l.el.querySelector("path").setAttribute("fill", fill);
+    l.el.querySelector(".ridge-base").style.backgroundColor = fill;
+  });
+
+  // day-wide drift calm: sway amplitude eases toward `calm` across the day.
+  // Amplitude only - duration and delay never move (#61 rule).
+  const calmNow = 1 - (1 - G().calm) * progress;
+  scene.style.setProperty("--calm", calmNow.toFixed(3));
+
+  // clouds
+  const duskT = clamp01(1 - lum(sky) / lum(SKY_NOON));
+  activeCloudCount = 0;
+  for (const [key, t] of Object.entries(CFG.types)) {
+    const g = cloudGroups[key];
+    if (!g) continue;
+    const pres = t.on ? presenceAt(progress, t.window) : 0;
+    g.layer.style.opacity = (pres * (t.alpha ?? 1)).toFixed(3);
+
+    const wt = windowed(progress, t.window);
+    const nActive = pres > 0 ? Math.max(0, Math.round(trackAt(t.count, wt))) : 0;
+    g.els.forEach((el, i) => el.classList.toggle("off", i >= nActive));
+    if (pres > 0) activeCloudCount += Math.min(nActive, g.els.length);
+
+    // color: derived from the sky at the type's depth and time. Far clouds
+    // wash toward the sky, near clouds stay bright, dusk pulls all of them
+    // toward silhouette. Opaque fill, per the brief.
+    const washT = clamp01(G().wash * (1 - t.depth * 0.85));
+    let tone = lerpRgb({ r: 250, g: 250, b: 252 }, sky, washT);
+    tone = lerpRgb(tone, lerpRgb(sky, { r: 10, g: 8, b: 24 }, 0.55), duskT * G().shade * (0.4 + t.depth * 0.6));
+    const fill = css(tone);
+    for (const p of g.paths) p.setAttribute("fill", fill);
+  }
+
+  // mist hint
+  if (mistEl) mistEl.style.opacity = (G().mistHint ? presenceAt(progress, MIST.window) * 0.5 : 0).toFixed(3);
+
+  applyParallax();
+  render();
+}
+
+// Locked #59 parallax: translate longhand, vertical rise, +sink for clouds.
+function applyParallax() {
+  const wScale = Math.min(1, window.innerWidth / 1440);
+  const vy = LADDER.vy * wScale;
+  for (const l of layers) {
+    const py = -((progress - 0.5) * 2 * vy * l.depth);
+    const sink = l.kind.startsWith("clouds") ? G().sink * progress * l.depth : 0;
+    const total = py + sink;
+    l.el.style.translate = total === 0 ? "" : `0px ${total.toFixed(2)}px`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dock: per-type rows
+// ---------------------------------------------------------------------------
+const typesRoot = document.getElementById("types");
+const ORDER = ["twin", "puff", "cumulus", "mass", "cirrus", "shelf"];
+
+function fld(label, input) { return `<div class="fld"><label>${label}</label>${input}</div>`; }
+function slider(id, min, max, step, val) {
+  return `<input type="range" data-k="${id}" min="${min}" max="${max}" step="${step}" value="${val}">`;
+}
+
+function buildTypeRows() {
+  typesRoot.innerHTML = ORDER.map(key => {
+    const t = CFG.types[key];
+    return `<details class="type" data-type="${key}">
+      <summary>
+        <input type="checkbox" data-k="on" ${t.on ? "checked" : ""}>
+        <span class="nm">${CLOUD_TYPES[key].name}</span>
+        <span class="ct" data-live></span>
+        <button data-k="solo">solo</button>
+      </summary>
+      <div class="body">
+        ${fld(`window start <b data-v="ws">${t.window.start}</b>`, slider("ws", 0, 0.9, 0.005, t.window.start))}
+        ${fld(`window end <b data-v="we">${t.window.end}</b>`, slider("we", 0.05, 1, 0.005, t.window.end))}
+        ${fld(`ramps in/out <b data-v="ramp">${t.window.rampOut}</b>`, slider("ramp", 0, 0.25, 0.005, t.window.rampOut))}
+        ${fld(`count stops <b></b>`, `<input type="text" data-k="count" value="${t.count.join(", ")}">`)}
+        ${fld(`transparency (alpha) <b data-v="alpha">${t.alpha}</b>`, slider("alpha", 0.05, 1, 0.05, t.alpha))}
+        ${fld(`depth <b data-v="depth">${t.depth}</b>`, slider("depth", 0.05, 0.9, 0.01, t.depth))}
+        ${fld(`size (px) <b data-v="size">${t.size}</b>`, slider("size", 40, 640, 5, t.size))}
+        ${fld(`height band top % <b data-v="b0">${t.band[0]}</b>`, slider("b0", 0, 55, 1, t.band[0]))}
+        ${fld(`height band bottom % <b data-v="b1">${t.band[1]}</b>`, slider("b1", 2, 60, 1, t.band[1]))}
+        ${fld(`drift speed <b data-v="speed">${t.speed}</b>`, slider("speed", 0, 1, 0.05, t.speed))}
+        <div class="row"><button data-k="lane">${t.lane === "gutter" ? "lane: gutter (clears content)" : "lane: whole sky"}</button></div>
+      </div>
+    </details>`;
+  }).join("");
+
+  typesRoot.querySelectorAll("details.type").forEach(box => {
+    const key = box.dataset.type;
+    const t = () => CFG.types[key];
+    box.querySelector('[data-k="on"]').addEventListener("change", e => { t().on = e.target.checked; frame(); });
+    box.querySelector('[data-k="solo"]').addEventListener("click", e => {
+      e.preventDefault();
+      for (const k of ORDER) CFG.types[k].on = k === key;
+      buildTypeRows(); frame();
+    });
+    box.querySelector('[data-k="lane"]').addEventListener("click", e => {
+      e.preventDefault();
+      t().lane = t().lane === "gutter" ? "sky" : "gutter";
+      e.target.textContent = t().lane === "gutter" ? "lane: gutter (clears content)" : "lane: whole sky";
+      build();
+    });
+    box.querySelector('[data-k="count"]').addEventListener("change", e => {
+      const stops = e.target.value.split(",").map(s => parseFloat(s.trim())).filter(v => !isNaN(v));
+      if (stops.length) { t().count = stops; build(); }
+    });
+    box.querySelectorAll("input[type=range]").forEach(inp => {
+      inp.addEventListener("input", () => {
+        const v = parseFloat(inp.value);
+        const k = inp.dataset.k;
+        const out = box.querySelector(`[data-v="${k}"]`);
+        if (out) out.textContent = v;
+        if (k === "alpha") { t().alpha = v; frame(); }
+        else if (k === "ws") { t().window.start = v; frame(); }
+        else if (k === "we") { t().window.end = v; frame(); }
+        else if (k === "ramp") { t().window.rampIn = v; t().window.rampOut = v; frame(); }
+        else if (k === "depth") { t().depth = v; build(); }
+        else if (k === "size") { t().size = v; build(); }
+        else if (k === "b0") { t().band[0] = v; build(); }
+        else if (k === "b1") { t().band[1] = v; build(); }
+        else if (k === "speed") { t().speed = v; build(); }
+      });
+    });
+  });
+}
+
+// globals
+function bindGlobal(id, key, fmt) {
+  const el = document.getElementById(id);
+  const out = document.getElementById("v" + id[0].toUpperCase() + id.slice(1));
+  el.value = G()[key];
+  const sync = () => {
+    G()[key] = parseFloat(el.value);
+    if (out) out.textContent = fmt ? fmt(G()[key]) : G()[key];
+    frame();
+  };
+  el.addEventListener("input", sync);
+  sync();
+}
+function bindAllGlobals() {
+  bindGlobal("calm", "calm", v => v.toFixed(2));
+  bindGlobal("sink", "sink", v => v);
+  bindGlobal("wash", "wash", v => v.toFixed(2));
+  bindGlobal("shade", "shade", v => v.toFixed(2));
+  document.getElementById("modeSway").classList.toggle("on", !G().wrap);
+  document.getElementById("modeWrap").classList.toggle("on", G().wrap);
+  document.body.classList.toggle("wrapmode", G().wrap);
+  const mb = document.getElementById("mist");
+  mb.textContent = "mist hint: " + (G().mistHint ? "on" : "off");
+}
+
+document.getElementById("modeSway").addEventListener("click", () => { G().wrap = false; bindAllGlobals(); frame(); });
+document.getElementById("modeWrap").addEventListener("click", () => { G().wrap = true; bindAllGlobals(); frame(); });
+document.getElementById("mist").addEventListener("click", () => { G().mistHint = !G().mistHint; bindAllGlobals(); frame(); });
+
+const rmBtn = document.getElementById("rm");
+rmBtn.addEventListener("click", () => {
+  document.body.classList.toggle("rm");
+  rmBtn.classList.toggle("on");
+  frame();
+});
+const mobBtn = document.getElementById("mobile");
+mobBtn.addEventListener("click", () => {
+  document.body.classList.toggle("frame-mobile");
+  mobBtn.classList.toggle("on");
+  build();
+});
+
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
+  CFG = JSON.parse(JSON.stringify(PRESETS[b.dataset.preset]));
+  document.querySelectorAll("[data-preset]").forEach(x => x.classList.toggle("on", x === b));
+  buildTypeRows(); bindAllGlobals(); build();
+}));
+
+document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => {
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  window.scrollTo({ top: parseFloat(b.dataset.jump) * max, behavior: "smooth" });
+}));
+
+// ---------------------------------------------------------------------------
+// Export - the settings block this ticket links from its resolution.
+// ---------------------------------------------------------------------------
+const q3 = v => Math.round(v * 1000) / 1000;
+function emitSettings() {
+  const lines = ["// Cloudscape settings - wayfinder #78 (.prototypes/scene-cloudscape.html)", "export const CLOUDSCAPE = {", "\ttypes: {"];
+  for (const key of ORDER) {
+    const t = CFG.types[key];
+    if (!t.on) continue;
+    const w = t.window;
+    lines.push(`\t\t${key}: {`);
+    lines.push(`\t\t\twindow: { start: ${q3(w.start)}, rampIn: ${q3(w.rampIn)}, end: ${q3(w.end)}, rampOut: ${q3(w.rampOut)} },`);
+    lines.push(`\t\t\tcount: [${t.count.map(q3).join(", ")}], depth: ${q3(t.depth)}, alpha: ${q3(t.alpha)}, size: ${q3(t.size)},`);
+    lines.push(`\t\t\tband: [${q3(t.band[0])}, ${q3(t.band[1])}], speed: ${q3(t.speed)}, lane: "${t.lane}",`);
+    lines.push("\t\t},");
+  }
+  lines.push("\t},");
+  const g = G();
+  lines.push(`\tdrift: "${g.wrap ? "wrap" : "sway"}",`);
+  lines.push(`\teveningCalm: ${q3(g.calm)}, // sway amplitude multiplier at day end`);
+  lines.push(`\tdaySink: ${q3(g.sink)}, // px of downward drift at day end, scaled by depth`);
+  lines.push(`\tskyWash: ${q3(g.wash)}, dusk_shade: ${q3(g.shade)},`);
+  lines.push("};");
+  return lines.join("\n");
+}
+const modal = document.getElementById("modal");
+document.getElementById("export").addEventListener("click", () => {
+  document.getElementById("emit").value = emitSettings();
+  modal.classList.add("open");
+});
+document.getElementById("close").addEventListener("click", () => modal.classList.remove("open"));
+document.getElementById("copy").addEventListener("click", () => {
+  navigator.clipboard.writeText(document.getElementById("emit").value);
+  document.getElementById("copy").textContent = "copied";
+  setTimeout(() => { document.getElementById("copy").textContent = "copy"; }, 1200);
+});
+
+// ---------------------------------------------------------------------------
+// Readout
+// ---------------------------------------------------------------------------
+let frames = 0, fps = 0, last = performance.now();
+function tick(now) {
+  frames++;
+  if (now - last >= 1000) { fps = frames; frames = 0; last = now; render(); }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+function render() {
+  const starsOn = progress > CURVE.phase2[0] ? 150 : 0;
+  const total = activeCloudCount + starsOn;
+  const over = total > 250;
+  const liveCounts = [];
+  for (const key of ORDER) {
+    const g = cloudGroups[key];
+    if (!g) continue;
+    const n = g.els.filter(e => !e.classList.contains("off")).length;
+    const box = typesRoot.querySelector(`[data-type="${key}"] [data-live]`);
+    if (box) box.textContent = CFG.types[key].on ? `${n} live` : "off";
+    if (n > 0 && CFG.types[key].on) liveCounts.push(`${key} ${n}`);
+  }
+  readout.innerHTML = [
+    `progress <b>${progress.toFixed(3)}</b>`,
+    `clouds live <b>${activeCloudCount}</b> (${liveCounts.join(", ") || "none"})`,
+    `animating now <b>${total}</b> / ~250 budget` + (over ? ` <span class="warn">OVER</span>` : ""),
+    `fps <b>${fps}</b>`,
+    `viewport <b>${window.innerWidth}x${window.innerHeight}</b>`,
+  ].join("<br>");
+}
+
+window.addEventListener("scroll", onScroll, { passive: true });
+window.addEventListener("resize", () => build());
+
+buildTypeRows();
+bindAllGlobals();
+build();
+
+// Shareable state: #preset=dramatic&p=0.37&pfix=0.5&rm=1&mobile=1&nodock=1
+(function fromHash() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  if (q.get("preset") && PRESETS[q.get("preset")]) {
+    document.querySelector(`[data-preset="${q.get("preset")}"]`).click();
+  }
+  if (q.get("rm") === "1") rmBtn.click();
+  if (q.get("mobile") === "1") mobBtn.click();
+  if (q.get("p")) {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    window.scrollTo(0, parseFloat(q.get("p")) * max);
+  }
+  if (q.get("pfix")) { pinned = parseFloat(q.get("pfix")); frame(); }
+  if (q.get("nodock") === "1") {
+    document.getElementById("dock").classList.add("hidden");
+    document.getElementById("dockToggle").style.display = "block";
+  }
+})();
+
+document.addEventListener("keydown", e => {
+  if (e.key === "h" && !e.target.matches("input, textarea")) {
+    const d = document.getElementById("dock"), t = document.getElementById("dockToggle");
+    d.classList.toggle("hidden");
+    t.style.display = d.classList.contains("hidden") ? "block" : "none";
+  }
+});
+document.getElementById("dockToggle").addEventListener("click", () => {
+  document.getElementById("dock").classList.remove("hidden");
+  document.getElementById("dockToggle").style.display = "none";
+});
+</script>
+</body>
+</html>
