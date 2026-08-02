@@ -36,10 +36,10 @@ export const TAPE_QUOTES: TapeQuote[] = [
 	},
 	{
 		sym: "BTC",
-		deltaPct: 0.74,
+		deltaPct: 0.94,
 		high: 63521.16,
 		low: 62751.01,
-		volume: 15796861952,
+		volume: 15017825280,
 	},
 	{
 		sym: "MSFT",
@@ -50,10 +50,10 @@ export const TAPE_QUOTES: TapeQuote[] = [
 	},
 	{
 		sym: "ETH",
-		deltaPct: 1.24,
+		deltaPct: 1.77,
 		high: 1880.4,
 		low: 1842.18,
-		volume: 6265636352,
+		volume: 5670557184,
 	},
 	{
 		sym: "TSLA",
