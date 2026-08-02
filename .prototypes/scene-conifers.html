@@ -211,7 +211,8 @@
   <div class="grp">
     <div class="lbl">Tree line</div>
     <div class="row">
-      <button data-preset="crown" class="on">A: near stands</button>
+      <button data-preset="walk" class="on">your pass</button>
+      <button data-preset="crown">A: near stands</button>
       <button data-preset="midline">B: mid tree line</button>
       <button data-preset="horizon">C: to the horizon</button>
     </div>
@@ -254,8 +255,8 @@
   <div class="grp">
     <div class="lbl">Green</div>
     <div class="row" style="margin-bottom:7px">
-      <button data-green="hold" class="on">holds at night</button>
-      <button data-green="wash">washes out</button>
+      <button data-green="hold">holds at night</button>
+      <button data-green="wash" class="on">washes out</button>
     </div>
     <div id="green"></div>
   </div>
@@ -572,6 +573,15 @@ function CDef(o) {
 }
 
 const PRESETS = {
+  // Alper's own pass on the panel, 2026-08-02. The tree line climbs to ridge 7,
+  // so only the three nearest ridges carry trees and the far range stays bare
+  // rock. Ridge 7 is a near-invisible fringe, ridge 9 is the only real stand.
+  // Green washes out with the light; sway is per tree and wide.
+  walk: CDef({
+    treeLine: 7, detailSplit: 6, countFar: 9, countNear: 4,
+    sizeFar: 0.3, sizeNear: 3.1, jitter: 0.75, sink: 0.3,
+    broadShare: 0.25, swayFrom: 7, swayAmp: 2.7, swayPeriod: 6,
+  }),
   // A - the forest has a top edge. Ridges 0-5 stay bare rock, so the tree line
   // is a readable feature of the landscape.
   crown: CDef({
@@ -591,10 +601,10 @@ const PRESETS = {
   }),
 };
 
-let CFG = JSON.parse(JSON.stringify(PRESETS.crown));
+let CFG = JSON.parse(JSON.stringify(PRESETS.walk));
 let MIX = "mixed";          // mixed | alternate | spire | broad
 let SPRITE = "pixel";       // pixel | diagonal
-let GREEN_MODE = "hold";    // hold | wash
+let GREEN_MODE = "wash";    // hold | wash
 let SWAY = "tree";          // off | group | tree
 let TREES_ON = true;
 let CLOUDS_ON = true;
@@ -876,7 +886,7 @@ const SECTIONS = {
     ["treeLine", "tree line (first ridge with trees)", 0, 9, 1],
     ["countFar", "count at the tree line", 1, 40, 1],
     ["countNear", "count at ridge 9", 1, 20, 1],
-    ["sizeFar", "height at the tree line (vh)", 0.3, 6, 0.1],
+    ["sizeFar", "height at the tree line (vh)", 0.1, 6, 0.1],
     ["sizeNear", "height at ridge 9 (vh)", 1, 10, 0.1],
     ["jitter", "size jitter", 0, 1, 0.05],
     ["sink", "base sink into the crest (vh)", 0, 0.6, 0.02],
