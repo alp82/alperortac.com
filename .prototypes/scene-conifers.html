@@ -573,9 +573,11 @@ function CDef(o) {
 }
 
 const PRESETS = {
-  // Alper's own pass on the panel, 2026-08-02. The tree line climbs to ridge 7,
-  // so only the three nearest ridges carry trees and the far range stays bare
-  // rock. Ridge 7 is a near-invisible fringe, ridge 9 is the only real stand.
+  // Alper's own pass on the panel, signed off 2026-08-02. The tree line climbs
+  // to ridge 7, so only the three nearest ridges carry trees and the far range
+  // stays bare rock. Ridge 7 is a fringe about 3px tall at 900px height, ridge 8
+  // is the middle stand, ridge 9 is the forest you actually read. The fringe is
+  // deliberate: it gives the forest a soft top edge instead of a hard one.
   // Green washes out with the light; sway is per tree and wide.
   walk: CDef({
     treeLine: 7, detailSplit: 6, countFar: 9, countNear: 4,
