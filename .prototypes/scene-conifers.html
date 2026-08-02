@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conifers on the ridge ladder - wayfinder #82</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #0b1020;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: #e7edf7;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Scene shell - same structure as scene-mist-veils.html.              */
+  /* ------------------------------------------------------------------ */
+  .viewport { position: fixed; inset: 0; z-index: -10; overflow: hidden; }
+  .scene { position: absolute; inset: 0; }
+  .layer { position: absolute; inset: 0; }
+  .sky { position: absolute; inset: 0; }
+
+  .stars { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .star {
+    position: absolute; background: #fff; border-radius: 50%;
+    animation: twinkle var(--dur) ease-in-out infinite;
+    animation-delay: var(--del);
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.35); }
+  }
+
+  .body-wrap { position: absolute; transform: translate(-50%, -50%); }
+  .sun {
+    width: 96px; height: 96px; border-radius: 50%;
+    background: #fef08a; border: 4px solid #fde047;
+    box-shadow: 0 0 40px rgba(253,224,71,0.5);
+  }
+  .moon {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: #f1f5f9; border: 4px solid #cbd5e1;
+    box-shadow: 0 0 60px rgba(255,255,255,0.2);
+  }
+
+  /* The ladder from #59: overscan by the full parallax travel. */
+  .scene { --ox: 12px; --oy: 172px; }
+  .ridge {
+    position: absolute; pointer-events: none;
+    left: calc(-1 * var(--ox)); right: calc(-1 * var(--ox));
+    bottom: calc(-1 * var(--oy));
+    height: calc(var(--rh, 30vh) + var(--oy));
+  }
+  .ridge svg.silhouette {
+    display: block; position: absolute; left: 0; right: 0; top: 0;
+    width: 100%; height: var(--rh, 30vh);
+  }
+  .ridge-base { position: absolute; left: 0; right: 0; top: var(--rh, 30vh); bottom: 0; }
+
+  /* ------------------------------------------------------------------ */
+  /* Conifers. The stand is a child of the ridge, so it inherits the      */
+  /* ridge's depth, its parallax translate and its paint order (#58).     */
+  /* The band matches the silhouette svg exactly, so a tree's `bottom`    */
+  /* percentage IS its crest height.                                      */
+  /* ------------------------------------------------------------------ */
+  .trees {
+    position: absolute; left: 0; right: 0; top: 0; height: var(--rh, 30vh);
+    pointer-events: none;
+  }
+  .tree { position: absolute; transform-origin: 50% 100%; }
+  .tree svg { display: block; width: 100%; height: 100%; }
+  .tree path { shape-rendering: crispEdges; }
+
+  /* Sway rides the `rotate` longhand, so it never touches `transform`    */
+  /* (the dive channel) or the layer's parallax `translate` (#59).        */
+  body.sway-tree .tree.sways {
+    animation: tsway var(--sdur) ease-in-out var(--del) infinite alternate;
+  }
+  @keyframes tsway {
+    from { rotate: calc(-1 * var(--amp)); }
+    to   { rotate: var(--amp); }
+  }
+  body.sway-group .trees.sways {
+    animation: gsway var(--gdur) ease-in-out var(--gdel) infinite alternate;
+  }
+  @keyframes gsway {
+    from { translate: calc(-1 * var(--gamp)) 0; }
+    to   { translate: var(--gamp) 0; }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Clouds - #78 preset D, locked. Backdrop only, so the sky reads.      */
+  /* ------------------------------------------------------------------ */
+  .cl {
+    position: absolute; pointer-events: none;
+    transition: opacity 900ms ease;
+    animation: cwrap var(--wdur) linear var(--del) infinite;
+  }
+  .cl svg { display: block; width: 100%; height: 100%; }
+  .cl path { shape-rendering: crispEdges; }
+  @keyframes cwrap {
+    from { translate: -45vw 0; }
+    to   { translate: 110vw 0; }
+  }
+  .cl.off { opacity: 0 !important; animation-play-state: paused; }
+
+  /* ------------------------------------------------------------------ */
+  /* Mock page content: the shipped 715px measure.                        */
+  /* ------------------------------------------------------------------ */
+  .page { position: relative; z-index: 1; }
+  .screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 0 24px;
+  }
+  .col { width: 100%; max-width: 715px; }
+  .col h2 {
+    margin: 0 0 18px; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: rgba(255,255,255,0.5); mix-blend-mode: overlay;
+  }
+  .bar {
+    height: 12px; border-radius: 6px; margin-bottom: 12px;
+    background: rgba(255,255,255,0.14); mix-blend-mode: overlay;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Dock                                                                */
+  /* ------------------------------------------------------------------ */
+  .dock {
+    position: fixed; top: 12px; right: 12px; width: 336px; z-index: 50;
+    background: rgba(8,12,24,0.92); border: 1px solid rgba(125,211,252,0.25);
+    border-radius: 10px; padding: 12px; font-size: 11px;
+    max-height: calc(100vh - 24px); overflow-y: auto;
+    backdrop-filter: blur(8px);
+  }
+  .dock.hidden { display: none; }
+  .dock h1 { font-size: 12px; margin: 0 0 2px; letter-spacing: 0.08em; color: #7dd3fc; }
+  .dock .sub { color: #94a3b8; margin: 0 0 10px; line-height: 1.5; }
+  .grp { border-top: 1px solid rgba(125,211,252,0.14); padding-top: 8px; margin-top: 8px; }
+  .grp > .lbl { color: #7dd3fc; letter-spacing: 0.08em; text-transform: uppercase; font-size: 9px; margin-bottom: 6px; }
+  .fld { margin-bottom: 7px; }
+  .fld label { display: flex; justify-content: space-between; color: #cbd5e1; margin-bottom: 2px; gap: 8px; }
+  .fld label b { color: #fff; font-weight: 600; text-align: right; }
+  .fld input[type=range] { width: 100%; accent-color: #7dd3fc; height: 2px; }
+  .row { display: flex; gap: 4px; flex-wrap: wrap; }
+  button {
+    background: rgba(125,211,252,0.1); border: 1px solid rgba(125,211,252,0.3);
+    color: #e7edf7; border-radius: 5px; padding: 4px 7px; cursor: pointer;
+    font-family: inherit; font-size: 10px;
+  }
+  button:hover { background: rgba(125,211,252,0.22); }
+  button.on { background: #7dd3fc; color: #08111f; border-color: #7dd3fc; }
+  .readout { color: #94a3b8; line-height: 1.6; font-size: 10px; }
+  .readout b { color: #7dd3fc; }
+  .warn { color: #fca5a5; }
+  .note { color: #64748b; font-size: 9px; line-height: 1.5; margin-top: 4px; }
+  .dock-toggle { position: fixed; top: 12px; right: 12px; z-index: 51; }
+
+  .ladder { display: flex; gap: 2px; margin-top: 4px; }
+  .ladder i {
+    flex: 1; height: 16px; border-radius: 2px; font-style: normal; font-size: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(125,211,252,0.08); color: #64748b;
+  }
+  .ladder i.has { background: rgba(52,168,110,0.45); color: #eafff3; }
+  .ladder i.sway { outline: 1px solid #7dd3fc; }
+
+  .modal {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    background: rgba(4,8,18,0.7); align-items: center; justify-content: center;
+  }
+  .modal.open { display: flex; }
+  .modal .box {
+    width: min(680px, 92vw); max-height: 84vh; display: flex; flex-direction: column;
+    background: #0a1122; border: 1px solid rgba(125,211,252,0.35); border-radius: 10px; padding: 14px;
+  }
+  .modal textarea {
+    flex: 1; min-height: 340px; background: rgba(125,211,252,0.06); color: #e7edf7;
+    border: 1px solid rgba(125,211,252,0.2); border-radius: 6px; padding: 10px;
+    font-family: inherit; font-size: 10px; white-space: pre;
+  }
+  .modal .row { margin-top: 10px; justify-content: flex-end; }
+
+  .frame-mobile .page, .frame-mobile .viewport {
+    left: 50%; right: auto; width: 390px; transform: translateX(-50%);
+  }
+  .frame-mobile .viewport { border-left: 1px solid rgba(125,211,252,0.3); border-right: 1px solid rgba(125,211,252,0.3); }
+
+  /* Reduced motion: terrain freezes in an authored pose (brief rule 7).  */
+  body.rm .cl { animation: none !important; translate: none !important; }
+  body.rm .star { animation: none !important; }
+  body.rm .layer { translate: none !important; }
+  body.rm .trees { animation: none !important; translate: none !important; }
+  body.rm .tree { animation: none !important; rotate: var(--pose) !important; }
+</style>
+</head>
+<body>
+
+<div class="viewport" id="viewport">
+  <div class="scene" id="scene"></div>
+</div>
+
+<div class="page" id="page"></div>
+
+<button class="dock-toggle" id="dockToggle" style="display:none">panel</button>
+
+<aside class="dock" id="dock">
+  <h1>CONIFERS ON THE RIDGE LADDER</h1>
+  <p class="sub">wayfinder #82. Scroll = the whole day (noon &rarr; night). Trees are children of a #59 ridge: same depth, same parallax, same paint order. Press <b>h</b> to hide.</p>
+
+  <div class="grp">
+    <div class="lbl">Tree line</div>
+    <div class="row">
+      <button data-preset="crown" class="on">A: near stands</button>
+      <button data-preset="midline">B: mid tree line</button>
+      <button data-preset="horizon">C: to the horizon</button>
+    </div>
+    <div class="ladder" id="ladder"></div>
+    <div class="note">far ridge 0 &rarr; near ridge 9. Green = carries trees, outline = sways.</div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Jump</div>
+    <div class="row">
+      <button data-jump="0">hero (0)</button>
+      <button data-jump="0.2">midday</button>
+      <button data-jump="0.45">golden</button>
+      <button data-jump="0.6">sunset</button>
+      <button data-jump="0.75">dusk</button>
+      <button data-jump="0.97">night</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Placement</div>
+    <div id="place"></div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Shape</div>
+    <div class="row" style="margin-bottom:7px">
+      <button data-mix="mixed" class="on">mixed</button>
+      <button data-mix="alternate">per ridge</button>
+      <button data-mix="spire">spire only</button>
+      <button data-mix="broad">broad only</button>
+    </div>
+    <div class="row" style="margin-bottom:7px">
+      <button data-sprite="pixel" class="on">pixel grid</button>
+      <button data-sprite="diagonal">pass-1 diagonals</button>
+    </div>
+    <div id="shape"></div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Green</div>
+    <div class="row" style="margin-bottom:7px">
+      <button data-green="hold" class="on">holds at night</button>
+      <button data-green="wash">washes out</button>
+    </div>
+    <div id="green"></div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Sway</div>
+    <div class="row" style="margin-bottom:7px">
+      <button data-sway="off">off</button>
+      <button data-sway="group">per ridge</button>
+      <button data-sway="tree" class="on">per tree</button>
+    </div>
+    <div id="sway"></div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Checks</div>
+    <div class="row">
+      <button id="treesBtn" class="on">trees: on</button>
+      <button id="cloudsBtn" class="on">clouds: on</button>
+      <button id="rm">reduced motion</button>
+      <button id="mobile">390px frame</button>
+      <button id="export">EXPORT SETTINGS</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="readout" id="readout"></div>
+  </div>
+</aside>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <h1 style="font-size:12px;color:#7dd3fc;margin:0 0 8px">CONIFER SETTINGS</h1>
+    <textarea id="emit" readonly spellcheck="false"></textarea>
+    <div class="row">
+      <button id="copy">copy</button>
+      <button id="close">close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Ported constants - real values from the repo and the locked decisions.
+// Ladder + parallax are LOCKED (#59). Cloudscape is LOCKED (#78, preset D).
+// ---------------------------------------------------------------------------
+const SKY_NOON  = { r: 135, g: 206, b: 235 };
+const SKY_DUSK  = { r: 244, g: 164, b: 96  };
+const SKY_NIGHT = { r: 20,  g: 10,  b: 50  };
+const CURVE = { phase1: [0.06, 0.448], phase2: [0.453, 0.787], boost: 0.8 };
+const LAND_COLOR = { r: 74, g: 122, b: 140 };
+const CONIFER_GREEN = { r: 46, g: 92, b: 62 };   // pass-2 sketchbook pigment
+const SUN_WINDOW  = { start: 0,    end: 0.65 };
+const MOON_WINDOW = { start: 0.45, end: 1.0  };
+const SUN_ARC  = { startX: 75, startY: 12, endX: 28, endY: 58, arcLift: 8 };
+const MOON_ARC = { startX: 27, startY: 45, endX: 16, endY: 13, arcLift: 6 };
+const LADDER = { count: 10, near: 0.93, far: 0.21, haze: 0.80, weight: 0.25, vy: 160 };
+
+const CLOUD_TYPES = {
+  puff:    { d: "M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z" },
+  cumulus: { d: "M18 44h10V32h8V22h12V14h16v8h10v10h8v12h10v10H8V44z" },
+  cirrus:  { d: "M4 26h22v5H4zM14 34h40v5H14zM40 24h44v5H40zM56 34h34v5H56z" },
+  mass:    { d: "M6 50V34h10V24h14V16h26v8h16v6h14v6h10v10z" },
+  twin:    { d: "M8 36h8v8H8zM16 28h20v8H16zM36 36h8v8h-8zM4 44h44v8H4zM56 40h6v6h-6zM62 34h16v6H62zM78 40h6v6h-6zM54 46h34v6H54z" },
+};
+const CLOUDSCAPE = {
+  mass:    { window: { start: 0, rampIn: 0, end: 0.62, rampOut: 0.14 }, count: [1, 2, 1], depth: 0.2,  alpha: 0.3,  size: 500, band: [5, 16],  speed: 0.2 },
+  cirrus:  { window: { start: 0.15, rampIn: 0.1, end: 0.65, rampOut: 0.12 }, count: [2],  depth: 0.14, alpha: 0.35, size: 220, band: [3, 10],  speed: 0.15 },
+  cumulus: { window: { start: 0, rampIn: 0, end: 0.55, rampOut: 0.1 }, count: [2],        depth: 0.34, alpha: 0.5,  size: 200, band: [13, 25], speed: 0.3 },
+  twin:    { window: { start: 0, rampIn: 0, end: 0.5, rampOut: 0.08 }, count: [2, 3, 2],  depth: 0.48, alpha: 0.7,  size: 120, band: [21, 33], speed: 0.35 },
+  puff:    { window: { start: 0, rampIn: 0, end: 0.6, rampOut: 0.12 }, count: [2, 3, 2],  depth: 0.62, alpha: 0.95, size: 140, band: [27, 42], speed: 0.4 },
+};
+const CLOUD_GLOBALS = { sink: 30, wash: 0.55, shade: 0.45 };
+
+const clamp01 = x => Math.max(0, Math.min(1, x));
+const bell = t => Math.sin(t * Math.PI);
+const lerp = (a, b, t) => a + (b - a) * t;
+const lerpRgb = (a, b, t) => ({
+  r: Math.round(a.r + (b.r - a.r) * t),
+  g: Math.round(a.g + (b.g - a.g) * t),
+  b: Math.round(a.b + (b.b - a.b) * t),
+});
+const css = c => `rgb(${c.r}, ${c.g}, ${c.b})`;
+const lum = c => (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b) / 255;
+
+function rgbToHsl({ r, g, b }) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  let h = 0, s = 0; const l = (mx + mn) / 2;
+  if (mx !== mn) {
+    const d = mx - mn;
+    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    if (mx === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return { h, s, l };
+}
+function hslToRgb({ h, s, l }) {
+  if (s === 0) { const v = Math.round(l * 255); return { r: v, g: v, b: v }; }
+  const hue = (p, q, t) => {
+    if (t < 0) t += 1; if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  return {
+    r: Math.round(hue(p, q, h + 1/3) * 255),
+    g: Math.round(hue(p, q, h) * 255),
+    b: Math.round(hue(p, q, h - 1/3) * 255),
+  };
+}
+function boostSat(rgb, boost, weight) {
+  const hsl = rgbToHsl(rgb);
+  hsl.s = clamp01(hsl.s * (1 + boost * weight));
+  return hslToRgb(hsl);
+}
+function skyRgbAt(p) {
+  const [s1, e1] = CURVE.phase1, [s2, e2] = CURVE.phase2;
+  if (p <= s1) return SKY_NOON;
+  if (p < e1) { const t = (p - s1) / (e1 - s1); return boostSat(lerpRgb(SKY_NOON, SKY_DUSK, t), CURVE.boost, bell(t)); }
+  if (p <= s2) return SKY_DUSK;
+  if (p < e2) { const t = (p - s2) / (e2 - s2); return boostSat(lerpRgb(SKY_DUSK, SKY_NIGHT, t), CURVE.boost, bell(t)); }
+  return SKY_NIGHT;
+}
+function windowed(p, w) { return clamp01((p - w.start) / (w.end - w.start)); }
+function arc(t, a) {
+  return {
+    x: a.startX + (a.endX - a.startX) * t,
+    y: a.startY + (a.endY - a.startY) * t - Math.sin(t * Math.PI) * a.arcLift,
+  };
+}
+const sunOpacityAt  = p => (p < 0.45 ? 1 : Math.max(0, 1 - (p - 0.45) / 0.2));
+const moonOpacityAt = p => (p < 0.5 ? 0 : Math.min(1, (p - 0.5) / 0.2));
+
+function mulberry32(seed) {
+  let a = seed;
+  return () => {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function presenceAt(p, w) {
+  if (p < w.start || p > w.end) return 0;
+  let v = 1;
+  if (w.rampIn > 0)  v = Math.min(v, (p - w.start) / w.rampIn);
+  if (w.rampOut > 0) v = Math.min(v, (w.end - p) / w.rampOut);
+  return clamp01(v);
+}
+function trackAt(stops, t) {
+  if (stops.length === 1) return stops[0];
+  const seg = (stops.length - 1) * clamp01(t);
+  const i = Math.min(stops.length - 2, Math.floor(seg));
+  return stops[i] + (stops[i + 1] - stops[i]) * (seg - i);
+}
+
+// ---------------------------------------------------------------------------
+// Ridge geometry. ridgePath returns the crest polyline too, so a tree stands
+// ON the silhouette instead of floating over it.
+// ---------------------------------------------------------------------------
+function ridgePath(seed, roughness) {
+  const rand = mulberry32(seed);
+  const d = []; const pts = [];
+  let x = 0, y = 150 + rand() * 90;
+  d.push(`M0 400V${y.toFixed(0)}`); pts.push({ x: 0, y });
+  while (x < 1000) {
+    const run = 40 + rand() * 120, slope = 50 + rand() * 130;
+    const ny = Math.max(50, Math.min(370, y + (rand() - 0.5) * 2 * roughness));
+    const sx = Math.min(1000 - x, slope);
+    d.push(`l${sx.toFixed(0)} ${(ny - y).toFixed(0)}`);
+    x += sx; y = ny; pts.push({ x, y });
+    if (x >= 1000) break;
+    const rx = Math.min(1000 - x, run);
+    d.push(`h${rx.toFixed(0)}`); x += rx; pts.push({ x, y });
+  }
+  d.push("V400", "H0", "Z");
+  return { d: d.join(""), pts };
+}
+function crestY(pts, x) {
+  for (let i = 1; i < pts.length; i++) {
+    if (x <= pts[i].x) {
+      const a = pts[i - 1], b = pts[i];
+      const t = b.x === a.x ? 0 : (x - a.x) / (b.x - a.x);
+      return a.y + (b.y - a.y) * t;
+    }
+  }
+  return pts[pts.length - 1].y;
+}
+function ridgeSpecs() {
+  const out = [];
+  for (let i = 0; i < LADDER.count; i++) {
+    const t = i / (LADDER.count - 1);
+    const geo = ridgePath(0xa1e + i * 977, 140 - t * 110);
+    out.push({ index: i, t, depth: LADDER.far + (LADDER.near - LADDER.far) * t,
+               heightVh: 44 - t * 30, d: geo.d, pts: geo.pts });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Sprites. Two shapes (spire, broad) x two detail tiers (near, far), following
+// brief rule 2: the minimum outline that still reads at rendered size, and at
+// most two tiers for a member that lives at many depths.
+// An ASCII grid compiles to unit-rect runs, so the edges stay pixel-crisp.
+// ---------------------------------------------------------------------------
+function gridPath(rows) {
+  const parts = [];
+  rows.forEach((row, y) => {
+    let x = 0;
+    while (x < row.length) {
+      if (row[x] === "#") {
+        let len = 0;
+        while (row[x + len] === "#") len++;
+        parts.push(`M${x} ${y}h${len}v1h${-len}z`);
+        x += len;
+      } else x++;
+    }
+  });
+  return parts.join("");
+}
+
+const GRIDS = {
+  spire: { near: [
+      "....#....",
+      "...###...",
+      "...###...",
+      "..#####..",
+      "...###...",
+      "..#####..",
+      ".#######.",
+      "..#####..",
+      ".#######.",
+      "#########",
+      ".#######.",
+      "#########",
+      "....#....",
+      "....#....",
+    ], far: [
+      "..#..",
+      ".###.",
+      ".###.",
+      "#####",
+      "#####",
+      "..#..",
+    ] },
+  broad: { near: [
+      "......#......",
+      ".....###.....",
+      "....#####....",
+      "...#######...",
+      "....#####....",
+      "...#######...",
+      "..#########..",
+      "...#######...",
+      "..#########..",
+      ".###########.",
+      "#############",
+      "......#......",
+      "......#......",
+    ], far: [
+      "...#...",
+      "..###..",
+      ".#####.",
+      "#######",
+      "#######",
+      "...#...",
+    ] },
+};
+
+// Pass-1 survivors, kept as the alternative drawing language: smooth diagonal
+// polygons in the shipped landscape's vocabulary rather than stepped pixels.
+const DIAGONALS = {
+  spire: { d: "M50 8l10 26h-6l14 28h-8l16 30H54v4h-8v-4H24l16-30h-8l14-28h-6z", w: 100, h: 100 },
+  broad: { d: "M50 14l18 30h-7l20 34H54v18h-8V78H19l20-34h-7z", w: 100, h: 100 },
+};
+
+const SPRITES = {};
+for (const key of ["spire", "broad"]) {
+  SPRITES[key] = { near: {}, far: {} };
+  for (const tier of ["near", "far"]) {
+    const rows = GRIDS[key][tier];
+    SPRITES[key][tier].pixel = { d: gridPath(rows), w: rows[0].length, h: rows.length };
+    SPRITES[key][tier].diagonal = DIAGONALS[key];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Presets. The one question they separate is the TREE LINE: where the forest
+// stops on its way to the horizon. Density and size are retuned per preset so
+// each option is judged at its best, not at the previous option's numbers.
+// ---------------------------------------------------------------------------
+function CDef(o) {
+  return Object.assign({
+    treeLine: 5,            // first ridge index that carries trees (0 = far)
+    detailSplit: 7,         // ridges below this index use the far-tier sprite
+    countFar: 14, countNear: 5,
+    sizeFar: 1.2, sizeNear: 4.4,   // tree height in vh at the tree line / at ridge 9
+    jitter: 0.45,           // per-tree size variation
+    sink: 0.18,             // how far the base sinks into the crest, in vh
+    broadShare: 0.35,
+    greenStrength: 0.55,
+    greenDepth: 0.6,        // how much the far ridges lose green to the haze
+    greenWash: 0.8,         // how far the pigment itself washes toward the sky
+    swayFrom: 7,
+    swayAmp: 1.4,
+    swayPeriod: 6,
+  }, o);
+}
+
+const PRESETS = {
+  // A - the forest has a top edge. Ridges 0-5 stay bare rock, so the tree line
+  // is a readable feature of the landscape.
+  crown: CDef({
+    treeLine: 6, detailSplit: 7, countFar: 12, countNear: 5,
+    sizeFar: 1.6, sizeNear: 4.6, swayFrom: 7,
+  }),
+  // B - the tree line sits mid-ladder: a bare far range, then forest.
+  midline: CDef({
+    treeLine: 4, detailSplit: 7, countFar: 16, countNear: 5,
+    sizeFar: 1.0, sizeNear: 4.4, swayFrom: 7,
+  }),
+  // C - trees run to the horizon as texture. The far ridges get a dense, tiny,
+  // far-tier stand that reads as a serrated crest rather than as trees.
+  horizon: CDef({
+    treeLine: 0, detailSplit: 6, countFar: 26, countNear: 5,
+    sizeFar: 0.6, sizeNear: 4.4, swayFrom: 8,
+  }),
+};
+
+let CFG = JSON.parse(JSON.stringify(PRESETS.crown));
+let MIX = "mixed";          // mixed | alternate | spire | broad
+let SPRITE = "pixel";       // pixel | diagonal
+let GREEN_MODE = "hold";    // hold | wash
+let SWAY = "tree";          // off | group | tree
+let TREES_ON = true;
+let CLOUDS_ON = true;
+
+// ---------------------------------------------------------------------------
+// Scene build
+// ---------------------------------------------------------------------------
+const scene = document.getElementById("scene");
+const page = document.getElementById("page");
+const readout = document.getElementById("readout");
+
+const SCREENS = ["hero", "socials", "projects", "craft", "craft", "craft", "craft",
+                 "craft", "craft", "craft", "craft", "craft", "craft", "footer"];
+const rndBars = mulberry32(0xba75);
+page.innerHTML = SCREENS.map((n, i) => {
+  const bars = Array.from({ length: 6 }, () =>
+    `<div class="bar" style="width:${(38 + rndBars() * 58).toFixed(0)}%"></div>`).join("");
+  return `<section class="screen"><div class="col"><h2>${n} - screen ${i + 1}/${SCREENS.length}</h2>${bars}</div></section>`;
+}).join("");
+
+let layers = [];        // { el, depth, kind }
+let ridgeLayers = [];   // { el, spec, ridge }
+let cloudGroups = {};
+let stands = [];        // { spec, wrap, paths, count, sways }
+let sunEl, moonEl, skyEl, starLayer;
+
+function build() {
+  scene.innerHTML = "";
+  layers = []; ridgeLayers = []; cloudGroups = {}; stands = [];
+
+  const pending = [];
+  const add = (depth, kind, inner = "", cls = "") => {
+    const el = document.createElement("div");
+    el.className = "layer " + cls;
+    el.style.setProperty("--layer-depth", depth);
+    el.innerHTML = inner;
+    pending.push({ el, depth, kind });
+    return el;
+  };
+
+  skyEl = add(0, "sky", "");
+  skyEl.classList.add("sky");
+
+  const rand = mulberry32(0x5eed);
+  const starHtml = Array.from({ length: 150 }, () => {
+    const x = rand() * 100, y = rand() * 100, s = rand() * 2.5 + 0.5;
+    const d = rand() * 5, du = rand() * 3 + 2;
+    return `<div class="star" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%;width:${s.toFixed(2)}px;height:${s.toFixed(2)}px;--del:${d.toFixed(2)}s;--dur:${du.toFixed(2)}s"></div>`;
+  }).join("");
+  starLayer = add(0.05, "stars", `<div class="stars">${starHtml}</div>`);
+  starLayer.style.opacity = "0";
+
+  sunEl = add(0.12, "sun", `<div class="body-wrap"><div class="sun"></div></div>`);
+  moonEl = add(0.12, "moon", `<div class="body-wrap"><div class="moon"></div></div>`);
+
+  // clouds - locked preset D pools, backdrop only
+  for (const [key, t] of Object.entries(CLOUDSCAPE)) {
+    const maxN = Math.max(...t.count.map(v => Math.round(v)), 1);
+    const layer = add(t.depth, "clouds:" + key);
+    const g = { layer, els: [], paths: [], key, cfg: t };
+    const rnd = mulberry32(0xc10d + key.length * 7919 + Math.round(t.depth * 997));
+    for (let i = 0; i < maxN; i++) {
+      const w = t.size * (0.75 + rnd() * 0.5);
+      const h = w * 0.6;
+      const xPct = rnd() * 88;
+      const yPct = t.band[0] + rnd() * Math.max(1, t.band[1] - t.band[0]);
+      const durMul = (1.6 - t.depth) * (0.8 + rnd() * 0.5);
+      const wdur = (150 - t.speed * 110) * durMul;
+      const del = -(rnd() * wdur);
+      const el = document.createElement("div");
+      el.className = "cl";
+      el.style.cssText = `left:${xPct.toFixed(2)}%;top:${yPct.toFixed(2)}%;width:${w.toFixed(0)}px;height:${h.toFixed(0)}px;` +
+        `--wdur:${wdur.toFixed(1)}s;--del:${del.toFixed(1)}s;`;
+      el.innerHTML = `<svg viewBox="0 0 100 60" preserveAspectRatio="none"><path d="${CLOUD_TYPES[key].d}"/></svg>`;
+      layer.appendChild(el);
+      g.els.push(el);
+      g.paths.push(el.querySelector("path"));
+    }
+    cloudGroups[key] = g;
+  }
+
+  for (const spec of ridgeSpecs()) {
+    const el = add(spec.depth, "ridge",
+      `<div class="ridge" style="--rh:${spec.heightVh.toFixed(1)}vh">
+         <svg class="silhouette" viewBox="0 0 1000 400" preserveAspectRatio="none">
+           <path d="${spec.d}" fill="#000"/>
+         </svg>
+         <div class="ridge-base"></div>
+       </div>`);
+    ridgeLayers.push({ el, spec, ridge: el.querySelector(".ridge") });
+  }
+
+  // depth order is paint order (#73)
+  pending.sort((a, b) => a.depth - b.depth);
+  for (const l of pending) { scene.appendChild(l.el); layers.push(l); }
+
+  plantTrees();
+  frame();
+}
+
+// ---------------------------------------------------------------------------
+// Planting. A stand is one .trees band inside the ridge, so every tree
+// inherits the ridge's depth, parallax translate and paint order for free -
+// and the NEXT ridge, being opaque and painted later, occludes it (#59).
+// The band matches the silhouette svg exactly, so `bottom` in percent IS the
+// crest height at that x.
+// ---------------------------------------------------------------------------
+function plantTrees() {
+  stands = [];
+  for (const { ridge, spec } of ridgeLayers) {
+    ridge.querySelectorAll(".trees").forEach(n => n.remove());
+    if (!TREES_ON || spec.index < CFG.treeLine) continue;
+
+    // u runs 0 at the tree-line ridge to 1 at the nearest ridge, so density and
+    // size scale with position IN the forest, not with raw ladder depth.
+    const span = Math.max(1, (LADDER.count - 1) - CFG.treeLine);
+    const u = (spec.index - CFG.treeLine) / span;
+    const n = Math.max(1, Math.round(lerp(CFG.countFar, CFG.countNear, u)));
+    const baseH = lerp(CFG.sizeFar, CFG.sizeNear, u);
+    const tier = spec.index < CFG.detailSplit ? "far" : "near";
+    const sways = SWAY !== "off" && spec.index >= CFG.swayFrom;
+
+    const rand = mulberry32(0x7e5 + spec.index * 613);
+    const wrap = document.createElement("div");
+    wrap.className = "trees" + (sways ? " sways" : "");
+    const gamp = (0.6 + u * 1.6) * CFG.swayAmp * 0.7;
+    wrap.style.cssText =
+      `--gamp:${gamp.toFixed(2)}px;--gdur:${(CFG.swayPeriod * 1.6).toFixed(1)}s;` +
+      `--gdel:-${(spec.index * 0.9).toFixed(1)}s;`;
+
+    let html = "";
+    for (let i = 0; i < n; i++) {
+      // Stratified x: even spacing with jitter, so a stand spreads across the
+      // crest instead of clumping the way pure random does.
+      const xv = ((i + 0.15 + rand() * 0.7) / n) * 1000;
+      const y = crestY(spec.pts, xv);
+      const kind = pickKind(spec.index, rand);
+      const spr = SPRITES[kind][tier][SPRITE];
+      const h = baseH * (1 - CFG.jitter / 2 + rand() * CFG.jitter);
+      const w = h * (spr.w / spr.h);
+      const amp = (CFG.swayAmp * (0.6 + rand() * 0.8)).toFixed(2);
+      const dur = (CFG.swayPeriod * (0.75 + rand() * 0.6)).toFixed(1);
+      const del = (-rand() * CFG.swayPeriod * 2).toFixed(1);
+      const pose = ((rand() - 0.5) * 2 * CFG.swayAmp * 0.55).toFixed(2);
+      html += `<div class="tree${sways ? " sways" : ""}" data-kind="${kind}" style="` +
+        `left:${(xv / 10).toFixed(2)}%;bottom:${(100 - y / 4).toFixed(2)}%;` +
+        `width:${w.toFixed(2)}vh;height:${h.toFixed(2)}vh;` +
+        `margin-left:${(-w / 2).toFixed(2)}vh;margin-bottom:${(-CFG.sink * (0.4 + u)).toFixed(2)}vh;` +
+        `--amp:${amp}deg;--sdur:${dur}s;--del:${del}s;--pose:${pose}deg">` +
+        `<svg viewBox="0 0 ${spr.w} ${spr.h}"><path d="${spr.d}" fill="#000"/></svg></div>`;
+    }
+    wrap.innerHTML = html;
+    ridge.appendChild(wrap);
+    stands.push({ spec, wrap, paths: [...wrap.querySelectorAll("path")], count: n, sways });
+  }
+}
+
+function pickKind(ridgeIndex, rand) {
+  if (MIX === "spire" || MIX === "broad") return MIX;
+  if (MIX === "alternate") return ridgeIndex % 2 === 0 ? "spire" : "broad";
+  return rand() < CFG.broadShare ? "broad" : "spire";
+}
+
+// ---------------------------------------------------------------------------
+// The driver. Per frame: sky, bodies, the locked ridge accumulation, and one
+// sky-derived fill per stand - members x a few properties, per #61.
+// ---------------------------------------------------------------------------
+let progress = 0;
+let ticking = false;
+let pinned = null;
+let activeCloudCount = 0;
+
+function onScroll() {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => { ticking = false; frame(); });
+}
+
+function frame() {
+  if (!skyEl) return;
+  const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  progress = pinned !== null ? pinned : clamp01(window.scrollY / max);
+
+  const sky = skyRgbAt(progress);
+  skyEl.style.backgroundColor = css(sky);
+  document.body.style.backgroundColor = css(sky);
+
+  const [p2s, p2e] = CURVE.phase2;
+  starLayer.style.opacity = String(clamp01((progress - p2s) / Math.max(p2e - p2s, 0.001)));
+
+  const sp = arc(windowed(progress, SUN_WINDOW), SUN_ARC);
+  const mp = arc(windowed(progress, MOON_WINDOW), MOON_ARC);
+  const sw = sunEl.querySelector(".body-wrap");
+  sw.style.left = sp.x + "%"; sw.style.top = sp.y + "%";
+  sunEl.style.opacity = String(sunOpacityAt(progress));
+  const mw = moonEl.querySelector(".body-wrap");
+  mw.style.left = mp.x + "%"; mw.style.top = mp.y + "%";
+  moonEl.style.opacity = String(moonOpacityAt(progress));
+
+  // ridges: locked aerial-perspective accumulation from #59. `acc` is the
+  // composite each ridge paints, and it is also the tone the trees start from.
+  const tones = [];
+  let acc = sky;
+  ridgeLayers.forEach(({ el, spec }) => {
+    const washR = LADDER.haze * (1 - spec.t);
+    const tone = lerpRgb(LAND_COLOR, sky, washR);
+    const dark = lerpRgb(tone, { r: 0, g: 0, b: 0 }, 0.10 + spec.t * 0.30);
+    acc = lerpRgb(acc, dark, clamp01((0.55 + spec.t * 0.35) * LADDER.weight));
+    const fill = css(acc);
+    el.querySelector("path").setAttribute("fill", fill);
+    el.querySelector(".ridge-base").style.backgroundColor = fill;
+    tones[spec.index] = acc;
+  });
+
+  const duskT = clamp01(1 - lum(sky) / lum(SKY_NOON));
+
+  // clouds - locked #78 behavior
+  activeCloudCount = 0;
+  for (const [key, g] of Object.entries(cloudGroups)) {
+    const t = g.cfg;
+    const pres = CLOUDS_ON ? presenceAt(progress, t.window) : 0;
+    g.layer.style.opacity = (pres * t.alpha).toFixed(3);
+    const wt = windowed(progress, t.window);
+    const nActive = pres > 0 ? Math.max(0, Math.round(trackAt(t.count, wt))) : 0;
+    g.els.forEach((el, i) => el.classList.toggle("off", i >= nActive));
+    if (pres > 0) activeCloudCount += Math.min(nActive, g.els.length);
+    const washT = clamp01(CLOUD_GLOBALS.wash * (1 - t.depth * 0.85));
+    let tone = lerpRgb({ r: 250, g: 250, b: 252 }, sky, washT);
+    tone = lerpRgb(tone, lerpRgb(sky, { r: 10, g: 8, b: 24 }, 0.55), duskT * CLOUD_GLOBALS.shade * (0.4 + t.depth * 0.6));
+    for (const p of g.paths) p.setAttribute("fill", css(tone));
+  }
+
+  // conifers - the ticket's subject. Brief rule 3: vegetation is its own
+  // pigment, but still sky-mixed by depth. So the pigment washes toward the
+  // sky exactly like the ridge tone, and the tree is the ridge's own composite
+  // pushed that far toward it.
+  for (const st of stands) {
+    const fill = css(treeTone(tones[st.spec.index], st.spec.t, sky));
+    for (const p of st.paths) p.setAttribute("fill", fill);
+  }
+
+  applyParallax();
+  render();
+}
+
+function treeTone(ridgeTone, t, sky) {
+  const pigment = lerpRgb(CONIFER_GREEN, sky, LADDER.haze * (1 - t) * CFG.greenWash);
+  // Depth eats the green: a far tree is nearly the ridge, a near tree is a tree.
+  let mix = CFG.greenStrength * (1 - CFG.greenDepth * (1 - t));
+  // The sky curve. `hold` keeps the pigment at full strength into the night, so
+  // the forest stays a colour against the dark. `wash` lets the green fall with
+  // the light, so the stands converge on plain silhouette by dusk.
+  if (GREEN_MODE === "wash") mix *= clamp01(lum(sky) / lum(SKY_NOON));
+  return lerpRgb(ridgeTone, pigment, clamp01(mix));
+}
+
+// Locked #59 parallax: translate longhand, vertical rise, +sink for clouds.
+function applyParallax() {
+  const wScale = Math.min(1, window.innerWidth / 1440);
+  const vy = LADDER.vy * wScale;
+  for (const l of layers) {
+    const py = -((progress - 0.5) * 2 * vy * l.depth);
+    const sink = l.kind.startsWith("clouds") ? CLOUD_GLOBALS.sink * progress * l.depth : 0;
+    const total = py + sink;
+    l.el.style.translate = total === 0 ? "" : `0px ${total.toFixed(2)}px`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dock
+// ---------------------------------------------------------------------------
+function fld(label, input) { return `<div class="fld"><label>${label}</label>${input}</div>`; }
+function slider(id, min, max, step, val) {
+  return `<input type="range" data-k="${id}" min="${min}" max="${max}" step="${step}" value="${val}">`;
+}
+
+const SECTIONS = {
+  place: [
+    ["treeLine", "tree line (first ridge with trees)", 0, 9, 1],
+    ["countFar", "count at the tree line", 1, 40, 1],
+    ["countNear", "count at ridge 9", 1, 20, 1],
+    ["sizeFar", "height at the tree line (vh)", 0.3, 6, 0.1],
+    ["sizeNear", "height at ridge 9 (vh)", 1, 10, 0.1],
+    ["jitter", "size jitter", 0, 1, 0.05],
+    ["sink", "base sink into the crest (vh)", 0, 0.6, 0.02],
+  ],
+  shape: [
+    ["broadShare", "broad share (mixed only)", 0, 1, 0.05],
+    ["detailSplit", "far-tier sprite below ridge", 0, 10, 1],
+  ],
+  green: [
+    ["greenStrength", "green strength", 0, 1, 0.05],
+    ["greenDepth", "depth eats green", 0, 1, 0.05],
+    ["greenWash", "pigment washes to sky", 0, 1, 0.05],
+  ],
+  sway: [
+    ["swayFrom", "sways from ridge", 0, 10, 1],
+    ["swayAmp", "amplitude (deg)", 0, 5, 0.1],
+    ["swayPeriod", "period (s)", 2, 16, 0.5],
+  ],
+};
+
+function buildRows() {
+  for (const [root, rows] of Object.entries(SECTIONS)) {
+    const host = document.getElementById(root);
+    host.innerHTML = rows.map(([k, label, min, max, step]) =>
+      fld(`${label} <b data-v="${k}">${CFG[k]}</b>`, slider(k, min, max, step, CFG[k]))).join("");
+    host.querySelectorAll("input[type=range]").forEach(inp => {
+      inp.addEventListener("input", () => {
+        const k = inp.dataset.k;
+        CFG[k] = parseFloat(inp.value);
+        host.querySelector(`[data-v="${k}"]`).textContent = CFG[k];
+        if (k === "greenStrength" || k === "greenDepth" || k === "greenWash") frame();
+        else { plantTrees(); frame(); }
+        paintLadder();
+      });
+    });
+  }
+  paintLadder();
+}
+
+const ladderEl = document.getElementById("ladder");
+function paintLadder() {
+  ladderEl.innerHTML = Array.from({ length: LADDER.count }, (_, i) => {
+    const has = TREES_ON && i >= CFG.treeLine;
+    const sw = has && SWAY !== "off" && i >= CFG.swayFrom;
+    return `<i class="${has ? "has" : ""}${sw ? " sway" : ""}">${i}</i>`;
+  }).join("");
+}
+
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
+  CFG = JSON.parse(JSON.stringify(PRESETS[b.dataset.preset]));
+  document.querySelectorAll("[data-preset]").forEach(x => x.classList.toggle("on", x === b));
+  buildRows(); plantTrees(); frame();
+}));
+document.querySelectorAll("[data-mix]").forEach(b => b.addEventListener("click", () => {
+  MIX = b.dataset.mix;
+  document.querySelectorAll("[data-mix]").forEach(x => x.classList.toggle("on", x === b));
+  plantTrees(); frame();
+}));
+document.querySelectorAll("[data-sprite]").forEach(b => b.addEventListener("click", () => {
+  SPRITE = b.dataset.sprite;
+  document.querySelectorAll("[data-sprite]").forEach(x => x.classList.toggle("on", x === b));
+  plantTrees(); frame();
+}));
+document.querySelectorAll("[data-green]").forEach(b => b.addEventListener("click", () => {
+  GREEN_MODE = b.dataset.green;
+  document.querySelectorAll("[data-green]").forEach(x => x.classList.toggle("on", x === b));
+  frame();
+}));
+document.querySelectorAll("[data-sway]").forEach(b => b.addEventListener("click", () => {
+  SWAY = b.dataset.sway;
+  document.querySelectorAll("[data-sway]").forEach(x => x.classList.toggle("on", x === b));
+  document.body.classList.toggle("sway-tree", SWAY === "tree");
+  document.body.classList.toggle("sway-group", SWAY === "group");
+  plantTrees(); frame(); paintLadder();
+}));
+document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => {
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  window.scrollTo({ top: parseFloat(b.dataset.jump) * max, behavior: "smooth" });
+}));
+
+const treesBtn = document.getElementById("treesBtn");
+treesBtn.addEventListener("click", () => {
+  TREES_ON = !TREES_ON;
+  treesBtn.textContent = "trees: " + (TREES_ON ? "on" : "off");
+  treesBtn.classList.toggle("on", TREES_ON);
+  plantTrees(); frame(); paintLadder();
+});
+const cloudsBtn = document.getElementById("cloudsBtn");
+cloudsBtn.addEventListener("click", () => {
+  CLOUDS_ON = !CLOUDS_ON;
+  cloudsBtn.textContent = "clouds: " + (CLOUDS_ON ? "on" : "off");
+  cloudsBtn.classList.toggle("on", CLOUDS_ON);
+  frame();
+});
+const rmBtn = document.getElementById("rm");
+rmBtn.addEventListener("click", () => {
+  document.body.classList.toggle("rm");
+  rmBtn.classList.toggle("on");
+  frame();
+});
+const mobBtn = document.getElementById("mobile");
+mobBtn.addEventListener("click", () => {
+  document.body.classList.toggle("frame-mobile");
+  mobBtn.classList.toggle("on");
+  build();
+});
+
+// ---------------------------------------------------------------------------
+// Export - the settings block this ticket links from its resolution.
+// ---------------------------------------------------------------------------
+const q3 = v => Math.round(v * 1000) / 1000;
+function emitSettings() {
+  return [
+    "// Conifer settings - wayfinder #82 (.prototypes/scene-conifers.html)",
+    "export const CONIFERS = {",
+    `\tsprite: "${SPRITE}",          // pixel | diagonal`,
+    `\tmix: "${MIX}",                // mixed | alternate | spire | broad`,
+    `\tbroadShare: ${q3(CFG.broadShare)},`,
+    `\ttreeLine: ${CFG.treeLine},              // first ridge index that carries trees (0 = far)`,
+    `\tdetailSplit: ${CFG.detailSplit},           // ridges below this index use the far-tier sprite`,
+    `\tcount: { far: ${CFG.countFar}, near: ${CFG.countNear} },   // at the tree line / at ridge 9`,
+    `\tsize: { far: ${q3(CFG.sizeFar)}, near: ${q3(CFG.sizeNear)} },   // tree height in vh`,
+    `\tjitter: ${q3(CFG.jitter)}, sink: ${q3(CFG.sink)},`,
+    "\tgreen: {",
+    `\t\tmode: "${GREEN_MODE}",        // hold | wash across the sky curve`,
+    `\t\tstrength: ${q3(CFG.greenStrength)}, depth: ${q3(CFG.greenDepth)}, wash: ${q3(CFG.greenWash)},`,
+    "\t},",
+    "\tsway: {",
+    `\t\tmode: "${SWAY}",              // off | group | tree`,
+    `\t\tfrom: ${CFG.swayFrom}, amp: ${q3(CFG.swayAmp)}, period: ${q3(CFG.swayPeriod)},`,
+    "\t},",
+    "};",
+  ].join("\n");
+}
+const modal = document.getElementById("modal");
+document.getElementById("export").addEventListener("click", () => {
+  document.getElementById("emit").value = emitSettings();
+  modal.classList.add("open");
+});
+document.getElementById("close").addEventListener("click", () => modal.classList.remove("open"));
+document.getElementById("copy").addEventListener("click", () => {
+  navigator.clipboard.writeText(document.getElementById("emit").value);
+  document.getElementById("copy").textContent = "copied";
+  setTimeout(() => { document.getElementById("copy").textContent = "copy"; }, 1200);
+});
+
+// ---------------------------------------------------------------------------
+// Readout
+// ---------------------------------------------------------------------------
+let frames = 0, fps = 0, last = performance.now();
+function tick(now) {
+  frames++;
+  if (now - last >= 1000) { fps = frames; frames = 0; last = now; render(); }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+function render() {
+  let trees = 0, swaying = 0, bands = 0;
+  for (const st of stands) {
+    trees += st.count;
+    if (st.sways) { bands++; if (SWAY === "tree") swaying += st.count; }
+  }
+  const swayCost = SWAY === "group" ? bands : swaying;
+  const starsOn = progress > CURVE.phase2[0] ? 150 : 0;
+  const total = activeCloudCount + swayCost + starsOn;
+  const over = total > 250;
+  readout.innerHTML = [
+    `progress <b>${progress.toFixed(3)}</b>`,
+    `trees drawn <b>${trees}</b> across <b>${stands.length}</b> ridges`,
+    `trees animating <b>${swayCost}</b> (${SWAY})`,
+    `animating now <b>${total}</b> / ~250 budget` + (over ? ` <span class="warn">OVER</span>` : ""),
+    `fps <b>${fps}</b>`,
+    `viewport <b>${window.innerWidth}x${window.innerHeight}</b>`,
+  ].join("<br>");
+}
+
+window.addEventListener("scroll", onScroll, { passive: true });
+window.addEventListener("resize", () => build());
+
+document.body.classList.add("sway-tree");
+buildRows();
+build();
+
+// Shareable state: #preset=horizon&mix=alternate&green=wash&sway=group&p=0.6&pfix=0.6&rm=1&mobile=1&nodock=1
+(function fromHash() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  const click = (attr, val) => {
+    if (!val) return;
+    const b = document.querySelector(`[data-${attr}="${val}"]`);
+    if (b) b.click();
+  };
+  click("preset", q.get("preset"));
+  click("mix", q.get("mix"));
+  click("sprite", q.get("sprite"));
+  click("green", q.get("green"));
+  click("sway", q.get("sway"));
+  if (q.get("rm") === "1") rmBtn.click();
+  if (q.get("mobile") === "1") mobBtn.click();
+  if (q.get("p")) {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    window.scrollTo(0, parseFloat(q.get("p")) * max);
+  }
+  if (q.get("pfix")) { pinned = parseFloat(q.get("pfix")); frame(); }
+  if (q.get("nodock") === "1") {
+    document.getElementById("dock").classList.add("hidden");
+    document.getElementById("dockToggle").style.display = "block";
+  }
+})();
+
+document.addEventListener("keydown", e => {
+  if (e.key === "h" && !e.target.matches("input, textarea")) {
+    const d = document.getElementById("dock"), t = document.getElementById("dockToggle");
+    d.classList.toggle("hidden");
+    t.style.display = d.classList.contains("hidden") ? "block" : "none";
+  }
+});
+</script>
+</body>
+</html>
