@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Birds: species, flocks, and flap - wayfinder #80</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: #0b1020; font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #e7edf7; }
+
+  /* ------------------------------------------------------------------ */
+  /* Scene shell - same structure as scene-cast-sketchbook-2.html.       */
+  /* ------------------------------------------------------------------ */
+  .viewport { position: fixed; inset: 0; z-index: -10; overflow: hidden; }
+  .scene { position: absolute; inset: 0; --ox: 12px; --oy: 12px; }
+  .layer { position: absolute; inset: 0; }
+  .sky { position: absolute; inset: 0; }
+
+  .stars { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .star { position: absolute; background: #fff; border-radius: 50%;
+          animation: twinkle var(--dur) ease-in-out infinite; animation-delay: var(--del); }
+  @keyframes twinkle { 0%,100% { opacity: .2; transform: scale(1); } 50% { opacity: 1; transform: scale(1.35); } }
+
+  .body-wrap { position: absolute; transform: translate(-50%, -50%); }
+  .sun  { width: 96px; height: 96px; border-radius: 50%; background: #fef08a;
+          border: 4px solid #fde047; box-shadow: 0 0 40px rgba(253,224,71,.5); }
+  .moon { width: 80px; height: 80px; border-radius: 50%; background: #f1f5f9;
+          border: 4px solid #cbd5e1; box-shadow: 0 0 60px rgba(255,255,255,.2); }
+
+  .ridge { position: absolute; pointer-events: none;
+           left: calc(-1 * var(--ox)); right: calc(-1 * var(--ox));
+           bottom: calc(-1 * var(--oy)); height: calc(var(--rh, 30vh) + var(--oy)); }
+  .ridge > svg { display: block; position: absolute; left: 0; right: 0; top: 0;
+                 width: 100%; height: var(--rh, 30vh); }
+  .ridge-base { position: absolute; left: 0; right: 0; top: var(--rh, 30vh); bottom: 0; }
+
+  /* ------------------------------------------------------------------ */
+  /* Birds. One .layer per species at its depth. A flight is a wrapper   */
+  /* that crosses the sky on the CSS clock (the #60 rule); inside it,    */
+  /* each bird is a stack of pose paths hard-cut by generated step-end   */
+  /* keyframes: N flap beats, then a glide hold. Fill is currentColor,   */
+  /* derived per frame from the sky at the species depth.                */
+  /* ------------------------------------------------------------------ */
+  .flight { position: absolute; left: 0; bottom: 0; width: 100%; height: 100%;
+            pointer-events: none; transition: opacity 900ms ease; }
+  /* Deactivated flights fade, then their animation stops - the #61 pattern
+     (opacity alone keeps charging the style budget). display:none would pop. */
+  .flight.off { opacity: 0; animation-play-state: paused; }
+  .flight.off * { animation-play-state: paused; }
+  .flight.cross { animation: cross var(--cross) linear var(--del) infinite; }
+  @keyframes cross { from { translate: -18vw 0; } to { translate: 118vw 0; } }
+
+  /* Path styles. Applied on a wrapper INSIDE the crossing, so vertical  */
+  /* movement composes with the horizontal travel.                       */
+  .path-wrap { position: absolute; inset: 0; }
+  .path-bob   { animation: bob var(--pdur) ease-in-out var(--pdel) infinite; }
+  @keyframes bob   { 0%,100% { translate: 0 0; } 50% { translate: 0 calc(-1 * var(--amp)); } }
+  .path-swoop { animation: swoop var(--pdur) ease-in-out var(--pdel) infinite; }
+  @keyframes swoop { 0% { translate: 0 0; } 30% { translate: 0 calc(-1 * var(--amp)); }
+                     55% { translate: 0 calc(var(--amp) * .35); } 100% { translate: 0 0; } }
+  /* Soar: no crossing. The flight stays, sways on x, rises and falls on */
+  /* y, and the bird flips at the sway extremes with a hard cut.         */
+  .flight.soar { animation: soarx var(--pdur) ease-in-out var(--pdel) infinite alternate; }
+  @keyframes soarx { from { translate: calc(-1 * var(--samp)) 0; } to { translate: var(--samp) 0; } }
+  .soar .path-wrap { animation: soary calc(var(--pdur) * 1.7) ease-in-out var(--pdel) infinite alternate; }
+  @keyframes soary { from { translate: 0 0; } to { translate: 0 calc(-1 * var(--amp)); } }
+
+  .bird { position: absolute; }
+  .bird svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .bird path { shape-rendering: crispEdges; fill: currentColor; }
+  .pose { opacity: 0; }
+
+  body.rm .flight { display: none; }   /* brief rule 7: reduced motion removes birds */
+  body.rm .star { animation: none !important; }
+
+  .page { position: relative; z-index: 1; }
+  .screen { height: 100vh; display: flex; align-items: center; justify-content: center;
+            flex-direction: column; gap: 8px; }
+  .screen h2 { margin: 0; font-size: 40px; letter-spacing: .12em; text-transform: uppercase;
+               color: rgba(255,255,255,.5); mix-blend-mode: overlay; }
+  .screen p { margin: 0; font-size: 12px; color: rgba(255,255,255,.35); }
+
+  /* ---- sheet ---- */
+  .sheet { position: fixed; inset: 0 auto 0 0; width: 478px; z-index: 60;
+           background: rgba(6,10,20,.95); border-right: 1px solid rgba(125,211,252,.22);
+           overflow-y: auto; padding: 12px; font-size: 11px; }
+  body.sheet-hidden .sheet { display: none; }
+  .sheet h1 { margin: 0 0 2px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #7dd3fc; }
+  .sheet .sub { margin: 0 0 12px; color: rgba(231,237,247,.45); font-size: 10px; line-height: 1.55; }
+
+  .member { border: 1px solid rgba(125,211,252,.18); border-radius: 8px; margin-bottom: 10px;
+            background: rgba(255,255,255,.02); overflow: hidden; }
+  .member > h3 { margin: 0; padding: 7px 9px; font-size: 11px; letter-spacing: .06em;
+                 background: rgba(125,211,252,.1); display: flex; align-items: center; gap: 7px;
+                 cursor: pointer; }
+  .member > h3 .note { font-weight: normal; font-size: 9.5px; color: rgba(231,237,247,.5); }
+  .member.off .body { opacity: .3; pointer-events: none; }
+  .member.off > h3 { opacity: .55; }
+
+  .poses-row { display: flex; gap: 4px; padding: 7px 9px 0; }
+  .ptile { flex: 1; border: 1px solid rgba(255,255,255,.12); border-radius: 5px; overflow: hidden;
+           background: rgba(120,170,220,.16); }
+  .ptile svg { display: block; width: 100%; height: 44px; }
+  .ptile svg path { shape-rendering: crispEdges; fill: #0b1020; }
+  .ptile span { display: block; text-align: center; font-size: 8.5px; padding: 2px 0;
+                background: rgba(0,0,0,.45); color: rgba(231,237,247,.72); }
+
+  .knobs { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px; padding: 7px 9px 9px; }
+  .knob { display: flex; align-items: center; gap: 5px; }
+  .knob label { width: 40px; color: rgba(231,237,247,.45); font-size: 9.5px; }
+  .knob input[type=range] { flex: 1; height: 13px; min-width: 0; }
+  .knob b { width: 38px; text-align: right; color: #7dd3fc; font-size: 9.5px; }
+
+  .opts { display: flex; gap: 3px; grid-column: 1 / -1; flex-wrap: wrap; align-items: center; }
+  .opts .lab { width: 40px; color: rgba(231,237,247,.45); font-size: 9.5px; }
+  .opts button { font-size: 9px; padding: 2px 6px; }
+
+  .phase { position: relative; height: 15px; margin-top: 5px; grid-column: 1 / -1; border-radius: 4px;
+           background: linear-gradient(90deg,#87ceeb 0%,#87ceeb 6%,#f4a460 45%,#f4a460 48%,#140a32 79%,#140a32 100%); }
+  .phase .win { position: absolute; top: 0; bottom: 0; background: rgba(255,255,255,.5);
+                border-left: 2px solid #fff; border-right: 2px solid #fff; }
+  .phase .now { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #ff4d8d; }
+  .phase input { position: absolute; left: 0; right: 0; top: 0; width: 100%; margin: 0; height: 15px;
+                 -webkit-appearance: none; appearance: none; background: none; pointer-events: none; }
+  .phase input::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto;
+    width: 12px; height: 15px; background: transparent; cursor: ew-resize; }
+  .phase input::-moz-range-thumb { pointer-events: auto; width: 12px; height: 15px;
+    background: transparent; border: 0; cursor: ew-resize; }
+
+  /* ---- dock ---- */
+  .dock { position: fixed; top: 12px; right: 12px; width: 296px; z-index: 70;
+          background: rgba(8,12,24,.93); border: 1px solid rgba(125,211,252,.25);
+          border-radius: 10px; padding: 12px; font-size: 11px;
+          max-height: calc(100vh - 24px); overflow-y: auto; }
+  .dock .lbl { color: rgba(125,211,252,.8); text-transform: uppercase; letter-spacing: .1em;
+               font-size: 10px; margin: 10px 0 4px; }
+  .dock .lbl:first-child { margin-top: 0; }
+  .row { display: flex; gap: 5px; flex-wrap: wrap; }
+  button { font: inherit; font-size: 10px; padding: 4px 7px; border-radius: 6px; cursor: pointer;
+           background: rgba(125,211,252,.12); border: 1px solid rgba(125,211,252,.35); color: #e7edf7; }
+  button.on { background: rgba(125,211,252,.45); }
+  .readout { font-size: 10px; line-height: 1.65; color: rgba(231,237,247,.72); }
+  .readout .warn { color: #fca5a5; } .readout .ok { color: #86efac; }
+  textarea { width: 100%; height: 170px; font: inherit; font-size: 9px; line-height: 1.4;
+             background: rgba(0,0,0,.45); color: #cbd5e1; border: 1px solid rgba(125,211,252,.25);
+             border-radius: 6px; padding: 6px; }
+  body.mobile .viewport { left: 50%; width: 390px; transform: translateX(-50%);
+                          box-shadow: 0 0 0 1px rgba(125,211,252,.35); }
+</style>
+</head>
+<body>
+
+<div class="viewport"><div class="scene" id="scene"></div></div>
+<div class="page" id="page"></div>
+<style id="dyn"></style>
+
+<aside class="sheet" id="sheet">
+  <h1>Birds - species, flocks, and flap</h1>
+  <p class="sub">
+    Three species tell the day as a relay with long overlaps: the far speck line
+    opens at hero and stays through most of the day, the swift blends in over it
+    for the middle stretch, and the songbird arrives last - small, washed far back.
+    Presence ramps over the outer third of each window and fades the whole layer,
+    so arrivals ease in. Everything is quiet by ~0.5 - mist owns the sunset band.
+    The wingbeat is N flap beats then a glide hold, hard-cut by step-end keyframes.
+    Fill derives from the sky at the species depth. Click a species title to toggle it.
+    Gull and raptor were cut on the walk; they start off, kept for comparison.
+  </p>
+  <div id="cards"></div>
+</aside>
+
+<aside class="dock">
+  <div class="lbl">Day</div>
+  <div class="knob"><label>prog</label><input id="prog" type="range" min="0" max="1000" value="0"><b id="vProg">0.000</b></div>
+  <div class="row">
+    <button data-pin="0">hero</button><button data-pin="0.12">morning</button>
+    <button data-pin="0.25">midday</button><button data-pin="0.4">afternoon</button>
+    <button data-pin="0.5">sunset</button><button data-pin="0.62">dusk</button>
+    <button data-pin="0.85">night</button>
+  </div>
+  <div class="row" style="margin-top:5px">
+    <button id="toggleSheet" class="on">sheet</button><button id="rm">reduced motion</button>
+    <button id="mobile">390px</button><button id="bare">hide ridges</button>
+  </div>
+  <div class="lbl">Readout</div>
+  <div class="readout" id="readout"></div>
+  <div class="lbl">Export</div>
+  <textarea id="export" readonly></textarea>
+</aside>
+
+<script>
+// ---------------------------------------------------------------------------
+// Ported constants - real repo values (same block as the sketchbooks).
+// ---------------------------------------------------------------------------
+const SKY_NOON  = { r: 135, g: 206, b: 235 };
+const SKY_DUSK  = { r: 244, g: 164, b: 96  };
+const SKY_NIGHT = { r: 20,  g: 10,  b: 50  };
+const CURVE = { phase1: [0.06, 0.448], phase2: [0.453, 0.787], boost: 0.8 };
+const SUN_WINDOW  = { start: 0,    end: 0.65 };
+const MOON_WINDOW = { start: 0.45, end: 1.0  };
+const SUN_ARC  = { startX: 75, startY: 12, endX: 28, endY: 58, arcLift: 8 };
+const MOON_ARC = { startX: 27, startY: 45, endX: 16, endY: 13, arcLift: 6 };
+const LADDER   = { count: 10, far: 0.21, near: 0.93, haze: 0.80, weight: 0.25, vy: 160 };
+const LAND     = { r: 74, g: 122, b: 140 };
+
+const clamp01 = x => Math.max(0, Math.min(1, x));
+const bell = t => Math.sin(t * Math.PI);
+const lerpRgb = (a, b, t) => ({ r: Math.round(a.r + (b.r - a.r) * t),
+                                g: Math.round(a.g + (b.g - a.g) * t),
+                                b: Math.round(a.b + (b.b - a.b) * t) });
+const css = c => `rgb(${c.r}, ${c.g}, ${c.b})`;
+
+function rgbToHsl({ r, g, b }) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  let h = 0, s = 0; const l = (mx + mn) / 2;
+  if (mx !== mn) { const d = mx - mn;
+    s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+    if (mx === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
+    h /= 6; }
+  return { h, s, l };
+}
+function hslToRgb({ h, s, l }) {
+  if (s === 0) { const v = Math.round(l * 255); return { r: v, g: v, b: v }; }
+  const hue = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t; if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; };
+  const q = l < .5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  return { r: Math.round(hue(p, q, h + 1/3) * 255), g: Math.round(hue(p, q, h) * 255),
+           b: Math.round(hue(p, q, h - 1/3) * 255) };
+}
+function boostSat(rgb, boost, weight) { const hsl = rgbToHsl(rgb); hsl.s = clamp01(hsl.s * (1 + boost * weight)); return hslToRgb(hsl); }
+function skyRgbAt(p) {
+  const [s1, e1] = CURVE.phase1, [s2, e2] = CURVE.phase2;
+  if (p <= s1) return SKY_NOON;
+  if (p < e1) { const t = (p - s1) / (e1 - s1); return boostSat(lerpRgb(SKY_NOON, SKY_DUSK, t), CURVE.boost, bell(t)); }
+  if (p <= s2) return SKY_DUSK;
+  if (p < e2) { const t = (p - s2) / (e2 - s2); return boostSat(lerpRgb(SKY_DUSK, SKY_NIGHT, t), CURVE.boost, bell(t)); }
+  return SKY_NIGHT;
+}
+const windowed = (p, w) => clamp01((p - w.start) / (w.end - w.start));
+const arc = (t, a) => ({ x: a.startX + (a.endX - a.startX) * t,
+                         y: a.startY + (a.endY - a.startY) * t - Math.sin(t * Math.PI) * a.arcLift });
+const sunOpacityAt  = p => (p < .45 ? 1 : Math.max(0, 1 - (p - .45) / .2));
+const moonOpacityAt = p => (p < .5 ? 0 : Math.min(1, (p - .5) / .2));
+function mulberry32(seed) { let a = seed; return () => { a |= 0; a = (a + 0x6d2b79f5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+// The bird silhouette: the sky pushed dark, hue kept, then washed back toward
+// the sky by distance - aerial perspective on a dark object (brief rule 3).
+function birdRgbAt(p, depth) {
+  const sky = skyRgbAt(p);
+  const hsl = rgbToHsl(sky);
+  hsl.l = Math.min(hsl.l, 0.20); hsl.s = hsl.s * 0.55;
+  const dark = hslToRgb(hsl);
+  return lerpRgb(sky, dark, clamp01(0.30 + depth * 0.62));
+}
+
+// ---------------------------------------------------------------------------
+// Sprites. Each pose is an ASCII pixel grid; '#' is a filled cell. Grids
+// compile to one path of unit-rect runs, so shape-rendering stays crisp.
+// Pose order: wings up / level / wings down / glide.
+// ---------------------------------------------------------------------------
+function gridPath(rows) {
+  const parts = [];
+  rows.forEach((row, y) => {
+    let x = 0;
+    while (x < row.length) {
+      if (row[x] === "#") {
+        let len = 0;
+        while (row[x + len] === "#") len++;
+        parts.push(`M${x} ${y}h${len}v1h${-len}z`);
+        x += len;
+      } else x++;
+    }
+  });
+  return parts.join("");
+}
+
+const SPRITES = {
+  gull: { w: 20, h: 12, poses: [
+    [ "....................",
+      "..........##........",
+      ".........###........",
+      ".........###........",
+      "........####........",
+      "........###.........",
+      ".##..........###....",
+      "..#################.",
+      "....###########.....",
+      "....................",
+      "....................",
+      "...................." ],
+    [ "....................",
+      "....................",
+      "....................",
+      "....................",
+      "....######..........",
+      "..###########.......",
+      ".##..........###....",
+      "..#################.",
+      "....###########.....",
+      "....................",
+      "....................",
+      "...................." ],
+    [ "....................",
+      "....................",
+      "....................",
+      "....................",
+      "....................",
+      "....................",
+      ".##..........###....",
+      "..#################.",
+      "....###########.....",
+      "........####........",
+      ".........###........",
+      "..........##........" ],
+    [ "....................",
+      "....................",
+      "....................",
+      ".##..........##.....",
+      "..####....####......",
+      "....########........",
+      ".##..........###....",
+      "..#################.",
+      "....###########.....",
+      "....................",
+      "....................",
+      "...................." ] ] },
+
+  swift: { w: 18, h: 10, poses: [
+    [ "....##............",
+      ".....##...........",
+      ".....###..........",
+      "......###.........",
+      ".......###........",
+      "..##..###########.",
+      "....##########....",
+      "..................",
+      "..................",
+      ".................." ],
+    [ "..................",
+      "..................",
+      "..................",
+      ".#####............",
+      "..########........",
+      "..##..###########.",
+      "....##########....",
+      "..................",
+      "..................",
+      ".................." ],
+    [ "..................",
+      "..................",
+      "..................",
+      "..................",
+      "..................",
+      "..##..###########.",
+      "....##########....",
+      ".......####.......",
+      "......###.........",
+      ".....##..........." ],
+    [ "..................",
+      "..................",
+      "..................",
+      "..................",
+      ".####........####.",
+      "...##############.",
+      ".....#########....",
+      "..................",
+      "..................",
+      ".................." ] ] },
+
+  raptor: { w: 24, h: 12, poses: [
+    [ "..........#.#.#.........",
+      ".........#######........",
+      ".........######.........",
+      "........#######.........",
+      "........######..........",
+      ".......######...........",
+      "................####....",
+      "..####################..",
+      "#####################...",
+      ".#####..................",
+      "........................",
+      "........................" ],
+    [ "........................",
+      "........................",
+      "........................",
+      "........................",
+      "...###################..",
+      ".....###############....",
+      "................####....",
+      "..####################..",
+      "#####################...",
+      ".#####..................",
+      "........................",
+      "........................" ],
+    [ "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "................####....",
+      "..####################..",
+      "#####################...",
+      ".#####..................",
+      ".......######...........",
+      "........#.#.#..........." ],
+    [ "........................",
+      "........................",
+      "#.#.#.............#.#.#.",
+      ".#####################..",
+      "...#################....",
+      "........................",
+      "................####....",
+      "..####################..",
+      "#####################...",
+      ".#####..................",
+      "........................",
+      "........................" ] ] },
+
+  songbird: { w: 13, h: 10, poses: [
+    [ ".....##......",
+      ".....###.....",
+      "......##.....",
+      "....######...",
+      ".##########..",
+      "###########.#",
+      ".#########...",
+      "...######....",
+      ".............",
+      "............." ],
+    [ ".............",
+      ".............",
+      ".............",
+      "..########...",
+      ".##########..",
+      "###########.#",
+      ".#########...",
+      "...######....",
+      ".............",
+      "............." ],
+    [ ".............",
+      ".............",
+      ".............",
+      "....######...",
+      ".##########..",
+      "###########.#",
+      ".#########...",
+      "...######....",
+      "......###....",
+      ".......##...." ],
+    [ ".............",
+      ".............",
+      ".............",
+      "....#####....",
+      "..#########..",
+      "###########.#",
+      "..########...",
+      "....#####....",
+      ".............",
+      "............." ] ] },
+
+  speck: { w: 7, h: 5, poses: [
+    [ "#.....#",
+      ".#...#.",
+      "..#.#..",
+      "...#...",
+      "......." ],
+    [ ".......",
+      "#.....#",
+      ".##.##.",
+      "...#...",
+      "......." ],
+    [ ".......",
+      "...#...",
+      "..#.#..",
+      ".#...#.",
+      "#.....#" ] ] },
+};
+
+// Formation offsets in multiples of bird size (from pass 2).
+const FORMS = {
+  single: [[0, 0, 1]],
+  pair:   [[0, 0, 1], [1.3, .55, .85]],
+  vee:    [[0, 0, 1], [1.2, .6, .9], [2.4, 1.2, .82], [-1.2, .6, .9], [-2.4, 1.2, .82]],
+  line:   [[0, 0, 1], [1.6, .2, .92], [3.2, .45, .85], [-1.6, .25, .92], [-3.2, .5, .85]],
+  scatter:[[0, 0, 1], [1.8, -.9, .8], [-1.5, .8, .88], [2.6, 1.4, .72], [-2.8, -.4, .76]],
+};
+const PATHS = ["straight", "bob", "swoop", "soar"];
+
+// ---------------------------------------------------------------------------
+// The five species. Every number here is a knob in the sheet; the export box
+// prints the current values, quantized, as the #64 seed.
+// ---------------------------------------------------------------------------
+const SPECIES = [
+  { key: "speck", name: "Far speck", note: "opens the day at hero, stays through most of it",
+    on: true, beat: 1.00, flapBeats: 4, glideBeats: 2, cross: 90, path: "straight",
+    form: "line", n: 3, size: 2.4, depth: 0.18, y: 78, spread: 8, win: [0.00, 0.42] },
+  { key: "swift", name: "Swift", note: "blends in over the specks, high band, darting",
+    on: true, beat: 0.38, flapBeats: 6, glideBeats: 2, cross: 30, path: "swoop",
+    form: "scatter", n: 2, size: 3.8, depth: 0.28, y: 68, spread: 10, win: [0.10, 0.36] },
+  { key: "songbird", name: "Songbird", note: "arrives last, small and washed far back",
+    on: true, beat: 0.26, flapBeats: 5, glideBeats: 3, cross: 34, path: "bob",
+    form: "scatter", n: 2, size: 2.6, depth: 0.30, y: 55, spread: 12, win: [0.28, 0.52] },
+  { key: "gull", name: "Gull", note: "cut on the walk - kept for comparison, off by default",
+    on: false, beat: 0.80, flapBeats: 3, glideBeats: 5, cross: 55, path: "straight",
+    form: "vee", n: 2, size: 5.5, depth: 0.34, y: 60, spread: 14, win: [0.00, 0.48] },
+  { key: "raptor", name: "Raptor", note: "cut on the walk - kept for comparison, off by default",
+    on: false, beat: 1.40, flapBeats: 4, glideBeats: 14, cross: 80, path: "soar",
+    form: "single", n: 1, size: 8.0, depth: 0.42, y: 58, spread: 0, win: [0.08, 0.42] },
+];
+const byKey = Object.fromEntries(SPECIES.map(s => [s.key, s]));
+
+const S = { progress: 0, rm: false, mobile: false, bare: false, sheet: true };
+
+const scene = document.getElementById("scene");
+const page = document.getElementById("page");
+const dyn = document.getElementById("dyn");
+const readout = document.getElementById("readout");
+const exportEl = document.getElementById("export");
+const cardsEl = document.getElementById("cards");
+
+const SCREENS = ["hero","socials","projects","craft","craft","craft","craft",
+                 "craft","craft","craft","craft","craft","craft","footer"];
+page.innerHTML = SCREENS.map((n, i) =>
+  `<section class="screen"><h2>${n}</h2><p>screen ${i+1} / ${SCREENS.length}</p></section>`).join("");
+
+// ---------------------------------------------------------------------------
+// Flap keyframes, generated per species. A beat is one wing cycle of four
+// sub-frames (up, level, down, level). After flapBeats of those, the glide
+// pose holds for glideBeats. step-end keeps every change a hard cut.
+// ---------------------------------------------------------------------------
+function flapCss(sp) {
+  const spr = SPRITES[sp.key];
+  const poseCount = spr.poses.length;
+  const glidePose = poseCount > 3 ? 3 : 1;
+  const seq = [];
+  for (let b = 0; b < sp.flapBeats; b++) seq.push(0, 1, 2, 1);
+  const sub = sp.beat / 4;
+  const flapDur = seq.length * sub;
+  const total = flapDur + sp.glideBeats * sp.beat;
+  const segs = seq.map((pose, i) => ({ start: i * sub, pose }));
+  if (sp.glideBeats > 0) segs.push({ start: flapDur, pose: glidePose });
+  let out = "";
+  for (let p = 0; p < poseCount; p++) {
+    const stops = [];
+    for (let i = 0; i < segs.length; i++) {
+      const vis = segs[i].pose === p ? 1 : 0;
+      const prev = i === 0 ? (segs[segs.length - 1].pose === p ? 1 : 0) : (segs[i - 1].pose === p ? 1 : 0);
+      if (i === 0 || vis !== prev) stops.push({ at: segs[i].start / total, vis });
+    }
+    if (stops.length === 0 || stops[0].at > 0) stops.unshift({ at: 0, vis: segs[segs.length - 1].pose === p ? 1 : 0 });
+    const frames = stops.map(s => `${(s.at * 100).toFixed(3)}% { opacity: ${s.vis}; }`).join(" ");
+    out += `@keyframes fl-${sp.key}-p${p} { ${frames} 100% { opacity: ${stops[0].vis}; } }\n`;
+    out += `.b-${sp.key} .pose:nth-child(${p + 1}) { animation: fl-${sp.key}-p${p} ${total.toFixed(3)}s step-end infinite; animation-delay: var(--fdel, 0s); }\n`;
+  }
+  return out;
+}
+function rebuildFlapCss() { dyn.textContent = SPECIES.map(flapCss).join("\n"); }
+
+// ---------------------------------------------------------------------------
+// Ridge ladder (from #59) for context.
+// ---------------------------------------------------------------------------
+function ridgePath(seed, roughness) {
+  const rand = mulberry32(seed);
+  const d = [];
+  let x = 0, y = 150 + rand() * 90;
+  d.push(`M0 400V${y.toFixed(0)}`);
+  while (x < 1000) {
+    const run = 40 + rand() * 120, slope = 50 + rand() * 130;
+    const ny = Math.max(50, Math.min(370, y + (rand() - .5) * 2 * roughness));
+    const sx = Math.min(1000 - x, slope);
+    d.push(`l${sx.toFixed(0)} ${(ny - y).toFixed(0)}`);
+    x += sx; y = ny;
+    if (x >= 1000) break;
+    const rx = Math.min(1000 - x, run);
+    d.push(`h${rx.toFixed(0)}`); x += rx;
+  }
+  d.push("V400", "H0", "Z");
+  return d.join("");
+}
+
+// ---------------------------------------------------------------------------
+// Build
+// ---------------------------------------------------------------------------
+let ridgeLayers = [], birdLayers = [];
+let skyEl, sunEl, moonEl, starLayer;
+
+function build() {
+  scene.innerHTML = "";
+  ridgeLayers = []; birdLayers = [];
+  const pending = [];
+  const add = (depth, inner) => {
+    const el = document.createElement("div");
+    el.className = "layer";
+    el.style.setProperty("--layer-depth", depth);
+    el.innerHTML = inner;
+    pending.push({ el, depth });
+    return el;
+  };
+
+  skyEl = add(0, ""); skyEl.classList.add("sky");
+
+  const rand = mulberry32(0x5eed);
+  const starHtml = Array.from({ length: 150 }, () => {
+    const x = rand() * 100, y = rand() * 100, s = rand() * 2.5 + .5;
+    return `<div class="star" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%;width:${s.toFixed(2)}px;height:${s.toFixed(2)}px;--del:${(rand()*5).toFixed(2)}s;--dur:${(rand()*3+2).toFixed(2)}s"></div>`;
+  }).join("");
+  starLayer = add(.05, `<div class="stars">${starHtml}</div>`);
+  starLayer.style.opacity = "0";
+
+  sunEl  = add(.12, `<div class="body-wrap"><div class="sun"></div></div>`);
+  moonEl = add(.12, `<div class="body-wrap"><div class="moon"></div></div>`);
+
+  for (const sp of SPECIES) {
+    if (!sp.on) continue;
+    const el = add(sp.depth, "");
+    birdLayers.push({ el, sp });
+  }
+
+  for (let i = 0; i < LADDER.count; i++) {
+    const t = i / (LADDER.count - 1);
+    const depth = LADDER.far + (LADDER.near - LADDER.far) * t;
+    const el = add(depth,
+      `<div class="ridge" style="--rh:${(44 - t * 30).toFixed(1)}vh">
+         <svg viewBox="0 0 1000 400" preserveAspectRatio="none">
+           <path d="${ridgePath(0xa1e + i * 977, 140 - t * 110)}" fill="#000"/>
+         </svg>
+         <div class="ridge-base"></div>
+       </div>`);
+    ridgeLayers.push({ el, t, depth });
+  }
+
+  pending.sort((a, b) => a.depth - b.depth);
+  for (const l of pending) scene.appendChild(l.el);
+
+  rebuildFlapCss();
+  paintBirds();
+  frame();
+}
+
+// ---------------------------------------------------------------------------
+// Flights. Built once per knob change. Each flight is a full-viewport wrapper
+// carrying the travel animation; the birds inside it share one flap phase
+// (a flock beats together, offset per bird a touch for life).
+// ---------------------------------------------------------------------------
+function paintBirds() {
+  for (const { el, sp } of birdLayers) {
+    const spr = SPRITES[sp.key];
+    const rand = mulberry32(0xb12d + sp.key.length * 131);
+    const cycle = sp.beat * (sp.flapBeats * 1 + sp.glideBeats) + sp.beat * sp.flapBeats * 0; // display only
+    let html = "";
+    for (let g = 0; g < sp.n; g++) {
+      const gy = sp.y + (rand() - .5) * sp.spread;
+      const dir = rand() < .5 ? 1 : -1;
+      const del = -rand() * sp.cross;
+      const pdur = sp.path === "soar" ? 18 + rand() * 10 : 3 + rand() * 3;
+      const soarLeft = 20 + rand() * 55;
+      const wrapStyle = sp.path === "soar"
+        ? `--pdur:${pdur.toFixed(1)}s;--pdel:-${(rand()*pdur).toFixed(1)}s;--samp:${(6+rand()*6).toFixed(1)}vw;--amp:${(4+rand()*4).toFixed(1)}vh`
+        : `--cross:${(sp.cross * (0.85 + rand() * .3)).toFixed(1)}s;--del:${del.toFixed(1)}s`;
+      html += `<div class="flight ${sp.path === "soar" ? "soar" : "cross"}" data-i="${g}" style="${wrapStyle}">`;
+      const inner = sp.path === "bob" || sp.path === "swoop"
+        ? `class="path-wrap path-${sp.path}" style="--pdur:${pdur.toFixed(1)}s;--pdel:-${(rand()*pdur).toFixed(1)}s;--amp:${(1.2+rand()*1.6).toFixed(1)}vh"`
+        : `class="path-wrap"`;
+      html += `<div ${inner}>`;
+      const form = FORMS[sp.form] || FORMS.single;
+      const gx = sp.path === "soar" ? soarLeft : 0;
+      for (const [ox, oy, sc] of form) {
+        const sz = sp.size * sc;
+        const ar = spr.h / spr.w;
+        html += `<div class="bird b-${sp.key}" style="left:${(gx + ox * sz * .9).toFixed(2)}%;
+                   bottom:${(gy - oy * sz * .5).toFixed(2)}vh;
+                   width:${sz.toFixed(2)}vmin;height:${(sz * ar).toFixed(2)}vmin;
+                   --fdel:-${(rand() * sp.beat).toFixed(2)}s;
+                   transform:scaleX(${sp.path === "soar" ? 1 : dir})">
+                   <svg viewBox="0 0 ${spr.w} ${spr.h}" preserveAspectRatio="xMidYMid meet">
+                     ${spr.poses.map(p => `<path class="pose" d="${gridPath(p)}"/>`).join("")}
+                   </svg></div>`;
+      }
+      html += `</div></div>`;
+    }
+    el.innerHTML = html;
+  }
+  frame();
+}
+
+// ---------------------------------------------------------------------------
+// Presence: trapezoid over the window, ramping over the outer third, so a
+// species eases in while the previous one is still around. The layer opacity
+// follows the ramp too - count alone steps in whole flights and reads sudden.
+// A window that starts at 0 opens already-on, so the hero gets its sparse bird.
+// ---------------------------------------------------------------------------
+const RAMP = 1 / 3;
+function presenceAt(p, win) {
+  if (p < win[0] || p > win[1]) return 0;
+  const t = (p - win[0]) / Math.max(win[1] - win[0], .001);
+  if (t < RAMP && win[0] > 0) return t / RAMP;
+  if (t > 1 - RAMP) return (1 - t) / RAMP;
+  return 1;
+}
+
+// ---------------------------------------------------------------------------
+// Driver
+// ---------------------------------------------------------------------------
+let liveElems = 0;
+function frame() {
+  const p = S.progress;
+  const sky = skyRgbAt(p);
+  skyEl.style.backgroundColor = css(sky);
+  document.body.style.backgroundColor = css(sky);
+
+  const [p2s, p2e] = CURVE.phase2;
+  starLayer.style.opacity = String(clamp01((p - p2s) / Math.max(p2e - p2s, .001)));
+
+  const sp2 = arc(windowed(p, SUN_WINDOW), SUN_ARC), mp = arc(windowed(p, MOON_WINDOW), MOON_ARC);
+  let w = sunEl.querySelector(".body-wrap"); w.style.left = sp2.x + "%"; w.style.top = sp2.y + "%";
+  sunEl.style.opacity = String(sunOpacityAt(p));
+  w = moonEl.querySelector(".body-wrap"); w.style.left = mp.x + "%"; w.style.top = mp.y + "%";
+  moonEl.style.opacity = String(moonOpacityAt(p));
+
+  const vwScale = window.innerWidth / 1440;
+  for (const { el, t, depth } of ridgeLayers) {
+    const base = lerpRgb(LAND, sky, LADDER.haze * (1 - t));
+    const acc = lerpRgb(sky, base, clamp01(LADDER.weight + t * .55));
+    const fill = css(acc);
+    el.querySelector("svg path").setAttribute("fill", fill);
+    el.querySelector(".ridge-base").style.backgroundColor = fill;
+    el.style.translate = `0px ${(-((p - .5) * 2 * LADDER.vy * depth) * vwScale).toFixed(1)}px`;
+    el.style.opacity = S.bare ? "0" : "1";
+  }
+
+  liveElems = 0;
+  for (const { el, sp } of birdLayers) {
+    const pres = presenceAt(p, sp.win);
+    el.style.color = css(birdRgbAt(p, sp.depth));
+    el.style.opacity = pres.toFixed(3);
+    const flights = el.children;
+    const live = pres > 0 ? Math.max(1, Math.round(sp.n * pres)) : 0;
+    for (let i = 0; i < flights.length; i++) flights[i].classList.toggle("off", i >= live);
+    const spr = SPRITES[sp.key];
+    const formSize = (FORMS[sp.form] || FORMS.single).length;
+    const perFlight = formSize * spr.poses.length + 1 + (sp.path === "straight" ? 0 : sp.path === "soar" ? 1 : 1);
+    liveElems += live * perFlight;
+  }
+
+  render();
+}
+
+// ---------------------------------------------------------------------------
+// Sheet
+// ---------------------------------------------------------------------------
+const POSE_NAMES = ["up", "level", "down", "glide"];
+function buildCards() {
+  let html = "";
+  for (const sp of SPECIES) {
+    const spr = SPRITES[sp.key];
+    html += `<div class="member ${sp.on ? "" : "off"}" data-s="${sp.key}">
+      <h3>${sp.name} <span class="note">${sp.note}</span></h3>
+      <div class="body">
+      <div class="poses-row">${spr.poses.map((pose, i) =>
+        `<div class="ptile"><svg viewBox="-1 -1 ${spr.w + 2} ${spr.h + 2}"><path d="${gridPath(pose)}"/></svg><span>${POSE_NAMES[i] || i}</span></div>`).join("")}
+      </div>
+      <div class="knobs">
+        <div class="knob"><label>beat</label><input data-k="beat" type="range" min="10" max="220" value="${Math.round(sp.beat*100)}"><b data-b="beat">${sp.beat.toFixed(2)}s</b></div>
+        <div class="knob"><label>flap x</label><input data-k="flapBeats" type="range" min="1" max="12" value="${sp.flapBeats}"><b data-b="flapBeats">${sp.flapBeats}</b></div>
+        <div class="knob"><label>glide x</label><input data-k="glideBeats" type="range" min="0" max="20" value="${sp.glideBeats}"><b data-b="glideBeats">${sp.glideBeats}</b></div>
+        <div class="knob"><label>cross</label><input data-k="cross" type="range" min="10" max="160" value="${sp.cross}"><b data-b="cross">${sp.cross}s</b></div>
+        <div class="knob"><label>flights</label><input data-k="n" type="range" min="1" max="8" value="${sp.n}"><b data-b="n">${sp.n}</b></div>
+        <div class="knob"><label>size</label><input data-k="size" type="range" min="10" max="140" value="${Math.round(sp.size*10)}"><b data-b="size">${sp.size.toFixed(1)}</b></div>
+        <div class="knob"><label>depth</label><input data-k="depth" type="range" min="5" max="95" value="${Math.round(sp.depth*100)}"><b data-b="depth">${sp.depth.toFixed(2)}</b></div>
+        <div class="knob"><label>y</label><input data-k="y" type="range" min="10" max="92" value="${Math.round(sp.y)}"><b data-b="y">${Math.round(sp.y)}vh</b></div>
+        <div class="opts"><span class="lab">form</span>${Object.keys(FORMS).map(f =>
+          `<button data-form="${f}" class="${sp.form === f ? "on" : ""}">${f}</button>`).join("")}</div>
+        <div class="opts"><span class="lab">path</span>${PATHS.map(f =>
+          `<button data-path="${f}" class="${sp.path === f ? "on" : ""}">${f}</button>`).join("")}</div>
+        <div class="phase"><div class="win"></div><div class="now"></div>
+          <input data-k="p0" type="range" min="0" max="1000" value="${Math.round(sp.win[0]*1000)}">
+          <input data-k="p1" type="range" min="0" max="1000" value="${Math.round(sp.win[1]*1000)}">
+        </div>
+      </div>
+      </div>
+    </div>`;
+  }
+  cardsEl.innerHTML = html;
+  wire();
+}
+
+function wire() {
+  cardsEl.querySelectorAll(".member").forEach(mel => {
+    const sp = byKey[mel.dataset.s];
+    mel.querySelector("h3").addEventListener("click", () => {
+      sp.on = !sp.on;
+      mel.classList.toggle("off", !sp.on);
+      build();
+    });
+    mel.querySelectorAll(".opts button[data-form]").forEach(b => b.addEventListener("click", () => {
+      sp.form = b.dataset.form;
+      mel.querySelectorAll("[data-form]").forEach(o => o.classList.toggle("on", o === b));
+      paintBirds();
+    }));
+    mel.querySelectorAll(".opts button[data-path]").forEach(b => b.addEventListener("click", () => {
+      sp.path = b.dataset.path;
+      mel.querySelectorAll("[data-path]").forEach(o => o.classList.toggle("on", o === b));
+      paintBirds();
+    }));
+    mel.querySelectorAll("input[data-k]").forEach(inp => inp.addEventListener("input", () => {
+      const k = inp.dataset.k, val = +inp.value;
+      if (k === "p0" || k === "p1") {
+        let a = +mel.querySelector('[data-k=p0]').value / 1000;
+        let b = +mel.querySelector('[data-k=p1]').value / 1000;
+        if (a > b) { const t = a; a = b; b = t; }
+        sp.win = [a, b]; frame(); return;
+      }
+      if (k === "beat") sp.beat = val / 100;
+      else if (k === "size") sp.size = val / 10;
+      else if (k === "depth") sp.depth = val / 100;
+      else sp[k] = val;
+      const bb = mel.querySelector(`[data-b=${k}]`);
+      if (bb) bb.textContent =
+        k === "beat" ? sp.beat.toFixed(2) + "s" :
+        k === "size" ? sp.size.toFixed(1) :
+        k === "depth" ? sp.depth.toFixed(2) :
+        k === "cross" ? val + "s" :
+        k === "y" ? val + "vh" : String(val);
+      if (k === "beat" || k === "flapBeats" || k === "glideBeats") { rebuildFlapCss(); paintBirds(); }
+      else if (k === "depth") build();
+      else paintBirds();
+    }));
+  });
+}
+
+function syncBars() {
+  cardsEl.querySelectorAll(".member").forEach(mel => {
+    const sp = byKey[mel.dataset.s];
+    const win = mel.querySelector(".win");
+    win.style.left = (sp.win[0] * 100) + "%";
+    win.style.width = ((sp.win[1] - sp.win[0]) * 100) + "%";
+    mel.querySelector(".now").style.left = (S.progress * 100) + "%";
+  });
+}
+
+function render() {
+  syncBars();
+  const stars = Math.round(150 * clamp01((S.progress - CURVE.phase2[0]) / (CURVE.phase2[1] - CURVE.phase2[0])));
+  const budget = liveElems + stars;
+  const verdict = budget <= 250
+    ? `<span class="ok">${budget} / ~250 animating</span>`
+    : `<span class="warn">${budget} / ~250 animating - over the #71 target</span>`;
+  readout.innerHTML = [
+    `progress <b>${S.progress.toFixed(3)}</b>`,
+    `bird elements now: <b>${liveElems}</b>`,
+    `stars now: <b>${stars}</b>`,
+    verdict,
+  ].join("<br>");
+
+  exportEl.value = SPECIES.filter(sp => sp.on).map(sp =>
+    `${sp.key} | beat ${sp.beat.toFixed(2)}s | flap ${sp.flapBeats} + glide ${sp.glideBeats}` +
+    ` | cross ${sp.cross}s | path ${sp.path} | ${sp.form} x${sp.n} | size ${sp.size.toFixed(1)}` +
+    ` | depth ${sp.depth.toFixed(3)} | y ${Math.round(sp.y)}vh | window ${sp.win[0].toFixed(3)}-${sp.win[1].toFixed(3)}`
+  ).join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Dock
+// ---------------------------------------------------------------------------
+const prog = document.getElementById("prog");
+function setProg(p) { S.progress = p; prog.value = p * 1000;
+  document.getElementById("vProg").textContent = p.toFixed(3); frame(); }
+prog.addEventListener("input", () => setProg(+prog.value / 1000));
+document.querySelectorAll("[data-pin]").forEach(b => b.addEventListener("click", () => setProg(+b.dataset.pin)));
+document.getElementById("toggleSheet").addEventListener("click", e => {
+  S.sheet = !S.sheet; document.body.classList.toggle("sheet-hidden", !S.sheet); e.target.classList.toggle("on", S.sheet); });
+document.getElementById("rm").addEventListener("click", e => {
+  S.rm = !S.rm; document.body.classList.toggle("rm", S.rm); e.target.classList.toggle("on", S.rm); frame(); });
+document.getElementById("mobile").addEventListener("click", e => {
+  S.mobile = !S.mobile; document.body.classList.toggle("mobile", S.mobile); e.target.classList.toggle("on", S.mobile); frame(); });
+document.getElementById("bare").addEventListener("click", e => {
+  S.bare = !S.bare; e.target.classList.toggle("on", S.bare); frame(); });
+
+let ticking = false;
+window.addEventListener("scroll", () => {
+  const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  S.progress = clamp01(window.scrollY / max);
+  prog.value = S.progress * 1000;
+  document.getElementById("vProg").textContent = S.progress.toFixed(3);
+  if (ticking) return; ticking = true;
+  requestAnimationFrame(() => { ticking = false; frame(); });
+}, { passive: true });
+window.addEventListener("resize", () => frame());
+
+buildCards();
+build();
+
+// Deep-link for screenshots and sharing: ?p=0.25&nosheet&bare
+const qp = new URLSearchParams(location.search);
+if (qp.has("nosheet")) document.getElementById("toggleSheet").click();
+if (qp.has("bare")) document.getElementById("bare").click();
+if (qp.has("p")) setProg(clamp01(+qp.get("p") || 0));
+</script>
+</body>
+</html>

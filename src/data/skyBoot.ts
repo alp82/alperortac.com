@@ -1,6 +1,7 @@
 import { MOON_WINDOW, SUN_WINDOW } from "../components/minimap/helpers";
 import { DEFAULT_CELESTIAL } from "./celestial";
 import { PROJECTS } from "./projects";
+import { BIRD_SPECIES_KEYS, BIRDS, CLOUD_TYPE_KEYS, CLOUDSCAPE } from "./scene";
 import { DEFAULT_SKY_CURVE, SKY_DUSK, SKY_NIGHT, SKY_NOON } from "./skyCurve";
 import { PANEL_KEY_TO_TOPIC_ID } from "./topics";
 
@@ -67,8 +68,24 @@ export function skyBootSceneJs(): string {
 	const su = DEFAULT_CELESTIAL.sun;
 	const mo = DEFAULT_CELESTIAL.moon;
 	const [s2, e2] = DEFAULT_CELESTIAL.curve.phase2;
+	// The scheduled cloud and bird layers seed their opacity vars (presence x
+	// alpha, the scene.ts presenceAt semantics), so a cold night deep-link does
+	// not flash day cast before hydration. Interpolated from CLOUDSCAPE / BIRDS
+	// so the numbers can't drift; pinned in skyBoot.test.ts.
+	const cw = [
+		...CLOUD_TYPE_KEYS.map((k) => {
+			const t = CLOUDSCAPE.types[k];
+			const w = t.window;
+			return `"--cloud-${k}-o":[${w.start},${w.rampIn},${w.end},${w.rampOut},${t.alpha}]`;
+		}),
+		...BIRD_SPECIES_KEYS.map((k) => {
+			const w = BIRDS[k].window;
+			return `"--bird-${k}-o":[${w.start},${w.rampIn},${w.end},${w.rampOut},${BIRDS[k].alpha}]`;
+		}),
+	].join(",");
 	return `
 function scene(p,vt,vh){
+var CW={${cw}};
 var wp=function(x,st,en){var r=en-st;return r<=0?0:Math.min(Math.max((x-st)/r,0),1);};
 var pos=function(lp,a){var x=a[0]+(a[2]-a[0])*lp;var yl=a[1]+(a[3]-a[1])*lp;return [x,yl-Math.sin(lp*Math.PI)*a[4]];};
 var SUN=[${su.startX},${su.startY},${su.endX},${su.endY},${su.arcLift}];
@@ -80,7 +97,9 @@ var mn=p<0.5?0:Math.min(1,(p-0.5)/0.2);
 var s2=${s2},e2=${e2};
 var sto=Math.min(1,Math.max(0,(p-s2)/Math.max(e2-s2,0.001)));
 var sho=Math.min(1,Math.max(0,(p-e2)/Math.max(1-e2,0.001)));
-return {"--sun-x":sp[0]+"%","--sun-y":sp[1]+"%","--sun-o":so,"--moon-x":mp[0]+"%","--moon-y":mp[1]+"%","--moon-o":mn,"--stars-o":sto,"--shoot-o":sho,"--mm-sun-y":(vt+(sp[1]/100)*vh)+"%","--mm-moon-y":(vt+(mp[1]/100)*vh)+"%"};}`;
+var out={"--sun-x":sp[0]+"%","--sun-y":sp[1]+"%","--sun-o":so,"--moon-x":mp[0]+"%","--moon-y":mp[1]+"%","--moon-o":mn,"--stars-o":sto,"--shoot-o":sho,"--mm-sun-y":(vt+(sp[1]/100)*vh)+"%","--mm-moon-y":(vt+(mp[1]/100)*vh)+"%"};
+for(var k in CW){var w=CW[k],pr=0;if(p>=w[0]&&p<=w[2]){pr=1;if(w[1]>0)pr=Math.min(pr,(p-w[0])/w[1]);if(w[3]>0)pr=Math.min(pr,(w[2]-p)/w[3]);pr=Math.min(Math.max(pr,0),1);}out[k]=pr*w[4];}
+return out;}`;
 }
 
 // A blocking, self-contained boot script injected before hydration. Before the

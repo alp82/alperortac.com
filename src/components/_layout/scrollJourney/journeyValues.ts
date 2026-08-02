@@ -9,7 +9,19 @@
 // writes the results straight onto the elements that consume them.
 
 import type { CelestialState } from "../../../data/celestial";
-import { type SkyAnchors, skyAt } from "../../../data/skyCurve";
+import {
+	BIRD_SPECIES_KEYS,
+	BIRDS,
+	birdFillAt,
+	CLOUD_TYPE_KEYS,
+	CLOUDSCAPE,
+	cloudFillAt,
+	presenceAt,
+	SCENE,
+	trackAt,
+	windowedOver,
+} from "../../../data/scene";
+import { rgbToCss, type SkyAnchors, skyRgbAt } from "../../../data/skyCurve";
 import {
 	celestialPosition,
 	MOON_WINDOW,
@@ -68,21 +80,65 @@ export function progressFor(scrollY: number, m: Metrics): number {
 }
 
 // ---------------------------------------------------------------------------
-// Parallax clouds. Shared between the markup (which renders one <PixelCloud>
-// per entry) and the driver (which rebuilds each transform per frame), so the
-// two can't drift apart.
+// Scheduled cast (wayfinder #65): the driver's per-member values, computed
+// from the authored tables in src/data/scene.ts. Drift itself runs on the CSS
+// clock; the driver only gates presence, count, fill and the day-end sink.
 // ---------------------------------------------------------------------------
 
-export const CLOUDS = [
-	{ x: 100, y: 150, scale: 1.2, speed: 0.05, depth: 0.55 },
-	{ x: 600, y: 100, scale: 0.8, speed: -0.08, depth: 0.8 },
-	{ x: 1000, y: 250, scale: 1, speed: 0.03, depth: 0.3 },
-] as const;
+export type CloudTypeValues = {
+	/** layer opacity: presence x the type's design alpha */
+	o: number;
+	/** active elements (prefix activation into the rendered pool) */
+	count: number;
+	/** css colour derived from the sky at the type's depth and time */
+	fill: string;
+	/** day-end sink, px, depth-scaled (#78 daySink) */
+	sinkY: number;
+};
 
-export function cloudTransform(i: number, cloudPos: number): string {
-	const c = CLOUDS[i];
-	if (!c) return "none";
-	return `translate(${c.x + cloudPos * c.speed}px, ${c.y}px) scale(${c.scale})`;
+export function cloudValuesAt(
+	skyProgress: number,
+	sky: { r: number; g: number; b: number },
+): CloudTypeValues[] {
+	return CLOUD_TYPE_KEYS.map((key) => {
+		const t = CLOUDSCAPE.types[key];
+		const pres = presenceAt(skyProgress, t.window);
+		return {
+			o: pres * t.alpha,
+			count:
+				pres > 0
+					? Math.round(trackAt(t.count, windowedOver(skyProgress, t.window)))
+					: 0,
+			fill: rgbToCss(cloudFillAt(sky, t.depth)),
+			sinkY: CLOUDSCAPE.daySink * skyProgress * t.depth,
+		};
+	});
+}
+
+export type BirdSpeciesValues = {
+	/** layer opacity: presence (outer-third ramps, #80) x the species' alpha */
+	o: number;
+	/** live flights (prefix activation into the rendered flight pool) */
+	count: number;
+	/** css colour derived from the sky at the species' depth and time */
+	fill: string;
+};
+
+export function birdValuesAt(
+	skyProgress: number,
+	sky: { r: number; g: number; b: number },
+): BirdSpeciesValues[] {
+	return BIRD_SPECIES_KEYS.map((key) => {
+		const sp = BIRDS[key];
+		const pres = presenceAt(skyProgress, sp.window);
+		return {
+			o: pres * sp.alpha,
+			// At least one flight stays live through the ramps: count alone steps
+			// in whole flights and reads sudden, so the layer fade carries the ramp.
+			count: pres > 0 ? Math.max(1, Math.round(sp.flights * pres)) : 0,
+			fill: rgbToCss(birdFillAt(sky, sp.depth)),
+		};
+	});
 }
 
 // ---------------------------------------------------------------------------
@@ -179,9 +235,13 @@ export type JourneyValues = {
 	sun: { x: number; y: number; o: number };
 	moon: { x: number; y: number; o: number };
 	starsO: number;
+	/** active star count: thickens from phase2's start to the page bottom */
+	starCount: number;
 	shootO: number;
-	/** cloud parallax driver (px-scaled progress) */
-	cloudPos: number;
+	/** one entry per CLOUD_TYPE_KEYS, in order */
+	clouds: CloudTypeValues[];
+	/** one entry per BIRD_SPECIES_KEYS, in order */
+	birds: BirdSpeciesValues[];
 	landO: number;
 	mm: {
 		topPct: number;
@@ -231,6 +291,10 @@ export function computeJourney({
 		celestial.moon,
 	);
 	const [phase2Start, phase2End] = celestial.curve.phase2;
+	const skyRgb = skyRgbAt(skyProgress, celestial.curve, anchors);
+	const starsO = clamp01(
+		(skyProgress - phase2Start) / Math.max(phase2End - phase2Start, 0.001),
+	);
 
 	const topPct = skyProgress * (1 - m.viewportRatio) * 100;
 	const hPct = viewportHeightPctFor(m);
@@ -241,14 +305,27 @@ export function computeJourney({
 	const scrolledVh = m.winH > 0 ? scrollY / m.winH : 0;
 
 	return {
-		sky: skyAt(skyProgress, celestial.curve, anchors),
+		sky: rgbToCss(skyRgb),
 		sun: { x: sunPos.x, y: sunPos.y, o: sunOpacityAt(skyProgress) },
 		moon: { x: moonPos.x, y: moonPos.y, o: moonOpacityAt(skyProgress) },
-		starsO: clamp01(
-			(skyProgress - phase2Start) / Math.max(phase2End - phase2Start, 0.001),
-		),
+		starsO,
+		// "More stars the more we go to the bottom": the count rides progress
+		// from phase2's start to 1.0. Presence 0 empties the pool outright, so
+		// the whole star field leaves the style budget for the entire day.
+		starCount:
+			starsO > 0
+				? Math.round(
+						trackAt(
+							SCENE.stars.count,
+							clamp01(
+								(skyProgress - phase2Start) / Math.max(1 - phase2Start, 0.001),
+							),
+						),
+					)
+				: 0,
 		shootO: clamp01((skyProgress - phase2End) / Math.max(1 - phase2End, 0.001)),
-		cloudPos: skyProgress * 1000,
+		clouds: cloudValuesAt(skyProgress, skyRgb),
+		birds: birdValuesAt(skyProgress, skyRgb),
 		landO: Math.max(0.1, 0.4 - skyProgress * 0.2),
 		mm: {
 			topPct,

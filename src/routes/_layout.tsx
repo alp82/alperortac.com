@@ -555,6 +555,79 @@ function LayoutHost() {
 							animation-timing-function: linear;
 							animation-duration: 5s;
 						}
+						/* Cloud drift is wrap: full crossings at constant per-element
+						   speed on the CSS clock (wall clock, wayfinder #78), so cloud
+						   motion survives an open subpage (#60 invariant). Animates the
+						   element's translate; the driver's sink writes translate on
+						   the LAYER, so the two never meet. */
+						@keyframes cloud-wrap {
+							from { translate: -45vw 0; }
+							to { translate: 110vw 0; }
+						}
+						.cloud-el {
+							animation: cloud-wrap var(--wdur, 100s) linear var(--wdel, 0s) infinite;
+							transition: opacity 900ms ease;
+						}
+						.cloud-el.scene-off { opacity: 0; }
+						.star-el.scene-off { visibility: hidden; }
+						/* Bird flights (wayfinder #64): a flight wrapper crosses the
+						   sky on the wall clock like the clouds, so bird motion
+						   survives an open subpage (#60). A reversed flight plays the
+						   same crossing backwards and mirrors its sprites, so every
+						   bird flies beak-first. The vertical path (bob/swoop)
+						   composes inside the crossing; the wingbeat keyframes are
+						   generated per species (see PixelBackground). */
+						@keyframes bird-cross {
+							from { translate: -18vw 0; }
+							to { translate: 118vw 0; }
+						}
+						.bird-flight {
+							animation: bird-cross var(--bdur, 60s) linear var(--bdel, 0s) infinite;
+							transition: opacity 900ms ease;
+						}
+						.bird-flight--rev { animation-direction: reverse; }
+						.bird-flight--rev .bird-el { transform: scaleX(-1); }
+						/* Deactivated flights fade 900ms then pause (#61 pattern);
+						   display:none would pop a whole flock out (#80). The child
+						   pause matters here: poses and path wrappers animate too. */
+						.bird-flight.scene-off { opacity: 0; }
+						.bird-flight.scene-off * { animation-play-state: paused; }
+						@keyframes bird-bob {
+							0%, 100% { translate: 0 0; }
+							50% { translate: 0 calc(-1 * var(--amp, 2vh)); }
+						}
+						.bird-path-bob {
+							animation: bird-bob var(--pdur, 4s) ease-in-out var(--pdel, 0s) infinite;
+						}
+						@keyframes bird-swoop {
+							0% { translate: 0 0; }
+							30% { translate: 0 calc(-1 * var(--amp, 2vh)); }
+							55% { translate: 0 calc(var(--amp, 2vh) * 0.35); }
+							100% { translate: 0 0; }
+						}
+						.bird-path-swoop {
+							animation: bird-swoop var(--pdur, 4s) ease-in-out var(--pdel, 0s) infinite;
+						}
+						.bird-pose { opacity: 0; }
+						/* Prefix activation (#61): an inactive pool element is paused,
+						   not just hidden - a paused animation leaves the style budget,
+						   where opacity: 0 alone buys nothing. Declared after .cloud-el
+						   so paused beats the shorthand's running. */
+						.scene-off { animation-play-state: paused; }
+						/* The atmosphere toy's dense-stars override wins over the
+						   schedule, like forceShoot does for the shooting stars. */
+						.stars-dense .star-el.scene-off {
+							visibility: visible;
+							animation-play-state: running;
+						}
+						@media (prefers-reduced-motion: reduce) {
+							/* Look-and-feel brief (#77): terrain and vapors freeze,
+							   creatures are removed. A frozen shooting star is a stuck
+							   streak, so it hides instead. */
+							.animate-twinkle, .cloud-el { animation: none; }
+							.animate-shooting-star { animation: none; opacity: 0; }
+							.bird-layer { display: none; }
+						}
 					`,
 				}}
 			/>

@@ -156,29 +156,36 @@ export const DEFAULT_SKY_ANCHORS: SkyAnchors = {
 	night: SKY_NIGHT,
 };
 
+// The RGB form feeds the cloud-fill derivation (scene.ts), which needs the
+// numeric channels; skyAt keeps returning the css string every other caller
+// consumes.
+export function skyRgbAt(
+	p: number,
+	curve: SkyCurve,
+	anchors: SkyAnchors = DEFAULT_SKY_ANCHORS,
+): RGB {
+	const eff = curve.enabled ? curve : LEGACY_NEUTRAL_PARAMS;
+	const [s1, e1] = eff.phase1;
+	const [s2, e2] = eff.phase2;
+	if (p <= s1) return anchors.noon;
+	if (p < e1) {
+		const t = (p - s1) / (e1 - s1);
+		return boostSat(lerpRgb(anchors.noon, anchors.dusk, t), eff.boost, bell(t));
+	}
+	if (p <= s2) return anchors.dusk;
+	if (p < e2) {
+		const t = (p - s2) / (e2 - s2);
+		return boostSat(lerpRgb(anchors.dusk, anchors.night, t), eff.boost, bell(t));
+	}
+	return anchors.night;
+}
+
 export function skyAt(
 	p: number,
 	curve: SkyCurve,
 	anchors: SkyAnchors = DEFAULT_SKY_ANCHORS,
 ): string {
-	const eff = curve.enabled ? curve : LEGACY_NEUTRAL_PARAMS;
-	const [s1, e1] = eff.phase1;
-	const [s2, e2] = eff.phase2;
-	if (p <= s1) return rgbToCss(anchors.noon);
-	if (p < e1) {
-		const t = (p - s1) / (e1 - s1);
-		return rgbToCss(
-			boostSat(lerpRgb(anchors.noon, anchors.dusk, t), eff.boost, bell(t)),
-		);
-	}
-	if (p <= s2) return rgbToCss(anchors.dusk);
-	if (p < e2) {
-		const t = (p - s2) / (e2 - s2);
-		return rgbToCss(
-			boostSat(lerpRgb(anchors.dusk, anchors.night, t), eff.boost, bell(t)),
-		);
-	}
-	return rgbToCss(anchors.night);
+	return rgbToCss(skyRgbAt(p, curve, anchors));
 }
 
 export type ClampField = "p1s" | "p1e" | "p2s" | "p2e";

@@ -9,6 +9,13 @@ import {
 } from "../../components/minimap/helpers";
 import { DEFAULT_CELESTIAL } from "../celestial";
 import {
+	BIRD_SPECIES_KEYS,
+	BIRDS,
+	CLOUD_TYPE_KEYS,
+	CLOUDSCAPE,
+	presenceAt,
+} from "../scene";
+import {
 	coldEntryFor,
 	PATHNAME_TO_TOPIC_ID,
 	skyBootSceneJs,
@@ -113,6 +120,33 @@ return scene;})()`) as (
 			expect(s["--moon-x"]).toBe(`${moonPos.x}%`);
 			expect(s["--moon-y"]).toBe(`${moonPos.y}%`);
 			expect(s["--moon-o"]).toBe(moonOpacityAt(p));
+		}
+	});
+
+	it("matches scene.ts presence x alpha for every cloud type", () => {
+		for (let i = 0; i <= 100; i++) {
+			const p = i / 100;
+			const s = scene(p, 0, 100);
+			for (const key of CLOUD_TYPE_KEYS) {
+				const t = CLOUDSCAPE.types[key];
+				expect(s[`--cloud-${key}-o`] as number).toBeCloseTo(
+					presenceAt(p, t.window) * t.alpha,
+					10,
+				);
+			}
+		}
+	});
+
+	it("matches scene.ts presence x alpha for every bird species", () => {
+		for (let i = 0; i <= 100; i++) {
+			const p = i / 100;
+			const s = scene(p, 0, 100);
+			for (const key of BIRD_SPECIES_KEYS) {
+				expect(s[`--bird-${key}-o`] as number).toBeCloseTo(
+					presenceAt(p, BIRDS[key].window) * BIRDS[key].alpha,
+					10,
+				);
+			}
 		}
 	});
 

@@ -1,9 +1,26 @@
 import { memo, useMemo, useRef } from "react";
 import { DEFAULT_CELESTIAL } from "../data/celestial";
+import {
+	BIRD_SPECIES_KEYS,
+	BIRDS,
+	birdFillAt,
+	birdFlapCss,
+	birdPool,
+	CLOUD_TYPE_KEYS,
+	CLOUDSCAPE,
+	cloudFillAt,
+	cloudPool,
+	gridPath,
+	mulberry32,
+	poolSize,
+	presenceAt,
+	SCENE,
+	trackAt,
+	windowedOver,
+} from "../data/scene";
 import { rgbToCss, SKY_NOON } from "../data/skyCurve";
 import type { DiveRenderState } from "./_layout/dive/diveConstants";
 import { useHandheldJitter } from "./_layout/dive/useHandheldJitter";
-import { CLOUDS, cloudTransform } from "./_layout/scrollJourney/journeyValues";
 import type { Journey } from "./_layout/scrollJourney/useScrollJourney";
 import { useJourneyRepaint } from "./_layout/scrollJourney/useScrollJourney";
 
@@ -27,22 +44,18 @@ import { useJourneyRepaint } from "./_layout/scrollJourney/useScrollJourney";
 const SUN_DAY = DEFAULT_CELESTIAL.sun;
 const MOON_DAY = DEFAULT_CELESTIAL.moon;
 
-// Deterministic PRNG (mulberry32): the star field is generated identically on
-// the server and the client so the SSR HTML and the first client render match.
-// Math.random() here made every page's star positions differ between the two,
-// which tripped a hydration mismatch (#418) that discarded the whole SSR tree
-// and re-rendered it on the client - the flash of the main page rebuilding
-// behind a subpage panel. A fixed seed keeps the layout stable across loads.
-function mulberry32(seed: number): () => number {
-	let a = seed;
-	return () => {
-		a |= 0;
-		a = (a + 0x6d2b79f5) | 0;
-		let t = Math.imul(a ^ (a >>> 15), 1 | a);
-		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-	};
-}
+// The star pool (prefix activation, wayfinder #61/#65): the schedule's max
+// count is rendered once - the PRNG is seeded (see scene.ts: the star field
+// must generate identically on server and client, or hydration mismatch #418
+// returns), so the first 150 elements ARE the previously shipped star field.
+// The driver activates a prefix per frame; a day sky runs zero of them.
+const STAR_POOL = poolSize(SCENE.stars.count);
+// The SSR markup activates the shipped 150 so a cold night deep-link shows
+// stars on its pre-hydration frames; the driver owns the count afterwards.
+const STAR_SSR_ACTIVE =
+	typeof SCENE.stars.count === "number"
+		? SCENE.stars.count
+		: (SCENE.stars.count[0] ?? 0);
 
 function Stars({
 	dense = false,
@@ -55,7 +68,7 @@ function Stars({
 }) {
 	const stars = useMemo(() => {
 		const rand = mulberry32(0x5eed);
-		return Array.from({ length: dense ? 340 : 150 }).map((_, i) => ({
+		return Array.from({ length: STAR_POOL }).map((_, i) => ({
 			id: i,
 			x: rand() * 100,
 			y: rand() * 100,
@@ -63,7 +76,7 @@ function Stars({
 			delay: rand() * 5,
 			duration: rand() * 3 + 2,
 		}));
-	}, [dense]);
+	}, []);
 
 	const shootingStars = useMemo(() => {
 		const rand = mulberry32(0x5140);
@@ -81,15 +94,24 @@ function Stars({
 			    only held the star field 100ms behind the scroll. */}
 			<div
 				ref={(el) => {
-					if (journey) journey.targets.stars = el;
+					if (!journey) return;
+					journey.targets.stars = el;
+					// The pool rides the same layer: registration (re)snapshots the
+					// children and resets the activation cache, so a remount or a
+					// React className restoration is healed by the next repaint.
+					journey.targets.starPool = el
+						? { els: Array.from(el.children) as HTMLElement[], applied: -1 }
+						: null;
 				}}
-				className="absolute inset-0"
+				className={`absolute inset-0${dense ? " stars-dense" : ""}`}
 				style={{ opacity: "var(--stars-o, 0)" }}
 			>
-				{stars.map((star) => (
+				{stars.map((star, i) => (
 					<div
 						key={star.id}
-						className="absolute bg-white rounded-full animate-twinkle"
+						className={`star-el absolute bg-white rounded-full animate-twinkle${
+							i >= STAR_SSR_ACTIVE ? " scene-off" : ""
+						}`}
 						style={{
 							left: `${star.x}%`,
 							top: `${star.y}%`,
@@ -129,38 +151,210 @@ function Stars({
 	);
 }
 
-// Geometry comes from the shared CLOUDS table so the driver rebuilds the same
-// transform this renders initially. The old `transition: transform 0.1s linear`
-// is gone: with a per-frame driver it smoothed nothing and visibly lagged.
-function PixelCloud({
-	index,
+// The cloud cast (wayfinder #78's layered ladder, wired on #65): one layer per
+// type at its depth, each holding a seeded pool of wrap-drifting elements.
+// Geometry is module-level and deterministic so SSR and client markup match.
+// The progress-0 values below are the pre-hydration seed: the boot script
+// overrides the layer opacity var on a cold deep-link, the driver takes over
+// after hydration.
+const CLOUD_POOLS = CLOUD_TYPE_KEYS.map((key) => cloudPool(key));
+const CLOUD_INITIAL = CLOUD_TYPE_KEYS.map((key) => {
+	const t = CLOUDSCAPE.types[key];
+	const pres = presenceAt(0, t.window);
+	return {
+		o: pres * t.alpha,
+		count:
+			pres > 0 ? Math.round(trackAt(t.count, windowedOver(0, t.window))) : 0,
+		fill: rgbToCss(cloudFillAt(SKY_NOON, t.depth)),
+	};
+});
+
+function CloudTypeLayer({
+	typeIndex,
 	journey,
 }: {
-	index: number;
+	typeIndex: number;
 	journey?: Journey | undefined;
 }) {
+	const key = CLOUD_TYPE_KEYS[typeIndex] as (typeof CLOUD_TYPE_KEYS)[number];
+	const t = CLOUDSCAPE.types[key];
+	const initial = CLOUD_INITIAL[typeIndex];
+	const pool = CLOUD_POOLS[typeIndex] ?? [];
 	return (
-		<svg
+		<div
 			ref={(el) => {
-				if (journey) journey.targets.clouds[index] = el;
+				if (!journey) return;
+				journey.targets.cloudTypes[typeIndex] = el
+					? {
+							layer: el,
+							els: Array.from(el.children) as HTMLElement[],
+							paths: Array.from(el.querySelectorAll("path")),
+							applied: -1,
+							appliedFill: "",
+						}
+					: null;
 			}}
-			viewBox="0 0 100 60"
-			className="absolute opacity-40 select-none pointer-events-none"
+			className="absolute inset-0 overflow-hidden select-none pointer-events-none"
+			style={{ opacity: `var(--cloud-${key}-o, ${initial?.o ?? 0})` }}
+			aria-hidden="true"
+		>
+			{pool.map((seed, i) => (
+				<div
+					key={`${key}-${seed.leftPct.toFixed(2)}-${seed.topPct.toFixed(2)}`}
+					className={`cloud-el absolute${
+						i >= (initial?.count ?? 0) ? " scene-off" : ""
+					}`}
+					style={
+						{
+							left: `${seed.leftPct.toFixed(2)}%`,
+							top: `${seed.topPct.toFixed(2)}%`,
+							width: `${seed.widthPx.toFixed(0)}px`,
+							height: `${seed.heightPx.toFixed(0)}px`,
+							"--wdur": `${seed.durS.toFixed(1)}s`,
+							"--wdel": `${seed.delayS.toFixed(1)}s`,
+						} as React.CSSProperties
+					}
+				>
+					<svg
+						viewBox="0 0 100 60"
+						preserveAspectRatio="none"
+						className="w-full h-full"
+						aria-hidden="true"
+					>
+						<path
+							fill={initial?.fill ?? "white"}
+							d={t.d}
+							style={{ shapeRendering: "crispEdges" }}
+						/>
+					</svg>
+				</div>
+			))}
+		</div>
+	);
+}
+
+// The bird cast (wayfinder #80's three-species relay, built on #64): one layer
+// per species at its depth, each holding a seeded pool of crossing flights.
+// Geometry, pose paths and the wingbeat keyframes are module-level and
+// deterministic so SSR and client markup match. The driver gates presence,
+// live flights and fill; every motion channel is a CSS keyframe.
+const BIRD_POOLS = BIRD_SPECIES_KEYS.map((key) => birdPool(key));
+const BIRD_POSE_PATHS = BIRD_SPECIES_KEYS.map((key) =>
+	BIRDS[key].sprite.poses.map((pose) => gridPath(pose)),
+);
+const BIRD_FLAP_CSS = birdFlapCss();
+const BIRD_INITIAL = BIRD_SPECIES_KEYS.map((key) => {
+	const sp = BIRDS[key];
+	const pres = presenceAt(0, sp.window);
+	return {
+		o: pres * sp.alpha,
+		count: pres > 0 ? Math.max(1, Math.round(sp.flights * pres)) : 0,
+		fill: rgbToCss(birdFillAt(SKY_NOON, sp.depth)),
+	};
+});
+
+function BirdSpeciesLayer({
+	speciesIndex,
+	journey,
+}: {
+	speciesIndex: number;
+	journey?: Journey | undefined;
+}) {
+	const key = BIRD_SPECIES_KEYS[
+		speciesIndex
+	] as (typeof BIRD_SPECIES_KEYS)[number];
+	const sp = BIRDS[key];
+	const initial = BIRD_INITIAL[speciesIndex];
+	const pool = BIRD_POOLS[speciesIndex] ?? [];
+	const posePaths = BIRD_POSE_PATHS[speciesIndex] ?? [];
+	return (
+		<div
+			ref={(el) => {
+				if (!journey) return;
+				journey.targets.birdSpecies[speciesIndex] = el
+					? {
+							layer: el,
+							els: Array.from(el.children) as HTMLElement[],
+							applied: -1,
+							appliedFill: "",
+						}
+					: null;
+			}}
+			className="bird-layer absolute inset-0 overflow-hidden select-none pointer-events-none"
 			style={{
-				width: "120px",
-				height: "auto",
-				left: 0,
-				top: 0,
-				transform: cloudTransform(index, 0),
-				willChange: "transform",
+				opacity: `var(--bird-${key}-o, ${initial?.o ?? 0})`,
+				color: initial?.fill ?? "black",
 			}}
 			aria-hidden="true"
 		>
-			<path
-				fill="white"
-				d="M20 30h10v10H20zM30 20h40v10H30zM70 30h10v10H70zM10 40h80v10H10z"
-			/>
-		</svg>
+			{pool.map((flight, f) => (
+				<div
+					// biome-ignore lint/suspicious/noArrayIndexKey: the seeded pool is static and never reorders (prefix activation depends on stable order)
+					key={`${key}-${f}`}
+					className={`bird-flight absolute inset-0${
+						sp.rightward ? "" : " bird-flight--rev"
+					}${f >= (initial?.count ?? 0) ? " scene-off" : ""}`}
+					style={
+						{
+							"--bdur": `${flight.durS.toFixed(1)}s`,
+							"--bdel": `${flight.delayS.toFixed(1)}s`,
+						} as React.CSSProperties
+					}
+				>
+					<div
+						className={
+							sp.path === "straight"
+								? "absolute inset-0"
+								: `absolute inset-0 bird-path-${sp.path}`
+						}
+						style={
+							sp.path === "straight"
+								? undefined
+								: ({
+										"--pdur": `${flight.pathDurS.toFixed(1)}s`,
+										"--pdel": `${flight.pathDelayS.toFixed(1)}s`,
+										"--amp": `${flight.pathAmpVh.toFixed(1)}vh`,
+									} as React.CSSProperties)
+						}
+					>
+						{flight.birds.map((bird, b) => (
+							<div
+								// biome-ignore lint/suspicious/noArrayIndexKey: formation slot order IS the identity of a bird in its flight
+								key={`${key}-${f}-${b}`}
+								className={`bird-el bird-el--${key} absolute`}
+								style={
+									{
+										left: `${bird.leftPct.toFixed(2)}%`,
+										bottom: `${bird.bottomVh.toFixed(2)}vh`,
+										width: `${bird.widthVmin.toFixed(2)}vmin`,
+										height: `${bird.heightVmin.toFixed(2)}vmin`,
+										"--fdel": `${bird.flapDelayS.toFixed(2)}s`,
+									} as React.CSSProperties
+								}
+							>
+								<svg
+									viewBox={`0 0 ${sp.sprite.w} ${sp.sprite.h}`}
+									preserveAspectRatio="xMidYMid meet"
+									className="w-full h-full overflow-visible"
+									aria-hidden="true"
+								>
+									{posePaths.map((d, p) => (
+										<path
+											// biome-ignore lint/suspicious/noArrayIndexKey: pose order IS the identity (flap keyframes target nth-child)
+											key={p}
+											className="bird-pose"
+											d={d}
+											fill="currentColor"
+											style={{ shapeRendering: "crispEdges" }}
+										/>
+									))}
+								</svg>
+							</div>
+						))}
+					</div>
+				</div>
+			))}
+		</div>
 	);
 }
 
@@ -338,17 +532,35 @@ function PixelBackgroundInner({
 		});
 	}
 
-	CLOUDS.forEach((cloud, i) => {
+	CLOUD_TYPE_KEYS.forEach((key, i) => {
+		const depth = CLOUDSCAPE.types[key].depth;
 		layers.push({
-			depth: cloud.depth,
+			depth,
 			node: (
 				<div
-					key={`cloud-${cloud.x}-${cloud.y}`}
+					key={`clouds-${key}`}
 					className="dive-layer"
-					data-depth={cloud.depth}
-					style={{ "--layer-depth": cloud.depth } as React.CSSProperties}
+					data-depth={depth}
+					style={{ "--layer-depth": depth } as React.CSSProperties}
 				>
-					<PixelCloud index={i} journey={journey} />
+					<CloudTypeLayer typeIndex={i} journey={journey} />
+				</div>
+			),
+		});
+	});
+
+	BIRD_SPECIES_KEYS.forEach((key, i) => {
+		const depth = BIRDS[key].depth;
+		layers.push({
+			depth,
+			node: (
+				<div
+					key={`birds-${key}`}
+					className="dive-layer"
+					data-depth={depth}
+					style={{ "--layer-depth": depth } as React.CSSProperties}
+				>
+					<BirdSpeciesLayer speciesIndex={i} journey={journey} />
 				</div>
 			),
 		});
@@ -391,6 +603,12 @@ function PixelBackgroundInner({
 
 	return (
 		<div className="dive-viewport fixed inset-y-0 left-0 right-0 md:right-20 -z-10">
+			{/* The generated wingbeat keyframes (step-end pose cuts per species).
+			    Deterministic module-level text, so SSR and client agree. */}
+			<style
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: deterministic generated keyframes from scene.ts
+				dangerouslySetInnerHTML={{ __html: BIRD_FLAP_CSS }}
+			/>
 			{/* Opt-in fisheye filter for the lens-warp technique. techniqueFor never
 			    auto-selects lens-warp, so this stays OFF for every adaptive dive - it
 			    only engages if data-technique="lens-warp" is set explicitly. */}

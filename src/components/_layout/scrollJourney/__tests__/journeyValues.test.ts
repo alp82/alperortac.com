@@ -1,6 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CELESTIAL } from "../../../../data/celestial";
-import { DEFAULT_SKY_ANCHORS, skyAt } from "../../../../data/skyCurve";
+import {
+	BIRD_SPECIES_KEYS,
+	BIRDS,
+	birdFillAt,
+	CLOUD_TYPE_KEYS,
+	CLOUDSCAPE,
+	cloudFillAt,
+	presenceAt,
+	SCENE,
+	trackAt,
+	windowedOver,
+} from "../../../../data/scene";
+import {
+	DEFAULT_SKY_ANCHORS,
+	rgbToCss,
+	skyAt,
+	skyRgbAt,
+} from "../../../../data/skyCurve";
 import {
 	celestialPosition,
 	MOON_WINDOW,
@@ -16,8 +33,6 @@ import {
 	zoneOpacity,
 } from "../../../narrativeWatermark";
 import {
-	CLOUDS,
-	cloudTransform,
 	computeJourney,
 	type JourneyInput,
 	type Metrics,
@@ -214,25 +229,137 @@ describe("moverMasks", () => {
 	});
 });
 
-describe("cloudTransform", () => {
-	it("offsets each cloud from its own base by its own speed", () => {
-		CLOUDS.forEach((c, i) => {
-			expect(cloudTransform(i, 0)).toBe(
-				`translate(${c.x}px, ${c.y}px) scale(${c.scale})`,
-			);
-			expect(cloudTransform(i, 1000)).toBe(
-				`translate(${c.x + 1000 * c.speed}px, ${c.y}px) scale(${c.scale})`,
+describe("scheduled clouds (#65)", () => {
+	it("gates every type on its own window: presence x alpha at the layer", () => {
+		CLOUD_TYPE_KEYS.forEach((key, i) => {
+			const t = CLOUDSCAPE.types[key];
+			for (const p of [0, 0.2, 0.45, 0.62, 0.8, 1]) {
+				const c = computeJourney(input({ rawProgress: p })).clouds[i];
+				expect(c?.o).toBeCloseTo(presenceAt(p, t.window) * t.alpha, 10);
+			}
+		});
+	});
+
+	it("empties every pool once the day is over", () => {
+		const night = computeJourney(input({ rawProgress: 0.8 }));
+		night.clouds.forEach((c) => {
+			expect(c.o).toBe(0);
+			expect(c.count).toBe(0);
+		});
+	});
+
+	it("rides the count track over the type's windowed progress", () => {
+		CLOUD_TYPE_KEYS.forEach((key, i) => {
+			const t = CLOUDSCAPE.types[key];
+			const p = (t.window.start + t.window.end) / 2;
+			const c = computeJourney(input({ rawProgress: p })).clouds[i];
+			expect(c?.count).toBe(
+				Math.round(trackAt(t.count, windowedOver(p, t.window))),
 			);
 		});
 	});
 
-	it("drives the parallax from skyProgress scaled to 1000", () => {
-		expect(computeJourney(input({ rawProgress: 0 })).cloudPos).toBe(0);
-		expect(computeJourney(input({ rawProgress: 1 })).cloudPos).toBe(1000);
+	it("derives the fill from the sky at the type's depth and time", () => {
+		const p = 0.5;
+		const sky = skyRgbAt(p, DEFAULT_CELESTIAL.curve, DEFAULT_SKY_ANCHORS);
+		const v = computeJourney(input({ rawProgress: p }));
+		CLOUD_TYPE_KEYS.forEach((key, i) => {
+			expect(v.clouds[i]?.fill).toBe(
+				rgbToCss(cloudFillAt(sky, CLOUDSCAPE.types[key].depth)),
+			);
+		});
 	});
 
-	it("is inert for an index with no cloud", () => {
-		expect(cloudTransform(CLOUDS.length, 500)).toBe("none");
+	it("sinks with the day, scaled by depth (#78 daySink)", () => {
+		const v = computeJourney(input({ rawProgress: 0.5 }));
+		CLOUD_TYPE_KEYS.forEach((key, i) => {
+			expect(v.clouds[i]?.sinkY).toBeCloseTo(
+				CLOUDSCAPE.daySink * 0.5 * CLOUDSCAPE.types[key].depth,
+				10,
+			);
+		});
+	});
+});
+
+describe("scheduled birds (#64)", () => {
+	it("gates every species on its own window: presence x alpha at the layer", () => {
+		BIRD_SPECIES_KEYS.forEach((key, i) => {
+			const sp = BIRDS[key];
+			for (const p of [0, 0.05, 0.2, 0.32, 0.45, 0.6, 1]) {
+				const b = computeJourney(input({ rawProgress: p })).birds[i];
+				expect(b?.o).toBeCloseTo(presenceAt(p, sp.window) * sp.alpha, 10);
+			}
+		});
+	});
+
+	it("the hero (progress 0) gets the far speck line and nothing nearer", () => {
+		const v = computeJourney(input({ rawProgress: 0 }));
+		expect(v.birds[0]?.o).toBe(1);
+		expect(v.birds[0]?.count).toBe(BIRDS.speck.flights);
+		expect(v.birds[1]?.count).toBe(0);
+		expect(v.birds[2]?.count).toBe(0);
+	});
+
+	it("keeps at least one flight live through a ramp, fading via the layer", () => {
+		// Mid ramp-out the count would round to 0 flights while presence is
+		// still visible - the layer fade carries the ramp, not the count (#80).
+		const sp = BIRDS.speck;
+		const p = sp.window.end - sp.window.rampOut * 0.2;
+		const b = computeJourney(input({ rawProgress: p })).birds[0];
+		expect(b?.o).toBeGreaterThan(0);
+		expect(b?.o).toBeLessThan(0.5);
+		expect(b?.count).toBeGreaterThanOrEqual(1);
+	});
+
+	it("empties every pool once the relay is over (by 0.52)", () => {
+		const evening = computeJourney(input({ rawProgress: 0.6 }));
+		evening.birds.forEach((b) => {
+			expect(b.o).toBe(0);
+			expect(b.count).toBe(0);
+		});
+	});
+
+	it("derives the fill from the sky at the species' depth and time", () => {
+		const p = 0.3;
+		const sky = skyRgbAt(p, DEFAULT_CELESTIAL.curve, DEFAULT_SKY_ANCHORS);
+		const v = computeJourney(input({ rawProgress: p }));
+		BIRD_SPECIES_KEYS.forEach((key, i) => {
+			expect(v.birds[i]?.fill).toBe(
+				rgbToCss(birdFillAt(sky, BIRDS[key].depth)),
+			);
+		});
+	});
+});
+
+describe("star thickening (#65)", () => {
+	const [p2s] = DEFAULT_CELESTIAL.curve.phase2;
+
+	it("runs zero stars while the sky owns the day", () => {
+		expect(computeJourney(input({ rawProgress: 0 })).starCount).toBe(0);
+		expect(computeJourney(input({ rawProgress: p2s - 0.01 })).starCount).toBe(
+			0,
+		);
+	});
+
+	it("thickens from the shipped 150 toward 340 at the page bottom", () => {
+		const track = SCENE.stars.count as number[];
+		expect(
+			computeJourney(input({ rawProgress: p2s + 0.001 })).starCount,
+		).toBeGreaterThanOrEqual(track[0] ?? 0);
+		expect(computeJourney(input({ rawProgress: 1 })).starCount).toBe(
+			track[track.length - 1],
+		);
+	});
+
+	it("grows monotonically on the way down", () => {
+		let prev = 0;
+		for (let p = p2s; p <= 1.0001; p += 0.05) {
+			const n = computeJourney(
+				input({ rawProgress: Math.min(p, 1) }),
+			).starCount;
+			expect(n).toBeGreaterThanOrEqual(prev);
+			prev = n;
+		}
 	});
 });
 

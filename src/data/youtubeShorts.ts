@@ -12,31 +12,31 @@ export const YOUTUBE_SHORTS: YoutubeShort[] = [
 	{
 		id: "YaoyTizlaE4",
 		title: "Is it worth it Part 1",
-		views: 245,
+		views: 258,
 		publishedAt: "2026-05-11T07:55:48+00:00",
 	},
 	{
 		id: "cgsF6B5eR98",
 		title: "Magical CLI Tools - Part 1 #agenticcoding #coding #develop",
-		views: 1016,
+		views: 1023,
 		publishedAt: "2026-05-09T15:11:22+00:00",
 	},
 	{
 		id: "5mgQepVfcyc",
 		title: "Day 3 -  Best tools for your tech stack - Part 1",
-		views: 455,
+		views: 462,
 		publishedAt: "2026-05-06T21:10:50+00:00",
 	},
 	{
 		id: "UGgKyRGUwkE",
 		title: "I see the issue now - Part 1",
-		views: 962,
+		views: 974,
 		publishedAt: "2026-05-05T22:17:30+00:00",
 	},
 	{
 		id: "ueRlidFgFYY",
 		title: "Agentic Coding - hello to Day 1 of 30",
-		views: 745,
+		views: 754,
 		publishedAt: "2026-05-05T00:27:20+00:00",
 	},
 ];
