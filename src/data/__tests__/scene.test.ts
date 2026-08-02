@@ -7,8 +7,12 @@ import {
 	birdPool,
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
+	CONIFERS,
 	cloudFillAt,
 	cloudPool,
+	coniferFillAt,
+	coniferStands,
+	crestYAt,
 	FIREFLIES,
 	FIREFLY_GROUP_KEYS,
 	fireflyGroupDepth,
@@ -636,5 +640,133 @@ describe("the ridge ladder (#62)", () => {
 		expect(mid(5, 6)).toBeCloseTo(0.65, 10);
 		expect(mid(7, 8)).toBeCloseTo(0.81, 10);
 		expect(mid(8, 9)).toBeCloseTo(0.89, 10);
+	});
+});
+
+// The conifer stands from wayfinder #82, built on #86: children of the three
+// nearest ridges, planted on the crest polyline, density falling and size
+// rising toward the viewer, green that washes out with the light.
+describe("coniferStands (#86)", () => {
+	it("is deterministic - SSR and client markup must match (#418)", () => {
+		expect(coniferStands()).toEqual(coniferStands());
+	});
+
+	it("the tree line is ridge 7: ridges 0-6 stay bare rock (#82)", () => {
+		const stands = coniferStands();
+		expect(stands.map((s) => s.ridge)).toEqual([7, 8, 9]);
+		for (const s of stands) {
+			expect(s.ridge).toBeGreaterThanOrEqual(CONIFERS.treeLine);
+		}
+	});
+
+	it("density falls toward the viewer and size rises (#82)", () => {
+		const stands = coniferStands();
+		const counts = stands.map((s) => s.trees.length);
+		expect(counts[0]).toBe(CONIFERS.count.far);
+		expect(counts[counts.length - 1]).toBe(CONIFERS.count.near);
+		for (let i = 1; i < counts.length; i++) {
+			const prev = counts[i - 1];
+			const cur = counts[i];
+			if (prev === undefined || cur === undefined)
+				throw new Error("count missing");
+			expect(cur).toBeLessThanOrEqual(prev);
+		}
+		const mean = (s: (typeof stands)[number]) =>
+			s.trees.reduce((a, tr) => a + tr.heightVh, 0) / s.trees.length;
+		for (let i = 1; i < stands.length; i++) {
+			const prev = stands[i - 1];
+			const cur = stands[i];
+			if (!prev || !cur) throw new Error("stand missing");
+			expect(mean(cur)).toBeGreaterThan(mean(prev));
+		}
+	});
+
+	it("the walked forest is ~20 trees, and every treed ridge sways (#82)", () => {
+		const stands = coniferStands();
+		const total = stands.reduce((a, s) => a + s.trees.length, 0);
+		expect(total).toBe(20);
+		for (const s of stands) expect(s.sways).toBe(true);
+	});
+
+	it("every tree stands on its ridge's crest polyline", () => {
+		const specs = ridgeSpecs();
+		for (const s of coniferStands()) {
+			const crest = specs[s.ridge]?.crest;
+			if (!crest) throw new Error("crest missing");
+			for (const tree of s.trees) {
+				const y = crestYAt(crest, tree.leftPct * 10);
+				expect(tree.bottomPct).toBeCloseTo(100 - y / 4, 10);
+			}
+		}
+	});
+
+	it("spire and broad mix on one ridge; the far tier stays dormant (#82)", () => {
+		const kinds = new Set(
+			coniferStands().flatMap((s) => s.trees.map((tr) => tr.kind)),
+		);
+		expect(kinds).toEqual(new Set(["spire", "broad"]));
+		// treeLine 7 >= detailSplit 6: no shipped ridge uses the far sprite.
+		for (const s of coniferStands()) {
+			for (const tree of s.trees) expect(tree.tier).toBe("near");
+		}
+	});
+});
+
+describe("crestYAt", () => {
+	it("interpolates linearly between crest points", () => {
+		const crest = [
+			{ x: 0, y: 100 },
+			{ x: 100, y: 200 },
+			{ x: 200, y: 200 },
+		];
+		expect(crestYAt(crest, 0)).toBe(100);
+		expect(crestYAt(crest, 50)).toBe(150);
+		expect(crestYAt(crest, 150)).toBe(200);
+		expect(crestYAt(crest, 999)).toBe(200);
+	});
+});
+
+describe("coniferFillAt", () => {
+	it("mixes the green pigment in by day", () => {
+		const tones = ridgeFillsAt(SKY_NOON, LAND_DEFAULT);
+		for (const s of coniferStands()) {
+			const tone = tones[s.ridge];
+			if (!tone) throw new Error("tone missing");
+			const fill = coniferFillAt(tone, s.t, SKY_NOON);
+			// Greener than the bare rock: green gains against red and blue.
+			expect(fill.g - (fill.r + fill.b) / 2).toBeGreaterThan(
+				tone.g - (tone.r + tone.b) / 2,
+			);
+		}
+	});
+
+	it("washes out by night: the stand converges on the ridge silhouette (#82)", () => {
+		const tones = ridgeFillsAt(SKY_NIGHT, LAND_DEFAULT);
+		for (const s of coniferStands()) {
+			const tone = tones[s.ridge];
+			if (!tone) throw new Error("tone missing");
+			const fill = coniferFillAt(tone, s.t, SKY_NIGHT);
+			expect(Math.abs(fill.r - tone.r)).toBeLessThanOrEqual(3);
+			expect(Math.abs(fill.g - tone.g)).toBeLessThanOrEqual(3);
+			expect(Math.abs(fill.b - tone.b)).toBeLessThanOrEqual(3);
+		}
+	});
+
+	it("depth eats the green: the fringe is nearer the rock than the forest", () => {
+		const tones = ridgeFillsAt(SKY_NOON, LAND_DEFAULT);
+		const stands = coniferStands();
+		const first = stands[0];
+		const last = stands[stands.length - 1];
+		if (!first || !last) throw new Error("stand missing");
+		const toneF = tones[first.ridge];
+		const toneL = tones[last.ridge];
+		if (!toneF || !toneL) throw new Error("tone missing");
+		const dist = (
+			a: { r: number; g: number; b: number },
+			b: { r: number; g: number; b: number },
+		) => Math.abs(a.r - b.r) + Math.abs(a.g - b.g) + Math.abs(a.b - b.b);
+		expect(dist(coniferFillAt(toneF, first.t, SKY_NOON), toneF)).toBeLessThan(
+			dist(coniferFillAt(toneL, last.t, SKY_NOON), toneL),
+		);
 	});
 });

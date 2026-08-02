@@ -73,12 +73,19 @@ export type FireflyGroupTargets = ScenePool & {
 // below it. Depth is captured at registration so applyJourney needs no data
 // import. Fills override the markup's pre-hydration `var(--ridge<i>-f)` seed,
 // exactly like the sky's backgroundColor write.
+// A treed ridge (#86) also carries its conifer stand's paths: the stand is a
+// child of the ridge, so parallax and paint order come free and only its fill
+// is driver-written (one sky-derived tone per stand, cached like the ridge
+// fill).
 export type RidgeTargets = {
 	layer: HTMLElement;
 	path: SVGPathElement;
 	base: HTMLElement;
+	/** the conifer stand's sprite paths; empty on a bare ridge */
+	trees: SVGPathElement[];
 	depth: number;
 	appliedFill: string;
+	appliedTreeFill: string;
 };
 
 function activate(pool: ScenePool, count: number): void {
@@ -242,6 +249,13 @@ export function applyJourney(v: JourneyValues, t: JourneyTargets): void {
 			r.path.style.fill = fill;
 			r.base.style.backgroundColor = fill;
 			r.appliedFill = fill;
+		}
+		// The conifer stand's fill (#86): one sky-derived tone per treed ridge.
+		// Sway is a CSS keyframe on each tree and is never written here (#60).
+		const treeFill = v.treeFills[i];
+		if (treeFill && r.trees.length > 0 && r.appliedTreeFill !== treeFill) {
+			for (const p of r.trees) p.style.fill = treeFill;
+			r.appliedTreeFill = treeFill;
 		}
 	});
 

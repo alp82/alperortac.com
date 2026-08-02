@@ -16,6 +16,8 @@ import {
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
 	cloudFillAt,
+	coniferFillAt,
+	coniferStands,
 	FIREFLIES,
 	FIREFLY_GROUP_KEYS,
 	LAND_DEFAULT,
@@ -316,6 +318,12 @@ export type JourneyValues = {
 	/** one opaque css fill per ridge, farthest first (accumulated composite) */
 	ridgeFills: string[];
 	/**
+	 * One css fill per ridge for its conifer stand, "" on a bare ridge (#86).
+	 * The stand is a child of the ridge layer, so it needs no parallax of its
+	 * own - only this sky-derived fill changes per frame.
+	 */
+	treeFills: string[];
+	/**
 	 * Vertical parallax rise at depth 1, px (locked #59: vertical only, 160px
 	 * against a 1440px reference, scaled by viewport width). A ridge at depth d
 	 * translates by -rise x d; 0 under reduced motion.
@@ -353,6 +361,9 @@ export type JourneyInput = {
 	reduceMotion: boolean;
 };
 
+// The stands are static geometry (#86); only their fills are frame-derived.
+const CONIFER_STANDS = coniferStands();
+
 export function computeJourney({
 	skyProgress,
 	rawProgress,
@@ -379,6 +390,16 @@ export function computeJourney({
 
 	const topPct = skyProgress * (1 - m.viewportRatio) * 100;
 	const hPct = viewportHeightPctFor(m);
+
+	// Ridge composites feed two consumers: the ridge fills themselves and the
+	// conifer-stand fills (a stand's tone starts from its ridge's composite).
+	const ridgeRgb = ridgeFillsAt(skyRgb, landscape);
+	const treeFills = Array.from({ length: RIDGES.count }, () => "");
+	for (const stand of CONIFER_STANDS) {
+		const tone = ridgeRgb[stand.ridge];
+		if (tone)
+			treeFills[stand.ridge] = rgbToCss(coniferFillAt(tone, stand.t, skyRgb));
+	}
 
 	const fontPx = letterSizePx(m.winH, m.winW);
 	const isMobile = m.winW <= WM.mobileMaxWidthPx;
@@ -410,7 +431,8 @@ export function computeJourney({
 		mist: mistValuesAt(skyProgress, skyRgb),
 		fireflies: fireflyValuesAt(skyProgress),
 		fireflyNight: nightAt(skyRgb),
-		ridgeFills: ridgeFillsAt(skyRgb, landscape).map(rgbToCss),
+		ridgeFills: ridgeRgb.map(rgbToCss),
+		treeFills,
 		// (p - 0.5) * 2 spans -1..1 so the ladder sits at rest mid-scroll,
 		// pushed down at the hero and fully risen at the page bottom (#59).
 		ridgeRise: reduceMotion

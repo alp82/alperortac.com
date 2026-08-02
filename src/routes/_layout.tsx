@@ -672,6 +672,30 @@ function LayoutHost() {
 						   descendants. */
 						.ff-el.scene-off { opacity: 0; }
 						.ff-el.scene-off * { animation-play-state: paused; }
+						/* Conifer stands (wayfinder #86): the .scene-trees band is a
+						   child of .scene-ridge that matches the silhouette svg's box
+						   exactly, so a tree's bottom % IS its crest height at that x.
+						   Sway rides the rotate longhand on the wall clock, so it never
+						   touches transform (the dive channel) or the layer's parallax
+						   translate (#59), and tree motion survives an open subpage
+						   (#60). Trees are terrain: always present, never activated. */
+						.scene-trees {
+							position: absolute;
+							left: 0; right: 0; top: 0;
+							height: var(--rh, 30vh);
+							pointer-events: none;
+						}
+						.scene-tree {
+							position: absolute;
+							transform-origin: 50% 100%;
+						}
+						@keyframes tree-sway {
+							from { rotate: calc(-1 * var(--tamp, 2.7deg)); }
+							to { rotate: var(--tamp, 2.7deg); }
+						}
+						.scene-tree--sways {
+							animation: tree-sway var(--tdur, 6s) ease-in-out var(--tdel, 0s) infinite alternate;
+						}
 						@keyframes bird-bob {
 							0%, 100% { translate: 0 0; }
 							50% { translate: 0 calc(-1 * var(--amp, 2vh)); }
@@ -707,6 +731,9 @@ function LayoutHost() {
 							/* Vapors freeze in the authored pose, they are not removed:
 							   a still veil keeps the depth read (#79). */
 							.animate-twinkle, .cloud-el, .mist-el, .mist-el svg { animation: none; }
+							/* Terrain freezes at its authored lean, so a still stand is
+							   varied and complete (#82). */
+							.scene-tree--sways { animation: none; rotate: var(--pose, 0deg); }
 							.animate-shooting-star { animation: none; opacity: 0; }
 							.bird-layer { display: none; }
 							.firefly-layer { display: none; }

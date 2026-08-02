@@ -6,6 +6,8 @@ import {
 	BIRDS,
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
+	CONIFER_GREEN,
+	CONIFERS,
 	FIREFLIES,
 	FIREFLY_GROUP_KEYS,
 	LAND_DEFAULT,
@@ -70,17 +72,26 @@ function skyArr(p){if(p<=s1)return NOON;if(p<e1){var t=(p-s1)/(e1-s1);return bs(
 function skyAt(p){return css(skyArr(p));}`;
 }
 
-// The vanilla ridge-fill port (#62): the accumulated aerial-perspective
-// composite from scene.ts ridgeFillsAt, against the boot's sky array. Seeds
-// `--ridge<i>-f` so a cold night deep-link does not flash day mountains before
-// hydration. Constants interpolate from RIDGES / LAND_DEFAULT so they can't
-// drift; pinned against the real formula in skyBoot.test.ts. Depends on the
-// lerp/css helpers from skyBootSkyAtJs.
+// The vanilla ridge-fill port (#62, conifers on #86): the accumulated
+// aerial-perspective composite from scene.ts ridgeFillsAt, against the boot's
+// sky array - plus the conifer-stand fill (scene.ts coniferFillAt) for every
+// treed ridge in the same loop. Seeds `--ridge<i>-f` and `--tree<i>-f` so a
+// cold night deep-link does not flash day mountains or noon-green trees
+// before hydration. Constants interpolate from RIDGES / LAND_DEFAULT /
+// CONIFERS so they can't drift; pinned against the real formulas in
+// skyBoot.test.ts. Depends on the lerp/css/cl helpers from skyBootSkyAtJs.
 export function skyBootRidgeJs(): string {
 	const r = RIDGES;
+	const g = CONIFERS.green;
+	const lumNoon =
+		(0.2126 * SKY_NOON.r + 0.7152 * SKY_NOON.g + 0.0722 * SKY_NOON.b) / 255;
+	const washJs =
+		g.mode === "wash"
+			? `mx*=cl(((0.2126*sky[0]+0.7152*sky[1]+0.0722*sky[2])/255)/${lumNoon});`
+			: "";
 	return `
-var LAND=[${LAND_DEFAULT.r},${LAND_DEFAULT.g},${LAND_DEFAULT.b}];
-function ridgeFills(sky){var acc=sky,out=[];for(var i=0;i<${r.count};i++){var t=i/${r.count - 1};var tone=lerp(LAND,sky,${r.haze}*(1-t));var dark=lerp(tone,[0,0,0],${r.shadeBase}+t*${r.shadeGain});acc=lerp(acc,dark,Math.min(1,(${r.coverBase}+t*${r.coverGain})*${r.weight}));out.push(css(acc));}return out;}`;
+var LAND=[${LAND_DEFAULT.r},${LAND_DEFAULT.g},${LAND_DEFAULT.b}],TGREEN=[${CONIFER_GREEN.r},${CONIFER_GREEN.g},${CONIFER_GREEN.b}];
+function ridgeFills(sky){var acc=sky,rf=[],tf={};for(var i=0;i<${r.count};i++){var t=i/${r.count - 1};var tone=lerp(LAND,sky,${r.haze}*(1-t));var dark=lerp(tone,[0,0,0],${r.shadeBase}+t*${r.shadeGain});acc=lerp(acc,dark,Math.min(1,(${r.coverBase}+t*${r.coverGain})*${r.weight}));rf.push(css(acc));if(i>=${CONIFERS.treeLine}){var pig=lerp(TGREEN,sky,${r.haze}*(1-t)*${g.wash});var mx=${g.strength}*(1-${g.depth}*(1-t));${washJs}tf[i]=css(lerp(acc,pig,cl(mx)));}}return {r:rf,t:tf};}`;
 }
 
 // The vanilla nightAt port (#85): the firefly halo's strength factor, seeded
@@ -182,7 +193,8 @@ var color=css(sa);
 s.setProperty("--sky-now",color);
 document.body.style.backgroundColor=color;
 var RF=ridgeFills(sa);
-for(var ri=0;ri<RF.length;ri++){s.setProperty("--ridge"+ri+"-f",RF[ri]);}
+for(var ri=0;ri<RF.r.length;ri++){s.setProperty("--ridge"+ri+"-f",RF.r[ri]);}
+for(var ti in RF.t){s.setProperty("--tree"+ti+"-f",RF.t[ti]);}
 s.setProperty("--ff-night",""+ffNight(sa));
 var vr=window.innerHeight/doc.scrollHeight;
 var vt=p*(1-vr)*100,vh=Math.max(vr*100,4);

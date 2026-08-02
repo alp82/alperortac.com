@@ -13,6 +13,8 @@ import {
 	BIRDS,
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
+	coniferFillAt,
+	coniferStands,
 	FIREFLIES,
 	FIREFLY_GROUP_KEYS,
 	LAND_DEFAULT,
@@ -61,21 +63,40 @@ return skyAt;})()`) as (p: number) => string;
 	});
 });
 
-// The boot ships a vanilla port of scene.ts ridgeFillsAt (#62) so a cold
-// night deep-link paints night mountains before hydration. It must stay
-// bit-for-bit identical to the real formula against the default landscape.
+// The boot ships a vanilla port of scene.ts ridgeFillsAt (#62) plus the
+// conifer-stand fills (#86) so a cold night deep-link paints night mountains
+// and dark stands before hydration. Both must stay bit-for-bit identical to
+// the real formulas against the default landscape.
 describe("skyBoot vanilla ridge-fill port", () => {
 	// biome-ignore lint/security/noGlobalEval: evaluating our own generated source to pin it against the real ridgeFillsAt
 	const boot = eval(`(function(){${skyBootSkyAtJs()}${skyBootRidgeJs()}
-return function(p){return ridgeFills(skyArr(p));};})()`) as (
-		p: number,
-	) => string[];
+return function(p){return ridgeFills(skyArr(p));};})()`) as (p: number) => {
+		r: string[];
+		t: Record<string, string>;
+	};
 
 	it("matches the real ridgeFillsAt across the whole progress range", () => {
 		for (let i = 0; i <= 100; i++) {
 			const p = i / 100;
 			const sky = skyRgbAt(p, DEFAULT_SKY_CURVE);
-			expect(boot(p)).toEqual(ridgeFillsAt(sky, LAND_DEFAULT).map(rgbToCss));
+			expect(boot(p).r).toEqual(ridgeFillsAt(sky, LAND_DEFAULT).map(rgbToCss));
+		}
+	});
+
+	it("matches the real coniferFillAt for every treed ridge", () => {
+		const stands = coniferStands();
+		for (let i = 0; i <= 100; i++) {
+			const p = i / 100;
+			const sky = skyRgbAt(p, DEFAULT_SKY_CURVE);
+			const tones = ridgeFillsAt(sky, LAND_DEFAULT);
+			const want = Object.fromEntries(
+				stands.map((s) => {
+					const tone = tones[s.ridge];
+					if (!tone) throw new Error(`no ridge tone for ${s.ridge}`);
+					return [String(s.ridge), rgbToCss(coniferFillAt(tone, s.t, sky))];
+				}),
+			);
+			expect(boot(p).t).toEqual(want);
 		}
 	});
 });

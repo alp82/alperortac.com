@@ -8,8 +8,11 @@ import {
 	birdPool,
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
+	CONIFER_GRIDS,
 	cloudFillAt,
 	cloudPool,
+	coniferFillAt,
+	coniferStands,
 	FIREFLIES,
 	FIREFLY_GROUP_KEYS,
 	FIREFLY_WARMS,
@@ -40,7 +43,8 @@ import { useHandheldJitter } from "./_layout/dive/useHandheldJitter";
 import type { Journey } from "./_layout/scrollJourney/useScrollJourney";
 import { useJourneyRepaint } from "./_layout/scrollJourney/useScrollJourney";
 
-// The celestial scene: sky, stars, sun, moon, clouds, birds, ridge ladder.
+// The celestial scene: sky, stars, sun, moon, clouds, birds, mist, fireflies,
+// the ridge ladder and its conifer stands.
 //
 // Nothing here recomputes on scroll. The scroll journey is owned by
 // useScrollJourney, which writes the sun/moon positions, the star opacities,
@@ -470,7 +474,39 @@ function FireflyGroupLayer({
 // pre-hydration fallback; the boot script seeds `--ridge<i>-f` for a cold
 // deep-link and the driver overwrites the inline style after hydration.
 const RIDGE_SPECS = ridgeSpecs();
-const RIDGE_INITIAL_FILLS = ridgeFillsAt(SKY_NOON, LAND_DEFAULT).map(rgbToCss);
+const RIDGE_INITIAL_RGB = ridgeFillsAt(SKY_NOON, LAND_DEFAULT);
+const RIDGE_INITIAL_FILLS = RIDGE_INITIAL_RGB.map(rgbToCss);
+
+// The conifer stands (#82's tree line, built on #86): each stand is a child
+// of its ridge layer, so it inherits the depth, the parallax translate and
+// the paint order - and the next opaque ridge occludes it for free. Geometry
+// is module-level and deterministic so SSR and client markup match. Sway is
+// per tree on the `rotate` longhand, on the CSS clock (#60); the driver only
+// writes one sky-derived fill per stand. ~20 trees animate against #71's
+// ~250 ceiling. The day fills below are the pre-hydration fallback; the boot
+// script seeds `--tree<i>-f` for a cold deep-link.
+const CONIFER_STANDS = coniferStands();
+const CONIFER_STAND_BY_RIDGE = new Map(CONIFER_STANDS.map((s) => [s.ridge, s]));
+const CONIFER_SPRITES = Object.fromEntries(
+	Object.entries(CONIFER_GRIDS).map(([kind, tiers]) => [
+		kind,
+		Object.fromEntries(
+			Object.entries(tiers).map(([tier, rows]) => [
+				tier,
+				{ d: gridPath([...rows]), w: rows[0]?.length ?? 1, h: rows.length },
+			]),
+		),
+	]),
+) as Record<
+	keyof typeof CONIFER_GRIDS,
+	Record<"near" | "far", { d: string; w: number; h: number }>
+>;
+const CONIFER_INITIAL_FILLS = new Map(
+	CONIFER_STANDS.map((s) => {
+		const tone = RIDGE_INITIAL_RGB[s.ridge] ?? SKY_NOON;
+		return [s.ridge, rgbToCss(coniferFillAt(tone, s.t, SKY_NOON))];
+	}),
+);
 const BIRD_INITIAL = BIRD_SPECIES_KEYS.map((key) => {
 	const sp = BIRDS[key];
 	const pres = presenceAt(0, sp.window);
@@ -842,6 +878,8 @@ function PixelBackgroundInner({
 	// per ridge. The ridge box overscans past every edge by the full travel so
 	// a risen ridge never pulls its bottom edge into view.
 	RIDGE_SPECS.forEach((r, i) => {
+		const stand = CONIFER_STAND_BY_RIDGE.get(r.index);
+		const treeFill = CONIFER_INITIAL_FILLS.get(r.index);
 		layers.push({
 			depth: r.depth,
 			node: (
@@ -854,8 +892,12 @@ function PixelBackgroundInner({
 									layer: el,
 									path: el.querySelector("path") as SVGPathElement,
 									base: el.querySelector(".scene-ridge-base") as HTMLElement,
+									trees: Array.from(
+										el.querySelectorAll(".scene-trees path"),
+									) as SVGPathElement[],
 									depth: r.depth,
 									appliedFill: "",
+									appliedTreeFill: "",
 								}
 							: null;
 					}}
@@ -889,6 +931,50 @@ function PixelBackgroundInner({
 								backgroundColor: `var(--ridge${i}-f, ${RIDGE_INITIAL_FILLS[i]})`,
 							}}
 						/>
+						{stand && (
+							<div className="scene-trees" aria-hidden="true">
+								{stand.trees.map((tree) => {
+									const spr = CONIFER_SPRITES[tree.kind][tree.tier];
+									return (
+										<div
+											key={`${tree.leftPct.toFixed(2)}-${tree.heightVh.toFixed(2)}`}
+											className={`scene-tree${
+												stand.sways ? " scene-tree--sways" : ""
+											}`}
+											style={
+												{
+													left: `${tree.leftPct.toFixed(2)}%`,
+													bottom: `${tree.bottomPct.toFixed(2)}%`,
+													width: `${tree.widthVh.toFixed(2)}vh`,
+													height: `${tree.heightVh.toFixed(2)}vh`,
+													marginLeft: `${(-tree.widthVh / 2).toFixed(2)}vh`,
+													marginBottom: `${(-tree.sinkVh).toFixed(2)}vh`,
+													"--tamp": `${tree.ampDeg.toFixed(2)}deg`,
+													"--tdur": `${tree.swayDurS.toFixed(1)}s`,
+													"--tdel": `${tree.delayS.toFixed(1)}s`,
+													"--pose": `${tree.poseDeg.toFixed(2)}deg`,
+												} as React.CSSProperties
+											}
+										>
+											<svg
+												viewBox={`0 0 ${spr.w} ${spr.h}`}
+												preserveAspectRatio="none"
+												className="w-full h-full"
+												aria-hidden="true"
+											>
+												<path
+													d={spr.d}
+													style={{
+														fill: `var(--tree${i}-f, ${treeFill ?? "black"})`,
+														shapeRendering: "crispEdges",
+													}}
+												/>
+											</svg>
+										</div>
+									);
+								})}
+							</div>
+						)}
 					</div>
 				</div>
 			),

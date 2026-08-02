@@ -40,15 +40,16 @@ export type MemberSchedule = {
 	size: Track;
 };
 
-export type SceneSchedule = Record<"stars" | "conifers", MemberSchedule>;
+export type SceneSchedule = Record<"stars", MemberSchedule>;
 
 // Seed values from the authoring-panel session (wayfinder #63). Stars are
-// consumed since #65; the conifers row is the seed for its build ticket (#86)
-// and drives nothing yet. Water was cut on #83 and its row left with it.
-// Clouds, birds, mist and fireflies are NOT in this table: their signed-off
-// designs (#78, #80, #79, #81) fan out into typed pools, each with its own
-// windows - see CLOUDSCAPE, BIRDS, MIST and FIREFLIES below (the #64 pattern:
-// a member whose design fans into types gets its own structure).
+// consumed since #65. Water was cut on #83 and its row left with it; the
+// conifers seed row was consumed by its build (#86 - see CONIFERS below,
+// conifers are terrain with no window of their own). Clouds, birds, mist and
+// fireflies are NOT in this table: their signed-off designs (#78, #80, #79,
+// #81) fan out into typed pools, each with its own windows - see CLOUDSCAPE,
+// BIRDS, MIST and FIREFLIES below (the #64 pattern: a member whose design
+// fans into types gets its own structure).
 export const SCENE: SceneSchedule = {
 	// Stars predate the roster and keep their sky-curve coupling: presence stays
 	// the driver's `starsO` ramp across phase2 (the curve is tunable at runtime,
@@ -60,13 +61,6 @@ export const SCENE: SceneSchedule = {
 		count: [150, 340],
 		intensity: 1,
 		position: 0,
-		size: 1,
-	},
-	conifers: {
-		windows: [{ start: 0, rampIn: 0, end: 1, rampOut: 0 }],
-		count: 12,
-		intensity: 1,
-		position: 0.85,
 		size: 1,
 	},
 };
@@ -311,6 +305,224 @@ export function ridgeFillsAt(sky: RGB, land: RGB): RGB[] {
 		);
 		return acc;
 	});
+}
+
+// ---------------------------------------------------------------------------
+// Conifers: the stands locked on wayfinder #82, built on #86. A conifer stand
+// is a CHILD of a ridge layer, and that is the whole placement model: it
+// inherits the ridge depth, the parallax translate and the paint order, sits
+// on the crest polyline, and the next opaque ridge occludes it for free.
+//
+// The tree line is ridge 7 - ridges 0-6 stay bare rock, so trees never run to
+// the horizon. Ridge 7 is a ~3px fringe on purpose (the forest's soft top
+// edge), ridge 8 the middle stand, ridge 9 the forest you read. Density falls
+// toward the viewer and size rises, both keyed to position IN the forest
+// (u = 0 at the tree line), so moving the tree line does not rescale the
+// member. Spire and broad mix on one ridge. Sprites are ASCII pixel grids
+// (gridPath) with a dormant far tier - at this tree line no ridge uses it.
+//
+// Green washes out, not holds: the pigment mix falls with sky luminance, so
+// the stands converge on plain silhouette by dusk and the night landscape is
+// one dark shape again. Sway is per tree on the `rotate` longhand (never
+// `transform`, the dive channel, and never the layer's parallax `translate`),
+// on the CSS clock, so tree motion survives an open subpage (#60). Locked in
+// the prototype but not carried here: the diagonal sprite language, the
+// per-ridge `group` sway fallback (.prototypes/scene-conifers.html).
+// ---------------------------------------------------------------------------
+
+// The #82 settings seed (.prototypes/scene-conifers.html, Alper's pass).
+export const CONIFERS = {
+	/** first ridge index that carries trees (0 = far) */
+	treeLine: 7,
+	/** ridges below this index use the far-tier sprite (dormant at treeLine 7) */
+	detailSplit: 6,
+	/** trees at the tree line / at ridge 9 - density falls toward the viewer */
+	count: { far: 9, near: 4 },
+	/** tree height in vh at the tree line / at ridge 9 - size rises */
+	size: { far: 0.3, near: 3.1 },
+	/** per-tree size variation */
+	jitter: 0.75,
+	/** how far the base sinks into the crest, vh (scaled up toward the viewer) */
+	sink: 0.3,
+	/** chance a tree is broad instead of spire, mixed on every ridge */
+	broadShare: 0.25,
+	green: {
+		/** `wash`: the green mix falls with sky luminance (`hold` keeps it) */
+		mode: "wash" as "hold" | "wash",
+		strength: 0.55,
+		/** how much the far ridges lose green to the haze */
+		depth: 0.6,
+		/** how far the pigment itself washes toward the sky */
+		wash: 0.8,
+	},
+	sway: {
+		/** first ridge index that sways - 7 means every treed ridge */
+		from: 7,
+		/** amplitude, degrees */
+		amp: 2.7,
+		/** nominal period, seconds, wall clock */
+		period: 6,
+	},
+};
+
+// The vegetation pigment (brief #77: green sits ON TOP of the sky derivation,
+// one of the two sanctioned fixed colours) - the pass-2 sketchbook green.
+export const CONIFER_GREEN: RGB = { r: 46, g: 92, b: 62 };
+
+// Sprite grids: two shapes x two detail tiers (brief #77 rule 2: the minimum
+// outline that reads at rendered size, at most two tiers). '#' is a filled
+// cell; gridPath compiles a grid to crisp unit-rect runs.
+export const CONIFER_GRIDS = {
+	spire: {
+		near: [
+			"....#....",
+			"...###...",
+			"...###...",
+			"..#####..",
+			"...###...",
+			"..#####..",
+			".#######.",
+			"..#####..",
+			".#######.",
+			"#########",
+			".#######.",
+			"#########",
+			"....#....",
+			"....#....",
+		],
+		far: ["..#..", ".###.", ".###.", "#####", "#####", "..#.."],
+	},
+	broad: {
+		near: [
+			"......#......",
+			".....###.....",
+			"....#####....",
+			"...#######...",
+			"....#####....",
+			"...#######...",
+			"..#########..",
+			"...#######...",
+			"..#########..",
+			".###########.",
+			"#############",
+			"......#......",
+			"......#......",
+		],
+		far: ["...#...", "..###..", ".#####.", "#######", "#######", "...#..."],
+	},
+} as const;
+
+export type ConiferKind = keyof typeof CONIFER_GRIDS;
+export type ConiferTier = "near" | "far";
+
+/** The crest height at x, interpolated along a ridge's crest polyline (#62). */
+export function crestYAt(crest: { x: number; y: number }[], x: number): number {
+	for (let i = 1; i < crest.length; i++) {
+		const b = crest[i];
+		if (b && x <= b.x) {
+			const a = crest[i - 1] ?? b;
+			const t = b.x === a.x ? 0 : (x - a.x) / (b.x - a.x);
+			return a.y + (b.y - a.y) * t;
+		}
+	}
+	return crest[crest.length - 1]?.y ?? 400;
+}
+
+export type ConiferTreeSeed = {
+	/** % of the ridge silhouette's width */
+	leftPct: number;
+	/** % of the silhouette box's height - the crest height at this x */
+	bottomPct: number;
+	kind: ConiferKind;
+	tier: ConiferTier;
+	widthVh: number;
+	heightVh: number;
+	/** base sink into the crest, vh */
+	sinkVh: number;
+	/** sway amplitude, degrees */
+	ampDeg: number;
+	/** sway half-period, seconds, wall clock (alternate direction) */
+	swayDurS: number;
+	/** negative delay so a stand sways out of phase from frame one */
+	delayS: number;
+	/** the authored lean reduced motion freezes at (brief #77 rule 7) */
+	poseDeg: number;
+};
+
+export type ConiferStandSeed = {
+	/** the ridge this stand is a child of (index into ridgeSpecs) */
+	ridge: number;
+	/** 0 at the horizon ridge, 1 at the frontmost - the fill formula's input */
+	t: number;
+	sways: boolean;
+	trees: ConiferTreeSeed[];
+};
+
+/**
+ * The per-tree geometry of every stand. Seeded per ridge with the exact
+ * prototype seeds, so the shipped forest IS the walked forest - SSR and
+ * client markup must match (#418). Placement along the crest is stratified
+ * (even slots with in-slot jitter), so a stand spreads instead of clumping.
+ */
+export function coniferStands(): ConiferStandSeed[] {
+	const c = CONIFERS;
+	const specs = ridgeSpecs();
+	const span = Math.max(1, RIDGES.count - 1 - c.treeLine);
+	const out: ConiferStandSeed[] = [];
+	for (const spec of specs) {
+		if (spec.index < c.treeLine) continue;
+		// u: position IN the forest, 0 at the tree line and 1 at the near ridge.
+		const u = (spec.index - c.treeLine) / span;
+		const n = Math.max(
+			1,
+			Math.round(c.count.far + (c.count.near - c.count.far) * u),
+		);
+		const baseH = c.size.far + (c.size.near - c.size.far) * u;
+		const tier: ConiferTier = spec.index < c.detailSplit ? "far" : "near";
+		const rnd = mulberry32(0x7e5 + spec.index * 613);
+		const trees = Array.from({ length: n }, (_, i) => {
+			const xv = ((i + 0.15 + rnd() * 0.7) / n) * 1000;
+			const y = crestYAt(spec.crest, xv);
+			const kind: ConiferKind = rnd() < c.broadShare ? "broad" : "spire";
+			const grid = CONIFER_GRIDS[kind][tier];
+			const heightVh = baseH * (1 - c.jitter / 2 + rnd() * c.jitter);
+			const widthVh = heightVh * ((grid[0]?.length ?? 1) / grid.length);
+			return {
+				leftPct: xv / 10,
+				bottomPct: 100 - y / 4,
+				kind,
+				tier,
+				widthVh,
+				heightVh,
+				sinkVh: c.sink * (0.4 + u),
+				ampDeg: c.sway.amp * (0.6 + rnd() * 0.8),
+				swayDurS: c.sway.period * (0.75 + rnd() * 0.6),
+				delayS: -(rnd() * c.sway.period * 2),
+				poseDeg: (rnd() - 0.5) * 2 * c.sway.amp * 0.55,
+			};
+		});
+		out.push({
+			ridge: spec.index,
+			t: spec.t,
+			sways: spec.index >= c.sway.from,
+			trees,
+		});
+	}
+	return out;
+}
+
+/**
+ * A stand's fill: the ridge's own composite pushed toward the green pigment,
+ * which itself washes toward the sky by depth exactly like the ridge tone -
+ * aerial perspective on vegetation (#82). In `wash` mode the mix falls with
+ * sky luminance, so the stands are plain silhouette by dusk.
+ */
+export function coniferFillAt(ridgeTone: RGB, t: number, sky: RGB): RGB {
+	const g = CONIFERS.green;
+	const pigment = lerpRgb(CONIFER_GREEN, sky, RIDGES.haze * (1 - t) * g.wash);
+	let mix = g.strength * (1 - g.depth * (1 - t));
+	if (g.mode === "wash") mix *= clamp01(lum(sky) / lum(SKY_NOON));
+	return lerpRgb(ridgeTone, pigment, clamp01(mix));
 }
 
 // ---------------------------------------------------------------------------
