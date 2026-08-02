@@ -10,8 +10,12 @@ import {
 	cloudFillAt,
 	cloudPool,
 	gridPath,
+	LAND_DEFAULT,
 	poolSize,
 	presenceAt,
+	RIDGES,
+	ridgeFillsAt,
+	ridgeSpecs,
 	SCENE,
 	trackAt,
 	windowedOver,
@@ -314,5 +318,84 @@ describe("the bird relay (#80)", () => {
 	it("most species fly with the wind - the clouds' drift direction", () => {
 		const withWind = BIRD_SPECIES_KEYS.filter((k) => BIRDS[k].rightward);
 		expect(withWind.length).toBeGreaterThan(BIRD_SPECIES_KEYS.length / 2);
+	});
+});
+
+describe("the ridge ladder (#62)", () => {
+	it("spans the locked depth ladder: ten ridges, 0.21 to 0.93 (#59)", () => {
+		const specs = ridgeSpecs();
+		expect(specs).toHaveLength(RIDGES.count);
+		expect(specs[0]?.depth).toBeCloseTo(0.21, 10);
+		expect(specs[specs.length - 1]?.depth).toBeCloseTo(0.93, 10);
+		// Strictly increasing: paint order = depth order needs no ties here.
+		for (let i = 1; i < specs.length; i++) {
+			const prev = specs[i - 1];
+			const cur = specs[i];
+			if (!prev || !cur) throw new Error("spec missing");
+			expect(cur.depth).toBeGreaterThan(prev.depth);
+		}
+	});
+
+	it("is deterministic: SSR and client must generate identical art (#418)", () => {
+		expect(ridgeSpecs()).toEqual(ridgeSpecs());
+	});
+
+	it("far ridges sit tall, near ridges low - the tops stagger", () => {
+		const specs = ridgeSpecs();
+		expect(specs[0]?.heightVh).toBeCloseTo(44, 10);
+		expect(specs[specs.length - 1]?.heightVh).toBeCloseTo(14, 10);
+	});
+
+	it("every silhouette is a closed bottom-anchored path in the house vocabulary", () => {
+		for (const r of ridgeSpecs()) {
+			expect(r.d.startsWith("M0 400V")).toBe(true);
+			expect(r.d.endsWith("V400H0Z")).toBe(true);
+		}
+	});
+
+	it("exposes the crest polyline for members planted on a ridge (#82)", () => {
+		for (const r of ridgeSpecs()) {
+			expect(r.crest.length).toBeGreaterThan(2);
+			expect(r.crest[0]?.x).toBe(0);
+			expect(r.crest[r.crest.length - 1]?.x).toBe(1000);
+			// Crest y stays inside the generator's band (silhouette, never the base).
+			for (const p of r.crest) {
+				expect(p.y).toBeGreaterThanOrEqual(50);
+				expect(p.y).toBeLessThanOrEqual(370);
+			}
+		}
+	});
+
+	it("fills accumulate from the horizon forward and darken toward the viewer", () => {
+		const fills = ridgeFillsAt(SKY_NOON, LAND_DEFAULT);
+		expect(fills).toHaveLength(RIDGES.count);
+		const lum = (c: { r: number; g: number; b: number }) =>
+			0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+		for (let i = 1; i < fills.length; i++) {
+			const prev = fills[i - 1];
+			const cur = fills[i];
+			if (!prev || !cur) throw new Error("fill missing");
+			expect(lum(cur)).toBeLessThan(lum(prev));
+		}
+	});
+
+	it("the horizon ridge hugs the sky - delicacy is colour, not alpha (#59)", () => {
+		const fills = ridgeFillsAt(SKY_NIGHT, LAND_DEFAULT);
+		const far = fills[0];
+		if (!far) throw new Error("fill missing");
+		// Coverage at t=0 is coverBase x weight = ~0.14: the far ridge sits within
+		// a few candela of the night sky, yet is fully opaque (occludes stars).
+		expect(Math.abs(far.r - SKY_NIGHT.r)).toBeLessThanOrEqual(16);
+		expect(Math.abs(far.g - SKY_NIGHT.g)).toBeLessThanOrEqual(16);
+		expect(Math.abs(far.b - SKY_NIGHT.b)).toBeLessThanOrEqual(16);
+	});
+
+	it("gap depths hold the seeds the mist and firefly builds assume (#79/#81)", () => {
+		const specs = ridgeSpecs();
+		const mid = (a: number, b: number) =>
+			((specs[a]?.depth ?? 0) + (specs[b]?.depth ?? 0)) / 2;
+		expect(mid(5, 6)).toBeCloseTo(0.65, 10);
+		expect(mid(7, 8)).toBeCloseTo(0.81, 10);
+		expect(mid(8, 9)).toBeCloseTo(0.89, 10);
 	});
 });

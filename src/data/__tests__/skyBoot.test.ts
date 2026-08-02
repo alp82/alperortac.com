@@ -13,16 +13,19 @@ import {
 	BIRDS,
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
+	LAND_DEFAULT,
 	presenceAt,
+	ridgeFillsAt,
 } from "../scene";
 import {
 	coldEntryFor,
 	PATHNAME_TO_TOPIC_ID,
+	skyBootRidgeJs,
 	skyBootSceneJs,
 	skyBootScript,
 	skyBootSkyAtJs,
 } from "../skyBoot";
-import { DEFAULT_SKY_CURVE, skyAt } from "../skyCurve";
+import { DEFAULT_SKY_CURVE, rgbToCss, skyAt, skyRgbAt } from "../skyCurve";
 import { PANEL_KEY_TO_TOPIC_ID } from "../topics";
 
 // The boot script ships a vanilla port of skyAt so it can run before hydration.
@@ -47,6 +50,25 @@ return skyAt;})()`) as (p: number) => string;
 			for (const p of [edge - 0.001, edge, edge + 0.001]) {
 				expect(bootSkyAt(p)).toBe(skyAt(p, DEFAULT_SKY_CURVE));
 			}
+		}
+	});
+});
+
+// The boot ships a vanilla port of scene.ts ridgeFillsAt (#62) so a cold
+// night deep-link paints night mountains before hydration. It must stay
+// bit-for-bit identical to the real formula against the default landscape.
+describe("skyBoot vanilla ridge-fill port", () => {
+	// biome-ignore lint/security/noGlobalEval: evaluating our own generated source to pin it against the real ridgeFillsAt
+	const boot = eval(`(function(){${skyBootSkyAtJs()}${skyBootRidgeJs()}
+return function(p){return ridgeFills(skyArr(p));};})()`) as (
+		p: number,
+	) => string[];
+
+	it("matches the real ridgeFillsAt across the whole progress range", () => {
+		for (let i = 0; i <= 100; i++) {
+			const p = i / 100;
+			const sky = skyRgbAt(p, DEFAULT_SKY_CURVE);
+			expect(boot(p)).toEqual(ridgeFillsAt(sky, LAND_DEFAULT).map(rgbToCss));
 		}
 	});
 });

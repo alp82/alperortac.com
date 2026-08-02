@@ -145,6 +145,12 @@ export function rgbToCss(rgb: RGB): string {
 	return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
 }
 
+/** Parse a #rrggbb hex colour (the palette table's authoring format). */
+export function hexToRgb(hex: string): RGB {
+	const n = Number.parseInt(hex.slice(1), 16);
+	return { r: (n >> 16) & 0xff, g: (n >> 8) & 0xff, b: n & 0xff };
+}
+
 // The three sky anchor colours. Extracted from the SKY_* module constants so a
 // palette can swap them (see the atmospheric-playground toy) without touching
 // the curve maths. Default = Earth, i.e. the original constants, so every
@@ -175,7 +181,11 @@ export function skyRgbAt(
 	if (p <= s2) return anchors.dusk;
 	if (p < e2) {
 		const t = (p - s2) / (e2 - s2);
-		return boostSat(lerpRgb(anchors.dusk, anchors.night, t), eff.boost, bell(t));
+		return boostSat(
+			lerpRgb(anchors.dusk, anchors.night, t),
+			eff.boost,
+			bell(t),
+		);
 	}
 	return anchors.night;
 }

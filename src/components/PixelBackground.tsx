@@ -11,9 +11,12 @@ import {
 	cloudFillAt,
 	cloudPool,
 	gridPath,
+	LAND_DEFAULT,
 	mulberry32,
 	poolSize,
 	presenceAt,
+	ridgeFillsAt,
+	ridgeSpecs,
 	SCENE,
 	trackAt,
 	windowedOver,
@@ -24,12 +27,12 @@ import { useHandheldJitter } from "./_layout/dive/useHandheldJitter";
 import type { Journey } from "./_layout/scrollJourney/useScrollJourney";
 import { useJourneyRepaint } from "./_layout/scrollJourney/useScrollJourney";
 
-// The celestial scene: sky, stars, sun, moon, parallax clouds, landscape.
+// The celestial scene: sky, stars, sun, moon, clouds, birds, ridge ladder.
 //
 // Nothing here recomputes on scroll. The scroll journey is owned by
 // useScrollJourney, which writes the sun/moon positions, the star opacities,
-// the sky colour, the cloud transforms and the landscape fade directly onto the
-// elements registered in `journey.targets`. This component renders once and
+// the sky colour, the cloud gates and the ridge fills + parallax directly onto
+// the elements registered in `journey.targets`. This component renders once and
 // then holds still - see journeyTargets.ts for why direct writes rather than
 // custom properties on the root.
 //
@@ -243,6 +246,14 @@ const BIRD_POSE_PATHS = BIRD_SPECIES_KEYS.map((key) =>
 	BIRDS[key].sprite.poses.map((pose) => gridPath(pose)),
 );
 const BIRD_FLAP_CSS = birdFlapCss();
+
+// The ridge ladder (#62): ten seeded silhouettes, farthest first, replacing
+// the single translucent landscape path. Geometry is module-level and
+// deterministic so SSR and client markup match. The day fills below are the
+// pre-hydration fallback; the boot script seeds `--ridge<i>-f` for a cold
+// deep-link and the driver overwrites the inline style after hydration.
+const RIDGE_SPECS = ridgeSpecs();
+const RIDGE_INITIAL_FILLS = ridgeFillsAt(SKY_NOON, LAND_DEFAULT).map(rgbToCss);
 const BIRD_INITIAL = BIRD_SPECIES_KEYS.map((key) => {
 	const sp = BIRDS[key];
 	const pres = presenceAt(0, sp.window);
@@ -361,15 +372,15 @@ function BirdSpeciesLayer({
 function PixelBackgroundInner({
 	journey,
 	dive,
-	// Atmosphere toy: palette + celestial-extras overrides. All optional; the
-	// defaults reproduce the original scene exactly.
-	landscapeColor = "#4a7a8c",
+	// Atmosphere toy: sun + celestial-extras overrides. All optional; the
+	// defaults reproduce the original scene exactly. The palette's landscape
+	// colour reaches the ridges through the journey (useScrollJourney's
+	// `landscape`), because ridge fills are driver-derived per frame.
 	sunColor,
 	extras,
 }: {
 	journey?: Journey | undefined;
 	dive?: DiveRenderState | undefined;
-	landscapeColor?: string;
 	sunColor?: { bg: string; border: string } | undefined;
 	extras?:
 		| { extraMoon: boolean; denseStars: boolean; shootingStar: boolean }
@@ -566,37 +577,64 @@ function PixelBackgroundInner({
 		});
 	});
 
-	layers.push({
-		depth: 0.55,
-		node: (
-			<div
-				key="land"
-				ref={(el) => {
-					if (journey) journey.targets.land = el;
-				}}
-				className="dive-layer absolute bottom-0 w-full h-[40vh] pointer-events-none"
-				data-depth="0.55"
-				style={
-					{
-						opacity: "var(--land-o, 0.4)",
-						"--layer-depth": 0.55,
-					} as React.CSSProperties
-				}
-			>
-				<svg
-					viewBox="0 0 1000 400"
-					preserveAspectRatio="none"
-					className="w-full h-full opacity-30"
-					aria-hidden="true"
+	// The ridge ladder (#62): each ridge is its own dive-layer at its depth, so
+	// the depth sort interleaves the clouds between the mountains. The driver
+	// writes the parallax offset on the layer's `translate` longhand (never
+	// `transform` - that channel belongs to the dive, #59) and one opaque fill
+	// per ridge. The ridge box overscans past every edge by the full travel so
+	// a risen ridge never pulls its bottom edge into view.
+	RIDGE_SPECS.forEach((r, i) => {
+		layers.push({
+			depth: r.depth,
+			node: (
+				<div
+					key={`ridge-${r.index}`}
+					ref={(el) => {
+						if (!journey) return;
+						journey.targets.ridges[i] = el
+							? {
+									layer: el,
+									path: el.querySelector("path") as SVGPathElement,
+									base: el.querySelector(".scene-ridge-base") as HTMLElement,
+									depth: r.depth,
+									appliedFill: "",
+								}
+							: null;
+					}}
+					className="dive-layer dive-layer--ridge absolute inset-0 pointer-events-none"
+					data-depth={r.depth}
+					style={{ "--layer-depth": r.depth } as React.CSSProperties}
 				>
-					<path
-						fill={landscapeColor}
-						d="M0 400V300l100-50h50l100 100h50l150-150h50l100 80h100l200-180h100v300z"
-						style={{ shapeRendering: "crispEdges" }}
-					/>
-				</svg>
-			</div>
-		),
+					<div
+						className="scene-ridge"
+						style={
+							{ "--rh": `${r.heightVh.toFixed(1)}vh` } as React.CSSProperties
+						}
+						aria-hidden="true"
+					>
+						<svg
+							viewBox="0 0 1000 400"
+							preserveAspectRatio="none"
+							aria-hidden="true"
+						>
+							<path
+								d={r.d}
+								style={{
+									fill: `var(--ridge${i}-f, ${RIDGE_INITIAL_FILLS[i]})`,
+									shapeRendering: "crispEdges",
+								}}
+							/>
+						</svg>
+						<div
+							className="scene-ridge-base"
+							style={{
+								backgroundColor: `var(--ridge${i}-f, ${RIDGE_INITIAL_FILLS[i]})`,
+							}}
+						/>
+					</div>
+				</div>
+			),
+		});
 	});
 
 	layers.sort((a, b) => a.depth - b.depth);

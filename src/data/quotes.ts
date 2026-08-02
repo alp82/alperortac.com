@@ -10,7 +10,7 @@ export interface TapeQuote {
 }
 
 /** Trading day the quotes were captured (build date, YYYY-MM-DD). */
-export const TAPE_AS_OF = "2026-08-01";
+export const TAPE_AS_OF = "2026-08-02";
 
 export const TAPE_QUOTES: TapeQuote[] = [
 	{
@@ -36,10 +36,10 @@ export const TAPE_QUOTES: TapeQuote[] = [
 	},
 	{
 		sym: "BTC",
-		deltaPct: 0.26,
-		high: 63085.02,
-		low: 62823.3,
-		volume: 20893808640,
+		deltaPct: 0.6,
+		high: 63521.16,
+		low: 62751.01,
+		volume: 15934413824,
 	},
 	{
 		sym: "MSFT",
@@ -50,10 +50,10 @@ export const TAPE_QUOTES: TapeQuote[] = [
 	},
 	{
 		sym: "ETH",
-		deltaPct: 0.31,
-		high: 1869.75,
-		low: 1860.55,
-		volume: 6656654848,
+		deltaPct: 1.04,
+		high: 1880.4,
+		low: 1842.18,
+		volume: 6300920832,
 	},
 	{
 		sym: "TSLA",

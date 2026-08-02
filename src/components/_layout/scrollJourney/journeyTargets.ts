@@ -45,6 +45,20 @@ export type BirdSpeciesTargets = ScenePool & {
 	appliedFill: string;
 };
 
+// A ridge layer (#62): the driver writes the parallax offset on the layer's
+// `translate` longhand (the scroll channel, #59 - it composes with the dive's
+// `transform`) and one opaque fill on the silhouette path + the base strip
+// below it. Depth is captured at registration so applyJourney needs no data
+// import. Fills override the markup's pre-hydration `var(--ridge<i>-f)` seed,
+// exactly like the sky's backgroundColor write.
+export type RidgeTargets = {
+	layer: HTMLElement;
+	path: SVGPathElement;
+	base: HTMLElement;
+	depth: number;
+	appliedFill: string;
+};
+
 function activate(pool: ScenePool, count: number): void {
 	if (pool.applied === count) return;
 	const lo = Math.min(pool.applied < 0 ? 0 : pool.applied, count);
@@ -69,7 +83,8 @@ export type JourneyTargets = {
 	cloudTypes: Array<CloudTypeTargets | null>;
 	/** one per BIRD_SPECIES_KEYS entry, in order */
 	birdSpecies: Array<BirdSpeciesTargets | null>;
-	land: HTMLElement | null;
+	/** one per ridge, farthest first (#62) */
+	ridges: Array<RidgeTargets | null>;
 	mmBand: HTMLElement | null;
 	mmDim: HTMLElement | null;
 	mmInd: HTMLElement | null;
@@ -90,7 +105,7 @@ export function createJourneyTargets(): JourneyTargets {
 		moon2: null,
 		cloudTypes: [],
 		birdSpecies: [],
-		land: null,
+		ridges: [],
 		mmBand: null,
 		mmDim: null,
 		mmInd: null,
@@ -153,7 +168,20 @@ export function applyJourney(v: JourneyValues, t: JourneyTargets): void {
 			bs.appliedFill = b.fill;
 		}
 	});
-	if (t.land) t.land.style.opacity = `${v.landO}`;
+	// Per ridge: the vertical parallax offset on the `translate` longhand and
+	// the accumulated aerial-perspective fill (#62). Fills only change with the
+	// sky, so the write is cached like the cloud fills.
+	t.ridges.forEach((r, i) => {
+		if (!r) return;
+		const py = -v.ridgeRise * r.depth;
+		r.layer.style.translate = py === 0 ? "" : `0px ${py.toFixed(2)}px`;
+		const fill = v.ridgeFills[i];
+		if (fill && r.appliedFill !== fill) {
+			r.path.style.fill = fill;
+			r.base.style.backgroundColor = fill;
+			r.appliedFill = fill;
+		}
+	});
 
 	// One transform shared by the three minimap layers that track the viewport.
 	const mmT = `translateY(${v.mm.topPx}px)`;

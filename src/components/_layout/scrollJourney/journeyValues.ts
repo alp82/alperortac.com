@@ -16,12 +16,20 @@ import {
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
 	cloudFillAt,
+	LAND_DEFAULT,
 	presenceAt,
+	RIDGES,
+	ridgeFillsAt,
 	SCENE,
 	trackAt,
 	windowedOver,
 } from "../../../data/scene";
-import { rgbToCss, type SkyAnchors, skyRgbAt } from "../../../data/skyCurve";
+import {
+	type RGB,
+	rgbToCss,
+	type SkyAnchors,
+	skyRgbAt,
+} from "../../../data/skyCurve";
 import {
 	celestialPosition,
 	MOON_WINDOW,
@@ -242,7 +250,14 @@ export type JourneyValues = {
 	clouds: CloudTypeValues[];
 	/** one entry per BIRD_SPECIES_KEYS, in order */
 	birds: BirdSpeciesValues[];
-	landO: number;
+	/** one opaque css fill per ridge, farthest first (accumulated composite) */
+	ridgeFills: string[];
+	/**
+	 * Vertical parallax rise at depth 1, px (locked #59: vertical only, 160px
+	 * against a 1440px reference, scaled by viewport width). A ridge at depth d
+	 * translates by -rise x d; 0 under reduced motion.
+	 */
+	ridgeRise: number;
 	mm: {
 		topPct: number;
 		hPct: number;
@@ -269,7 +284,9 @@ export type JourneyInput = {
 	metrics: Metrics;
 	celestial: CelestialState;
 	anchors: SkyAnchors;
-	/** prefers-reduced-motion: pins the watermark drift travel to 0 */
+	/** the ridge base colour; the atmosphere toy's palettes override it */
+	landscape?: RGB;
+	/** prefers-reduced-motion: pins watermark drift + ridge parallax to 0 */
 	reduceMotion: boolean;
 };
 
@@ -280,6 +297,7 @@ export function computeJourney({
 	metrics: m,
 	celestial,
 	anchors,
+	landscape = LAND_DEFAULT,
 	reduceMotion,
 }: JourneyInput): JourneyValues {
 	const sunPos = celestialPosition(
@@ -326,7 +344,15 @@ export function computeJourney({
 		shootO: clamp01((skyProgress - phase2End) / Math.max(1 - phase2End, 0.001)),
 		clouds: cloudValuesAt(skyProgress, skyRgb),
 		birds: birdValuesAt(skyProgress, skyRgb),
-		landO: Math.max(0.1, 0.4 - skyProgress * 0.2),
+		ridgeFills: ridgeFillsAt(skyRgb, landscape).map(rgbToCss),
+		// (p - 0.5) * 2 spans -1..1 so the ladder sits at rest mid-scroll,
+		// pushed down at the hero and fully risen at the page bottom (#59).
+		ridgeRise: reduceMotion
+			? 0
+			: (skyProgress - 0.5) *
+				2 *
+				RIDGES.riseAtDepth1 *
+				Math.min(1, m.winW / RIDGES.referenceWidth),
 		mm: {
 			topPct,
 			hPct,

@@ -1,7 +1,14 @@
 import { MOON_WINDOW, SUN_WINDOW } from "../components/minimap/helpers";
 import { DEFAULT_CELESTIAL } from "./celestial";
 import { PROJECTS } from "./projects";
-import { BIRD_SPECIES_KEYS, BIRDS, CLOUD_TYPE_KEYS, CLOUDSCAPE } from "./scene";
+import {
+	BIRD_SPECIES_KEYS,
+	BIRDS,
+	CLOUD_TYPE_KEYS,
+	CLOUDSCAPE,
+	LAND_DEFAULT,
+	RIDGES,
+} from "./scene";
 import { DEFAULT_SKY_CURVE, SKY_DUSK, SKY_NIGHT, SKY_NOON } from "./skyCurve";
 import { PANEL_KEY_TO_TOPIC_ID } from "./topics";
 
@@ -54,7 +61,21 @@ function h2(p,q,t){if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)
 function toRgb(hsl){var h=hsl[0],s=hsl[1],l=hsl[2];if(s===0){var v=Math.round(l*255);return [v,v,v];}var q=l<0.5?l*(1+s):l+s-l*s,p=2*l-q;return [Math.round(h2(p,q,h+1/3)*255),Math.round(h2(p,q,h)*255),Math.round(h2(p,q,h-1/3)*255)];}
 function bs(c,w){var hsl=toHsl(c);hsl[1]=cl(hsl[1]*(1+boost*w));return toRgb(hsl);}
 function css(c){return "rgb("+c[0]+", "+c[1]+", "+c[2]+")";}
-function skyAt(p){if(p<=s1)return css(NOON);if(p<e1){var t=(p-s1)/(e1-s1);return css(bs(lerp(NOON,DUSK,t),bell(t)));}if(p<=s2)return css(DUSK);if(p<e2){var t=(p-s2)/(e2-s2);return css(bs(lerp(DUSK,NIGHT,t),bell(t)));}return css(NIGHT);}`;
+function skyArr(p){if(p<=s1)return NOON;if(p<e1){var t=(p-s1)/(e1-s1);return bs(lerp(NOON,DUSK,t),bell(t));}if(p<=s2)return DUSK;if(p<e2){var t=(p-s2)/(e2-s2);return bs(lerp(DUSK,NIGHT,t),bell(t));}return NIGHT;}
+function skyAt(p){return css(skyArr(p));}`;
+}
+
+// The vanilla ridge-fill port (#62): the accumulated aerial-perspective
+// composite from scene.ts ridgeFillsAt, against the boot's sky array. Seeds
+// `--ridge<i>-f` so a cold night deep-link does not flash day mountains before
+// hydration. Constants interpolate from RIDGES / LAND_DEFAULT so they can't
+// drift; pinned against the real formula in skyBoot.test.ts. Depends on the
+// lerp/css helpers from skyBootSkyAtJs.
+export function skyBootRidgeJs(): string {
+	const r = RIDGES;
+	return `
+var LAND=[${LAND_DEFAULT.r},${LAND_DEFAULT.g},${LAND_DEFAULT.b}];
+function ridgeFills(sky){var acc=sky,out=[];for(var i=0;i<${r.count};i++){var t=i/${r.count - 1};var tone=lerp(LAND,sky,${r.haze}*(1-t));var dark=lerp(tone,[0,0,0],${r.shadeBase}+t*${r.shadeGain});acc=lerp(acc,dark,Math.min(1,(${r.coverBase}+t*${r.coverGain})*${r.weight}));out.push(css(acc));}return out;}`;
 }
 
 // The vanilla celestial-scene port the boot script ships: given progress `p`
@@ -116,7 +137,7 @@ return out;}`;
 // blank the page.
 export function skyBootScript(): string {
 	const map = JSON.stringify(PATHNAME_TO_TOPIC_ID);
-	return `(function(){try{${skyBootSkyAtJs()}${skyBootSceneJs()}
+	return `(function(){try{${skyBootSkyAtJs()}${skyBootRidgeJs()}${skyBootSceneJs()}
 var doc=document.documentElement,s=doc.style;
 var MAP=${map};
 var isAnchor=!!location.hash;
@@ -129,9 +150,12 @@ var y=window.scrollY;
 if(el){if(isAnchor){el.scrollIntoView();y=window.scrollY;}else{y=el.offsetTop;}}
 var total=doc.scrollHeight-window.innerHeight;
 var p=total>0?cl(y/total):0;
-var color=skyAt(p);
+var sa=skyArr(p);
+var color=css(sa);
 s.setProperty("--sky-now",color);
 document.body.style.backgroundColor=color;
+var RF=ridgeFills(sa);
+for(var ri=0;ri<RF.length;ri++){s.setProperty("--ridge"+ri+"-f",RF[ri]);}
 var vr=window.innerHeight/doc.scrollHeight;
 var vt=p*(1-vr)*100,vh=Math.max(vr*100,4);
 s.setProperty("--mm-top",vt+"%");

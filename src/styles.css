@@ -361,6 +361,45 @@ body.panel-open .main-shell {
 	);
 }
 
+/* The ridge ladder (ticket #62): a ridge is a bottom-anchored silhouette box.
+   It overscans the viewport by the full parallax travel - 172px below (160px
+   of rise at depth ~0.93 plus margin) and 12px at the sides for the dive's
+   edge-exposing techniques - so a risen ridge never pulls its own edge into
+   view (#59). The svg carries the crest silhouette; .scene-ridge-base carries
+   the same opaque fill from the silhouette's base down past the bottom edge. */
+.scene-ridge {
+	position: absolute;
+	left: -12px;
+	right: -12px;
+	bottom: -172px;
+	height: calc(var(--rh, 30vh) + 172px);
+	pointer-events: none;
+}
+.scene-ridge svg {
+	display: block;
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	width: 100%;
+	height: var(--rh, 30vh);
+}
+.scene-ridge-base {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: var(--rh, 30vh);
+	bottom: 0;
+}
+/* Parallax is motion: reduced motion holds the ladder still (the stylesheet
+   !important beats the driver's inline translate). The depth read survives -
+   the ladder, the aerial haze and the occlusion are all static properties. */
+@media (prefers-reduced-motion: reduce) {
+	.dive-layer--ridge {
+		translate: none !important;
+	}
+}
+
 /* INVARIANT (ticket #60): nothing on the panel/dive path may pause the scene.
    A subpage freezes the SCROLL driver on purpose (frozenRef), so the time of day
    holds still while somebody reads. The CSS keyframes must keep running, or the

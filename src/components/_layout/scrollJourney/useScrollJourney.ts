@@ -7,7 +7,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CelestialState } from "../../../data/celestial";
-import { NIGHT_UI_THRESHOLD, type SkyAnchors } from "../../../data/skyCurve";
+import {
+	NIGHT_UI_THRESHOLD,
+	type RGB,
+	type SkyAnchors,
+} from "../../../data/skyCurve";
 import { useIsomorphicLayoutEffect } from "../../useIsomorphicLayoutEffect";
 import {
 	applyJourney,
@@ -48,6 +52,8 @@ export type Journey = {
 export function useScrollJourney(opts: {
 	celestial: CelestialState;
 	anchors: SkyAnchors;
+	/** the ridge base colour (the atmosphere toy's palette owns it) */
+	landscape: RGB;
 	/** the atmosphere toy's time-slice override, or identity */
 	sliceFor: (rawProgress: number) => number;
 	/** true while a detail subpage is open: the journey must not advance */
@@ -55,7 +61,7 @@ export function useScrollJourney(opts: {
 	/** push a settled scroll position back into React state */
 	onSettle: (progress: number, scrollY: number) => void;
 }): Journey {
-	const { celestial, anchors, sliceFor, frozenRef, onSettle } = opts;
+	const { celestial, anchors, landscape, sliceFor, frozenRef, onSettle } = opts;
 
 	const [metrics, setMetrics] = useState<Metrics | null>(null);
 	const targets = useMemo(createJourneyTargets, []);
@@ -66,10 +72,12 @@ export function useScrollJourney(opts: {
 	const lastRef = useRef<JourneyValues | null>(null);
 	const celestialRef = useRef(celestial);
 	const anchorsRef = useRef(anchors);
+	const landscapeRef = useRef(landscape);
 	const sliceRef = useRef(sliceFor);
 	const onSettleRef = useRef(onSettle);
 	celestialRef.current = celestial;
 	anchorsRef.current = anchors;
+	landscapeRef.current = landscape;
 	sliceRef.current = sliceFor;
 	onSettleRef.current = onSettle;
 
@@ -90,6 +98,7 @@ export function useScrollJourney(opts: {
 				metrics: m,
 				celestial: celestialRef.current,
 				anchors: anchorsRef.current,
+				landscape: landscapeRef.current,
 				reduceMotion: reduceMotionRef.current,
 			});
 			lastRef.current = values;
@@ -180,7 +189,7 @@ export function useScrollJourney(opts: {
 	// A palette / curve / time-slice change repaints in place, with no scroll.
 	useIsomorphicLayoutEffect(() => {
 		applyAt(window.scrollY);
-	}, [applyAt, celestial, anchors, sliceFor]);
+	}, [applyAt, celestial, anchors, landscape, sliceFor]);
 
 	// MUST be memoised. This object is the prop that reaches PixelBackground,
 	// Minimap and NarrativeWatermark, all of which are memo()'d. A fresh literal

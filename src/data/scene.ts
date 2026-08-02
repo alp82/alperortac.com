@@ -200,6 +200,142 @@ export const CLOUDSCAPE: {
 };
 
 // ---------------------------------------------------------------------------
+// The ridge ladder: the landscape as ten depth layers (wayfinder #59, built on
+// #62). The ladder replaces the single translucent silhouette. Each ridge is a
+// seeded pixel-crisp diagonal silhouette in the shipped path vocabulary; the
+// seeds are the exact ones Alper locked in .prototypes/scene-depth-parallax.html
+// so the shipped art IS the walked art.
+//
+// A ridge is OPAQUE (#59): delicacy comes from a fill near the sky colour, not
+// from alpha - a translucent ridge let the star field read through the
+// mountains. Each ridge's fill is the accumulated composite of every ridge
+// behind it over the sky, which keeps the stacked wash low alpha used to give.
+//
+// Scroll parallax is vertical only, on the `translate` longhand (the scroll
+// channel - it composes with the dive's `transform`, never touches it). Travel
+// is riseAtDepth1 px at depth 1 against a 1440px reference, scaled down by
+// viewport width; every bottom-anchored layer overscans by the full travel.
+// ---------------------------------------------------------------------------
+
+/** The default landscape base colour; the atmosphere toy's palettes override. */
+export const LAND_DEFAULT: RGB = { r: 74, g: 122, b: 140 };
+
+export const RIDGES = {
+	count: 10,
+	/** the horizon ridge's --layer-depth */
+	farDepth: 0.21,
+	/** the frontmost ridge's --layer-depth */
+	nearDepth: 0.93,
+	/** how far a far ridge's fill washes toward the sky colour */
+	haze: 0.8,
+	/** contrast against the sky - maps 1:1 onto the alpha ramp it replaced */
+	weight: 0.25,
+	/** px of vertical rise at depth 1, at the reference width (locked #59) */
+	riseAtDepth1: 160,
+	/** viewport width the travel is authored against; narrower scales down */
+	referenceWidth: 1440,
+	/** darkening toward the viewer: shadeBase + t * shadeGain toward black */
+	shadeBase: 0.1,
+	shadeGain: 0.3,
+	/** composite coverage per ridge: (coverBase + t * coverGain) * weight */
+	coverBase: 0.55,
+	coverGain: 0.35,
+};
+
+export type RidgeSpec = {
+	index: number;
+	/** 0 at the horizon ridge, 1 at the frontmost */
+	t: number;
+	/** --layer-depth: parallax rate, dive zoom, paint order */
+	depth: number;
+	/** silhouette box height, vh (far ridges tall, near ridges low) */
+	heightVh: number;
+	/** pixel-crisp silhouette path, viewBox 0 0 1000 400 */
+	d: string;
+	/** the crest polyline (top edge), for members planted on the ridge (#82) */
+	crest: { x: number; y: number }[];
+};
+
+// Diagonal slopes with flat runs between them - the vocabulary of the shipped
+// landscape path. Far ridges sit high and jagged (they read as the horizon),
+// near ridges low and gentle. Deterministic: SSR and client markup must match.
+function ridgeGeometry(
+	seed: number,
+	roughness: number,
+): { d: string; crest: { x: number; y: number }[] } {
+	const rand = mulberry32(seed);
+	const parts: string[] = [];
+	const crest: { x: number; y: number }[] = [];
+	let x = 0;
+	let y = 150 + rand() * 90;
+	parts.push(`M0 400V${y.toFixed(0)}`);
+	crest.push({ x: 0, y: Math.round(y) });
+	while (x < 1000) {
+		const run = 40 + rand() * 120;
+		const slope = 50 + rand() * 130;
+		const dy = (rand() - 0.5) * 2 * roughness;
+		const ny = Math.max(50, Math.min(370, y + dy));
+		const sx = Math.min(1000 - x, slope);
+		parts.push(`l${sx.toFixed(0)} ${(ny - y).toFixed(0)}`);
+		x += sx;
+		y = ny;
+		crest.push({ x: Math.round(x), y: Math.round(y) });
+		if (x >= 1000) break;
+		const rx = Math.min(1000 - x, run);
+		parts.push(`h${rx.toFixed(0)}`);
+		x += rx;
+		crest.push({ x: Math.round(x), y: Math.round(y) });
+	}
+	parts.push("V400", "H0", "Z");
+	return { d: parts.join(""), crest };
+}
+
+/** The ten ridges, farthest (index 0) to nearest. Module-level constant data. */
+export function ridgeSpecs(): RidgeSpec[] {
+	const n = RIDGES.count;
+	return Array.from({ length: n }, (_, i) => {
+		const t = n === 1 ? 0 : i / (n - 1);
+		const depth = RIDGES.farDepth + (RIDGES.nearDepth - RIDGES.farDepth) * t;
+		const geo = ridgeGeometry(0xa1e + i * 977, 140 - t * 110);
+		return {
+			index: i,
+			t,
+			depth,
+			heightVh: 44 - t * 30,
+			d: geo.d,
+			crest: geo.crest,
+		};
+	});
+}
+
+/**
+ * One opaque fill per ridge, farthest first: aerial perspective against the
+ * live sky, accumulated from the horizon forward. Where ridge i is the
+ * frontmost one covering a pixel, ridges 0..i sit under it, so its fill is
+ * the composite of all of them over the sky.
+ */
+export function ridgeFillsAt(sky: RGB, land: RGB): RGB[] {
+	const n = RIDGES.count;
+	let acc = sky;
+	return Array.from({ length: n }, (_, i) => {
+		const t = n === 1 ? 0 : i / (n - 1);
+		const wash = RIDGES.haze * (1 - t);
+		const tone = lerpRgb(land, sky, wash);
+		const dark = lerpRgb(
+			tone,
+			{ r: 0, g: 0, b: 0 },
+			RIDGES.shadeBase + t * RIDGES.shadeGain,
+		);
+		acc = lerpRgb(
+			acc,
+			dark,
+			clamp01((RIDGES.coverBase + t * RIDGES.coverGain) * RIDGES.weight),
+		);
+		return acc;
+	});
+}
+
+// ---------------------------------------------------------------------------
 // Schedule maths. Pure, unit-tested, shared by the driver, the markup, and
 // (later) the authoring panel.
 // ---------------------------------------------------------------------------

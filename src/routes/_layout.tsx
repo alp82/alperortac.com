@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, useMatches } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CraftSection } from "../components/_layout/CraftSection";
 import {
 	type ComposerState,
@@ -46,7 +46,7 @@ import {
 	shouldArmSmoothForClick,
 } from "../data/sections";
 import { coldEntryFor } from "../data/skyBoot";
-import { NIGHT_UI_THRESHOLD } from "../data/skyCurve";
+import { hexToRgb, NIGHT_UI_THRESHOLD } from "../data/skyCurve";
 import { PANEL_KEY_TO_TOPIC_ID, TOPICS } from "../data/topics";
 
 export const Route = createFileRoute("/_layout")({ component: LayoutHost });
@@ -63,8 +63,16 @@ function LayoutHost() {
 	// driver keeps its own refs on the curve and the palette, so nothing needs to
 	// be mirrored here.
 	const [playground, playgroundApi] = usePlayground();
-	// Hoisted above the scroll driver, which needs both.
+	// Hoisted above the scroll driver, which needs all three: the ridge fills
+	// derive from the palette's landscape colour per frame (#62).
 	const paletteAnchors = paletteAnchorsFor(playground.palette);
+	const paletteVisuals = paletteVisualsFor(playground.palette);
+	// Memoised: a fresh RGB literal every render would re-fire the driver's
+	// palette-change repaint effect on every LayoutHost render.
+	const paletteLandscape = useMemo(
+		() => hexToRgb(paletteVisuals.landscape),
+		[paletteVisuals.landscape],
+	);
 	const sliceFor = useCallback(
 		(raw: number) =>
 			playground.time != null ? softSlice(playground.time, raw) : raw,
@@ -233,6 +241,7 @@ function LayoutHost() {
 	const journey = useScrollJourney({
 		celestial,
 		anchors: paletteAnchors,
+		landscape: paletteLandscape,
 		sliceFor,
 		frozenRef: panelOpenRef,
 		onSettle,
@@ -322,7 +331,6 @@ function LayoutHost() {
 		playground.time != null
 			? softSlice(playground.time, scrollProgress)
 			: scrollProgress;
-	const paletteVisuals = paletteVisualsFor(playground.palette);
 	const isNight = skyProgress >= NIGHT_UI_THRESHOLD;
 	const navColor = isNight ? "white" : "#0f172a";
 	const aboutItemClass = `block px-4 py-2 text-sm font-black uppercase tracking-widest transition-colors ${isNight ? "hover:bg-white hover:text-slate-900" : "hover:bg-slate-900 hover:text-white"}`;
@@ -332,7 +340,6 @@ function LayoutHost() {
 			<PixelBackground
 				journey={journey}
 				dive={dive}
-				landscapeColor={paletteVisuals.landscape}
 				sunColor={paletteVisuals.sun}
 				extras={playground.extras}
 			/>

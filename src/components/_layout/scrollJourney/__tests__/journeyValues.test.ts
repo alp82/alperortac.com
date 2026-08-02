@@ -7,7 +7,10 @@ import {
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
 	cloudFillAt,
+	LAND_DEFAULT,
 	presenceAt,
+	RIDGES,
+	ridgeFillsAt,
 	SCENE,
 	trackAt,
 	windowedOver,
@@ -66,6 +69,7 @@ function input(overrides: Partial<JourneyInput> = {}): JourneyInput {
 		metrics: overrides.metrics ?? M,
 		celestial: overrides.celestial ?? DEFAULT_CELESTIAL,
 		anchors: overrides.anchors ?? DEFAULT_SKY_ANCHORS,
+		landscape: overrides.landscape ?? LAND_DEFAULT,
 		reduceMotion: overrides.reduceMotion ?? false,
 	};
 }
@@ -146,17 +150,51 @@ describe("celestial + sky values", () => {
 		expect(computeJourney(input({ rawProgress: 1 })).shootO).toBeCloseTo(1, 10);
 	});
 
-	it("fades the landscape from 0.4 to a 0.1 floor", () => {
-		expect(computeJourney(input({ rawProgress: 0 })).landO).toBeCloseTo(
-			0.4,
+	it("derives one opaque ridge fill per ladder rung from the live sky (#62)", () => {
+		const v = computeJourney(input({ rawProgress: 0.5 }));
+		const sky = skyRgbAt(0.5, DEFAULT_CELESTIAL.curve, DEFAULT_SKY_ANCHORS);
+		expect(v.ridgeFills).toEqual(ridgeFillsAt(sky, LAND_DEFAULT).map(rgbToCss));
+		expect(v.ridgeFills).toHaveLength(RIDGES.count);
+	});
+
+	it("tints the ridges from the journey's landscape colour (the toy palette)", () => {
+		const landscape = { r: 107, g: 59, b: 46 };
+		const v = computeJourney(input({ landscape, rawProgress: 0.5 }));
+		const sky = skyRgbAt(0.5, DEFAULT_CELESTIAL.curve, DEFAULT_SKY_ANCHORS);
+		expect(v.ridgeFills).toEqual(ridgeFillsAt(sky, landscape).map(rgbToCss));
+	});
+
+	it("rides the ridge rise from -travel at the hero to +travel at the bottom (#59)", () => {
+		// 160px at depth 1 against a 1440px reference; M.winW is 1440.
+		expect(computeJourney(input({ rawProgress: 0 })).ridgeRise).toBeCloseTo(
+			-160,
 			10,
 		);
-		expect(computeJourney(input({ rawProgress: 1 })).landO).toBeCloseTo(
-			0.2,
+		expect(computeJourney(input({ rawProgress: 0.5 })).ridgeRise).toBeCloseTo(
+			0,
 			10,
 		);
-		// The floor holds even if the curve is pushed past it.
-		expect(computeJourney(input({ rawProgress: 5 })).landO).toBe(0.1);
+		expect(computeJourney(input({ rawProgress: 1 })).ridgeRise).toBeCloseTo(
+			160,
+			10,
+		);
+	});
+
+	it("scales the ridge travel down with viewport width, never up", () => {
+		const narrow = { ...M, winW: 390 };
+		expect(
+			computeJourney(input({ rawProgress: 1, metrics: narrow })).ridgeRise,
+		).toBeCloseTo(160 * (390 / 1440), 10);
+		const wide = { ...M, winW: 2880 };
+		expect(
+			computeJourney(input({ rawProgress: 1, metrics: wide })).ridgeRise,
+		).toBeCloseTo(160, 10);
+	});
+
+	it("pins the ridge rise to 0 under reduced motion", () => {
+		expect(
+			computeJourney(input({ rawProgress: 1, reduceMotion: true })).ridgeRise,
+		).toBe(0);
 	});
 
 	it("drives the sky-facing values from skyProgress, not raw scroll", () => {
