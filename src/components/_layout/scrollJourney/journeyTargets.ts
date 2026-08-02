@@ -57,6 +57,16 @@ export type MistGroupTargets = ScenePool & {
 	appliedFill: string;
 };
 
+// A firefly group layer (#85): a gap dweller like the mist, so it rides the
+// SAME vertical parallax as the ridges at its gap depth. No fill target - the
+// warm colour is fixed markup (the emitter exemption). The driver instead
+// writes one `--ff-night` per group: the halo-strength dusk factor.
+export type FireflyGroupTargets = ScenePool & {
+	layer: HTMLElement;
+	depth: number;
+	appliedNight: string;
+};
+
 // A ridge layer (#62): the driver writes the parallax offset on the layer's
 // `translate` longhand (the scroll channel, #59 - it composes with the dive's
 // `transform`) and one opaque fill on the silhouette path + the base strip
@@ -97,6 +107,8 @@ export type JourneyTargets = {
 	birdSpecies: Array<BirdSpeciesTargets | null>;
 	/** one per MIST_GROUP_KEYS entry, in order */
 	mistGroups: Array<MistGroupTargets | null>;
+	/** one per FIREFLY_GROUP_KEYS entry, in order */
+	fireflyGroups: Array<FireflyGroupTargets | null>;
 	/** one per ridge, farthest first (#62) */
 	ridges: Array<RidgeTargets | null>;
 	mmBand: HTMLElement | null;
@@ -120,6 +132,7 @@ export function createJourneyTargets(): JourneyTargets {
 		cloudTypes: [],
 		birdSpecies: [],
 		mistGroups: [],
+		fireflyGroups: [],
 		ridges: [],
 		mmBand: null,
 		mmDim: null,
@@ -197,6 +210,24 @@ export function applyJourney(v: JourneyValues, t: JourneyTargets): void {
 		if (mg.appliedFill !== m.fill) {
 			for (const p of mg.paths) p.setAttribute("fill", m.fill);
 			mg.appliedFill = m.fill;
+		}
+	});
+	// Per firefly group: presence on the layer, activation into the fly pool,
+	// the ridge parallax at the group's gap depth (a gap dweller must ride the
+	// valley it hangs in, #84's rule), and the `--ff-night` halo strength. The
+	// warm colour is fixed markup; wander and blink are CSS keyframes and are
+	// never written here (#60).
+	t.fireflyGroups.forEach((fg, i) => {
+		const f = v.fireflies[i];
+		if (!fg || !f) return;
+		fg.layer.style.opacity = `${f.o}`;
+		const py = -v.ridgeRise * fg.depth;
+		fg.layer.style.translate = py === 0 ? "" : `0px ${py.toFixed(2)}px`;
+		activate(fg, f.count);
+		const night = v.fireflyNight.toFixed(3);
+		if (fg.appliedNight !== night) {
+			fg.layer.style.setProperty("--ff-night", night);
+			fg.appliedNight = night;
 		}
 	});
 	// Per ridge: the vertical parallax offset on the `translate` longhand and

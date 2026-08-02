@@ -624,6 +624,54 @@ function LayoutHost() {
 						   matters (#64's rule): the breathing svg animates too. */
 						.mist-el.scene-off { opacity: 0; }
 						.mist-el.scene-off * { animation-play-state: paused; }
+						/* Fireflies (wayfinder #85): travel is a smooth sway-and-bob
+						   wander (two composed alternate keyframes) and the blink is
+						   a hard-cut flash - or a soft pulse for the far group - all
+						   on the wall clock, so firefly motion survives an open
+						   subpage (#60). Wander animates translate on the sway/bob
+						   wrappers; the driver's gap-depth parallax writes translate
+						   on the LAYER, so the two never meet. The halo's strength
+						   rides --ff-night, driver-written per group (#81: faint at
+						   sunset, full at night). */
+						@keyframes ff-sway {
+							from { translate: calc(-1 * var(--famp, 8px)) 0; }
+							to { translate: var(--famp, 8px) 0; }
+						}
+						@keyframes ff-bob {
+							from { translate: 0 calc(-1 * var(--fbamp, 4px)); }
+							to { translate: 0 var(--fbamp, 4px); }
+						}
+						@keyframes ff-flash {
+							0%, 57.9% { opacity: var(--fdim, 0.12); }
+							58%, 72% { opacity: 1; }
+							72.1%, 100% { opacity: var(--fdim, 0.12); }
+						}
+						@keyframes ff-pulse {
+							0%, 100% { opacity: var(--fdim, 0.12); }
+							50% { opacity: 1; }
+						}
+						.ff-el {
+							position: absolute;
+							transition: opacity 900ms ease;
+						}
+						.ff-el .ff-sway {
+							width: 100%; height: 100%;
+							animation: ff-sway var(--fsdur, 12s) ease-in-out var(--fsdel, 0s) infinite alternate;
+						}
+						.ff-el .ff-bob {
+							width: 100%; height: 100%;
+							animation: ff-bob var(--fbdur, 9s) ease-in-out var(--fbdel, 0s) infinite alternate;
+						}
+						.ff-el svg {
+							animation: ff-flash var(--fbldur, 4s) linear var(--fbldel, 0s) infinite;
+						}
+						.ff-el--pulse svg { animation-name: ff-pulse; }
+						.ff-halo { opacity: calc(0.15 + 0.85 * var(--ff-night, 0)); }
+						/* Deactivated flies fade out then pause. The child pause
+						   matters (#64's rule): sway, bob and blink all animate on
+						   descendants. */
+						.ff-el.scene-off { opacity: 0; }
+						.ff-el.scene-off * { animation-play-state: paused; }
 						@keyframes bird-bob {
 							0%, 100% { translate: 0 0; }
 							50% { translate: 0 calc(-1 * var(--amp, 2vh)); }
@@ -661,6 +709,7 @@ function LayoutHost() {
 							.animate-twinkle, .cloud-el, .mist-el, .mist-el svg { animation: none; }
 							.animate-shooting-star { animation: none; opacity: 0; }
 							.bird-layer { display: none; }
+							.firefly-layer { display: none; }
 						}
 					`,
 				}}

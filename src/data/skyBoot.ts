@@ -6,6 +6,8 @@ import {
 	BIRDS,
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
+	FIREFLIES,
+	FIREFLY_GROUP_KEYS,
 	LAND_DEFAULT,
 	MIST,
 	MIST_GROUP_KEYS,
@@ -81,6 +83,16 @@ var LAND=[${LAND_DEFAULT.r},${LAND_DEFAULT.g},${LAND_DEFAULT.b}];
 function ridgeFills(sky){var acc=sky,out=[];for(var i=0;i<${r.count};i++){var t=i/${r.count - 1};var tone=lerp(LAND,sky,${r.haze}*(1-t));var dark=lerp(tone,[0,0,0],${r.shadeBase}+t*${r.shadeGain});acc=lerp(acc,dark,Math.min(1,(${r.coverBase}+t*${r.coverGain})*${r.weight}));out.push(css(acc));}return out;}`;
 }
 
+// The vanilla nightAt port (#85): the firefly halo's strength factor, seeded
+// as `--ff-night` so a cold night deep-link paints full halos before
+// hydration. Same float ops as scene.ts nightAt (lum against the noon
+// luminance), pinned bit-for-bit in skyBoot.test.ts. Depends on the sky-array
+// helpers from skyBootSkyAtJs.
+export function skyBootFireflyJs(): string {
+	return `
+function ffNight(sa){var l=(0.2126*sa[0]+0.7152*sa[1]+0.0722*sa[2])/255;var n=(0.2126*${SKY_NOON.r}+0.7152*${SKY_NOON.g}+0.0722*${SKY_NOON.b})/255;return cl(1-l/n);}`;
+}
+
 // The vanilla celestial-scene port the boot script ships: given progress `p`
 // and the minimap viewport band (vt/vh in %), returns the CSS-var map that
 // positions the sky's sun/moon/stars and the minimap sun/moon dots for the
@@ -111,6 +123,12 @@ export function skyBootSceneJs(): string {
 		...MIST_GROUP_KEYS.map((k) => {
 			const g = MIST.groups[k];
 			return `"--mist-${k}-o":[${g.alpha},${g.windows.map(win).join(",")}]`;
+		}),
+		// Fireflies (#85) have no layer alpha: presence alone gates the layer,
+		// the per-fly dim afterglow is the subtlety instrument.
+		...FIREFLY_GROUP_KEYS.map((k) => {
+			const g = FIREFLIES.groups[k];
+			return `"--ff-${k}-o":[1,${g.windows.map(win).join(",")}]`;
 		}),
 	].join(",");
 	return `
@@ -146,7 +164,7 @@ return out;}`;
 // blank the page.
 export function skyBootScript(): string {
 	const map = JSON.stringify(PATHNAME_TO_TOPIC_ID);
-	return `(function(){try{${skyBootSkyAtJs()}${skyBootRidgeJs()}${skyBootSceneJs()}
+	return `(function(){try{${skyBootSkyAtJs()}${skyBootRidgeJs()}${skyBootFireflyJs()}${skyBootSceneJs()}
 var doc=document.documentElement,s=doc.style;
 var MAP=${map};
 var isAnchor=!!location.hash;
@@ -165,6 +183,7 @@ s.setProperty("--sky-now",color);
 document.body.style.backgroundColor=color;
 var RF=ridgeFills(sa);
 for(var ri=0;ri<RF.length;ri++){s.setProperty("--ridge"+ri+"-f",RF[ri]);}
+s.setProperty("--ff-night",""+ffNight(sa));
 var vr=window.innerHeight/doc.scrollHeight;
 var vt=p*(1-vr)*100,vh=Math.max(vr*100,4);
 s.setProperty("--mm-top",vt+"%");

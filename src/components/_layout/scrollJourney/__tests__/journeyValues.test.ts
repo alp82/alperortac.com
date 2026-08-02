@@ -7,11 +7,14 @@ import {
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
 	cloudFillAt,
+	FIREFLIES,
+	FIREFLY_GROUP_KEYS,
 	LAND_DEFAULT,
 	MIST,
 	MIST_GROUP_KEYS,
 	mistFillAt,
 	mistGroupDepth,
+	nightAt,
 	presenceAt,
 	presenceOver,
 	RIDGES,
@@ -409,6 +412,49 @@ describe("scheduled mist (#84)", () => {
 				rgbToCss(mistFillAt(sky, mistGroupDepth(key))),
 			);
 		});
+	});
+});
+
+describe("scheduled fireflies (#85)", () => {
+	it("gates every group on its windows: presence alone at the layer", () => {
+		FIREFLY_GROUP_KEYS.forEach((key, i) => {
+			const g = FIREFLIES.groups[key];
+			for (const p of [0, 0.3, 0.45, 0.5, 0.6, 0.7, 0.85, 0.9, 1]) {
+				const f = computeJourney(input({ rawProgress: p })).fireflies[i];
+				expect(f?.o).toBeCloseTo(presenceOver(p, g.windows), 10);
+			}
+		});
+	});
+
+	it("the day sky is empty - every pool is off before sunset", () => {
+		const noon = computeJourney(input({ rawProgress: 0.3 }));
+		noon.fireflies.forEach((f) => {
+			expect(f.o).toBe(0);
+			expect(f.count).toBe(0);
+		});
+	});
+
+	it("dusk runs every group at its flat count (#81: no thickening)", () => {
+		const dusk = computeJourney(input({ rawProgress: 0.6 }));
+		FIREFLY_GROUP_KEYS.forEach((key, i) => {
+			expect(dusk.fireflies[i]?.count).toBe(FIREFLIES.groups[key].count[0]);
+		});
+	});
+
+	it("deep night empties every pool - the stars own the sky", () => {
+		const deep = computeJourney(input({ rawProgress: 0.95 }));
+		deep.fireflies.forEach((f) => {
+			expect(f.o).toBe(0);
+			expect(f.count).toBe(0);
+		});
+	});
+
+	it("carries the halo strength as nightAt of the live sky", () => {
+		for (const p of [0, 0.5, 0.8, 1]) {
+			const sky = skyRgbAt(p, DEFAULT_CELESTIAL.curve, DEFAULT_SKY_ANCHORS);
+			const v = computeJourney(input({ rawProgress: p }));
+			expect(v.fireflyNight).toBeCloseTo(nightAt(sky), 10);
+		}
 	});
 });
 

@@ -10,6 +10,11 @@ import {
 	CLOUDSCAPE,
 	cloudFillAt,
 	cloudPool,
+	FIREFLIES,
+	FIREFLY_GROUP_KEYS,
+	FIREFLY_WARMS,
+	fireflyGroupDepth,
+	fireflyPool,
 	gridPath,
 	LAND_DEFAULT,
 	MIST,
@@ -335,6 +340,124 @@ function MistGroupLayer({
 							/>
 						))}
 					</svg>
+				</div>
+			))}
+		</div>
+	);
+}
+
+// The firefly cast (wayfinder #81's dusk-to-night glow, built on #85): one
+// layer per group at its ridge-gap midpoint depth, each holding a seeded pool
+// of flies that sway, bob and blink on the CSS clock. Geometry is module-level
+// and deterministic so SSR and client markup match. Every window opens after
+// sunset, so the pre-hydration presence is 0 and the pool renders fully off;
+// the boot script seeds `--ff-<group>-o` (and `--ff-night`) for a cold night
+// deep-link. Colour is fixed warm markup (the emitter exemption) - the driver
+// gates presence, activation, the halo's `--ff-night` and the gap parallax.
+const FIREFLY_POOLS = FIREFLY_GROUP_KEYS.map((key) => fireflyPool(key));
+const FIREFLY_INITIAL = FIREFLY_GROUP_KEYS.map((key) => {
+	const g = FIREFLIES.groups[key];
+	const pres = presenceOver(0, g.windows);
+	return { o: pres, count: pres > 0 ? (g.count[0] ?? 0) : 0 };
+});
+
+function FireflyGroupLayer({
+	groupIndex,
+	journey,
+}: {
+	groupIndex: number;
+	journey?: Journey | undefined;
+}) {
+	const key = FIREFLY_GROUP_KEYS[
+		groupIndex
+	] as (typeof FIREFLY_GROUP_KEYS)[number];
+	const g = FIREFLIES.groups[key];
+	const initial = FIREFLY_INITIAL[groupIndex];
+	const pool = FIREFLY_POOLS[groupIndex] ?? [];
+	const warm = FIREFLY_WARMS[g.color];
+	const warmCss = rgbToCss(warm);
+	// The core square sits centred inside the glow box (the halo's viewBox).
+	const boxPx = Math.max(4, g.size * g.glow);
+	const coreSide = 100 / Math.max(g.glow, 1.2);
+	const coreOff = (100 - coreSide) / 2;
+	return (
+		<div
+			ref={(el) => {
+				if (!journey) return;
+				journey.targets.fireflyGroups[groupIndex] = el
+					? {
+							layer: el,
+							els: Array.from(el.children) as HTMLElement[],
+							depth: fireflyGroupDepth(key),
+							applied: -1,
+							appliedNight: "",
+						}
+					: null;
+			}}
+			className="absolute inset-0 overflow-hidden select-none pointer-events-none"
+			style={{ opacity: `var(--ff-${key}-o, ${initial?.o ?? 0})` }}
+			aria-hidden="true"
+		>
+			{pool.map((seed, i) => (
+				<div
+					key={`${key}-${seed.leftVw.toFixed(2)}-${seed.bottomVh.toFixed(2)}`}
+					className={`ff-el${g.rhythm === "pulse" ? " ff-el--pulse" : ""}${
+						i >= (initial?.count ?? 0) ? " scene-off" : ""
+					}`}
+					style={
+						{
+							left: `${seed.leftVw.toFixed(1)}vw`,
+							bottom: `${seed.bottomVh.toFixed(1)}vh`,
+							width: `${boxPx.toFixed(0)}px`,
+							height: `${boxPx.toFixed(0)}px`,
+							"--fdim": g.dim,
+							"--famp": `${seed.swayAmpPx.toFixed(0)}px`,
+							"--fsdur": `${seed.swayDurS.toFixed(1)}s`,
+							"--fsdel": `${seed.swayDelayS.toFixed(1)}s`,
+							"--fbamp": `${seed.bobAmpPx.toFixed(0)}px`,
+							"--fbdur": `${seed.bobDurS.toFixed(1)}s`,
+							"--fbdel": `${seed.bobDelayS.toFixed(1)}s`,
+							"--fbldur": `${seed.blinkDurS.toFixed(2)}s`,
+							"--fbldel": `${seed.blinkDelayS.toFixed(2)}s`,
+						} as React.CSSProperties
+					}
+				>
+					<div className="ff-sway">
+						<div className="ff-bob">
+							<svg
+								viewBox="0 0 100 100"
+								className="w-full h-full"
+								aria-hidden="true"
+							>
+								<defs>
+									<radialGradient id={`ffg-${key}-${i}`}>
+										<stop offset="0" stopColor={warmCss} stopOpacity="0.55" />
+										<stop
+											offset="0.55"
+											stopColor={warmCss}
+											stopOpacity="0.18"
+										/>
+										<stop offset="1" stopColor={warmCss} stopOpacity="0" />
+									</radialGradient>
+								</defs>
+								<circle
+									className="ff-halo"
+									cx="50"
+									cy="50"
+									r="49"
+									fill={`url(#ffg-${key}-${i})`}
+								/>
+								<rect
+									x={coreOff.toFixed(1)}
+									y={coreOff.toFixed(1)}
+									width={coreSide.toFixed(1)}
+									height={coreSide.toFixed(1)}
+									fill={warmCss}
+									style={{ shapeRendering: "crispEdges" }}
+								/>
+							</svg>
+						</div>
+					</div>
 				</div>
 			))}
 		</div>
@@ -686,6 +809,27 @@ function PixelBackgroundInner({
 					style={{ "--layer-depth": depth } as React.CSSProperties}
 				>
 					<MistGroupLayer groupIndex={i} journey={journey} />
+				</div>
+			),
+		});
+	});
+
+	// The fireflies (#85): each group is its own dive-layer at its ridge-gap
+	// midpoint depth, like the mist, so the front ridge's peaks cut across the
+	// band. The firefly-layer class is the reduced-motion removal hook
+	// (creatures are removed, vapors freeze - brief #77 rule 7).
+	FIREFLY_GROUP_KEYS.forEach((key, i) => {
+		const depth = fireflyGroupDepth(key);
+		layers.push({
+			depth,
+			node: (
+				<div
+					key={`fireflies-${key}`}
+					className="dive-layer firefly-layer"
+					data-depth={depth}
+					style={{ "--layer-depth": depth } as React.CSSProperties}
+				>
+					<FireflyGroupLayer groupIndex={i} journey={journey} />
 				</div>
 			),
 		});

@@ -13,9 +13,12 @@ import {
 	BIRDS,
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
+	FIREFLIES,
+	FIREFLY_GROUP_KEYS,
 	LAND_DEFAULT,
 	MIST,
 	MIST_GROUP_KEYS,
+	nightAt,
 	presenceAt,
 	presenceOver,
 	ridgeFillsAt,
@@ -23,6 +26,7 @@ import {
 import {
 	coldEntryFor,
 	PATHNAME_TO_TOPIC_ID,
+	skyBootFireflyJs,
 	skyBootRidgeJs,
 	skyBootSceneJs,
 	skyBootScript,
@@ -72,6 +76,23 @@ return function(p){return ridgeFills(skyArr(p));};})()`) as (
 			const p = i / 100;
 			const sky = skyRgbAt(p, DEFAULT_SKY_CURVE);
 			expect(boot(p)).toEqual(ridgeFillsAt(sky, LAND_DEFAULT).map(rgbToCss));
+		}
+	});
+});
+
+// The boot ships a vanilla port of scene.ts nightAt (#85) so a cold night
+// deep-link paints full firefly halos before hydration. It must stay
+// bit-for-bit identical to the real formula.
+describe("skyBoot vanilla firefly-night port", () => {
+	// biome-ignore lint/security/noGlobalEval: evaluating our own generated source to pin it against the real nightAt
+	const boot = eval(`(function(){${skyBootSkyAtJs()}${skyBootFireflyJs()}
+return function(p){return ffNight(skyArr(p));};})()`) as (p: number) => number;
+
+	it("matches the real nightAt across the whole progress range", () => {
+		for (let i = 0; i <= 100; i++) {
+			const p = i / 100;
+			const sky = skyRgbAt(p, DEFAULT_SKY_CURVE);
+			expect(boot(p)).toBe(nightAt(sky));
 		}
 	});
 });
@@ -183,6 +204,19 @@ return scene;})()`) as (
 				const g = MIST.groups[key];
 				expect(s[`--mist-${key}-o`] as number).toBeCloseTo(
 					presenceOver(p, g.windows) * g.alpha,
+					10,
+				);
+			}
+		}
+	});
+
+	it("matches scene.ts presence for every firefly group (no layer alpha)", () => {
+		for (let i = 0; i <= 100; i++) {
+			const p = i / 100;
+			const s = scene(p, 0, 100);
+			for (const key of FIREFLY_GROUP_KEYS) {
+				expect(s[`--ff-${key}-o`] as number).toBeCloseTo(
+					presenceOver(p, FIREFLIES.groups[key].windows),
 					10,
 				);
 			}

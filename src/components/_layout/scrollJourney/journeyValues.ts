@@ -16,11 +16,14 @@ import {
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
 	cloudFillAt,
+	FIREFLIES,
+	FIREFLY_GROUP_KEYS,
 	LAND_DEFAULT,
 	MIST,
 	MIST_GROUP_KEYS,
 	mistFillAt,
 	mistGroupDepth,
+	nightAt,
 	presenceAt,
 	presenceOver,
 	RIDGES,
@@ -148,6 +151,31 @@ export function mistValuesAt(
 			o: pres * g.alpha,
 			count: pres > 0 ? g.count : 0,
 			fill: rgbToCss(mistFillAt(sky, mistGroupDepth(key))),
+		};
+	});
+}
+
+export type FireflyGroupValues = {
+	/** layer opacity: presence (max over the group's windows) - no alpha, the
+	 * per-fly `dim` afterglow is this member's subtlety instrument */
+	o: number;
+	/** live flies (prefix activation into the rendered pool; flat track, #81) */
+	count: number;
+};
+
+// No fill: firefly colour is the warm emitter exemption (brief #77), fixed in
+// the markup and never sky-washed. Halo strength rides `fireflyNight` instead.
+export function fireflyValuesAt(skyProgress: number): FireflyGroupValues[] {
+	return FIREFLY_GROUP_KEYS.map((key) => {
+		const g = FIREFLIES.groups[key];
+		const pres = presenceOver(skyProgress, g.windows);
+		const w = g.windows[0];
+		return {
+			o: pres,
+			count:
+				pres > 0 && w
+					? Math.round(trackAt(g.count, windowedOver(skyProgress, w)))
+					: 0,
 		};
 	});
 }
@@ -281,6 +309,10 @@ export type JourneyValues = {
 	birds: BirdSpeciesValues[];
 	/** one entry per MIST_GROUP_KEYS, in order */
 	mist: MistGroupValues[];
+	/** one entry per FIREFLY_GROUP_KEYS, in order */
+	fireflies: FireflyGroupValues[];
+	/** halo strength: how far the sky has fallen from noon (nightAt, #81) */
+	fireflyNight: number;
 	/** one opaque css fill per ridge, farthest first (accumulated composite) */
 	ridgeFills: string[];
 	/**
@@ -376,6 +408,8 @@ export function computeJourney({
 		clouds: cloudValuesAt(skyProgress, skyRgb),
 		birds: birdValuesAt(skyProgress, skyRgb),
 		mist: mistValuesAt(skyProgress, skyRgb),
+		fireflies: fireflyValuesAt(skyProgress),
+		fireflyNight: nightAt(skyRgb),
 		ridgeFills: ridgeFillsAt(skyRgb, landscape).map(rgbToCss),
 		// (p - 0.5) * 2 spans -1..1 so the ladder sits at rest mid-scroll,
 		// pushed down at the hero and fully risen at the page bottom (#59).

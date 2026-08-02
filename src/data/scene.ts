@@ -40,18 +40,15 @@ export type MemberSchedule = {
 	size: Track;
 };
 
-export type SceneSchedule = Record<
-	"stars" | "fireflies" | "conifers" | "water",
-	MemberSchedule
->;
+export type SceneSchedule = Record<"stars" | "conifers", MemberSchedule>;
 
 // Seed values from the authoring-panel session (wayfinder #63). Stars are
-// consumed since #65; fireflies/conifers/water rows are the seeds for their
-// build tickets (#85-#87) and drive nothing yet. Clouds, birds and mist are
-// NOT in this table: their signed-off designs (#78, #80, #79) fan out into
-// typed pools, each with its own windows - see CLOUDSCAPE, BIRDS and MIST
-// below (the #64 pattern: a member whose design fans into types gets its own
-// structure).
+// consumed since #65; the conifers row is the seed for its build ticket (#86)
+// and drives nothing yet. Water was cut on #83 and its row left with it.
+// Clouds, birds, mist and fireflies are NOT in this table: their signed-off
+// designs (#78, #80, #79, #81) fan out into typed pools, each with its own
+// windows - see CLOUDSCAPE, BIRDS, MIST and FIREFLIES below (the #64 pattern:
+// a member whose design fans into types gets its own structure).
 export const SCENE: SceneSchedule = {
 	// Stars predate the roster and keep their sky-curve coupling: presence stays
 	// the driver's `starsO` ramp across phase2 (the curve is tunable at runtime,
@@ -65,26 +62,12 @@ export const SCENE: SceneSchedule = {
 		position: 0,
 		size: 1,
 	},
-	fireflies: {
-		windows: [{ start: 0.45, rampIn: 0.05, end: 0.8, rampOut: 0.06 }],
-		count: [6, 24],
-		intensity: [0.5, 1],
-		position: 0.75,
-		size: 1,
-	},
 	conifers: {
 		windows: [{ start: 0, rampIn: 0, end: 1, rampOut: 0 }],
 		count: 12,
 		intensity: 1,
 		position: 0.85,
 		size: 1,
-	},
-	water: {
-		windows: [{ start: 0.4, rampIn: 0.12, end: 1, rampOut: 0 }],
-		count: 1,
-		intensity: 1,
-		position: 0.9,
-		size: [0.2, 1],
 	},
 };
 
@@ -496,6 +479,216 @@ export function mistFillAt(sky: RGB, depth: number): RGB {
 	const tone = lerpRgb(MIST_WHITE, sky, washT);
 	const duskT = clamp01(1 - lum(sky) / lum(SKY_NOON));
 	return lerpRgb(tone, lerpRgb(sky, CLOUD_DUSK_TINT, 0.4), duskT * 0.35);
+}
+
+// ---------------------------------------------------------------------------
+// Fireflies: the dusk-to-night glow locked on wayfinder #81, built on #85.
+// Like the mist, fireflies are gap dwellers: each group is slotted into a GAP
+// of the ridge ladder and painted at the gap's midpoint depth, so the front
+// ridge's peaks cut across the drift and the band hangs in that valley.
+// `lift` places the band close above the front crest ("above the mountains
+// and close to them" - the pass-1 note).
+//
+// The window is sunset into night: every window opens with the mist band
+// (0.46 earliest) and closes before deep night (0.88 latest) - past ~0.9 the
+// sky belongs to the stars. Counts are FLAT: night does not thicken them
+// (the thickening track was rejected on the walk); count keeps the schedule's
+// stops-track shape with one stop.
+//
+// Colour uses the brief-#77 emitter exemption: warm amber/gold/ember, never
+// sky-washed, so no driver fill write exists for this member. The halo is an
+// SVG radial gradient (no box-shadow) whose strength rises with darkness -
+// the driver writes one `--ff-night` per group (see nightAt). Travel is a
+// smooth sway-and-bob wander and the blink is a hard-cut stepped flash (near
+// groups) or a soft pulse (the far group), all on the CSS clock, so firefly
+// motion survives an open subpage (#60). Reduced motion removes fireflies
+// entirely (brief rule 7 - creatures, not vapors).
+// ---------------------------------------------------------------------------
+
+export type FireflyGroup = {
+	/** ridge-ladder gap index: the band hangs between ridge gap and gap+1 */
+	gap: number;
+	/** the #61 windows[] shape - presence is the max over them */
+	windows: SceneWindow[];
+	/** flat stops track (#81: one stop, night does not thicken) */
+	count: number[];
+	/** flies per knot; 0 scatters them (the "sparse" drawing) */
+	knot: number;
+	/** knot scatter radius, vw */
+	radius: number;
+	/** core square size, px */
+	size: number;
+	/** halo reach as a multiple of size (the svg box is size x glow px) */
+	glow: number;
+	/** afterglow opacity between blinks */
+	dim: number;
+	/** warm colour key - the emitter exemption, never sky-washed */
+	color: keyof typeof FIREFLY_WARMS;
+	/** blink shape: hard-cut steps near, soft pulse far (#81) */
+	rhythm: "flash" | "pulse";
+	/** blink rate; higher = shorter cycles */
+	blink: number;
+	/** wander amplitude, px (bob derives from it) */
+	wander: number;
+	/** band bottom as a fraction of the front ridge's height */
+	lift: number;
+	/** band height, vh, above the lift line */
+	band: number;
+};
+
+export const FIREFLY_GROUP_KEYS = ["far", "sparse", "knots"] as const;
+export type FireflyGroupKey = (typeof FIREFLY_GROUP_KEYS)[number];
+
+// The warm palette (#81): amber for the sparse drift, gold for the knots,
+// ember for the far sparkle. Exempt from the sky wash by design.
+export const FIREFLY_WARMS = {
+	amber: { r: 255, g: 209, b: 102 },
+	gold: { r: 255, g: 232, b: 143 },
+	ember: { r: 255, g: 176, b: 92 },
+} as const satisfies Record<string, RGB>;
+
+// The #81 settings seed (.prototypes/scene-fireflies.html, day plan C with
+// widened windows), placement "gaps" - the front-of-all-ridges alternative
+// was on the panel and was not chosen. Walk tune (2026-08-02): the counts
+// regrouped BACK-HEAVY - the far sparkle carries the most flies and the
+// population thins toward the viewer - and the knots split from one clump
+// into knots of 3 distributed across the whole width (see fireflyPool).
+export const FIREFLIES: { groups: Record<FireflyGroupKey, FireflyGroup> } = {
+	groups: {
+		far: {
+			gap: 5,
+			windows: [{ start: 0.5, rampIn: 0.06, end: 0.82, rampOut: 0.06 }],
+			count: [10],
+			knot: 0,
+			radius: 3,
+			size: 3,
+			glow: 3.5,
+			dim: 0.12,
+			color: "ember",
+			rhythm: "pulse",
+			blink: 0.7,
+			wander: 5,
+			lift: 0.9,
+			band: 8,
+		},
+		sparse: {
+			gap: 7,
+			windows: [{ start: 0.46, rampIn: 0.07, end: 0.88, rampOut: 0.08 }],
+			count: [8],
+			knot: 0,
+			radius: 3,
+			size: 4,
+			glow: 5,
+			dim: 0.12,
+			color: "amber",
+			rhythm: "flash",
+			blink: 1,
+			wander: 12,
+			lift: 0.8,
+			band: 10,
+		},
+		knots: {
+			gap: 8,
+			windows: [{ start: 0.48, rampIn: 0.07, end: 0.86, rampOut: 0.07 }],
+			count: [6],
+			knot: 3,
+			radius: 3,
+			size: 4,
+			glow: 4.5,
+			dim: 0.12,
+			color: "gold",
+			rhythm: "flash",
+			blink: 1.4,
+			wander: 7,
+			lift: 0.7,
+			band: 6,
+		},
+	},
+};
+
+/** A firefly group's --layer-depth: the midpoint of its ridge gap (#81). */
+export function fireflyGroupDepth(key: FireflyGroupKey): number {
+	const specs = ridgeSpecs();
+	const gap = FIREFLIES.groups[key].gap;
+	return ((specs[gap]?.depth ?? 0) + (specs[gap + 1]?.depth ?? 0)) / 2;
+}
+
+export type FireflyElementSeed = {
+	leftVw: number;
+	bottomVh: number;
+	/** blink cycle, seconds, wall clock */
+	blinkDurS: number;
+	blinkDelayS: number;
+	/** sway amplitude, px */
+	swayAmpPx: number;
+	swayDurS: number;
+	swayDelayS: number;
+	/** bob amplitude, px (a fraction of the sway) */
+	bobAmpPx: number;
+	bobDurS: number;
+	bobDelayS: number;
+};
+
+/**
+ * The per-element geometry of one firefly group. Seeded per group with the
+ * exact prototype seeds, so the shipped drift IS the walked drift - SSR and
+ * client markup must match (#418). A knotted group scatters its flies around
+ * seeded knot centres, activation interleaved across knots (i % nKnots), so
+ * every knot blinks as individuals instead of one shape.
+ */
+export function fireflyPool(key: FireflyGroupKey): FireflyElementSeed[] {
+	const g = FIREFLIES.groups[key];
+	const frontHeightVh = ridgeSpecs()[g.gap + 1]?.heightVh ?? 30;
+	const rnd = mulberry32(0xf17e + key.length * 6151 + g.gap * 211);
+	const pool = poolSize(g.count);
+	const nKnots = g.knot > 0 ? Math.max(1, Math.ceil(pool / g.knot)) : 0;
+	// Knot centres take even slots across the width with in-slot jitter (walk
+	// tune, 2026-08-02): fully random centres let two knots land side by side
+	// and the group read as one clump instead of knots across the whole width.
+	const centers = Array.from({ length: nKnots }, (_, k) => ({
+		// Jitter inside the middle 70% of the slot, so a low roll cannot park a
+		// knot on the slot edge next to its neighbour.
+		x: 8 + (78 * (k + 0.15 + rnd() * 0.7)) / nKnots,
+		b: frontHeightVh * g.lift + rnd() * g.band,
+	}));
+	return Array.from({ length: pool }, (_, i) => {
+		let leftVw: number;
+		let bottomVh: number;
+		if (g.knot > 0) {
+			const c = centers[i % nKnots] ?? { x: 50, b: 0 };
+			leftVw = c.x + (rnd() - 0.5) * 2 * g.radius;
+			bottomVh = c.b + (rnd() - 0.5) * 2 * g.radius * 0.6;
+		} else {
+			leftVw = 3 + rnd() * 92;
+			bottomVh = frontHeightVh * g.lift + rnd() * g.band;
+		}
+		const blinkDurS = (4 / Math.max(g.blink, 0.1)) * (0.7 + rnd() * 0.6);
+		const swayAmpPx = g.wander * (0.6 + rnd() * 0.8);
+		const bobAmpPx = swayAmpPx * (0.4 + rnd() * 0.4);
+		const swayDurS = 9 + rnd() * 8;
+		const bobDurS = 6 + rnd() * 6;
+		return {
+			leftVw,
+			bottomVh,
+			blinkDurS,
+			blinkDelayS: -(rnd() * blinkDurS),
+			swayAmpPx,
+			swayDurS,
+			swayDelayS: -(rnd() * swayDurS),
+			bobAmpPx,
+			bobDurS,
+			bobDelayS: -(rnd() * bobDurS),
+		};
+	});
+}
+
+/**
+ * How far the sky has fallen from noon luminance, 0 at noon and 1 at night -
+ * the firefly halo's strength driver (#81: faint against the sunset sky, full
+ * at night). The same dusk factor the cloud and mist fills derive inline.
+ */
+export function nightAt(sky: RGB): number {
+	return clamp01(1 - lum(sky) / lum(SKY_NOON));
 }
 
 // ---------------------------------------------------------------------------

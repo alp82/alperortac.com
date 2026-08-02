@@ -9,6 +9,10 @@ import {
 	CLOUDSCAPE,
 	cloudFillAt,
 	cloudPool,
+	FIREFLIES,
+	FIREFLY_GROUP_KEYS,
+	fireflyGroupDepth,
+	fireflyPool,
 	gridPath,
 	LAND_DEFAULT,
 	MIST,
@@ -16,6 +20,7 @@ import {
 	mistFillAt,
 	mistGroupDepth,
 	mistPool,
+	nightAt,
 	poolSize,
 	presenceAt,
 	presenceOver,
@@ -171,6 +176,7 @@ describe("the schedule table", () => {
 			...CLOUD_TYPE_KEYS.map((k) => CLOUDSCAPE.types[k].window),
 			...BIRD_SPECIES_KEYS.map((k) => BIRDS[k].window),
 			...MIST_GROUP_KEYS.flatMap((k) => MIST.groups[k].windows),
+			...FIREFLY_GROUP_KEYS.flatMap((k) => FIREFLIES.groups[k].windows),
 		];
 		for (const w of windows) {
 			expect(w.end).toBeGreaterThan(w.start);
@@ -417,6 +423,134 @@ describe("mistFillAt", () => {
 				noon.r + noon.g + noon.b,
 			);
 		}
+	});
+});
+
+// The fireflies (#81/#85): gap dwellers like the mist, seeded wander pools,
+// warm emitter colours, and the sunset-to-night window band.
+
+describe("fireflyPool", () => {
+	it("is deterministic - SSR and client markup must match (#418)", () => {
+		for (const key of FIREFLY_GROUP_KEYS) {
+			expect(fireflyPool(key)).toEqual(fireflyPool(key));
+		}
+	});
+
+	it("renders each group's flat count once (prefix activation)", () => {
+		for (const key of FIREFLY_GROUP_KEYS) {
+			expect(fireflyPool(key)).toHaveLength(
+				poolSize(FIREFLIES.groups[key].count),
+			);
+		}
+	});
+
+	it("hangs every band close above its front crest via lift", () => {
+		for (const key of FIREFLY_GROUP_KEYS) {
+			const g = FIREFLIES.groups[key];
+			const frontH = ridgeSpecs()[g.gap + 1]?.heightVh ?? 0;
+			// A scattered fly sits inside [lift, lift + band]; a knotted one adds
+			// the knot's vertical scatter (radius x 0.6) on either side.
+			const slack = g.knot > 0 ? g.radius * 0.6 : 0;
+			for (const el of fireflyPool(key)) {
+				expect(el.bottomVh).toBeGreaterThanOrEqual(frontH * g.lift - slack);
+				expect(el.bottomVh).toBeLessThanOrEqual(
+					frontH * g.lift + g.band + slack,
+				);
+			}
+		}
+	});
+
+	it("spreads blink, sway and bob phase via negative delays", () => {
+		for (const key of FIREFLY_GROUP_KEYS) {
+			for (const el of fireflyPool(key)) {
+				for (const [delay, dur] of [
+					[el.blinkDelayS, el.blinkDurS],
+					[el.swayDelayS, el.swayDurS],
+					[el.bobDelayS, el.bobDurS],
+				] as const) {
+					expect(delay).toBeLessThanOrEqual(0);
+					expect(Math.abs(delay)).toBeLessThanOrEqual(dur);
+				}
+			}
+		}
+	});
+
+	it("clusters the knots group around centres spread across the width", () => {
+		const g = FIREFLIES.groups.knots;
+		expect(g.knot).toBeGreaterThan(0);
+		expect(FIREFLIES.groups.far.knot).toBe(0);
+		expect(FIREFLIES.groups.sparse.knot).toBe(0);
+		// Activation interleaves across knots (i % nKnots), so fly i belongs to
+		// knot i % nKnots: each knot stays tight, the knots sit apart.
+		const pool = fireflyPool("knots");
+		const nKnots = Math.ceil(pool.length / g.knot);
+		expect(nKnots).toBeGreaterThan(1);
+		const knotXs = Array.from({ length: nKnots }, (_, k) =>
+			pool.filter((_, i) => i % nKnots === k).map((el) => el.leftVw),
+		);
+		for (const xs of knotXs) {
+			expect(Math.max(...xs) - Math.min(...xs)).toBeLessThanOrEqual(
+				g.radius * 2,
+			);
+		}
+		// The walk tune: knots distribute across the whole width, never clump.
+		const centers = knotXs.map(
+			(xs) => xs.reduce((a, b) => a + b, 0) / xs.length,
+		);
+		const spread = Math.max(...centers) - Math.min(...centers);
+		expect(spread).toBeGreaterThan(30);
+	});
+
+	it("the population is back-heavy: counts thin toward the viewer", () => {
+		const far = FIREFLIES.groups.far.count[0] ?? 0;
+		const sparse = FIREFLIES.groups.sparse.count[0] ?? 0;
+		const knots = FIREFLIES.groups.knots.count[0] ?? 0;
+		expect(far).toBeGreaterThan(sparse);
+		expect(sparse).toBeGreaterThan(knots);
+	});
+});
+
+describe("the firefly schedule (#81)", () => {
+	it("opens at sunset with the mist band, never earlier than 0.46", () => {
+		for (const key of FIREFLY_GROUP_KEYS) {
+			for (const w of FIREFLIES.groups[key].windows) {
+				expect(w.start).toBeGreaterThanOrEqual(0.46);
+			}
+		}
+	});
+
+	it("closes before deep night (0.88) - past ~0.9 the stars own the sky", () => {
+		for (const key of FIREFLY_GROUP_KEYS) {
+			for (const w of FIREFLIES.groups[key].windows) {
+				expect(w.end).toBeLessThanOrEqual(0.88);
+			}
+		}
+	});
+
+	it("counts are flat: one stop, night does not thicken them", () => {
+		for (const key of FIREFLY_GROUP_KEYS) {
+			expect(FIREFLIES.groups[key].count).toHaveLength(1);
+		}
+	});
+
+	it("near groups flash with hard cuts, the far group pulses", () => {
+		expect(FIREFLIES.groups.far.rhythm).toBe("pulse");
+		expect(FIREFLIES.groups.sparse.rhythm).toBe("flash");
+		expect(FIREFLIES.groups.knots.rhythm).toBe("flash");
+	});
+
+	it("group depths sit exactly on their gap midpoints", () => {
+		expect(fireflyGroupDepth("far")).toBeCloseTo(0.65, 10);
+		expect(fireflyGroupDepth("sparse")).toBeCloseTo(0.81, 10);
+		expect(fireflyGroupDepth("knots")).toBeCloseTo(0.89, 10);
+	});
+});
+
+describe("nightAt", () => {
+	it("is 0 at noon and near 1 at night - the halo strength driver", () => {
+		expect(nightAt(SKY_NOON)).toBe(0);
+		expect(nightAt(SKY_NIGHT)).toBeGreaterThan(0.9);
+		expect(nightAt(SKY_NIGHT)).toBeLessThanOrEqual(1);
 	});
 });
 
