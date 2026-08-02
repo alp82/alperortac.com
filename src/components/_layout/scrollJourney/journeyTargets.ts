@@ -45,6 +45,18 @@ export type BirdSpeciesTargets = ScenePool & {
 	appliedFill: string;
 };
 
+// A mist group layer (#84): like a cloud type, plus the group's gap depth -
+// a veil hangs in a ridge-ladder valley, so its layer rides the SAME vertical
+// parallax as the ridges (on the `translate` longhand, the scroll channel) or
+// the veil would detach from its gap during the rise. Fill lands on every
+// stacked-bar path; per-path fill-opacity is markup and never written here.
+export type MistGroupTargets = ScenePool & {
+	layer: HTMLElement;
+	paths: SVGPathElement[];
+	depth: number;
+	appliedFill: string;
+};
+
 // A ridge layer (#62): the driver writes the parallax offset on the layer's
 // `translate` longhand (the scroll channel, #59 - it composes with the dive's
 // `transform`) and one opaque fill on the silhouette path + the base strip
@@ -83,6 +95,8 @@ export type JourneyTargets = {
 	cloudTypes: Array<CloudTypeTargets | null>;
 	/** one per BIRD_SPECIES_KEYS entry, in order */
 	birdSpecies: Array<BirdSpeciesTargets | null>;
+	/** one per MIST_GROUP_KEYS entry, in order */
+	mistGroups: Array<MistGroupTargets | null>;
 	/** one per ridge, farthest first (#62) */
 	ridges: Array<RidgeTargets | null>;
 	mmBand: HTMLElement | null;
@@ -105,6 +119,7 @@ export function createJourneyTargets(): JourneyTargets {
 		moon2: null,
 		cloudTypes: [],
 		birdSpecies: [],
+		mistGroups: [],
 		ridges: [],
 		mmBand: null,
 		mmDim: null,
@@ -166,6 +181,22 @@ export function applyJourney(v: JourneyValues, t: JourneyTargets): void {
 		if (bs.appliedFill !== b.fill) {
 			bs.layer.style.color = b.fill;
 			bs.appliedFill = b.fill;
+		}
+	});
+	// Per mist group: presence x alpha on the layer, activation into the veil
+	// pool, one derived fill, and the ridge parallax at the group's gap depth
+	// (a veil must rise with the valley it hangs in). Sway and breathe are CSS
+	// keyframes and are never written here (#60).
+	t.mistGroups.forEach((mg, i) => {
+		const m = v.mist[i];
+		if (!mg || !m) return;
+		mg.layer.style.opacity = `${m.o}`;
+		const py = -v.ridgeRise * mg.depth;
+		mg.layer.style.translate = py === 0 ? "" : `0px ${py.toFixed(2)}px`;
+		activate(mg, m.count);
+		if (mg.appliedFill !== m.fill) {
+			for (const p of mg.paths) p.setAttribute("fill", m.fill);
+			mg.appliedFill = m.fill;
 		}
 	});
 	// Per ridge: the vertical parallax offset on the `translate` longhand and

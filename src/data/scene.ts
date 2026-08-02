@@ -41,15 +41,17 @@ export type MemberSchedule = {
 };
 
 export type SceneSchedule = Record<
-	"stars" | "mist" | "fireflies" | "conifers" | "water",
+	"stars" | "fireflies" | "conifers" | "water",
 	MemberSchedule
 >;
 
 // Seed values from the authoring-panel session (wayfinder #63). Stars are
-// consumed since #65; mist/fireflies/conifers/water rows are the seeds for
-// their build tickets (#84-#87) and drive nothing yet. Clouds and birds are
-// NOT in this table: their signed-off designs (#78, #80) fan out into typed
-// pools, each with its own window - see CLOUDSCAPE and BIRDS below.
+// consumed since #65; fireflies/conifers/water rows are the seeds for their
+// build tickets (#85-#87) and drive nothing yet. Clouds, birds and mist are
+// NOT in this table: their signed-off designs (#78, #80, #79) fan out into
+// typed pools, each with its own windows - see CLOUDSCAPE, BIRDS and MIST
+// below (the #64 pattern: a member whose design fans into types gets its own
+// structure).
 export const SCENE: SceneSchedule = {
 	// Stars predate the roster and keep their sky-curve coupling: presence stays
 	// the driver's `starsO` ramp across phase2 (the curve is tunable at runtime,
@@ -61,13 +63,6 @@ export const SCENE: SceneSchedule = {
 		count: [150, 340],
 		intensity: 1,
 		position: 0,
-		size: 1,
-	},
-	mist: {
-		windows: [{ start: 0.3, rampIn: 0.08, end: 0.675, rampOut: 0.08 }],
-		count: 4,
-		intensity: [0.6, 1],
-		position: 0.55,
 		size: 1,
 	},
 	fireflies: {
@@ -336,6 +331,174 @@ export function ridgeFillsAt(sky: RGB, land: RGB): RGB[] {
 }
 
 // ---------------------------------------------------------------------------
+// Mist: the veils locked on wayfinder #79, built on #84. Mist is interleaved,
+// not overlaid: each veil group is slotted into a GAP of the ridge ladder and
+// painted at the gap's midpoint depth, so the front ridge's peaks cut across
+// it and the veil reads as hanging in that valley (the fix for the pass-2
+// floating stripes).
+//
+// Shape language is stacked bars: the same flattened body three times with
+// falling fill-opacity - softness from the stacking, edges pixel-crisp (the
+// brief-#77 vapor exception is used for alpha only, never soft edges). Sway
+// and the breathe oscillation both run on the CSS clock, so mist motion
+// survives an open subpage (#60). The driver only gates presence x alpha,
+// activation and one sky-derived fill per group.
+//
+// Day plan C: far and mid gaps carry a thin valley haze from the noon hero,
+// then all three groups own the sunset-to-dusk band; every window closes by
+// 0.72, before the stars own the sky.
+// ---------------------------------------------------------------------------
+
+export type MistGroup = {
+	/** ridge-ladder gap index: the veil paints between ridge gap and gap+1 */
+	gap: number;
+	/** the #61 windows[] shape - presence is the max over them */
+	windows: SceneWindow[];
+	/** rendered veils; all active while any window is open */
+	count: number;
+	/** layer opacity ceiling: presence x alpha, inside the brief's ~0.5 cap */
+	alpha: number;
+	/** nominal veil height, vh (randomized ±20% per element) */
+	height: number;
+	/** veil bottom as a fraction of the front ridge's height (0.5 = half-buried) */
+	lift: number;
+	/** nominal veil width, vw (randomized ±25% per element) */
+	width: number;
+	/** 0..1 sway speed; higher = wider and quicker sway */
+	speed: number;
+};
+
+export const MIST_GROUP_KEYS = ["far", "mid", "near"] as const;
+export type MistGroupKey = (typeof MIST_GROUP_KEYS)[number];
+
+// The #79 settings seed (.prototypes/scene-mist-veils.html, preset C).
+export const MIST: {
+	/** the slow opacity oscillation on top of the sway */
+	breathe: boolean;
+	groups: Record<MistGroupKey, MistGroup>;
+} = {
+	breathe: true,
+	groups: {
+		far: {
+			gap: 2,
+			windows: [
+				{ start: 0, rampIn: 0, end: 0.14, rampOut: 0.06 },
+				{ start: 0.44, rampIn: 0.07, end: 0.72, rampOut: 0.07 },
+			],
+			count: 2,
+			alpha: 0.4,
+			height: 9,
+			lift: 0.5,
+			width: 62,
+			speed: 0.12,
+		},
+		mid: {
+			gap: 4,
+			windows: [
+				{ start: 0, rampIn: 0, end: 0.1, rampOut: 0.05 },
+				{ start: 0.46, rampIn: 0.07, end: 0.7, rampOut: 0.07 },
+			],
+			count: 2,
+			alpha: 0.3,
+			height: 7,
+			lift: 0.55,
+			width: 48,
+			speed: 0.16,
+		},
+		near: {
+			gap: 6,
+			windows: [{ start: 0.5, rampIn: 0.06, end: 0.68, rampOut: 0.06 }],
+			count: 1,
+			alpha: 0.32,
+			height: 6,
+			lift: 0.6,
+			width: 44,
+			speed: 0.2,
+		},
+	},
+};
+
+// Veil bodies, viewBox 0 0 200 40, preserveAspectRatio none - the flattened
+// cloud family from the #79 walk. Three bodies give per-element variety.
+export const VEIL_BODIES = [
+	"M0 10h200v9H0zM24 26h140v7H24z",
+	"M0 6h200v7H0zM0 19h150v7H0zM56 32h144v6H56z",
+	"M0 12h56v9H0zM68 12h44v9H68zM124 8h76v9h-76zM40 27h96v8H40z",
+] as const;
+
+// The stacked-bar offsets: the same body three times, back to front, with
+// falling fill-opacity (#79's signed-off shape language).
+export const VEIL_STACK = [
+	{ transform: "translate(0 -6) scale(1.06 1)", fillOpacity: 0.3 },
+	{ transform: "translate(-6 0)", fillOpacity: 0.55 },
+	{ transform: "translate(4 5) scale(0.96 1)", fillOpacity: 1 },
+] as const;
+
+/** A veil group's --layer-depth: the midpoint of its ridge gap (#79). */
+export function mistGroupDepth(key: MistGroupKey): number {
+	const specs = ridgeSpecs();
+	const gap = MIST.groups[key].gap;
+	return ((specs[gap]?.depth ?? 0) + (specs[gap + 1]?.depth ?? 0)) / 2;
+}
+
+export type MistElementSeed = {
+	leftVw: number;
+	bottomVh: number;
+	widthVw: number;
+	heightVh: number;
+	/** which VEIL_BODIES entry this veil draws */
+	body: number;
+	/** sway amplitude, px */
+	ampPx: number;
+	/** sway half-period, seconds, wall clock (alternate direction) */
+	swayDurS: number;
+	/** negative delay so the group sways out of phase from frame one */
+	delayS: number;
+};
+
+/**
+ * The per-element geometry of one veil group. Seeded per group (the exact
+ * prototype seeds, so the shipped art IS the walked art) - SSR and client
+ * markup must match (#418). `lift` places the veil's bottom against the front
+ * ridge's height, so the veil hangs half-buried behind that crest.
+ */
+export function mistPool(key: MistGroupKey): MistElementSeed[] {
+	const g = MIST.groups[key];
+	const frontHeightVh = ridgeSpecs()[g.gap + 1]?.heightVh ?? 30;
+	const rnd = mulberry32(0x0f06 + key.length * 5099 + g.gap * 131);
+	return Array.from({ length: g.count }, (_, i) => {
+		const widthVw = g.width * (0.75 + rnd() * 0.5);
+		const heightVh = g.height * (0.8 + rnd() * 0.4);
+		const leftVw = rnd() * Math.max(4, 100 - widthVw);
+		const bottomVh = frontHeightVh * g.lift + (rnd() - 0.5) * 2;
+		const ampPx = 12 + g.speed * 90 * (0.75 + rnd() * 0.5);
+		const swayDurS = (70 - g.speed * 40) * (0.8 + rnd() * 0.5);
+		return {
+			leftVw,
+			bottomVh,
+			widthVw,
+			heightVh,
+			body: (i + g.gap) % VEIL_BODIES.length,
+			ampPx,
+			swayDurS,
+			delayS: -(rnd() * swayDurS),
+		};
+	});
+}
+
+// Mist tone is the cloud formula pulled slightly toward the dusk silhouette,
+// so a veil sits AMONG the mountains instead of reading as a fallen cloud
+// (#79; brief #77 rule 3: no hand-picked colour).
+const MIST_WHITE: RGB = { r: 252, g: 252, b: 254 };
+
+export function mistFillAt(sky: RGB, depth: number): RGB {
+	const washT = clamp01(0.7 * (1 - depth * 0.6));
+	const tone = lerpRgb(MIST_WHITE, sky, washT);
+	const duskT = clamp01(1 - lum(sky) / lum(SKY_NOON));
+	return lerpRgb(tone, lerpRgb(sky, CLOUD_DUSK_TINT, 0.4), duskT * 0.35);
+}
+
+// ---------------------------------------------------------------------------
 // Schedule maths. Pure, unit-tested, shared by the driver, the markup, and
 // (later) the authoring panel.
 // ---------------------------------------------------------------------------
@@ -347,6 +510,13 @@ export function presenceAt(p: number, w: SceneWindow): number {
 	if (w.rampIn > 0) v = Math.min(v, (p - w.start) / w.rampIn);
 	if (w.rampOut > 0) v = Math.min(v, (w.end - p) / w.rampOut);
 	return clamp01(v);
+}
+
+/** A member's windows[] presence: the max over them (#61, first used by mist). */
+export function presenceOver(p: number, windows: SceneWindow[]): number {
+	let v = 0;
+	for (const w of windows) v = Math.max(v, presenceAt(p, w));
+	return v;
 }
 
 /** Progress within a window, 0 at its start and 1 at its end. */

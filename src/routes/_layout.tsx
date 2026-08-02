@@ -599,6 +599,31 @@ function LayoutHost() {
 						   pause matters here: poses and path wrappers animate too. */
 						.bird-flight.scene-off { opacity: 0; }
 						.bird-flight.scene-off * { animation-play-state: paused; }
+						/* Mist veils (wayfinder #84): a slow horizontal sway on the
+						   wall clock, with the breathe opacity oscillation composed
+						   on the svg child - both CSS keyframes, so mist motion
+						   survives an open subpage (#60). Sway animates the veil's
+						   translate; the driver's gap-depth parallax writes translate
+						   on the LAYER, so the two never meet. */
+						@keyframes mist-sway {
+							from { translate: calc(-1 * var(--mamp, 20px)) 0; }
+							to { translate: var(--mamp, 20px) 0; }
+						}
+						.mist-el {
+							animation: mist-sway var(--mdur, 50s) ease-in-out var(--mdel, 0s) infinite alternate;
+							transition: opacity 1400ms ease;
+						}
+						@keyframes mist-breathe {
+							from { opacity: 0.78; }
+							to { opacity: 1; }
+						}
+						.mist-el svg {
+							animation: mist-breathe calc(var(--mdur, 50s) * 0.8) ease-in-out calc(var(--mdel, 0s) * 0.7) infinite alternate;
+						}
+						/* Deactivated veils fade out then pause. The child pause
+						   matters (#64's rule): the breathing svg animates too. */
+						.mist-el.scene-off { opacity: 0; }
+						.mist-el.scene-off * { animation-play-state: paused; }
 						@keyframes bird-bob {
 							0%, 100% { translate: 0 0; }
 							50% { translate: 0 calc(-1 * var(--amp, 2vh)); }
@@ -631,7 +656,9 @@ function LayoutHost() {
 							/* Look-and-feel brief (#77): terrain and vapors freeze,
 							   creatures are removed. A frozen shooting star is a stuck
 							   streak, so it hides instead. */
-							.animate-twinkle, .cloud-el { animation: none; }
+							/* Vapors freeze in the authored pose, they are not removed:
+							   a still veil keeps the depth read (#79). */
+							.animate-twinkle, .cloud-el, .mist-el, .mist-el svg { animation: none; }
 							.animate-shooting-star { animation: none; opacity: 0; }
 							.bird-layer { display: none; }
 						}

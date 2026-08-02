@@ -12,13 +12,21 @@ import {
 	cloudPool,
 	gridPath,
 	LAND_DEFAULT,
+	MIST,
+	MIST_GROUP_KEYS,
+	mistFillAt,
+	mistGroupDepth,
+	mistPool,
 	mulberry32,
 	poolSize,
 	presenceAt,
+	presenceOver,
 	ridgeFillsAt,
 	ridgeSpecs,
 	SCENE,
 	trackAt,
+	VEIL_BODIES,
+	VEIL_STACK,
 	windowedOver,
 } from "../data/scene";
 import { rgbToCss, SKY_NOON } from "../data/skyCurve";
@@ -246,6 +254,92 @@ const BIRD_POSE_PATHS = BIRD_SPECIES_KEYS.map((key) =>
 	BIRDS[key].sprite.poses.map((pose) => gridPath(pose)),
 );
 const BIRD_FLAP_CSS = birdFlapCss();
+
+// The mist cast (wayfinder #79's interleaved veils, built on #84): one layer
+// per group at its ridge-gap midpoint depth, each holding a seeded pool of
+// stacked-bar veils that sway (and breathe) on the CSS clock. Geometry is
+// module-level and deterministic so SSR and client markup match. The driver
+// gates presence, activation, fill and the gap-depth parallax.
+const MIST_POOLS = MIST_GROUP_KEYS.map((key) => mistPool(key));
+const MIST_INITIAL = MIST_GROUP_KEYS.map((key) => {
+	const g = MIST.groups[key];
+	const pres = presenceOver(0, g.windows);
+	return {
+		o: pres * g.alpha,
+		count: pres > 0 ? g.count : 0,
+		fill: rgbToCss(mistFillAt(SKY_NOON, mistGroupDepth(key))),
+	};
+});
+
+function MistGroupLayer({
+	groupIndex,
+	journey,
+}: {
+	groupIndex: number;
+	journey?: Journey | undefined;
+}) {
+	const key = MIST_GROUP_KEYS[groupIndex] as (typeof MIST_GROUP_KEYS)[number];
+	const initial = MIST_INITIAL[groupIndex];
+	const pool = MIST_POOLS[groupIndex] ?? [];
+	return (
+		<div
+			ref={(el) => {
+				if (!journey) return;
+				journey.targets.mistGroups[groupIndex] = el
+					? {
+							layer: el,
+							els: Array.from(el.children) as HTMLElement[],
+							paths: Array.from(el.querySelectorAll("path")),
+							depth: mistGroupDepth(key),
+							applied: -1,
+							appliedFill: "",
+						}
+					: null;
+			}}
+			className="absolute inset-0 overflow-hidden select-none pointer-events-none"
+			style={{ opacity: `var(--mist-${key}-o, ${initial?.o ?? 0})` }}
+			aria-hidden="true"
+		>
+			{pool.map((seed, i) => (
+				<div
+					key={`${key}-${seed.leftVw.toFixed(2)}-${seed.bottomVh.toFixed(2)}`}
+					className={`mist-el absolute${
+						i >= (initial?.count ?? 0) ? " scene-off" : ""
+					}`}
+					style={
+						{
+							left: `${seed.leftVw.toFixed(1)}vw`,
+							bottom: `${seed.bottomVh.toFixed(1)}vh`,
+							width: `${seed.widthVw.toFixed(1)}vw`,
+							height: `${seed.heightVh.toFixed(1)}vh`,
+							"--mamp": `${seed.ampPx.toFixed(0)}px`,
+							"--mdur": `${seed.swayDurS.toFixed(1)}s`,
+							"--mdel": `${seed.delayS.toFixed(1)}s`,
+						} as React.CSSProperties
+					}
+				>
+					<svg
+						viewBox="0 0 200 40"
+						preserveAspectRatio="none"
+						className="w-full h-full"
+						aria-hidden="true"
+					>
+						{VEIL_STACK.map((bar) => (
+							<path
+								key={bar.transform}
+								d={VEIL_BODIES[seed.body]}
+								transform={bar.transform}
+								fill={initial?.fill ?? "white"}
+								fillOpacity={bar.fillOpacity}
+								style={{ shapeRendering: "crispEdges" }}
+							/>
+						))}
+					</svg>
+				</div>
+			))}
+		</div>
+	);
+}
 
 // The ridge ladder (#62): ten seeded silhouettes, farthest first, replacing
 // the single translucent landscape path. Geometry is module-level and
@@ -572,6 +666,26 @@ function PixelBackgroundInner({
 					style={{ "--layer-depth": depth } as React.CSSProperties}
 				>
 					<BirdSpeciesLayer speciesIndex={i} journey={journey} />
+				</div>
+			),
+		});
+	});
+
+	// The mist veils (#84): each group is its own dive-layer at its ridge-gap
+	// midpoint depth, so the depth sort slots the veil BETWEEN its two ridges
+	// and the front ridge's peaks cut across it.
+	MIST_GROUP_KEYS.forEach((key, i) => {
+		const depth = mistGroupDepth(key);
+		layers.push({
+			depth,
+			node: (
+				<div
+					key={`mist-${key}`}
+					className="dive-layer dive-layer--mist"
+					data-depth={depth}
+					style={{ "--layer-depth": depth } as React.CSSProperties}
+				>
+					<MistGroupLayer groupIndex={i} journey={journey} />
 				</div>
 			),
 		});

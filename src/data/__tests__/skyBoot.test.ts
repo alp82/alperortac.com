@@ -14,7 +14,10 @@ import {
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
 	LAND_DEFAULT,
+	MIST,
+	MIST_GROUP_KEYS,
 	presenceAt,
+	presenceOver,
 	ridgeFillsAt,
 } from "../scene";
 import {
@@ -166,6 +169,20 @@ return scene;})()`) as (
 			for (const key of BIRD_SPECIES_KEYS) {
 				expect(s[`--bird-${key}-o`] as number).toBeCloseTo(
 					presenceAt(p, BIRDS[key].window) * BIRDS[key].alpha,
+					10,
+				);
+			}
+		}
+	});
+
+	it("matches scene.ts presence x alpha for every mist group (multi-window)", () => {
+		for (let i = 0; i <= 100; i++) {
+			const p = i / 100;
+			const s = scene(p, 0, 100);
+			for (const key of MIST_GROUP_KEYS) {
+				const g = MIST.groups[key];
+				expect(s[`--mist-${key}-o`] as number).toBeCloseTo(
+					presenceOver(p, g.windows) * g.alpha,
 					10,
 				);
 			}

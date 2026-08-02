@@ -395,7 +395,8 @@ body.panel-open .main-shell {
    !important beats the driver's inline translate). The depth read survives -
    the ladder, the aerial haze and the occlusion are all static properties. */
 @media (prefers-reduced-motion: reduce) {
-	.dive-layer--ridge {
+	.dive-layer--ridge,
+	.dive-layer--mist > div {
 		translate: none !important;
 	}
 }

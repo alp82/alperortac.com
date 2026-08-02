@@ -8,7 +8,12 @@ import {
 	CLOUDSCAPE,
 	cloudFillAt,
 	LAND_DEFAULT,
+	MIST,
+	MIST_GROUP_KEYS,
+	mistFillAt,
+	mistGroupDepth,
 	presenceAt,
+	presenceOver,
 	RIDGES,
 	ridgeFillsAt,
 	SCENE,
@@ -364,6 +369,44 @@ describe("scheduled birds (#64)", () => {
 		BIRD_SPECIES_KEYS.forEach((key, i) => {
 			expect(v.birds[i]?.fill).toBe(
 				rgbToCss(birdFillAt(sky, BIRDS[key].depth)),
+			);
+		});
+	});
+});
+
+describe("scheduled mist (#84)", () => {
+	it("gates every group on its windows: presence x alpha at the layer", () => {
+		MIST_GROUP_KEYS.forEach((key, i) => {
+			const g = MIST.groups[key];
+			for (const p of [0, 0.07, 0.12, 0.3, 0.5, 0.6, 0.71, 0.8, 1]) {
+				const m = computeJourney(input({ rawProgress: p })).mist[i];
+				expect(m?.o).toBeCloseTo(presenceOver(p, g.windows) * g.alpha, 10);
+			}
+		});
+	});
+
+	it("the noon hero gets the far and mid valley haze, near stays empty", () => {
+		const v = computeJourney(input({ rawProgress: 0 }));
+		expect(v.mist[0]?.count).toBe(MIST.groups.far.count);
+		expect(v.mist[1]?.count).toBe(MIST.groups.mid.count);
+		expect(v.mist[2]?.count).toBe(0);
+	});
+
+	it("empties every pool after dusk (0.72) - the stars own the sky", () => {
+		const night = computeJourney(input({ rawProgress: 0.8 }));
+		night.mist.forEach((m) => {
+			expect(m.o).toBe(0);
+			expect(m.count).toBe(0);
+		});
+	});
+
+	it("derives the fill from the sky at the group's gap depth and time", () => {
+		const p = 0.55;
+		const sky = skyRgbAt(p, DEFAULT_CELESTIAL.curve, DEFAULT_SKY_ANCHORS);
+		const v = computeJourney(input({ rawProgress: p }));
+		MIST_GROUP_KEYS.forEach((key, i) => {
+			expect(v.mist[i]?.fill).toBe(
+				rgbToCss(mistFillAt(sky, mistGroupDepth(key))),
 			);
 		});
 	});

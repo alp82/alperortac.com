@@ -11,8 +11,14 @@ import {
 	cloudPool,
 	gridPath,
 	LAND_DEFAULT,
+	MIST,
+	MIST_GROUP_KEYS,
+	mistFillAt,
+	mistGroupDepth,
+	mistPool,
 	poolSize,
 	presenceAt,
+	presenceOver,
 	RIDGES,
 	ridgeFillsAt,
 	ridgeSpecs,
@@ -164,6 +170,7 @@ describe("the schedule table", () => {
 			...Object.values(SCENE).flatMap((m) => m.windows),
 			...CLOUD_TYPE_KEYS.map((k) => CLOUDSCAPE.types[k].window),
 			...BIRD_SPECIES_KEYS.map((k) => BIRDS[k].window),
+			...MIST_GROUP_KEYS.flatMap((k) => MIST.groups[k].windows),
 		];
 		for (const w of windows) {
 			expect(w.end).toBeGreaterThan(w.start);
@@ -321,6 +328,98 @@ describe("the bird relay (#80)", () => {
 	});
 });
 
+// The mist veils (#79/#84): interleaved into the ridge-ladder gaps, presence
+// as the max over a group's windows, sway on the wall clock.
+
+describe("presenceOver", () => {
+	it("is the max over a member's windows", () => {
+		const windows = [
+			{ start: 0, rampIn: 0, end: 0.14, rampOut: 0.06 },
+			{ start: 0.44, rampIn: 0.07, end: 0.72, rampOut: 0.07 },
+		];
+		expect(presenceOver(0.05, windows)).toBe(1);
+		expect(presenceOver(0.3, windows)).toBe(0);
+		expect(presenceOver(0.6, windows)).toBe(1);
+		expect(presenceOver(0.11, windows)).toBeCloseTo(0.5, 10);
+	});
+});
+
+describe("mistPool", () => {
+	it("is deterministic - SSR and client markup must match (#418)", () => {
+		for (const key of MIST_GROUP_KEYS) {
+			expect(mistPool(key)).toEqual(mistPool(key));
+		}
+	});
+
+	it("renders each group's fixed count", () => {
+		for (const key of MIST_GROUP_KEYS) {
+			expect(mistPool(key)).toHaveLength(MIST.groups[key].count);
+		}
+	});
+
+	it("hangs every veil against its front ridge via lift", () => {
+		for (const key of MIST_GROUP_KEYS) {
+			const g = MIST.groups[key];
+			const frontH = ridgeSpecs()[g.gap + 1]?.heightVh ?? 0;
+			for (const el of mistPool(key)) {
+				expect(el.bottomVh).toBeGreaterThanOrEqual(frontH * g.lift - 1);
+				expect(el.bottomVh).toBeLessThanOrEqual(frontH * g.lift + 1);
+			}
+		}
+	});
+
+	it("spreads sway phase via negative delay inside the period", () => {
+		for (const key of MIST_GROUP_KEYS) {
+			for (const el of mistPool(key)) {
+				expect(el.delayS).toBeLessThanOrEqual(0);
+				expect(Math.abs(el.delayS)).toBeLessThanOrEqual(el.swayDurS);
+			}
+		}
+	});
+});
+
+describe("the mist schedule (#79)", () => {
+	it("every window closes by 0.72 - the stars own the sky after", () => {
+		for (const key of MIST_GROUP_KEYS) {
+			for (const w of MIST.groups[key].windows) {
+				expect(w.end).toBeLessThanOrEqual(0.72);
+			}
+		}
+	});
+
+	it("the far and mid valley haze is already there at the noon hero", () => {
+		expect(presenceOver(0, MIST.groups.far.windows)).toBe(1);
+		expect(presenceOver(0, MIST.groups.mid.windows)).toBe(1);
+		expect(presenceOver(0, MIST.groups.near.windows)).toBe(0);
+	});
+
+	it("alpha stays inside the brief's ~0.5 vapor cap (#77)", () => {
+		for (const key of MIST_GROUP_KEYS) {
+			expect(MIST.groups[key].alpha).toBeLessThanOrEqual(0.5);
+		}
+	});
+});
+
+describe("mistFillAt", () => {
+	it("washes a farther veil toward the sky harder than a near one", () => {
+		const far = mistFillAt(SKY_NOON, mistGroupDepth("far"));
+		const near = mistFillAt(SKY_NOON, mistGroupDepth("near"));
+		// Nearer = brighter (closer to the white base) at noon.
+		expect(near.r + near.g + near.b).toBeGreaterThan(far.r + far.g + far.b);
+	});
+
+	it("pulls every gap toward silhouette at night", () => {
+		for (const key of MIST_GROUP_KEYS) {
+			const d = mistGroupDepth(key);
+			const noon = mistFillAt(SKY_NOON, d);
+			const night = mistFillAt(SKY_NIGHT, d);
+			expect(night.r + night.g + night.b).toBeLessThan(
+				noon.r + noon.g + noon.b,
+			);
+		}
+	});
+});
+
 describe("the ridge ladder (#62)", () => {
 	it("spans the locked depth ladder: ten ridges, 0.21 to 0.93 (#59)", () => {
 		const specs = ridgeSpecs();
@@ -388,6 +487,12 @@ describe("the ridge ladder (#62)", () => {
 		expect(Math.abs(far.r - SKY_NIGHT.r)).toBeLessThanOrEqual(16);
 		expect(Math.abs(far.g - SKY_NIGHT.g)).toBeLessThanOrEqual(16);
 		expect(Math.abs(far.b - SKY_NIGHT.b)).toBeLessThanOrEqual(16);
+	});
+
+	it("mist group depths sit exactly on their gap midpoints (#79)", () => {
+		expect(mistGroupDepth("far")).toBeCloseTo(0.41, 10);
+		expect(mistGroupDepth("mid")).toBeCloseTo(0.57, 10);
+		expect(mistGroupDepth("near")).toBeCloseTo(0.73, 10);
 	});
 
 	it("gap depths hold the seeds the mist and firefly builds assume (#79/#81)", () => {

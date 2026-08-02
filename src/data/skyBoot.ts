@@ -7,7 +7,10 @@ import {
 	CLOUD_TYPE_KEYS,
 	CLOUDSCAPE,
 	LAND_DEFAULT,
+	MIST,
+	MIST_GROUP_KEYS,
 	RIDGES,
+	type SceneWindow,
 } from "./scene";
 import { DEFAULT_SKY_CURVE, SKY_DUSK, SKY_NIGHT, SKY_NOON } from "./skyCurve";
 import { PANEL_KEY_TO_TOPIC_ID } from "./topics";
@@ -89,19 +92,25 @@ export function skyBootSceneJs(): string {
 	const su = DEFAULT_CELESTIAL.sun;
 	const mo = DEFAULT_CELESTIAL.moon;
 	const [s2, e2] = DEFAULT_CELESTIAL.curve.phase2;
-	// The scheduled cloud and bird layers seed their opacity vars (presence x
-	// alpha, the scene.ts presenceAt semantics), so a cold night deep-link does
-	// not flash day cast before hydration. Interpolated from CLOUDSCAPE / BIRDS
-	// so the numbers can't drift; pinned in skyBoot.test.ts.
+	// The scheduled cloud, bird and mist layers seed their opacity vars
+	// (presence x alpha, the scene.ts presenceAt/presenceOver semantics), so a
+	// cold night deep-link does not flash day cast before hydration. Each entry
+	// is [alpha, [start,rampIn,end,rampOut], ...] - presence is the max over
+	// the windows (mist authors two). Interpolated from CLOUDSCAPE / BIRDS /
+	// MIST so the numbers can't drift; pinned in skyBoot.test.ts.
+	const win = (w: SceneWindow) =>
+		`[${w.start},${w.rampIn},${w.end},${w.rampOut}]`;
 	const cw = [
 		...CLOUD_TYPE_KEYS.map((k) => {
 			const t = CLOUDSCAPE.types[k];
-			const w = t.window;
-			return `"--cloud-${k}-o":[${w.start},${w.rampIn},${w.end},${w.rampOut},${t.alpha}]`;
+			return `"--cloud-${k}-o":[${t.alpha},${win(t.window)}]`;
 		}),
-		...BIRD_SPECIES_KEYS.map((k) => {
-			const w = BIRDS[k].window;
-			return `"--bird-${k}-o":[${w.start},${w.rampIn},${w.end},${w.rampOut},${BIRDS[k].alpha}]`;
+		...BIRD_SPECIES_KEYS.map(
+			(k) => `"--bird-${k}-o":[${BIRDS[k].alpha},${win(BIRDS[k].window)}]`,
+		),
+		...MIST_GROUP_KEYS.map((k) => {
+			const g = MIST.groups[k];
+			return `"--mist-${k}-o":[${g.alpha},${g.windows.map(win).join(",")}]`;
 		}),
 	].join(",");
 	return `
@@ -119,7 +128,7 @@ var s2=${s2},e2=${e2};
 var sto=Math.min(1,Math.max(0,(p-s2)/Math.max(e2-s2,0.001)));
 var sho=Math.min(1,Math.max(0,(p-e2)/Math.max(1-e2,0.001)));
 var out={"--sun-x":sp[0]+"%","--sun-y":sp[1]+"%","--sun-o":so,"--moon-x":mp[0]+"%","--moon-y":mp[1]+"%","--moon-o":mn,"--stars-o":sto,"--shoot-o":sho,"--mm-sun-y":(vt+(sp[1]/100)*vh)+"%","--mm-moon-y":(vt+(mp[1]/100)*vh)+"%"};
-for(var k in CW){var w=CW[k],pr=0;if(p>=w[0]&&p<=w[2]){pr=1;if(w[1]>0)pr=Math.min(pr,(p-w[0])/w[1]);if(w[3]>0)pr=Math.min(pr,(w[2]-p)/w[3]);pr=Math.min(Math.max(pr,0),1);}out[k]=pr*w[4];}
+for(var k in CW){var e=CW[k],pr=0;for(var wi=1;wi<e.length;wi++){var w=e[wi],v=0;if(p>=w[0]&&p<=w[2]){v=1;if(w[1]>0)v=Math.min(v,(p-w[0])/w[1]);if(w[3]>0)v=Math.min(v,(w[2]-p)/w[3]);v=Math.min(Math.max(v,0),1);}pr=Math.max(pr,v);}out[k]=pr*e[0];}
 return out;}`;
 }
 

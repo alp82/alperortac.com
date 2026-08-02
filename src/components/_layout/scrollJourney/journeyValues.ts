@@ -17,7 +17,12 @@ import {
 	CLOUDSCAPE,
 	cloudFillAt,
 	LAND_DEFAULT,
+	MIST,
+	MIST_GROUP_KEYS,
+	mistFillAt,
+	mistGroupDepth,
 	presenceAt,
+	presenceOver,
 	RIDGES,
 	ridgeFillsAt,
 	SCENE,
@@ -119,6 +124,30 @@ export function cloudValuesAt(
 					: 0,
 			fill: rgbToCss(cloudFillAt(sky, t.depth)),
 			sinkY: CLOUDSCAPE.daySink * skyProgress * t.depth,
+		};
+	});
+}
+
+export type MistGroupValues = {
+	/** layer opacity: presence (max over the group's windows) x its alpha */
+	o: number;
+	/** active veils: the whole pool while any window is open, else none */
+	count: number;
+	/** css colour derived from the sky at the group's gap depth and time */
+	fill: string;
+};
+
+export function mistValuesAt(
+	skyProgress: number,
+	sky: { r: number; g: number; b: number },
+): MistGroupValues[] {
+	return MIST_GROUP_KEYS.map((key) => {
+		const g = MIST.groups[key];
+		const pres = presenceOver(skyProgress, g.windows);
+		return {
+			o: pres * g.alpha,
+			count: pres > 0 ? g.count : 0,
+			fill: rgbToCss(mistFillAt(sky, mistGroupDepth(key))),
 		};
 	});
 }
@@ -250,6 +279,8 @@ export type JourneyValues = {
 	clouds: CloudTypeValues[];
 	/** one entry per BIRD_SPECIES_KEYS, in order */
 	birds: BirdSpeciesValues[];
+	/** one entry per MIST_GROUP_KEYS, in order */
+	mist: MistGroupValues[];
 	/** one opaque css fill per ridge, farthest first (accumulated composite) */
 	ridgeFills: string[];
 	/**
@@ -344,6 +375,7 @@ export function computeJourney({
 		shootO: clamp01((skyProgress - phase2End) / Math.max(1 - phase2End, 0.001)),
 		clouds: cloudValuesAt(skyProgress, skyRgb),
 		birds: birdValuesAt(skyProgress, skyRgb),
+		mist: mistValuesAt(skyProgress, skyRgb),
 		ridgeFills: ridgeFillsAt(skyRgb, landscape).map(rgbToCss),
 		// (p - 0.5) * 2 spans -1..1 so the ladder sits at rest mid-scroll,
 		// pushed down at the hero and fully risen at the page bottom (#59).
