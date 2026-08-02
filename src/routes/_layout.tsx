@@ -36,6 +36,7 @@ import { Minimap } from "../components/Minimap";
 import { NarrativeWatermark } from "../components/NarrativeWatermark";
 import { SUBPAGE_WORDS } from "../components/narrativeWatermark";
 import { PixelBackground } from "../components/PixelBackground";
+import { SceneAuthoringPanel } from "../components/SceneAuthoringPanel";
 import { useIsomorphicLayoutEffect } from "../components/useIsomorphicLayoutEffect";
 import { type CelestialState, DEFAULT_CELESTIAL } from "../data/celestial";
 import {
@@ -79,6 +80,19 @@ function LayoutHost() {
 		[playground.time],
 	);
 	const [skyOpen, setSkyOpen] = useState(false);
+	// The scene-authoring panel (wayfinder #88): dev-only, opened by the ?scene
+	// query param - a one-shot code-emitting tool, not a game-y find (#63). Read
+	// in an effect so SSR and the first client paint agree (no window on the
+	// server).
+	const [sceneOpen, setSceneOpen] = useState(false);
+	useEffect(() => {
+		if (
+			import.meta.env.DEV &&
+			new URLSearchParams(window.location.search).has("scene")
+		) {
+			setSceneOpen(true);
+		}
+	}, []);
 	const [aboutOpen, setAboutOpen] = useState(false);
 	const aboutMenuRef = useRef<HTMLDivElement | null>(null);
 	const lastTriggerRef = useRef<HTMLElement | null>(null);
@@ -363,6 +377,17 @@ function LayoutHost() {
 			{import.meta.env.DEV && (
 				<button
 					type="button"
+					onClick={() => setSceneOpen(true)}
+					aria-label="Author the scene schedule"
+					className="fixed bottom-36 right-4 md:right-24 z-50 bg-slate-900 text-white min-h-[44px] px-3 py-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.4)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform"
+				>
+					Scene
+				</button>
+			)}
+
+			{import.meta.env.DEV && (
+				<button
+					type="button"
 					onClick={(e) => {
 						lastTriggerRef.current = e.currentTarget;
 						setSkyOpen(true);
@@ -378,6 +403,15 @@ function LayoutHost() {
 				<DesignModeHost
 					lastTriggerRef={lastTriggerRef}
 					onComposer={setDesignComposer}
+				/>
+			)}
+
+			{import.meta.env.DEV && sceneOpen && (
+				<SceneAuthoringPanel
+					journey={journey}
+					celestial={celestial}
+					sliceFor={sliceFor}
+					onClose={() => setSceneOpen(false)}
 				/>
 			)}
 
