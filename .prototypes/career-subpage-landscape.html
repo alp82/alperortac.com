@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Work History - landscape-native redesign (4 variants)</title>
+<!--
+  PROTOTYPE - throwaway, not shipped.
+  Question: the shipped ascent page reads as a Fremdkoerper. Opaque navy panel
+  hides the landscape, Iowan serif is off-brand, the axis is timid, the soft
+  rounded cards lost the blocky identity. This file re-grounds the subpage in
+  the site's language: frosted translucent column over the LIVE dived
+  landscape (faked here), Inter-black uppercase + VT323 + Instrument Serif
+  italic, brutalist border-4 cards with hard offset shadows, and the mobile
+  gutter-trail treatment promoted to desktop.
+  Four structurally different takes via ?variant= (a|b|c|d), bottom bar,
+  or arrow keys:
+    A - Gutter trail: slim left rail, gold dotted meander, big VT323 years
+        in the gutter, full-width blocky cards. Mobile look, scaled up.
+    B - Ledger: no cards. Full-width editorial rows, huge black uppercase
+        roles, thick rules, hairline trail on the column edge.
+    C - Trail signs: the trail is the hero. Center meander, signpost cards
+        alternate off gold posts, watermark years behind.
+    D - Strata: dig cross-section. Band height scales with tenure,
+        deeper = older, depth meter on the left. Echoes the dig motif.
+  Data mirrored by hand from src/data/career.ts. Self-contained, no network
+  (VT323 / Instrument Serif render if installed, else fallbacks).
+-->
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  :root {
+    --gold: #fbbf24;
+    --gold-soft: rgba(251,191,36,0.55);
+    --ink: #f8fafc;
+    --slate-900: #0f172a;
+    --mono: "VT323", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+    --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  body { font-family: var(--sans); color: var(--ink); background: #0b1220; }
+
+  /* ============ faked dived landscape (stands in for the live scene) ============ */
+  .scene {
+    position: fixed; inset: -6%;
+    transform: scale(1.12);
+    filter: blur(1.5px) brightness(0.92) saturate(1.05);
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      #2b3a67 0%, #6b5a8c 30%, #c96f4a 55%, #f4a460 72%, #e8b06a 82%, #87a06b 100%);
+  }
+  .scene .sun {
+    position: absolute; left: 62%; top: 46%;
+    width: 92px; height: 92px; border-radius: 50%;
+    background: #fef08a; border: 4px solid #fcd34d;
+    box-shadow: 0 0 60px rgba(253,224,71,0.55);
+  }
+  .scene svg { position: absolute; left: 0; right: 0; width: 100%; }
+  .scene .ridge-far  { bottom: 18%; height: 34%; }
+  .scene .ridge-near { bottom: 0;   height: 42%; }
+  .ff { position: absolute; width: 4px; height: 4px; border-radius: 50%;
+    background: #fff3a8; box-shadow: 0 0 8px 2px rgba(255,243,168,0.8);
+    animation: drift 7s ease-in-out infinite; }
+  @keyframes drift {
+    0%,100% { transform: translate(0,0); opacity: 0.2; }
+    25% { opacity: 1; }
+    50% { transform: translate(18px,-22px); opacity: 0.7; }
+    75% { opacity: 0.9; }
+  }
+
+  /* ============ scroll surface + frosted column (mirrors .panel-surface / .subpage-column) ============ */
+  .surface { position: fixed; inset: 0; overflow-y: auto; overflow-x: hidden; }
+  .column {
+    position: relative;
+    max-width: 880px; margin: 9vh auto; padding: 0;
+    background: rgba(15,23,42,0.7);
+    backdrop-filter: blur(10px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+  }
+  @media (max-width: 920px) { .column { margin-left: 10px; margin-right: 10px; } }
+  .inner { padding: 56px 40px 72px; }
+  @media (max-width: 640px) { .inner { padding: 40px 16px 56px; } }
+
+  /* ============ shared identity pieces ============ */
+  .kicker {
+    font-family: var(--mono); font-size: 17px; letter-spacing: 0.3em;
+    text-transform: uppercase; color: var(--gold); margin: 0 0 10px;
+  }
+  h2.title {
+    margin: 0; font-weight: 900; text-transform: uppercase;
+    letter-spacing: -0.04em; line-height: 0.92;
+    font-size: clamp(42px, 7.5vw, 72px);
+  }
+  p.sub { font-size: 14px; opacity: 0.7; margin: 14px 0 0; }
+  .head { margin-bottom: 52px; }
+  @media (max-width: 640px) { .head { margin-bottom: 36px; } }
+
+  .chip {
+    display: inline-block; font-size: 10px; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 4px 8px; margin: 0 6px 6px 0;
+    background: var(--slate-900); color: #e2e8f0;
+    border: 2px solid rgba(255,255,255,0.25);
+  }
+  .story { font-family: var(--serif); font-style: italic; font-size: 15.5px;
+    line-height: 1.5; opacity: 0.85; margin: 8px 0 12px; }
+
+  /* blocky card - the previous-commit identity, kept deliberately */
+  .bcard {
+    background: rgba(255,255,255,0.05);
+    border: 4px solid rgba(255,255,255,0.15);
+    box-shadow: 6px 6px 0 0 rgba(255,255,255,0.12);
+    padding: 20px 22px 16px;
+  }
+  .bcard .role { font-weight: 900; text-transform: uppercase; font-size: 22px;
+    line-height: 1.05; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .bcard .co { font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em; opacity: 0.75; margin: 0 0 10px; }
+  .bcard .desc { font-size: 14px; line-height: 1.55; margin: 0 0 10px; }
+  .yr-mono { font-family: var(--mono); color: var(--gold); }
+
+  /* ============ variant A - gutter trail ============ */
+  .va .rail-grid { position: relative; }
+  .va .entry { position: relative; display: grid;
+    grid-template-columns: 108px 1fr; gap: 0 18px; margin-bottom: 40px; }
+  .va .entry:last-child { margin-bottom: 0; }
+  .va .gyear { font-family: var(--mono); font-size: 30px; line-height: 1;
+    color: var(--gold); text-align: right; padding-top: 22px; padding-right: 26px; }
+  .va .gyear small { display: block; font-size: 16px; opacity: 0.65; margin-top: 2px; }
+  .va svg.trail { position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; overflow: visible; }
+  @media (max-width: 640px) {
+    .va .entry { grid-template-columns: 64px 1fr; gap: 0 10px; }
+    .va .gyear { font-size: 20px; padding-right: 16px; }
+    .va .gyear small { font-size: 12px; }
+  }
+
+  /* ============ variant B - ledger ============ */
+  .vb .row { position: relative; border-top: 4px solid rgba(255,255,255,0.22);
+    padding: 26px 0 26px 26px; display: grid;
+    grid-template-columns: 1fr 168px; gap: 0 24px; }
+  .vb .row:last-child { border-bottom: 4px solid rgba(255,255,255,0.22); }
+  .vb .row:hover { background: rgba(255,255,255,0.04); }
+  .vb .lyear { font-family: var(--mono); font-size: 22px; color: var(--gold); margin: 0 0 6px; }
+  .vb .lrole { font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em;
+    font-size: clamp(24px, 4.4vw, 40px); line-height: 0.95; margin: 0 0 6px; }
+  .vb .lco { font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em; opacity: 0.7; margin: 0 0 10px; }
+  .vb .ldesc { font-size: 14px; line-height: 1.55; margin: 0; max-width: 52ch; }
+  .vb .lchips { text-align: right; padding-top: 8px; }
+  .vb .lchips .chip { margin: 0 0 6px 6px; }
+  .vb .edge { position: absolute; left: 0; top: 0; bottom: 0; width: 26px;
+    pointer-events: none; overflow: visible; }
+  @media (max-width: 640px) {
+    .vb .row { grid-template-columns: 1fr; padding-left: 18px; }
+    .vb .lchips { text-align: left; }
+    .vb .lchips .chip { margin: 0 6px 6px 0; }
+  }
+
+  /* ============ variant C - trail signs ============ */
+  .vc .field { position: relative; }
+  .vc svg.trail { position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; overflow: visible; }
+  .vc .stop { position: relative; margin-bottom: 56px; min-height: 40px; }
+  .vc .stop:last-child { margin-bottom: 0; }
+  .vc .sign { position: relative; width: 46%; }
+  .vc .stop.right .sign { margin-left: auto; }
+  .vc .watermark { position: absolute; top: 50%; transform: translateY(-50%);
+    font-family: var(--mono); font-size: 120px; line-height: 1;
+    color: rgba(251,191,36,0.09); pointer-events: none; user-select: none; }
+  .vc .stop.left  .watermark { right: 2%; }
+  .vc .stop.right .watermark { left: 2%; }
+  @media (max-width: 640px) {
+    .vc .sign { width: calc(100% - 56px); margin-left: 56px !important; }
+    .vc .watermark { display: none; }
+  }
+
+  /* ============ variant D - strata ============ */
+  .vd .dig { position: relative; border: 4px solid rgba(255,255,255,0.18);
+    box-shadow: 6px 6px 0 0 rgba(255,255,255,0.1); }
+  .vd .band { position: relative; display: grid;
+    grid-template-columns: 84px 1fr; border-top: 4px solid rgba(10,14,24,0.85); }
+  .vd .band:first-child { border-top: none; }
+  .vd .depth { font-family: var(--mono); font-size: 20px; color: var(--gold);
+    padding: 14px 0 0 14px; border-right: 2px dashed rgba(251,191,36,0.35); }
+  .vd .band-body { padding: 16px 20px 14px; }
+  .vd .band .role { font-weight: 900; text-transform: uppercase; font-size: 20px;
+    letter-spacing: -0.01em; line-height: 1.05; margin: 0 0 3px; }
+  .vd .band .co { font-size: 11.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em; opacity: 0.75; margin: 0 0 8px; }
+  .vd .band .desc { font-size: 13.5px; line-height: 1.5; margin: 0 0 8px; max-width: 56ch; }
+  .vd .band .story { font-size: 14.5px; margin: 0 0 8px; }
+  @media (max-width: 640px) {
+    .vd .band { grid-template-columns: 56px 1fr; }
+    .vd .depth { font-size: 15px; padding-left: 8px; }
+  }
+
+  /* ============ floating switcher (not part of the design) ============ */
+  .switcher { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px;
+    background: #0b1220; border: 1px solid #334155; border-radius: 999px;
+    padding: 8px 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    z-index: 50; font-size: 13px; }
+  .switcher button { background: #1e293b; color: #e2e8f0; border: 1px solid #475569;
+    border-radius: 999px; width: 30px; height: 30px; cursor: pointer;
+    font-size: 14px; line-height: 1; }
+  .switcher button:hover { background: #334155; }
+  .switcher .label { min-width: 230px; text-align: center; color: #cbd5e1; }
+  .switcher .label b { color: #f8fafc; }
+</style>
+</head>
+<body>
+
+<div class="scene" aria-hidden="true">
+  <div class="sun"></div>
+  <svg class="ridge-far" preserveAspectRatio="none" viewBox="0 0 1200 300">
+    <polygon fill="#4a7a8c" points="0,300 0,190 140,90 260,180 400,60 540,170 660,110 820,200 960,80 1100,170 1200,120 1200,300"/>
+  </svg>
+  <svg class="ridge-near" preserveAspectRatio="none" viewBox="0 0 1200 300">
+    <polygon fill="#31576b" points="0,300 0,160 180,60 340,150 520,40 700,150 860,90 1020,170 1200,80 1200,300"/>
+    <g fill="#1e3d4d">
+      <polygon points="120,140 135,95 150,140"/>
+      <polygon points="150,150 165,105 180,150"/>
+      <polygon points="480,120 495,72 510,120"/>
+      <polygon points="510,130 525,85 540,130"/>
+      <polygon points="840,150 855,105 870,150"/>
+      <polygon points="1080,130 1095,85 1110,130"/>
+    </g>
+  </svg>
+  <span class="ff" style="left:12%; top:70%;"></span>
+  <span class="ff" style="left:28%; top:78%; animation-delay:-2.4s;"></span>
+  <span class="ff" style="left:81%; top:74%; animation-delay:-4.1s;"></span>
+  <span class="ff" style="left:64%; top:83%; animation-delay:-1.2s;"></span>
+</div>
+
+<div class="surface">
+  <div class="column">
+    <div class="inner" id="mount"></div>
+  </div>
+</div>
+
+<div class="switcher">
+  <button type="button" id="prev" aria-label="Previous variant">&#8592;</button>
+  <span class="label" id="label"></span>
+  <button type="button" id="next" aria-label="Next variant">&#8594;</button>
+</div>
+
+<script>
+// Mirrored from src/data/career.ts
+const DATA = [
+  { year: "Since 2021", start: 2021, end: 2026, role: "Lead Engineer",
+    company: "Genius Sports - London, UK (Remote from DE)",
+    desc: "Dynamic Sports Videos for Programmatic & Social.",
+    stack: ["Python","TypeScript","AWS","Kubernetes"],
+    story: "Technical leadership across data orchestration, live video rendering and internal tooling. People management focused on personal growth and more satisfaction at work." },
+  { year: "2021", start: 2021, end: 2021.8, role: "Lead Frontend Engineer",
+    company: "Spirable - London, UK (Remote from DE)",
+    desc: "Dynamic Ads for Social Media.",
+    stack: ["Python","TypeScript","React","Material UI"] },
+  { year: "2019 - 2021", start: 2019, end: 2021, role: "Lead Frontend Engineer",
+    company: "enercast - Kassel, Germany",
+    desc: "Wind/Solar Energy Forecasts.",
+    stack: ["TypeScript","React","Redux","Highcharts"],
+    story: "Performance optimization for charts with 1M data points at 60fps." },
+  { year: "2013 - 2019", start: 2013, end: 2019, role: "Frontend Engineer",
+    company: "Cisco Systems - Kassel, Germany",
+    desc: "Business SPA for Asset Management.",
+    stack: ["Angular","Vue.js","GraphQL","Highcharts","D3"],
+    story: "Owning a complex frontend app that manages an arbitrary number of business assets." },
+  { year: "2012 - 2013", start: 2012, end: 2013, role: "Frontend Engineer",
+    company: "Joulex - Kassel, Germany",
+    desc: "Energy Management Web Application.",
+    stack: ["Qooxdoo","Play","PostgreSQL"] },
+  { year: "2007 - 2012", start: 2007, end: 2012, role: "Founder",
+    company: "Acama Systems",
+    desc: "Web agency building custom solutions.",
+    stack: ["JavaScript","Java","PHP","MySQL"],
+    story: "Building individual web solutions for customers across the automotive, finance and health sectors." },
+  { year: "2005 - 2009", start: 2005, end: 2009, role: "Web Engineer",
+    company: "miobambino",
+    desc: "E-commerce for children clothes with individual prints.",
+    stack: ["PHP","MySQL","JavaScript","HTML","CSS"] },
+];
+
+const esc = (s) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const chips = (e) => e.stack.map((t)=>`<span class="chip">${esc(t)}</span>`).join("");
+const yearBits = (y) => {
+  const m = y.match(/^(\D*\d{4})\s*-\s*(\d{4})$/);
+  return m ? { a: m[1], b: m[2] } : { a: y, b: "" };
+};
+
+const head = (subtitle) => `
+  <div class="head">
+    <p class="kicker">2005 - today</p>
+    <h2 class="title">Work<br/>History</h2>
+    <p class="sub">${subtitle}</p>
+  </div>`;
+
+function card(e) {
+  return `<div class="bcard">
+    <p class="role">${esc(e.role)}</p>
+    <p class="co">${esc(e.company)}</p>
+    <p class="desc">${esc(e.desc)}</p>
+    ${e.story ? `<p class="story">${esc(e.story)}</p>` : ""}
+    <div>${chips(e)}</div>
+  </div>`;
+}
+
+/* ---- shared trail drawing: Catmull-Rom -> bezier, sampled as gold dots ---- */
+function smoothPath(pts) {
+  let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i-1] ?? pts[i], p1 = pts[i], p2 = pts[i+1], p3 = pts[i+2] ?? pts[i+1];
+    d += ` C ${p1[0]+(p2[0]-p0[0])/6} ${p1[1]+(p2[1]-p0[1])/6}, ${p2[0]-(p3[0]-p1[0])/6} ${p2[1]-(p3[1]-p1[1])/6}, ${p2[0]} ${p2[1]}`;
+  }
+  return d;
+}
+function meander(pts, cx, factor) {
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    if (i > 1 && i < pts.length - 1) {
+      out.push([cx + (cx - (pts[i-1][0] + pts[i][0]) / 2) * factor, (pts[i-1][1] + pts[i][1]) / 2]);
+    }
+    out.push(pts[i]);
+  }
+  return smoothPath(out);
+}
+function dotTrail(svg, pts, cx, { factor = 0.6, r = 2, gap = 14, marks = true, markR = 4.5 } = {}) {
+  const W = svg.clientWidth || svg.parentElement.clientWidth;
+  const H = svg.clientHeight || svg.parentElement.clientHeight;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = `<path d="${meander(pts, cx, factor)}" fill="none"/>`;
+  const path = svg.querySelector("path");
+  if (!path || typeof path.getTotalLength !== "function") return;
+  const len = path.getTotalLength();
+  let out = "";
+  for (let l = 0; l <= len; l += gap) {
+    const p = path.getPointAtLength(l);
+    out += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="rgba(251,191,36,0.55)"/>`;
+  }
+  if (marks) {
+    for (const [x, y] of pts.slice(1, -1)) {
+      out += `<rect x="${x-markR}" y="${y-markR}" width="${markR*2}" height="${markR*2}"
+        transform="rotate(45 ${x} ${y})" fill="#fbbf24" stroke="#0f172a" stroke-width="2"/>`;
+    }
+  }
+  svg.innerHTML = out;
+}
+const centersOf = (host, sel) => {
+  const top = host.getBoundingClientRect().top;
+  return Array.from(host.querySelectorAll(sel)).map((el) => {
+    const r = el.getBoundingClientRect();
+    return r.top - top + r.height / 2;
+  });
+};
+
+/* ============ variant A - gutter trail ============ */
+function renderA(mount) {
+  mount.innerHTML = head("A short trail of where I have been building.") + `
+    <div class="va"><div class="rail-grid" id="a-host">
+      <svg class="trail" id="a-trail" aria-hidden="true"></svg>
+      ${DATA.map((e) => {
+        const y = yearBits(e.year);
+        return `<div class="entry">
+          <div class="gyear">${esc(y.a)}${y.b ? `<small>&ndash; ${esc(y.b)}</small>` : ""}</div>
+          <div data-stop>${card(e)}</div>
+        </div>`;
+      }).join("")}
+    </div></div>`;
+  const host = mount.querySelector("#a-host");
+  const draw = () => {
+    const svg = mount.querySelector("#a-trail");
+    const gutter = window.innerWidth <= 640 ? 64 : 108;
+    const cx = gutter * 0.5;
+    const pts = [[cx, 4]];
+    centersOf(host, "[data-stop]").forEach((y, i) => {
+      pts.push([i % 2 ? gutter * 0.78 : gutter * 0.24, y]);
+    });
+    pts.push([cx, host.clientHeight - 4]);
+    dotTrail(svg, pts, cx, { r: 2.2, gap: 13 });
+  };
+  requestAnimationFrame(draw);
+  return draw;
+}
+
+/* ============ variant B - ledger ============ */
+function renderB(mount) {
+  mount.innerHTML = head("Every station, full width. No boxes to hide in.") + `
+    <div class="vb"><div id="b-host" style="position:relative">
+      <svg class="edge" id="b-trail" aria-hidden="true"></svg>
+      ${DATA.map((e) => `<div class="row">
+        <div data-stop>
+          <p class="lyear">${esc(e.year)}</p>
+          <p class="lrole">${esc(e.role)}</p>
+          <p class="lco">${esc(e.company)}</p>
+          <p class="ldesc">${esc(e.desc)}${e.story ? ` <span class="story" style="display:block">${esc(e.story)}</span>` : ""}</p>
+        </div>
+        <div class="lchips">${chips(e)}</div>
+      </div>`).join("")}
+    </div></div>`;
+  const host = mount.querySelector("#b-host");
+  const draw = () => {
+    const svg = mount.querySelector("#b-trail");
+    const cx = 10;
+    const pts = [[cx, 4]];
+    centersOf(host, "[data-stop]").forEach((y, i) => pts.push([i % 2 ? 20 : 3, y]));
+    pts.push([cx, host.clientHeight - 4]);
+    dotTrail(svg, pts, cx, { r: 1.8, gap: 12, markR: 3.5 });
+  };
+  requestAnimationFrame(draw);
+  return draw;
+}
+
+/* ============ variant C - trail signs ============ */
+function renderC(mount) {
+  mount.innerHTML = head("Follow the trail down the years.") + `
+    <div class="vc"><div class="field" id="c-host">
+      <svg class="trail" id="c-trail" aria-hidden="true"></svg>
+      ${DATA.map((e, i) => {
+        const y = yearBits(e.year);
+        return `<div class="stop ${i % 2 ? "right" : "left"}">
+          <span class="watermark">${esc(y.a.replace(/\D/g, "") || y.a)}</span>
+          <div class="sign" data-stop>
+            <div class="bcard">
+              <p class="yr-mono" style="font-size:19px;margin:0 0 6px">${esc(e.year)}</p>
+              <p class="role">${esc(e.role)}</p>
+              <p class="co">${esc(e.company)}</p>
+              <p class="desc">${esc(e.desc)}</p>
+              ${e.story ? `<p class="story">${esc(e.story)}</p>` : ""}
+              <div>${chips(e)}</div>
+            </div>
+          </div>
+        </div>`;
+      }).join("")}
+    </div></div>`;
+  const host = mount.querySelector("#c-host");
+  const draw = () => {
+    const svg = mount.querySelector("#c-trail");
+    const W = host.clientWidth;
+    const mobile = window.innerWidth <= 640;
+    const cx = mobile ? 28 : W / 2;
+    const pts = [[cx, 4]];
+    centersOf(host, "[data-stop]").forEach((y, i) => {
+      pts.push(mobile ? [i % 2 ? 44 : 14, y] : [i % 2 ? W * 0.44 : W * 0.56, y]);
+    });
+    pts.push([cx, host.clientHeight - 4]);
+    dotTrail(svg, pts, cx, { factor: 0.75, r: 2.4, gap: 14, markR: 5.5 });
+  };
+  requestAnimationFrame(draw);
+  return draw;
+}
+
+/* ============ variant D - strata ============ */
+function renderD(mount) {
+  const tints = [
+    "rgba(251,191,36,0.10)", "rgba(214,158,46,0.09)", "rgba(160,120,60,0.10)",
+    "rgba(120,90,55,0.12)", "rgba(95,70,50,0.14)", "rgba(75,55,45,0.16)", "rgba(60,45,40,0.18)",
+  ];
+  mount.innerHTML = head("Dig down. Every layer is a station, depth is tenure.") + `
+    <div class="vd"><div class="dig">
+      ${DATA.map((e, i) => {
+        const tenure = Math.max(1, e.end - e.start);
+        const minH = 96 + Math.round(tenure * 26);
+        const y = yearBits(e.year);
+        return `<div class="band" style="background:${tints[i]}; min-height:${minH}px">
+          <div class="depth">${esc(y.a)}${y.b ? `<br/><span style="opacity:.6">${esc(y.b)}</span>` : ""}</div>
+          <div class="band-body">
+            <p class="role">${esc(e.role)}</p>
+            <p class="co">${esc(e.company)}</p>
+            <p class="desc">${esc(e.desc)}</p>
+            ${e.story ? `<p class="story">${esc(e.story)}</p>` : ""}
+            <div>${chips(e)}</div>
+          </div>
+        </div>`;
+      }).join("")}
+    </div></div>`;
+  return null;
+}
+
+/* ============ switcher ============ */
+const VARIANTS = [
+  { key: "a", name: "Gutter trail", render: renderA },
+  { key: "b", name: "Ledger", render: renderB },
+  { key: "c", name: "Trail signs", render: renderC },
+  { key: "d", name: "Strata", render: renderD },
+];
+let redraw = null;
+function show(key) {
+  const v = VARIANTS.find((x) => x.key === key) ?? VARIANTS[0];
+  const url = new URL(location.href);
+  url.searchParams.set("variant", v.key);
+  history.replaceState(null, "", url);
+  redraw = v.render(document.getElementById("mount"));
+  document.getElementById("label").innerHTML = `<b>${v.key.toUpperCase()}</b> - ${v.name}`;
+}
+function cycle(dir) {
+  const cur = new URL(location.href).searchParams.get("variant") ?? "a";
+  const i = VARIANTS.findIndex((x) => x.key === cur);
+  show(VARIANTS[(i + dir + VARIANTS.length) % VARIANTS.length].key);
+}
+document.getElementById("prev").addEventListener("click", () => cycle(-1));
+document.getElementById("next").addEventListener("click", () => cycle(1));
+window.addEventListener("keydown", (e) => {
+  if (/input|textarea/i.test(document.activeElement?.tagName ?? "")) return;
+  if (e.key === "ArrowLeft") cycle(-1);
+  if (e.key === "ArrowRight") cycle(1);
+});
+window.addEventListener("resize", () => redraw && redraw());
+show(new URL(location.href).searchParams.get("variant") ?? "a");
+</script>
+</body>
+</html>

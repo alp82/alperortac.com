@@ -813,7 +813,7 @@ function tileStyle(cls) { return TILE_BG[cls] || "background:#e2e8f0;color:#0f17
 
 function resolveTrigger(trigger, fallbackSubtitle) {
   if (trigger.kind === "career") {
-    return { key: "career", title: "See the work history", subtitle: fallbackSubtitle, iconKey: "Code2", tileCls: "bg-slate-800 text-slate-100", side: PANEL_SIDES.career, isCareer: true };
+    return { key: "career", title: "See my work history", subtitle: fallbackSubtitle, iconKey: "Code2", tileCls: "bg-slate-800 text-slate-100", side: PANEL_SIDES.career, isCareer: true };
   }
   if (trigger.kind === "project") {
     const p = PROJECTS[trigger.slug];

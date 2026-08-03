@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Work History - separated lanes (4 variants)</title>
+<!--
+  PROTOTYPE - throwaway, not shipped. Iteration 2 on the landscape-native pass
+  (.prototypes/career-subpage-landscape.html).
+
+  Question: the shipped page draws the trail ACROSS the year axis, so dots
+  collide with ticks and labels (see the user screenshot). Keep the honest
+  proportional linear scale and the aligned items. Give the axis and the trail
+  their own lanes, side by side, so nothing overlaps.
+
+  What every variant keeps:
+    - Linear year axis, 2026.6 down to 2004.4. Ticks at TRUE year positions.
+    - Trail waypoints at the TRUE tenure midpoint, never at a nudged position.
+      The trail is a function of the data, not of the layout.
+    - Cards start at the same true position, then a top-down relax pass nudges
+      overlaps apart. A dotted connector links the waypoint to the moved card,
+      so the honest position stays readable.
+    - Frosted translucent column over the live landscape, blocky border-4
+      cards, Inter black uppercase, VT323 years, Instrument Serif stories.
+
+  Four lane arrangements via ?variant= (a|b|c|d), the bottom bar, or arrow keys:
+    A - Twin rail:     [axis][trail][cards full width]. Trail hugs the axis.
+    B - Center spine:  [axis][cards alternating around a centered trail].
+    C - Flanked:       [axis][cards full width][trail on the far edge].
+    D - Switchback:    [axis][stepped orthogonal trail][cards full width].
+                       Hard right angles instead of a soft meander.
+
+  The bottom bar also carries a px/year control (click it, or up/down arrows).
+  It cycles 86 / 110 / 134 / 170 and reports the worst relax drift. At 86 the
+  2019-2021 cluster still pushes two cards ~90px off their tick. Raise it and
+  the drift reaches zero, at the cost of a much longer page. Pick the tradeoff.
+
+  Data mirrored by hand from src/data/career.ts. Fonts load from node_modules
+  by relative path, so run this from the repo. No network.
+-->
+<style>
+  @font-face {
+    font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap;
+    src: url("../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "VT323"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url("../node_modules/@fontsource/vt323/files/vt323-latin-400-normal.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Instrument Serif"; font-style: italic; font-weight: 400; font-display: swap;
+    src: url("../node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2") format("woff2");
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  :root {
+    --gold: #fbbf24;
+    --ink: #f8fafc;
+    --slate-900: #0f172a;
+    --mono: "VT323", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+    --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  body { font-family: var(--sans); color: var(--ink); background: #0b1220; }
+
+  /* ============ faked dived landscape (stands in for the live scene) ============ */
+  .scene {
+    position: fixed; inset: -6%; transform: scale(1.12);
+    filter: blur(1.5px) brightness(0.92) saturate(1.05); pointer-events: none;
+    background: linear-gradient(180deg,
+      #2b3a67 0%, #6b5a8c 30%, #c96f4a 55%, #f4a460 72%, #e8b06a 82%, #87a06b 100%);
+  }
+  .scene .sun {
+    position: absolute; left: 64%; top: 47%; width: 92px; height: 92px;
+    border-radius: 50%; background: #fef08a; border: 4px solid #fcd34d;
+    box-shadow: 0 0 60px rgba(253,224,71,0.55);
+  }
+  .scene svg { position: absolute; left: 0; right: 0; width: 100%; }
+  .scene .ridge-far  { bottom: 18%; height: 34%; }
+  .scene .ridge-near { bottom: 0;   height: 42%; }
+  .ff { position: absolute; width: 4px; height: 4px; border-radius: 50%;
+    background: #fff3a8; box-shadow: 0 0 8px 2px rgba(255,243,168,0.8);
+    animation: drift 7s ease-in-out infinite; }
+  @keyframes drift {
+    0%,100% { transform: translate(0,0); opacity: 0.2; }
+    25% { opacity: 1; } 50% { transform: translate(18px,-22px); opacity: 0.7; } 75% { opacity: 0.9; }
+  }
+
+  /* ============ scroll surface + frosted column ============ */
+  .surface { position: fixed; inset: 0; overflow-y: auto; overflow-x: hidden; }
+  .column {
+    position: relative; margin: 9vh auto;
+    background: rgba(15,23,42,0.7);
+    backdrop-filter: blur(10px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+  }
+  .inner { padding: 56px 40px 72px; }
+  @media (max-width: 700px) { .inner { padding: 40px 14px 56px; } .column { margin: 4vh 8px; } }
+
+  /* ============ header ============ */
+  .kicker { font-family: var(--mono); font-size: 19px; letter-spacing: 0.28em;
+    text-transform: uppercase; color: var(--gold); margin: 0 0 8px; }
+  h2.title { margin: 0; font-weight: 900; text-transform: uppercase;
+    letter-spacing: -0.045em; line-height: 0.9; font-size: clamp(44px, 7.5vw, 76px); }
+  p.sub { font-size: 14px; opacity: 0.7; margin: 16px 0 0; max-width: 46ch; line-height: 1.55; }
+  .head { margin-bottom: 54px; }
+  @media (max-width: 700px) { .head { margin-bottom: 34px; } }
+
+  /* ============ lanes ============ */
+  .lanes { position: relative; }
+  .axis { position: absolute; left: 0; top: 0; bottom: 0;
+    border-right: 1px solid rgba(148,180,220,0.22); }
+  .tick { position: absolute; right: 0; height: 1px; }
+  .tick.minor { width: 7px; background: rgba(148,180,220,0.3); }
+  .tick.major { width: 15px; background: rgba(251,191,36,0.6); }
+  .ylabel { position: absolute; transform: translateY(-50%);
+    font-family: var(--mono); color: #9fb4cd; line-height: 1; }
+  svg.trail { position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; overflow: visible; }
+  ol.stops { position: absolute; inset: 0; list-style: none; margin: 0; padding: 0; }
+  ol.stops > li { position: absolute; left: 0; right: 0; }
+
+  /* ============ blocky card ============ */
+  .bcard {
+    position: absolute; transform: translateY(-50%);
+    background: rgba(255,255,255,0.05);
+    border: 4px solid rgba(255,255,255,0.15);
+    box-shadow: 6px 6px 0 0 rgba(255,255,255,0.12);
+    padding: 18px 20px 14px;
+  }
+  .bcard .yr { font-family: var(--mono); font-size: 20px; line-height: 1;
+    color: var(--gold); margin: 0 0 8px; letter-spacing: 0.06em; }
+  .bcard .role { font-weight: 900; text-transform: uppercase; font-size: 23px;
+    line-height: 1.02; letter-spacing: -0.02em; margin: 0 0 5px; }
+  .bcard .co { font-size: 11.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.13em; opacity: 0.72; margin: 0 0 10px; }
+  .bcard .desc { font-size: 14px; line-height: 1.55; margin: 0 0 8px; }
+  .bcard .story { font-family: var(--serif); font-style: italic; font-size: 16px;
+    line-height: 1.45; opacity: 0.85; margin: 0 0 12px; }
+  .chip { display: inline-block; font-size: 10px; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 8px;
+    margin: 0 6px 6px 0; background: var(--slate-900); color: #e2e8f0;
+    border: 2px solid rgba(255,255,255,0.22); }
+  @media (max-width: 700px) {
+    .bcard { padding: 14px 15px 11px; }
+    .bcard .role { font-size: 19px; }
+    .bcard .yr { font-size: 17px; }
+    .bcard .desc { font-size: 13.5px; }
+    .bcard .story { font-size: 15px; }
+  }
+
+  /* ============ floating switcher (not part of the design) ============ */
+  .switcher { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px; background: #0b1220;
+    border: 1px solid #334155; border-radius: 999px; padding: 8px 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 50; font-size: 13px; }
+  .switcher button { background: #1e293b; color: #e2e8f0; border: 1px solid #475569;
+    border-radius: 999px; width: 30px; height: 30px; cursor: pointer; font-size: 14px; line-height: 1; }
+  .switcher button:hover { background: #334155; }
+  .switcher .label { min-width: 200px; text-align: center; color: #cbd5e1; }
+  .switcher .label b { color: #f8fafc; }
+  .switcher .scale { background: #1e293b; color: #e2e8f0; border: 1px solid #475569;
+    border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 12px;
+    font-family: ui-monospace, monospace; }
+  .switcher .scale:hover { background: #334155; }
+  .switcher .drift { font-size: 11px; color: #94a3b8; min-width: 96px; text-align: left; }
+</style>
+</head>
+<body>
+
+<div class="scene" aria-hidden="true">
+  <div class="sun"></div>
+  <svg class="ridge-far" preserveAspectRatio="none" viewBox="0 0 1200 300">
+    <polygon fill="#4a7a8c" points="0,300 0,190 140,90 260,180 400,60 540,170 660,110 820,200 960,80 1100,170 1200,120 1200,300"/>
+  </svg>
+  <svg class="ridge-near" preserveAspectRatio="none" viewBox="0 0 1200 300">
+    <polygon fill="#31576b" points="0,300 0,160 180,60 340,150 520,40 700,150 860,90 1020,170 1200,80 1200,300"/>
+    <g fill="#1e3d4d">
+      <polygon points="120,140 135,95 150,140"/><polygon points="150,150 165,105 180,150"/>
+      <polygon points="480,120 495,72 510,120"/><polygon points="510,130 525,85 540,130"/>
+      <polygon points="840,150 855,105 870,150"/><polygon points="1080,130 1095,85 1110,130"/>
+    </g>
+  </svg>
+  <span class="ff" style="left:12%; top:70%;"></span>
+  <span class="ff" style="left:28%; top:78%; animation-delay:-2.4s;"></span>
+  <span class="ff" style="left:81%; top:74%; animation-delay:-4.1s;"></span>
+  <span class="ff" style="left:64%; top:83%; animation-delay:-1.2s;"></span>
+</div>
+
+<div class="surface">
+  <div class="column" id="column">
+    <div class="inner" id="mount"></div>
+  </div>
+</div>
+
+<div class="switcher">
+  <button type="button" id="prev" aria-label="Previous variant">&#8592;</button>
+  <span class="label" id="label"></span>
+  <button type="button" id="next" aria-label="Next variant">&#8594;</button>
+  <button type="button" class="scale" id="scale" title="Pixels per year. Raise it until the cluster stops colliding.">86 px/yr</button>
+  <span class="drift" id="drift"></span>
+</div>
+
+<script>
+/* ================= data (mirrored from src/data/career.ts) ================= */
+const DATA = [
+  { year: "Since 2021", start: 2021, end: 2026, role: "Lead Engineer",
+    company: "Genius Sports - London, UK (Remote from DE)",
+    desc: "Dynamic Sports Videos for Programmatic & Social.",
+    stack: ["Python","TypeScript","AWS","Kubernetes"],
+    story: "Technical leadership across data orchestration, live video rendering and internal tooling. People management focused on personal growth and more satisfaction at work." },
+  { year: "2021", start: 2021, end: 2021.8, role: "Lead Frontend Engineer",
+    company: "Spirable - London, UK (Remote from DE)",
+    desc: "Dynamic Ads for Social Media.",
+    stack: ["Python","TypeScript","React","Material UI"] },
+  { year: "2019 - 2021", start: 2019, end: 2021, role: "Lead Frontend Engineer",
+    company: "enercast - Kassel, Germany",
+    desc: "Wind/Solar Energy Forecasts.",
+    stack: ["TypeScript","React","Redux","Highcharts"],
+    story: "Performance optimization for charts with 1M data points at 60fps." },
+  { year: "2013 - 2019", start: 2013, end: 2019, role: "Frontend Engineer",
+    company: "Cisco Systems - Kassel, Germany",
+    desc: "Business SPA for Asset Management.",
+    stack: ["Angular","Vue.js","GraphQL","Highcharts","D3"],
+    story: "Owning a complex frontend app that manages an arbitrary number of business assets." },
+  { year: "2012 - 2013", start: 2012, end: 2013, role: "Frontend Engineer",
+    company: "Joulex - Kassel, Germany",
+    desc: "Energy Management Web Application.",
+    stack: ["Qooxdoo","Play","PostgreSQL"] },
+  { year: "2007 - 2012", start: 2007, end: 2012, role: "Founder",
+    company: "Acama Systems",
+    desc: "Web agency building custom solutions.",
+    stack: ["JavaScript","Java","PHP","MySQL"],
+    story: "Building individual web solutions for customers across the automotive, finance and health sectors." },
+  { year: "2005 - 2009", start: 2005, end: 2009, role: "Web Engineer",
+    company: "miobambino",
+    desc: "E-commerce for children clothes with individual prints.",
+    stack: ["PHP","MySQL","JavaScript","HTML","CSS"] },
+];
+
+/* ================= proportional axis ================= */
+const AXIS_TOP = 2026.6, AXIS_BOTTOM = 2004.4;
+const AXIS_SPAN = AXIS_TOP - AXIS_BOTTOM;
+const yPct = (yr) => ((AXIS_TOP - yr) / AXIS_SPAN) * 100;
+const midYear = (e) => (e.start + e.end) / 2;
+const START_YEARS = new Set(DATA.map((e) => e.start));
+
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+/* ================= geometry ================= */
+const LAYOUTS = {
+  a: { name: "Twin rail",    trailAt: "left",   cards: "full", style: "dots",
+       col: 960, sub: "The axis reads the time. The trail beside it reads the journey. Cards run full width." },
+  b: { name: "Center spine", trailAt: "center", cards: "alt",  style: "dots",
+       col: 1140, sub: "The axis holds the left edge. The trail owns the middle. Cards hang off both sides." },
+  c: { name: "Flanked",      trailAt: "right",  cards: "full", style: "dots",
+       col: 960, sub: "Axis and trail bracket the content. Time on the left, route on the right." },
+  d: { name: "Switchback",   trailAt: "left",   cards: "full", style: "steps",
+       col: 960, sub: "Same twin rail, hard right angles. A stepped climb instead of a soft meander." },
+};
+
+/* Pixels per year. The 2019-2021 cluster collides at the tight end, so the
+   relax pass has to nudge cards off their tick. Raise the scale and the drift
+   goes to zero, at the cost of a much longer page. The bar shows both numbers
+   so the tradeoff is a choice, not an accident. */
+const SCALES = [86, 110, 134, 170];
+let scaleIdx = 0;
+
+function metrics(mobile) {
+  const ppy = SCALES[scaleIdx];
+  return mobile
+    ? { axis: 40, trail: 30, gap: 10, ppy: ppy * 1.5, relaxGap: 16, mark: 4.5, dot: 1.9, dotGap: 11 }
+    : { axis: 66, trail: 66, gap: 20, ppy,            relaxGap: 22, mark: 6,   dot: 2.3, dotGap: 14 };
+}
+
+/* Card box per layout, in px within the lanes host. side: 0 = left, 1 = right. */
+function cardBox(cfg, m, W, side) {
+  if (cfg.cards === "alt") {
+    const fieldX = m.axis + m.gap;
+    const center = fieldX + (W - fieldX) / 2;
+    const half = m.trail / 2;
+    if (side === 0) return { left: fieldX, width: center - half - m.gap - fieldX };
+    return { left: center + half + m.gap, width: W - (center + half + m.gap) };
+  }
+  if (cfg.trailAt === "right") {
+    const left = m.axis + m.gap;
+    return { left, width: W - m.trail - m.gap - left };
+  }
+  const left = m.axis + m.trail + m.gap;
+  return { left, width: W - left };
+}
+
+/* Trail lane x centre + swing bounds. */
+function trailLane(cfg, m, W) {
+  let x0;
+  if (cfg.trailAt === "left") x0 = m.axis;
+  else if (cfg.trailAt === "right") x0 = W - m.trail;
+  else {
+    const fieldX = m.axis + m.gap;
+    x0 = fieldX + (W - fieldX) / 2 - m.trail / 2;
+  }
+  return { cx: x0 + m.trail / 2, xL: x0 + m.trail * 0.22, xR: x0 + m.trail * 0.78 };
+}
+
+/* ================= path helpers ================= */
+function smoothPath(pts) {
+  let d = `M ${pts[0][0].toFixed(2)} ${pts[0][1].toFixed(2)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] ?? pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] ?? pts[i + 1];
+    d += ` C ${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(2)} ${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(2)},`
+      +  ` ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(2)} ${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(2)},`
+      +  ` ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`;
+  }
+  return d;
+}
+/* mirrored midpoints make the curve counter-swing past the lane centre */
+function meanderPath(pts, cx, factor) {
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    if (i > 1 && i < pts.length - 1) {
+      out.push([cx + (cx - (pts[i - 1][0] + pts[i][0]) / 2) * factor, (pts[i - 1][1] + pts[i][1]) / 2]);
+    }
+    out.push(pts[i]);
+  }
+  return smoothPath(out);
+}
+/* orthogonal switchback: vertical runs through the waypoints, jog at the midpoint */
+function stepPath(pts) {
+  let d = `M ${pts[1][0].toFixed(2)} ${pts[0][1].toFixed(2)}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    d += ` L ${pts[i][0].toFixed(2)} ${pts[i][1].toFixed(2)}`;
+    const nxt = pts[i + 1];
+    if (i < pts.length - 2) {
+      const jog = (pts[i][1] + nxt[1]) / 2;
+      d += ` L ${pts[i][0].toFixed(2)} ${jog.toFixed(2)} L ${nxt[0].toFixed(2)} ${jog.toFixed(2)}`;
+    }
+  }
+  const last = pts[pts.length - 2];
+  d += ` L ${last[0].toFixed(2)} ${pts[pts.length - 1][1].toFixed(2)}`;
+  return d;
+}
+/* sample a path element into evenly spaced dots */
+function sampleDots(svg, d, { r, gap, opacity = 0.55 }) {
+  const probe = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  probe.setAttribute("d", d);
+  svg.appendChild(probe);
+  if (typeof probe.getTotalLength !== "function") { probe.remove(); return ""; }
+  const len = probe.getTotalLength();
+  let out = "";
+  for (let l = 0; l <= len; l += gap) {
+    const p = probe.getPointAtLength(l);
+    out += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="rgba(251,191,36,${opacity})"/>`;
+  }
+  probe.remove();
+  return out;
+}
+
+/* ================= relax pass =================
+   Cards start at their true year position. Where tenures cluster they overlap,
+   so nudge them down top-to-bottom. Alternating layouts relax each side
+   separately - a left card and a right card never collide. */
+function relax(host, items, minGap) {
+  const hostTop = host.getBoundingClientRect().top;
+  const lanes = [-Infinity, -Infinity];
+  let bottom = -Infinity;
+  let drift = 0;
+  for (const item of items) {
+    const card = item.firstElementChild;
+    const lane = Number(item.dataset.lane) || 0;
+    const rect = card.getBoundingClientRect();
+    const half = rect.height / 2;
+    const trueCenter = rect.top - hostTop + half;
+    // Every card ends up on a px top, not a percent. A percent top would drift
+    // if the host grows below, which would break the connectors.
+    const center = Math.max(trueCenter, lanes[lane] + minGap + half);
+    item.style.top = `${center.toFixed(1)}px`;
+    lanes[lane] = center + half;
+    bottom = Math.max(bottom, center + half);
+    drift = Math.max(drift, center - trueCenter);
+  }
+  return { bottom, drift };
+}
+
+/* ================= render ================= */
+function cardHtml(e) {
+  return `<div class="bcard">
+    <p class="yr">${esc(e.year)}</p>
+    <p class="role">${esc(e.role)}</p>
+    <p class="co">${esc(e.company)}</p>
+    <p class="desc">${esc(e.desc)}</p>
+    ${e.story ? `<p class="story">${esc(e.story)}</p>` : ""}
+    <div>${e.stack.map((t) => `<span class="chip">${esc(t)}</span>`).join("")}</div>
+  </div>`;
+}
+
+function render(key) {
+  const cfg = LAYOUTS[key];
+  const mount = document.getElementById("mount");
+  document.getElementById("column").style.maxWidth = `${cfg.col}px`;
+
+  const years = [];
+  for (let y = 2005; y <= 2026; y++) years.push(y);
+
+  mount.innerHTML = `
+    <div class="head">
+      <p class="kicker">2005 - today</p>
+      <h2 class="title">Work<br/>History</h2>
+      <p class="sub">${esc(cfg.sub)}</p>
+    </div>
+    <div class="lanes" id="host">
+      <div class="axis" id="axis">
+        ${years.map((y) => {
+          const major = START_YEARS.has(y);
+          const top = yPct(y).toFixed(3);
+          return `<span class="tick ${major ? "major" : "minor"}" style="top:${top}%"></span>`
+            + ((major || y === 2026) ? `<span class="ylabel" style="top:${top}%">${y}</span>` : "");
+        }).join("")}
+      </div>
+      <svg class="trail" id="trail" aria-hidden="true"></svg>
+      <ol class="stops" id="stops">
+        ${DATA.map((e, i) => {
+          const top = yPct(midYear(e)).toFixed(3);
+          return `<li data-top="${top}" data-alt="${i % 2}" style="top:${top}%">${cardHtml(e)}</li>`;
+        }).join("")}
+      </ol>
+    </div>`;
+
+  layout(cfg);
+}
+
+function layout(cfg) {
+  const host = document.getElementById("host");
+  const svg = document.getElementById("trail");
+  const axisEl = document.getElementById("axis");
+  if (!host || host.clientWidth === 0) return;
+
+  const mobile = window.innerWidth <= 700;
+  const W = host.clientWidth;
+  const m = metrics(mobile);
+  // On a narrow screen every layout collapses to the same twin rail.
+  const eff = mobile ? { ...cfg, trailAt: "left", cards: "full" } : cfg;
+
+  axisEl.style.width = `${m.axis}px`;
+  for (const el of axisEl.querySelectorAll(".ylabel")) {
+    el.style.right = mobile ? "12px" : "22px";
+    el.style.fontSize = mobile ? "13px" : "17px";
+  }
+
+  const items = Array.from(host.querySelectorAll("#stops > li"));
+  for (const item of items) {
+    const lane = eff.cards === "alt" ? Number(item.dataset.alt) : 0;
+    item.dataset.lane = String(lane);
+    const box = cardBox(eff, m, W, lane);
+    const card = item.firstElementChild;
+    card.style.left = `${box.left.toFixed(1)}px`;
+    card.style.width = `${Math.max(180, box.width).toFixed(1)}px`;
+  }
+
+  // Reset to the true year position, then relax. Run it again if the host had
+  // to grow, so the second pass measures against the final height.
+  const place = () => {
+    for (const item of items) item.style.top = `${item.dataset.top}%`;
+    return relax(host, items, m.relaxGap);
+  };
+  host.style.height = `${Math.round(AXIS_SPAN * m.ppy)}px`;
+  let res = place();
+  if (res.bottom + 12 > host.clientHeight) {
+    host.style.height = `${Math.ceil(res.bottom + 12)}px`;
+    res = place();
+  }
+
+  drawTrail(host, svg, eff, m, W);
+
+  const drift = Math.round(res.drift);
+  document.getElementById("drift").textContent =
+    drift === 0 ? "aligned, no drift" : `max drift ${drift}px`;
+  document.getElementById("scale").textContent = `${SCALES[scaleIdx]} px/yr`;
+}
+
+function drawTrail(host, svg, cfg, m, W) {
+  const H = host.clientHeight;
+  const lane = trailLane(cfg, m, W);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = "";
+
+  // waypoints sit at the TRUE year position, not at the nudged card
+  const way = DATA.map((e, i) => [i % 2 ? lane.xR : lane.xL, (yPct(midYear(e)) / 100) * H]);
+  const pts = [[lane.cx, 2], ...way, [lane.cx, H - 2]];
+
+  let out = "";
+  if (cfg.style === "steps") {
+    out += `<path d="${stepPath(pts)}" fill="none" stroke="rgba(251,191,36,0.5)" stroke-width="3"/>`;
+  } else {
+    out += sampleDots(svg, meanderPath(pts, lane.cx, 0.6), { r: m.dot, gap: m.dotGap });
+  }
+
+  // connector from each waypoint to its card, so a nudged card still reads honest
+  const hostTop = host.getBoundingClientRect().top;
+  const items = Array.from(host.querySelectorAll("#stops > li"));
+  items.forEach((item, i) => {
+    const card = item.firstElementChild;
+    const r = card.getBoundingClientRect();
+    const cy = r.top - hostTop + r.height / 2;
+    const [wx, wy] = way[i];
+    const lane = Number(item.dataset.lane) || 0;
+    // Attach to whichever card edge faces the trail lane.
+    const toRight = cfg.trailAt === "right" || (cfg.cards === "alt" && lane === 0);
+    const ex = toRight ? card.offsetLeft + card.offsetWidth + 3 : card.offsetLeft - 3;
+    const midX = (wx + ex) / 2;
+    if (cfg.style === "steps") {
+      out += `<path d="M ${wx} ${wy} H ${midX} V ${cy} H ${ex}" fill="none"
+        stroke="rgba(251,191,36,0.4)" stroke-width="2"/>`;
+    } else {
+      out += sampleDots(svg, `M ${wx} ${wy} C ${midX} ${wy}, ${midX} ${cy}, ${ex} ${cy}`,
+        { r: 1.6, gap: 8, opacity: 0.42 });
+    }
+  });
+
+  // waypoint markers last so they sit on top
+  const k = m.mark;
+  for (const [x, y] of way) {
+    out += cfg.style === "steps"
+      ? `<rect x="${(x - k).toFixed(1)}" y="${(y - k).toFixed(1)}" width="${k * 2}" height="${k * 2}"
+           fill="#fbbf24" stroke="#0f172a" stroke-width="2"/>`
+      : `<rect x="${(x - k).toFixed(1)}" y="${(y - k).toFixed(1)}" width="${k * 2}" height="${k * 2}"
+           transform="rotate(45 ${x.toFixed(1)} ${y.toFixed(1)})" fill="#fbbf24" stroke="#0f172a" stroke-width="2"/>`;
+  }
+  svg.innerHTML = out;
+}
+
+/* ================= switcher ================= */
+const KEYS = Object.keys(LAYOUTS);
+let current = "a";
+function show(key) {
+  current = LAYOUTS[key] ? key : "a";
+  const url = new URL(location.href);
+  url.searchParams.set("variant", current);
+  history.replaceState(null, "", url);
+  render(current);
+  requestAnimationFrame(() => layout(LAYOUTS[current])); // settle after fonts/wrap
+  document.getElementById("label").innerHTML = `<b>${current.toUpperCase()}</b> - ${LAYOUTS[current].name}`;
+}
+function cycle(dir) { show(KEYS[(KEYS.indexOf(current) + dir + KEYS.length) % KEYS.length]); }
+document.getElementById("prev").addEventListener("click", () => cycle(-1));
+document.getElementById("next").addEventListener("click", () => cycle(1));
+document.getElementById("scale").addEventListener("click", () => {
+  scaleIdx = (scaleIdx + 1) % SCALES.length;
+  layout(LAYOUTS[current]);
+});
+window.addEventListener("keydown", (e) => {
+  if (/input|textarea/i.test(document.activeElement?.tagName ?? "")) return;
+  if (e.key === "ArrowLeft") cycle(-1);
+  if (e.key === "ArrowRight") cycle(1);
+  if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+    e.preventDefault();
+    scaleIdx = (scaleIdx + (e.key === "ArrowUp" ? 1 : SCALES.length - 1)) % SCALES.length;
+    layout(LAYOUTS[current]);
+  }
+});
+let raf = 0;
+window.addEventListener("resize", () => {
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(() => layout(LAYOUTS[current]));
+});
+if (document.fonts?.ready) document.fonts.ready.then(() => layout(LAYOUTS[current]));
+show(new URL(location.href).searchParams.get("variant") ?? "a");
+</script>
+</body>
+</html>

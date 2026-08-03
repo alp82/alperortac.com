@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Work History - ascent trail (responsive)</title>
+<!--
+  PROTOTYPE - throwaway, not shipped.
+  VERDICT: style B (Dotline) locked and folded into src/components/CareerPanel.tsx
+  together with the proportional-rail layout, meander 0.6 geometry, responsive
+  behavior and the collision-relax pass. This file keeps the unshipped
+  alternatives (dashes, footsteps, glow, twin contour, ink); the four-identity
+  explorer that seeded the direction is career-subpage-identity.html.
+  Iteration 6 on the "Ascent" identity. Locked: proportional-rail layout,
+  meander geometry (factor 0.6), responsive behavior (wide 1240px panel,
+  mobile gutter trail, collision-relax pass). This pass explores the STYLE of
+  the trail line itself - six treatments on the same curve, via ?variant=
+  (a-f), bottom bar, arrow keys:
+    A - Dashes: the prototype-1 rendering (stretched thin gold dashes).
+    B - Dotline: uniform round dots along the curve, hiking-map style.
+    C - Footsteps: short marks alternating either side, walked-path feel.
+    D - Glow: solid hairline with a soft halo, firefly-like.
+    E - Twin contour: two parallel dashed hairlines, cartographic.
+    F - Ink: hand-drawn wobble, solid brush stroke.
+  Resize still works in every style. Data mirrored from src/data/career.ts.
+-->
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #e5e7eb;
+    background:
+      radial-gradient(1100px 600px at 75% -10%, #1d2233 0%, transparent 60%),
+      linear-gradient(180deg, #0f172a 0%, #111827 60%, #0b1220 100%);
+    min-height: 100vh;
+  }
+  header.page { max-width: 1240px; margin: 0 auto; padding: 26px 20px 4px; }
+  header.page h1 { font-size: 17px; margin: 0 0 4px; }
+  header.page p { font-size: 13px; color: #94a3b8; margin: 0; line-height: 1.5; }
+
+  .panel {
+    max-width: 1240px; margin: 18px auto 60px;
+    border: 1px solid rgba(148,163,184,0.16); border-radius: 14px;
+    background: rgba(2,6,23,0.55); backdrop-filter: blur(6px);
+    overflow: hidden;
+  }
+  @media (max-width: 1280px) { .panel, header.page { margin-left: 12px; margin-right: 12px; } }
+  @media (max-width: 640px) { .panel { margin: 12px 6px 40px; border-radius: 10px; } }
+
+  .asc { padding: 52px 28px 64px; background:
+    radial-gradient(900px 400px at 50% 0%, #1b2a3f 0%, transparent 70%),
+    linear-gradient(180deg, #101c2e 0%, #0c1420 100%); }
+  @media (max-width: 640px) { .asc { padding: 34px 12px 44px; } }
+  .asc .head { text-align: center; margin-bottom: 34px; }
+  .asc .head h2 {
+    margin: 0; font-size: 30px; font-weight: 650; color: #edf3fa;
+    font-family: Iowan Old Style, Palatino Linotype, "Palatino", Georgia, serif;
+    letter-spacing: 0.01em;
+  }
+  @media (max-width: 640px) { .asc .head h2 { font-size: 24px; } .asc .head { margin-bottom: 24px; } }
+
+  .card {
+    background: #131f31;
+    border: 1px solid rgba(125,160,200,0.28);
+    border-radius: 10px; padding: 17px 19px 15px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .card .yr {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: #e2b04a; margin-bottom: 7px;
+  }
+  .card .role {
+    font-family: Iowan Old Style, Palatino Linotype, "Palatino", Georgia, serif;
+    font-size: 19px; font-weight: 650; color: #f2f6fb; line-height: 1.25;
+  }
+  .card .co {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: #8ca3c0; margin-top: 4px;
+  }
+  .card .desc { font-size: 13px; line-height: 1.55; color: #c3d0e0; margin-top: 9px; }
+  .card .story {
+    font-family: Iowan Old Style, Palatino Linotype, "Palatino", Georgia, serif;
+    font-size: 12.5px; line-height: 1.55; color: #8fa2b9; font-style: italic; margin-top: 6px;
+  }
+  .card .gear {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10.5px; letter-spacing: 0.04em; color: #6f87a4; margin-top: 11px;
+    border-top: 1px solid rgba(125,160,200,0.14); padding-top: 9px;
+  }
+
+  .switcher {
+    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px;
+    background: #0b1220; border: 1px solid #334155; border-radius: 999px;
+    padding: 8px 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    z-index: 50; font-size: 13px;
+  }
+  .switcher button {
+    background: #1e293b; color: #e2e8f0; border: 1px solid #475569;
+    border-radius: 999px; width: 30px; height: 30px; cursor: pointer; font-size: 14px;
+  }
+  .switcher button:hover { background: #334155; }
+  .switcher .label { min-width: 190px; text-align: center; color: #cbd5e1; }
+  .switcher .label b { color: #f8fafc; }
+
+  .prop { position: relative; max-width: 1140px; margin: 0 auto; }
+  svg.trail { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  .slot { position: absolute; left: 0; right: 0; }
+  .slot .card { position: absolute; width: 44%; transform: translateY(-50%); }
+  .slot .card.left { left: 8%; }
+  .slot .card.right { right: 0.5%; }
+
+  .axis { position: absolute; left: 0; top: 0; bottom: 0; width: 64px; border-right: 1px solid rgba(125,160,200,0.2); }
+  .tick { position: absolute; right: 0; width: 6px; height: 1px; background: rgba(125,160,200,0.28); }
+  .tick.major { width: 12px; background: rgba(226,176,74,0.5); }
+  .tlab {
+    position: absolute; right: 18px; transform: translateY(-50%);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10.5px; letter-spacing: 0.1em; color: #8ca3c0;
+  }
+
+  /* mobile: slim rail, full-width cards, trail lives in the gutter */
+  @media (max-width: 640px) {
+    .axis { width: 40px; }
+    .tlab { right: 12px; font-size: 9.5px; letter-spacing: 0.06em; }
+    .tick { width: 5px; }
+    .tick.major { width: 9px; }
+    .slot .card { width: auto; left: 64px !important; right: 4px !important; }
+  }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Work History - ascent trail styles</h1>
+  <p>Same meander curve, six line treatments: dashes, dotline, footsteps, glow, twin contour, ink. Switch below or with arrow keys.</p>
+</header>
+
+<div class="panel"><div id="stage"></div></div>
+
+<div class="switcher">
+  <button id="prev" aria-label="previous style">←</button>
+  <div class="label" id="label"></div>
+  <button id="next" aria-label="next style">→</button>
+</div>
+
+<script>
+// Mirrored by hand from src/data/career.ts (CAREER_TIMELINE).
+const JOBS = [
+  { year: "Since 2021", start: 2021, end: 2026, role: "Lead Engineer", company: "Genius Sports - London, UK", desc: "Dynamic Sports Videos for Programmatic & Social.", stack: ["Python", "TypeScript", "AWS", "Kubernetes"], story: "Technical leadership across data orchestration, live video rendering and internal tooling. People management focused on personal growth, team building and more satisfaction at work." },
+  { year: "2021", start: 2021, end: 2021.8, role: "Lead Frontend Engineer", company: "Spirable - London, UK", desc: "Dynamic Ads for Social Media.", stack: ["TypeScript", "React", "Vue.JS", "Material UI"] },
+  { year: "2019 - 2021", start: 2019, end: 2021, role: "Lead Frontend Engineer", company: "enercast - Kassel, Germany", desc: "Wind/Solar Energy Forecasts.", stack: ["TypeScript", "React", "Redux", "Highcharts"] },
+  { year: "2013 - 2019", start: 2013, end: 2019, role: "Frontend Engineer", company: "Cisco Systems - Kassel, Germany", desc: "Business SPA for Asset Management.", stack: ["Angular", "Vue.js", "GraphQL", "Highcharts", "D3"], story: "Owning a complex frontend app that manages an arbitrary number of business assets." },
+  { year: "2012 - 2013", start: 2012, end: 2013, role: "Frontend Engineer", company: "Joulex - Kassel, Germany", desc: "Energy Management Web Application.", stack: ["Qooxdoo", "Play", "PostgreSQL"] },
+  { year: "2007 - 2012", start: 2007, end: 2012, role: "Founder", company: "Acama Systems", desc: "Web agency building custom solutions.", stack: ["JavaScript", "Java", "PHP", "MySQL"], story: "Building individual web solutions for customers across the automotive, finance and health sectors." },
+  { year: "2005 - 2009", start: 2005, end: 2009, role: "Web Engineer", company: "miobambino", desc: "E-commerce for children clothes with individual prints.", stack: ["PHP", "MySQL", "JavaScript", "HTML", "CSS"] },
+];
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+const TOP = 2026.6, BOT = 2004.4;
+const SPAN = TOP - BOT;
+const yPct = (yr) => ((TOP - yr) / SPAN) * 100;
+const mid = (j) => (j.start + j.end) / 2;
+const isMobile = () => window.matchMedia("(max-width: 640px)").matches;
+
+function cardHtml(j, extra = "") {
+  return `<div class="card ${extra}">
+    <div class="yr">${esc(j.year)}</div>
+    <div class="role">${esc(j.role)}</div>
+    <div class="co">${esc(j.company)}</div>
+    <div class="desc">${esc(j.desc)}</div>
+    ${j.story ? `<div class="story">${esc(j.story)}</div>` : ""}
+    <div class="gear">${j.stack.map(esc).join(" &middot; ")}</div>
+  </div>`;
+}
+
+function render() {
+  const pxPerYear = isMobile() ? 110 : 74;
+  const H = Math.round(SPAN * pxPerYear);
+  const slots = JOBS.map((j, i) =>
+    `<div class="slot" data-i="${i}" style="top:${yPct(mid(j)).toFixed(2)}%">
+       ${cardHtml(j, i % 2 ? "right" : "left")}
+     </div>`
+  ).join("");
+  const ticks = [];
+  for (let yr = 2005; yr <= 2026; yr++) {
+    const major = JOBS.some((j) => j.start === yr);
+    ticks.push(`<span class="tick${major ? " major" : ""}" style="top:${yPct(yr).toFixed(2)}%"></span>`);
+    if (major || yr === 2026) ticks.push(`<span class="tlab" style="top:${yPct(yr).toFixed(2)}%">${yr}</span>`);
+  }
+  document.getElementById("stage").innerHTML = `<div class="asc">
+    <div class="head"><h2>Work History</h2></div>
+    <div class="prop" id="prop" style="height:${H}px">
+      <div class="axis">${ticks.join("")}</div>
+      <svg class="trail" id="trailsvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+      <div id="dots"></div>
+      ${slots}
+    </div>
+  </div>`;
+  relaxCards();
+  drawTrail();
+}
+
+// Proportional positions can collide where tenures cluster (2019-2023),
+// especially on narrow screens. Walk top-down, push overlapping cards apart,
+// grow the column if the last one runs past the bottom. Axis ticks stay put.
+function relaxCards() {
+  const host = document.getElementById("prop");
+  const hostTop = host.getBoundingClientRect().top;
+  const GAP = 16;
+  let lastBottom = -Infinity;
+  const slots = [...host.querySelectorAll(".slot")];
+  for (const slot of slots) {
+    const card = slot.querySelector(".card");
+    const r = card.getBoundingClientRect();
+    const center = r.top - hostTop + r.height / 2;
+    const minCenter = lastBottom + GAP + r.height / 2;
+    if (center < minCenter) slot.style.top = `${minCenter}px`;
+    const c2 = Math.max(center, minCenter);
+    lastBottom = c2 + r.height / 2;
+  }
+  if (lastBottom + 8 > host.clientHeight) host.style.height = `${Math.ceil(lastBottom + 8)}px`;
+}
+
+// Catmull-Rom spline -> cubic bezier path (percent space).
+function smoothPath(pts, tension = 1) {
+  let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1x = p1[0] + ((p2[0] - p0[0]) / 6) * tension;
+    const c1y = p1[1] + ((p2[1] - p0[1]) / 6) * tension;
+    const c2x = p2[0] - ((p3[0] - p1[0]) / 6) * tension;
+    const c2y = p2[1] - ((p3[1] - p1[1]) / 6) * tension;
+    d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`;
+  }
+  return d;
+}
+
+// Meander (factor 0.6): mirrored midpoint between stops, one continuous curve.
+function meander(pts, cx, factor) {
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1], cur = pts[i];
+    if (i > 1 && i < pts.length - 1) {
+      const mx = cx + (cx - (prev[0] + cur[0]) / 2) * factor;
+      out.push([mx, (prev[1] + cur[1]) / 2]);
+    }
+    out.push(cur);
+  }
+  return smoothPath(out, 1);
+}
+
+function trailPoints() {
+  const host = document.getElementById("prop");
+  const H = host.clientHeight;
+  const W = host.clientWidth;
+  // waypoint y follows the (possibly relaxed) card centres
+  const yOf = [...host.querySelectorAll(".slot")].map((slot) => {
+    const card = slot.querySelector(".card");
+    const r = card.getBoundingClientRect();
+    return ((r.top + r.height / 2 - host.getBoundingClientRect().top) / H) * 100;
+  });
+  let pts, cx;
+  if (isMobile()) {
+    // trail lives in the 64px gutter left of the cards
+    const g = (64 / W) * 100;
+    cx = g * 0.55;
+    pts = [[cx, 0.3]];
+    JOBS.forEach((j, i) => pts.push([i % 2 ? g * 0.82 : g * 0.28, yOf[i]]));
+    pts.push([cx, 99.7]);
+  } else {
+    cx = 50;
+    pts = [[50, 0.3]];
+    JOBS.forEach((j, i) => pts.push([i % 2 ? 73 : 27, yOf[i]]));
+    pts.push([50, 99.7]);
+  }
+  return { pts, cx, W, H };
+}
+
+const GOLD = "226,176,74";
+
+// Sample a pixel-space path every `step` px -> [{x, y, angle}]
+function samplePath(svg, dPx, step) {
+  svg.setAttribute("viewBox", `0 0 ${svg.clientWidth} ${svg.clientHeight}`);
+  svg.innerHTML = `<path d="${dPx}" fill="none" stroke="none"/>`;
+  const p = svg.querySelector("path");
+  const len = p.getTotalLength();
+  const out = [];
+  for (let l = 0; l <= len; l += step) {
+    const pt = p.getPointAtLength(l);
+    const pt2 = p.getPointAtLength(Math.min(len, l + 1));
+    out.push({ x: pt.x, y: pt.y, angle: Math.atan2(pt2.y - pt.y, pt2.x - pt.x) });
+  }
+  return out;
+}
+
+/* ---------- six trail styles, same meander geometry ---------- */
+const STYLES = {
+  // A - Dashes: the prototype-1 rendering. Percent space, stretched dashes.
+  a: { name: "Dashes (current)", draw(svg, geo) {
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.innerHTML = `<path d="${meander(geo.pts, geo.cx, 0.6)}" fill="none"
+      stroke="rgba(${GOLD},0.4)" stroke-width="${isMobile() ? 1.2 : 0.45}" stroke-dasharray="1.4 1.1"/>`;
+  }},
+  // B - Dotline: uniform round dots along the curve, hiking-map style.
+  b: { name: "Dotline", draw(svg, geo) {
+    const s = samplePath(svg, this.dPx(geo), 15);
+    svg.innerHTML = s.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="1.7" fill="rgba(${GOLD},0.5)"/>`).join("");
+  }, dPx: pxPath },
+  // C - Footsteps: short marks alternating either side of the line.
+  c: { name: "Footsteps", draw(svg, geo) {
+    const s = samplePath(svg, this.dPx(geo), 17);
+    svg.innerHTML = s.map((p, i) => {
+      const side = i % 2 ? 3.2 : -3.2;
+      const nx = Math.cos(p.angle + Math.PI / 2) * side;
+      const ny = Math.sin(p.angle + Math.PI / 2) * side;
+      const deg = (p.angle * 180) / Math.PI + (i % 2 ? -14 : 14);
+      return `<rect x="-1.4" y="-3.1" width="2.8" height="6.2" rx="1.4" fill="rgba(${GOLD},0.42)"
+        transform="translate(${(p.x + nx).toFixed(1)} ${(p.y + ny).toFixed(1)}) rotate(${deg.toFixed(0)})"/>`;
+    }).join("");
+  }, dPx: pxPath },
+  // D - Glow: solid hairline with a soft wide halo, firefly-like.
+  d: { name: "Glow", draw(svg, geo) {
+    const d = this.dPx(geo);
+    svg.setAttribute("viewBox", `0 0 ${svg.clientWidth} ${svg.clientHeight}`);
+    svg.innerHTML = `
+      <path d="${d}" fill="none" stroke="rgba(${GOLD},0.16)" stroke-width="9" stroke-linecap="round" style="filter:blur(4px)"/>
+      <path d="${d}" fill="none" stroke="rgba(${GOLD},0.55)" stroke-width="1.6" stroke-linecap="round"/>`;
+  }, dPx: pxPath },
+  // E - Twin contour: two parallel dashed hairlines, cartographic road/trail.
+  e: { name: "Twin contour", draw(svg, geo) {
+    const d = this.dPx(geo);
+    svg.setAttribute("viewBox", `0 0 ${svg.clientWidth} ${svg.clientHeight}`);
+    svg.innerHTML = `
+      <g fill="none" stroke="rgba(${GOLD},0.38)" stroke-width="1.1" stroke-dasharray="7 5">
+        <path d="${d}" transform="translate(-2.6 0)"/>
+        <path d="${d}" transform="translate(2.6 0)" stroke-dashoffset="6"/>
+      </g>`;
+  }, dPx: pxPath },
+  // F - Ink: hand-drawn wobble, solid brush-like stroke.
+  f: { name: "Ink", draw(svg, geo) {
+    const s = samplePath(svg, this.dPx(geo), 9);
+    const wob = s.map((p, i) => {
+      const a = Math.sin(i * 0.9) * 1.9 + Math.sin(i * 0.23) * 1.3;
+      return [p.x + Math.cos(p.angle + Math.PI / 2) * a, p.y + Math.sin(p.angle + Math.PI / 2) * a];
+    });
+    svg.innerHTML = `<path d="${smoothPath(wob, 1)}" fill="none"
+      stroke="rgba(${GOLD},0.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }, dPx: pxPath },
+};
+
+// meander path converted to pixel coordinates (for uniform sampling/strokes)
+function pxPath(geo) {
+  const px = geo.pts.map(([x, y]) => [(x / 100) * geo.W, (y / 100) * geo.H]);
+  return meander(px, (geo.cx / 100) * geo.W, 0.6);
+}
+
+function drawTrail() {
+  const svg = document.getElementById("trailsvg");
+  const geo = trailPoints();
+  svg.removeAttribute("preserveAspectRatio");
+  const style = STYLES[currentKey()];
+  style.draw(svg, geo);
+  document.getElementById("dots").innerHTML = geo.pts.slice(1, -1).map(([x, y]) =>
+    `<span style="position:absolute;left:${x}%;top:${y}%;width:7px;height:7px;margin:-3.5px;border-radius:50%;background:#e2b04a;box-shadow:0 0 0 3px rgba(226,176,74,0.18)"></span>`).join("");
+}
+
+/* ---------- switcher ---------- */
+const KEYS = Object.keys(STYLES);
+function currentKey() {
+  const k = new URLSearchParams(location.search).get("variant") || "a";
+  return STYLES[k] ? k : "a";
+}
+function show(idx) {
+  const key = KEYS[(idx + KEYS.length) % KEYS.length];
+  const url = new URL(location);
+  url.searchParams.set("variant", key);
+  history.replaceState(null, "", url);
+  document.getElementById("label").innerHTML = `<b>${key.toUpperCase()}</b> - ${STYLES[key].name}`;
+  drawTrail();
+}
+document.getElementById("prev").onclick = () => show(KEYS.indexOf(currentKey()) - 1);
+document.getElementById("next").onclick = () => show(KEYS.indexOf(currentKey()) + 1);
+document.addEventListener("keydown", (e) => {
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+  if (e.key === "ArrowLeft") show(KEYS.indexOf(currentKey()) - 1);
+  if (e.key === "ArrowRight") show(KEYS.indexOf(currentKey()) + 1);
+});
+
+let raf;
+window.addEventListener("resize", () => {
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(() => { render(); show(KEYS.indexOf(currentKey())); });
+});
+render();
+show(KEYS.indexOf(currentKey()));
+</script>
+</body>
+</html>

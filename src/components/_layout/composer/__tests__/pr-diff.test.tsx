@@ -560,10 +560,10 @@ describe("ENGINE - DiffedParagraphs", () => {
 describe("DATA - coding topic prDiff row", () => {
 	const coding = TOPICS.find((t) => t.id === "coding");
 
-	it("TC-DATA-2: coding row's prDiff.replacements has exactly 4 one-line {strike, anchor} entries; prDiff.number === 7", () => {
+	it("TC-DATA-2: coding row's prDiff.replacements has exactly 3 one-line {strike, anchor} entries; prDiff.number === 7", () => {
 		expect(coding?.prDiff?.number).toBe(7);
 		const replacements = coding?.prDiff?.replacements ?? [];
-		expect(replacements.length).toBe(4);
+		expect(replacements.length).toBe(3);
 		for (const r of replacements) {
 			expect(typeof r.strike).toBe("string");
 			expect(typeof r.anchor).toBe("string");

@@ -50,7 +50,7 @@ export function useTriggerNav(
 			};
 			return {
 				key: "career",
-				title: "See the work history",
+				title: "See my work history",
 				subtitle: fallbackSubtitle,
 				Icon: PROJECT_ICONS.Code2,
 				tileClass: "bg-slate-800 text-slate-100",

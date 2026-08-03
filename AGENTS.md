@@ -18,7 +18,7 @@ A vertical scroll journey on the main path:
 
 **Sidetracks (deep dive subpages)** are the primary depth surface:
 
-- Career history lives in a panel triggered from The Craft.
+- Career history lives in a panel triggered from The Craft. The subpage is the **center spine**: year axis left, dotted trail lane in the middle, cards alternating either side. The three lanes never overlap. The pass before it drew the trail across the axis, and the dots collided with the ticks and the year labels. Waypoints stay on the true year position and never move, so the trail reads the data and not the layout. Only cards get nudged where tenures cluster (2019-2021), and a dotted connector keeps each nudged card tied to its real year. Card and axis geometry is CSS, so it survives SSR. Design locked in `.prototypes/career-subpage-lanes.html` (variant B).
 - Each of the four flagship projects (GoodWatch, AIStack, Forge, Manaschmiede) gets its own panel.
 - Four personal-thread panels (Learning, Teaching, Family, Music) are placeholders today, reusing the Career-style yellow brutalist banner.
 - A "tune the sky" panel exposes the celestial controls as a game-y find.
@@ -76,7 +76,7 @@ The four subpage shapes are therefore: flagship (triad + media), flagship-lite (
 - **`phase2End` is load-bearing beyond the sky.** It sets full night AND cues the shooting stars: `shootO` ramps from 0 at `phase2End` to 1 at progress 1.0 (`journeyValues.ts`), so the scroll after it is their fade-in budget. Raising it shrinks that window, and at 1.0 the shooting stars never appear. The frozen background color across the last screens is deliberate - it is the still, dark backdrop the white streaks need to read against (ticket #53).
 - **The sky curve is tuned as one compromise, never per device.** A section's scroll progress depends on viewport height (the Projects band centres at 0.124 on mobile and 0.178 on desktop), so one `phase1` start has to serve both. `phase1[0]` is 0.060: mobile reaches ΔE 6.0 from noon, desktop 16.9. Starting before 0.050 warms Socials past ΔE 2 and the page loses its noon top (ticket #53).
 - **Vertical rhythm** is one variable: `gapVh` in `src/data/celestial.ts`, rendered as `RhythmGap`. Section roots add NO vertical padding on an edge they share with a gap, so every boundary is exactly `gapVh` (ticket #51 - ad-hoc per-section padding had made the perceived boundary run 270px to 590px). Hero's `pt-24` (nav clearance) and the footer's `pb-16` (page end) are not boundaries and stay.
-- **Progress bar / minimap** always visible. Honest linear progress.
+- **Progress bar / minimap** always visible. Honest linear progress. The minimap is an **instrument, not a miniature**: it draws the day gradient, the viewport window, and the sun/moon dots, and the scene cast never draws on it (ticket #94). The scene's portrait already exists as `JourneyColumn` on the alperortac.com subpage; two miniatures would split one idea.
 - **Sidetracks** slide in as full-screen overlay panels with a RETURN edge connector.
 - **Persistence** via localStorage, for found items only. Sky tuning is deliberately NOT persisted: `src/data/celestial.ts` is the single source of truth, the dev-only Tune panel edits session state, and a reload always returns to the committed values.
 - **Audio** is ambient. Default off, clear toggle.

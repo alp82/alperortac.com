@@ -340,11 +340,11 @@ export function TriggerCard({
 		return (
 			<GlowTrigger
 				onActivate={go}
-				aria-label="See the work history"
+				aria-label="See my work history"
 				className="group w-full text-left px-6 py-16 font-black uppercase tracking-tighter text-amber-50 cursor-pointer select-none"
 			>
 				<div className="flex items-center justify-between gap-6 text-xl md:text-3xl">
-					<span>See the work history</span>
+					<span>See my work history</span>
 					<ArrowRight size={32} className="shrink-0" />
 				</div>
 			</GlowTrigger>

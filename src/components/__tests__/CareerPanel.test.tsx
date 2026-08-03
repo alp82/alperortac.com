@@ -3,12 +3,16 @@
 /*
  * CareerPanel tests - current contract.
  *
- * CareerPanel is static markup plus the pure SubpageClose component; it needs
- * no IntersectionObserver stub (contrast with ProjectPanel.test.tsx). The
- * subpage renders the full 7-entry timeline and additionally renders the
- * verbatim `entry.highlight.story` line on exactly the 3 highlighted cards
- * (Genius Sports, Cisco Systems, Acama Systems), styled italic, positioned
- * after the description paragraph and before the stack chips.
+ * CareerPanel renders the center-spine subpage: a proportional year axis on
+ * the left, a dotted trail lane down the middle, and cards alternating either
+ * side of it. Card and axis geometry is CSS, so it survives SSR. The trail,
+ * the connectors and the collision-relax pass are layout-effect enhancements
+ * that no-op in jsdom (zero clientWidth), so these tests cover the static
+ * contract, which the redesign deliberately left unchanged: the full
+ * 7-entry timeline as an <ol>, and the verbatim `entry.highlight.story`
+ * line on exactly the 4 highlighted cards (Genius Sports, enercast, Cisco
+ * Systems, Acama Systems), styled italic, positioned after the description
+ * paragraph and before the stack chips.
  */
 
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -18,7 +22,8 @@ import { CAREER_TIMELINE } from "../../data/career";
 import { CareerPanel } from "../CareerPanel";
 
 const STORY_TEXTS = [
-	"Technical leadership across data orchestration, live video rendering and internal tooling. People management focused on personal growth, team building and more satisfaction at work.",
+	"Technical leadership across data orchestration, live video rendering and internal tooling. People management focused on personal growth and more satisfaction at work.",
+	"Performance optimization for charts with 1M data points at 60fps.",
 	"Owning a complex frontend app that manages an arbitrary number of business assets.",
 	"Building individual web solutions for customers across the automotive, finance and health sectors.",
 ];
@@ -69,7 +74,7 @@ describe("CareerPanel", () => {
 
 	// TC-CP-05 - non-highlight stack chips still render
 	it.each([
-		["Vue.JS"],
+		["Material UI"],
 		["Qooxdoo"],
 		["HTML"],
 	])("renders the stack chip %s", (tech) => {
@@ -77,7 +82,7 @@ describe("CareerPanel", () => {
 		expect(screen.getByText(tech)).not.toBeNull();
 	});
 
-	// TC-CP-06 - the 3 literal story strings render exactly, character-for-character
+	// TC-CP-06 - the 4 literal story strings render exactly, character-for-character
 	it.each(
 		STORY_TEXTS.map((story) => [story]),
 	)("renders the highlight story %s", (story) => {
@@ -85,19 +90,21 @@ describe("CareerPanel", () => {
 		expect(screen.getByText(story)).not.toBeNull();
 	});
 
-	// TC-CP-07 - each story is a descendant of the same <li> as its entry's role
+	// TC-CP-07 - each story is a descendant of the same <li> as its entry's
+	// company (roles repeat across entries, companies are unique)
 	it.each([
-		["Lead Engineer", STORY_TEXTS[0]],
-		["Frontend Engineer", STORY_TEXTS[1]],
-		["Founder", STORY_TEXTS[2]],
-	])('associates the story for role "%s" with the same card', (role, story) => {
+		[/Genius Sports/, STORY_TEXTS[0]],
+		[/enercast/, STORY_TEXTS[1]],
+		[/Cisco Systems/, STORY_TEXTS[2]],
+		[/Acama Systems/, STORY_TEXTS[3]],
+	])('associates the story for company "%s" with the same card', (company, story) => {
 		const { container } = render(<CareerPanel onClose={vi.fn()} />);
 		const ol = container.querySelector("ol");
 		expect(ol).not.toBeNull();
 		const directLis = Array.from(ol!.querySelectorAll(":scope > li"));
 		const matchingLi = directLis.find((li) => {
 			const scoped = within(li as HTMLElement);
-			return scoped.queryByText(role as string) !== null;
+			return scoped.queryByText(company as RegExp) !== null;
 		});
 		expect(matchingLi).not.toBeUndefined();
 		expect(
@@ -129,10 +136,10 @@ describe("CareerPanel", () => {
 		expect(chipPosition & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
-	// TC-CP-09 - exactly 3 story-styled (.italic) paragraphs render
-	it("renders exactly 3 .italic story paragraphs", () => {
+	// TC-CP-09 - exactly 4 story-styled (.italic) paragraphs render
+	it("renders exactly 4 .italic story paragraphs", () => {
 		const { container } = render(<CareerPanel onClose={vi.fn()} />);
-		expect(container.querySelectorAll(".italic").length).toBe(3);
+		expect(container.querySelectorAll(".italic").length).toBe(4);
 	});
 
 	// TC-CP-10 - a non-highlighted entry's card contains no .italic story node

@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Coding subpage - timeline + live tech rack (4 variants)</title>
+<!--
+  PROTOTYPE - throwaway, not shipped.
+
+  Question: the Coding subpage merges The Early Days with the Tech Stack band
+  article. It is one scrollable timeline where EXACTLY ONE stop is active at a
+  time, plus a rack that shows the stack in use at that stop. Does the rack
+  read at a glance while the prose scrolls, and which layout carries 40 units?
+
+  The mechanic is the same in every variant, so only the layout is being judged:
+    - A focus line sits at 40% of the scroll container. The stop nearest it is
+      active. Never zero, never two. Clamped, so the first stop is active at the
+      top and the last stays active at the bottom.
+    - Inactive stops dim. They never hide - you must be able to read ahead.
+    - Rack state is a pure function of the active index. No second scroll
+      mechanic. A unit is EMPTY (not yet racked), LIVE, or DARK (retired).
+    - Stable slots: a unit claims its rail when it is racked and holds that rail
+      forever. Retired units stay in place and go dark. That is the graveyard,
+      in position, with no separate section.
+
+  Four layouts via ?variant= (a|b|c|d), the bottom bar, or left/right arrows:
+    A - Two-bay chassis:  timeline left, sticky rack right, ALL 40 rails present
+                          from the first frame. Empty rails are hairlines.
+    B - Growing rack:     same two columns, but only racked units exist. The
+                          rack grows downward. No ghost future.
+    C - Rack as the wall: the rack is a fixed full-viewport grid BEHIND a narrow
+                          prose column. Units light up around the text.
+    D - Top shelf:        rack is a sticky horizontal bar (the mobile shape,
+                          tested at desktop width), prose full width below.
+
+  Up/down arrows jump stop by stop. Press F to toggle the focus-line marker.
+
+  DATA WARNINGS - both need your correction before any of this ships:
+    1. BIRTH_YEAR is a GUESS (1984), back-solved from "founded a web agency in
+       2007". Every age on the page derives from it.
+    2. Only the five pre-2005 stops carry your real words, verbatim from
+       src/data/stories.ts. Everything after that is marked PLACEHOLDER in the
+       card. The tool sets are real (from career.ts and TechStackContent.tsx),
+       the prose is mine and is meant to be replaced.
+
+  No git vocabulary anywhere in the page. A unit is "racked" and later "goes
+  dark". Fonts load from node_modules by relative path, so run this from the
+  repo. No network.
+-->
+<style>
+  @font-face {
+    font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap;
+    src: url("../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "VT323"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url("../node_modules/@fontsource/vt323/files/vt323-latin-400-normal.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Instrument Serif"; font-style: italic; font-weight: 400; font-display: swap;
+    src: url("../node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2") format("woff2");
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  :root {
+    --gold: #fbbf24;
+    --ink: #f8fafc;
+    --mono: "VT323", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+    --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --rail-h: 18px;
+  }
+  body { font-family: var(--sans); color: var(--ink); background: #0b1220; }
+
+  /* ============ faked dived landscape (stands in for the live scene) ============ */
+  .scene {
+    position: fixed; inset: -6%; transform: scale(1.12);
+    filter: blur(1.5px) brightness(0.92) saturate(1.05); pointer-events: none;
+    background: linear-gradient(180deg,
+      #2b3a67 0%, #6b5a8c 30%, #c96f4a 55%, #f4a460 72%, #e8b06a 82%, #87a06b 100%);
+  }
+  .scene .sun {
+    position: absolute; left: 64%; top: 47%; width: 92px; height: 92px;
+    border-radius: 50%; background: #fef08a; border: 4px solid #fcd34d;
+    box-shadow: 0 0 60px rgba(253,224,71,0.55);
+  }
+  .scene svg { position: absolute; left: 0; right: 0; width: 100%; }
+  .scene .ridge-far  { bottom: 18%; height: 34%; }
+  .scene .ridge-near { bottom: 0;   height: 42%; }
+
+  /* ============ scroll surface + frosted column ============ */
+  .surface { position: fixed; inset: 0; overflow-y: auto; overflow-x: hidden; }
+  .column {
+    position: relative; margin: 9vh auto;
+    background: rgba(15,23,42,0.7);
+    backdrop-filter: blur(10px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+  }
+  .inner { padding: 56px 40px 72px; }
+
+  /* Variant C wants the wall visible through the prose, so its column is far
+     lighter and much narrower. */
+  body[data-v="c"] .column { background: rgba(15,23,42,0.42); }
+
+  /* ============ header ============ */
+  .kicker { font-family: var(--mono); font-size: 19px; letter-spacing: 0.28em;
+    text-transform: uppercase; color: var(--gold); margin: 0 0 8px; }
+  h2.title { margin: 0; font-weight: 900; text-transform: uppercase;
+    letter-spacing: -0.045em; line-height: 0.9; font-size: clamp(40px, 6vw, 68px); }
+  p.sub { font-size: 14px; opacity: 0.7; margin: 16px 0 0; max-width: 46ch; line-height: 1.55; }
+  .head { margin-bottom: 48px; }
+
+  /* ============ two-column shell (A and B) ============ */
+  .shell { display: grid; gap: 44px; align-items: start; }
+  body[data-v="a"] .shell { grid-template-columns: minmax(0,1fr) 372px; }
+  body[data-v="b"] .shell { grid-template-columns: minmax(0,1fr) 236px; }
+  body[data-v="c"] .shell,
+  body[data-v="d"] .shell { grid-template-columns: minmax(0,1fr); }
+
+  /* ============ timeline ============ */
+  ol.stops { list-style: none; margin: 0; padding: 0; }
+  ol.stops > li {
+    display: grid; grid-template-columns: 4.6rem minmax(0,1fr); gap: 22px;
+    padding: 30px 0; position: relative;
+    opacity: 0.3; transition: opacity 260ms ease;
+  }
+  ol.stops > li.is-active { opacity: 1; }
+  /* The active stop is the only one with a marker. Nothing else competes. */
+  ol.stops > li::before {
+    content: ""; position: absolute; left: -22px; top: 34px; bottom: 34px; width: 3px;
+    background: var(--gold); opacity: 0; transition: opacity 260ms ease;
+  }
+  ol.stops > li.is-active::before { opacity: 1; }
+
+  .agechip {
+    font-family: var(--mono); font-size: 40px; line-height: 0.85; color: #9fb4cd;
+    transition: color 260ms ease;
+  }
+  li.is-active .agechip { color: var(--gold); }
+  .agechip .suffix { font-size: 20px; }
+  .agechip .yr { display: block; font-size: 17px; letter-spacing: 0.1em; opacity: 0.65; margin-top: 6px; }
+
+  .cap { font-family: var(--mono); font-size: 20px; letter-spacing: 0.06em;
+    color: var(--gold); margin: 0 0 10px; }
+  .beat { font-size: 16px; line-height: 1.75; margin: 0 0 12px; }
+  .op { font-family: var(--serif); font-style: italic; font-size: 18px;
+    line-height: 1.5; opacity: 0.88; margin: 0 0 12px; }
+  .ph { display: inline-block; font-family: var(--mono); font-size: 14px;
+    letter-spacing: 0.18em; color: #fca5a5; border: 1px solid rgba(252,165,165,0.4);
+    padding: 1px 7px; margin-bottom: 10px; }
+
+  /* The stop's own tool change, spelled out in rack words, never diff words. */
+  .change { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .change .tag { font-family: var(--mono); font-size: 15px; letter-spacing: 0.04em;
+    padding: 1px 8px; border: 1px solid rgba(255,255,255,0.18); }
+  .change .tag.racked { color: #fde68a; border-color: rgba(251,191,36,0.45); }
+  .change .tag.gone { color: #7f93ab; text-decoration: line-through; }
+  .change .tag.still { color: #64748b; border-style: dashed; }
+
+  /* ============ the rack ============ */
+  .rack {
+    border: 3px solid rgba(255,255,255,0.16);
+    background: rgba(8,14,26,0.72);
+    padding: 12px 12px 10px;
+  }
+  body[data-v="a"] .rack, body[data-v="b"] .rack {
+    position: sticky; top: 20px;
+    max-height: calc(100vh - 40px); overflow-y: auto;
+  }
+  .rack-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-family: var(--mono); font-size: 16px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: #9fb4cd;
+    border-bottom: 1px solid rgba(255,255,255,0.12); padding-bottom: 7px; margin-bottom: 9px;
+  }
+  .rack-head .now { color: var(--gold); font-size: 19px; letter-spacing: 0.08em; }
+  .rack-count { font-family: var(--mono); font-size: 15px; letter-spacing: 0.08em;
+    color: #64748b; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 7px; }
+  .rack-count b { color: var(--gold); font-weight: 400; }
+
+  .bays { display: grid; gap: 0 14px; }
+  body[data-v="a"] .bays { grid-template-columns: 1fr 1fr; }
+  body[data-v="b"] .bays { grid-template-columns: 1fr; }
+
+  .grp { margin-bottom: 7px; }
+  .grp > h4 {
+    font-family: var(--mono); font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: #475569; margin: 0 0 2px; font-weight: 400;
+  }
+  ul.rails { list-style: none; margin: 0; padding: 0; }
+  li.unit {
+    display: grid; grid-template-columns: 9px minmax(0,1fr) auto; align-items: center; gap: 7px;
+    height: var(--rail-h);
+    font-family: var(--mono); font-size: 15px; letter-spacing: 0.02em;
+    transition: color 240ms ease, opacity 240ms ease;
+  }
+  li.unit .led { width: 7px; height: 7px; background: #1e293b; transition: all 240ms ease; }
+  li.unit .yrs { font-size: 13px; color: #475569; }
+
+  li.unit.is-empty { color: #263447; opacity: 0.55; }
+  li.unit.is-empty .nm { text-indent: 0; }
+  li.unit.is-live { color: #fde68a; }
+  li.unit.is-live .led { background: var(--gold); box-shadow: 0 0 7px 1px rgba(251,191,36,0.75); }
+  li.unit.is-dark { color: #5b6d84; }
+  li.unit.is-dark .nm { text-decoration: line-through; text-decoration-color: rgba(91,109,132,0.6); }
+  li.unit.is-dark .led { background: #33415580; }
+  /* The frame a unit changes state on gets one beat of extra weight. */
+  li.unit.just { animation: pop 520ms ease-out; }
+  @keyframes pop { 0% { transform: translateX(-4px); opacity: 0.2; } 100% { transform: none; opacity: 1; } }
+
+  body[data-v="b"] li.unit.is-empty { display: none; }
+  body[data-v="b"] .grp.all-empty { display: none; }
+
+  /* ============ C - the rack as a fixed wall ============ */
+  body[data-v="c"] .column { max-width: 620px; }
+  .wall {
+    position: fixed; inset: 0; z-index: 0; padding: 26px 30px;
+    display: none; align-content: start; gap: 5px 22px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    pointer-events: none;
+  }
+  body[data-v="c"] .wall { display: grid; }
+  body[data-v="c"] .surface { z-index: 1; }
+  .wall .wunit {
+    font-family: var(--mono); font-size: 20px; letter-spacing: 0.06em;
+    color: #223145; transition: color 300ms ease, text-shadow 300ms ease;
+  }
+  .wall .wunit.is-live { color: var(--gold); text-shadow: 0 0 14px rgba(251,191,36,0.5); }
+  .wall .wunit.is-dark { color: #33445c; text-decoration: line-through; }
+
+  /* ============ D - the top shelf ============ */
+  body[data-v="d"] .column { max-width: 860px; }
+  .shelf {
+    position: sticky; top: 0; z-index: 3; margin: 0 -40px 34px; padding: 12px 40px 13px;
+    background: rgba(8,14,26,0.92);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border-bottom: 3px solid rgba(255,255,255,0.16);
+    display: none;
+  }
+  body[data-v="d"] .shelf { display: block; }
+  .shelf .row { display: flex; flex-wrap: wrap; gap: 5px 7px; align-items: center; }
+  .shelf .sunit {
+    font-family: var(--mono); font-size: 16px; letter-spacing: 0.04em;
+    padding: 1px 8px; border: 1px solid rgba(251,191,36,0.4); color: #fde68a;
+  }
+  .shelf .sunit.is-dark { color: #5b6d84; border-color: rgba(255,255,255,0.1);
+    text-decoration: line-through; }
+  .shelf .shead { font-family: var(--mono); font-size: 15px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: #64748b; margin-right: 4px; }
+  .shelf .darktoggle { font-family: var(--mono); font-size: 15px; letter-spacing: 0.08em;
+    color: #64748b; background: none; border: 1px dashed rgba(255,255,255,0.18);
+    padding: 1px 8px; cursor: pointer; }
+
+  /* ============ focus line (prototype instrument, not design) ============ */
+  .focusline {
+    position: fixed; left: 0; right: 0; top: 40%; height: 0;
+    border-top: 1px dashed rgba(248,113,113,0.5); z-index: 40; pointer-events: none;
+  }
+  .focusline::after {
+    content: "focus line 40%"; position: absolute; right: 8px; top: 3px;
+    font-family: var(--mono); font-size: 13px; color: rgba(248,113,113,0.75);
+  }
+  body.no-focusline .focusline { display: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    ol.stops > li, li.unit, .wall .wunit, .agechip { transition: none; }
+    li.unit.just { animation: none; }
+  }
+
+  @media (max-width: 900px) {
+    .inner { padding: 40px 16px 56px; }
+    .column { margin: 4vh 8px; }
+    body[data-v="a"] .shell, body[data-v="b"] .shell { grid-template-columns: minmax(0,1fr); }
+    body[data-v="a"] .rack, body[data-v="b"] .rack { position: static; max-height: none; }
+    ol.stops > li { grid-template-columns: 3.4rem minmax(0,1fr); gap: 14px; }
+    .agechip { font-size: 30px; }
+    .shelf { margin: 0 -16px 26px; padding: 10px 16px 11px; }
+  }
+
+  /* ============ floating switcher (not part of the design) ============ */
+  .switcher { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px; background: #0b1220;
+    border: 1px solid #334155; border-radius: 999px; padding: 8px 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 50; font-size: 13px; }
+  .switcher button { background: #1e293b; color: #e2e8f0; border: 1px solid #475569;
+    border-radius: 999px; width: 30px; height: 30px; cursor: pointer; font-size: 14px; line-height: 1; }
+  .switcher button:hover { background: #334155; }
+  .switcher .label { min-width: 190px; text-align: center; color: #cbd5e1; }
+  .switcher .label b { color: #f8fafc; }
+  .switcher .state { font-family: ui-monospace, monospace; font-size: 11px;
+    color: #94a3b8; min-width: 210px; text-align: left; }
+</style>
+</head>
+<body data-v="a">
+
+<div class="scene" aria-hidden="true">
+  <div class="sun"></div>
+  <svg class="ridge-far" preserveAspectRatio="none" viewBox="0 0 1200 300">
+    <polygon fill="#4a7a8c" points="0,300 0,190 140,90 260,180 400,60 540,170 660,110 820,200 960,80 1100,170 1200,120 1200,300"/>
+  </svg>
+  <svg class="ridge-near" preserveAspectRatio="none" viewBox="0 0 1200 300">
+    <polygon fill="#31576b" points="0,300 0,160 180,60 340,150 520,40 700,150 860,90 1020,170 1200,80 1200,300"/>
+    <g fill="#1e3d4d">
+      <polygon points="120,140 135,95 150,140"/><polygon points="150,150 165,105 180,150"/>
+      <polygon points="480,120 495,72 510,120"/><polygon points="510,130 525,85 540,130"/>
+      <polygon points="840,150 855,105 870,150"/><polygon points="1080,130 1095,85 1110,130"/>
+    </g>
+  </svg>
+</div>
+
+<div class="wall" id="wall" aria-hidden="true"></div>
+
+<div class="surface" id="surface">
+  <div class="column" id="column">
+    <div class="inner">
+      <div class="shelf" id="shelf"></div>
+      <div class="head">
+        <p class="kicker">Coding</p>
+        <h2 class="title">Everything<br />I have run</h2>
+        <p class="sub">Thirty years of tools, one stop at a time. The rack shows what was
+          running at the moment you are reading about.</p>
+      </div>
+      <div class="shell">
+        <ol class="stops" id="stops"></ol>
+        <div class="rack" id="rack"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="focusline" aria-hidden="true"></div>
+
+<div class="switcher">
+  <button type="button" id="prev" aria-label="Previous variant">&#8592;</button>
+  <span class="label" id="label"></span>
+  <button type="button" id="next" aria-label="Next variant">&#8594;</button>
+  <span class="state" id="state"></span>
+</div>
+
+<script>
+/* =========================================================================
+   DATA
+   Pre-2005 prose is verbatim from src/data/stories.ts.
+   Tool sets come from src/data/career.ts and TechStackContent.tsx.
+   Post-2005 prose is PLACEHOLDER and is flagged as such in the card.
+   ========================================================================= */
+
+/* GUESS. Back-solved from "founded Acama Systems in 2007". Correct this. */
+const BIRTH_YEAR = 1984;
+
+/* Rail groups. A unit keeps its group for life. */
+const GROUP = {
+  QBasic: "language", "Turbo Pascal": "language", Delphi: "language",
+  JavaScript: "language", PHP: "language", Java: "language",
+  TypeScript: "language", Python: "language", Rust: "language",
+  HTML: "markup", CSS: "markup", Tailwind: "markup",
+  Qooxdoo: "framework", Play: "framework", Angular: "framework",
+  "Vue.js": "framework", React: "framework", Redux: "framework",
+  "Tanstack Start": "framework", GraphQL: "framework",
+  Highcharts: "framework", D3: "framework",
+  MySQL: "data", PostgreSQL: "data", MongoDB: "data", Redis: "data",
+  CrateDB: "data", Convex: "data", SpacetimeDB: "data",
+  AWS: "infra", Kubernetes: "infra", Hetzner: "infra", Coolify: "infra",
+  Windmill: "infra", Posthog: "infra", Grafana: "infra", Namecheap: "infra",
+  FastTracker: "elsewhere", IRC: "elsewhere", ICQ: "elsewhere",
+};
+const GROUP_ORDER = ["language", "markup", "framework", "data", "infra", "elsewhere"];
+
+const STOPS = [
+  { year: 1996, cap: "QBasic · Turbo Pascal · Delphi",
+    beats: ["I started coding with QBasic when I was 12 - text adventures and sounds squeezed out of the PC speaker. Then a bit of graphics in Turbo Pascal, and a look at Delphi."],
+    rack: ["QBasic", "Turbo Pascal", "Delphi"], dark: [] },
+
+  { year: 2000, cap: "SELFHTML · floppies · CSS",
+    beats: ["At 16 I found my love for web development: HTML and CSS. There was no internet at home - my parents knew it would pull me away from school, so I had to finish first.",
+            "I learned from SELFHTML on the school PCs and copied the pages onto floppies to keep going at home. Later, JavaScript."],
+    rack: ["HTML", "CSS", "JavaScript"], dark: [] },
+
+  { year: 2002, cap: "PC-room keys · CS · StarCraft · FastTracker",
+    beats: ["I got the keys to the PC room at school. I was responsible with them - and in the afternoons we played CS and StarCraft. My parents were proud I was staying late; they thought I was learning.",
+            "I broke DOS and Windows constantly just to see what would happen, and made music in FastTracker - loved it."],
+    rack: ["FastTracker"], dark: ["QBasic", "Turbo Pascal", "Delphi"] },
+
+  /* Deliberate no-change stop. The rack must survive one with nothing to say. */
+  { year: 2003, cap: "56k · the whole world",
+    beats: ["Then, internet. Mind blown."],
+    rack: [], dark: [] },
+
+  { year: 2004, cap: "IRC · ICQ · LAN parties",
+    beats: ["I was admin in a forum for my friends. We talked on IRC, later ICQ. Gaming and LAN parties - lots of gaming. My digital life had begun."],
+    rack: ["IRC", "ICQ"], dark: ["FastTracker"] },
+
+  { year: 2005, cap: "First paid work", ph: true,
+    beats: ["An e-commerce shop for children clothes with individual prints. The first time somebody paid for the pages I wrote."],
+    rack: ["PHP", "MySQL"], dark: [] },
+
+  { year: 2007, cap: "My own agency", ph: true,
+    beats: ["Acama Systems. Custom web solutions for automotive, finance and health customers. Every project a different shape, so the toolbox had to widen fast."],
+    rack: ["Java"], dark: ["IRC"] },
+
+  { year: 2009, cap: "Agency only", ph: true,
+    beats: ["The shop closed and the agency carried the whole load."],
+    rack: [], dark: ["ICQ"] },
+
+  { year: 2012, cap: "Into product", ph: true,
+    beats: ["Energy management, and my first real product team. A framework nobody outside the building had heard of."],
+    op: "A tool with no community is a tool you maintain alone.",
+    rack: ["Qooxdoo", "Play", "PostgreSQL"], dark: ["PHP", "Java"] },
+
+  { year: 2013, cap: "Big tech, one big app", ph: true,
+    beats: ["A business single-page app that manages an arbitrary number of assets. Six years on one codebase teaches you what actually decays."],
+    rack: ["Angular", "GraphQL", "Highcharts", "D3"], dark: ["Qooxdoo", "Play", "MySQL"] },
+
+  { year: 2016, cap: "The framework churn", ph: true,
+    beats: ["The second framework of the same decade for the same problem."],
+    op: "Pick the tool that will still be here in five years, then be wrong about it politely.",
+    rack: ["Vue.js"], dark: ["Angular"] },
+
+  { year: 2019, cap: "Types, finally", ph: true,
+    beats: ["Wind and solar forecasts, and charts with a million points at 60fps. Types stopped being optional for me here."],
+    rack: ["TypeScript", "React", "Redux"], dark: ["Vue.js", "GraphQL", "D3"] },
+
+  { year: 2021, cap: "Two languages", ph: true,
+    beats: ["Dynamic ads, then dynamic sports video. Python next to TypeScript, every day."],
+    rack: ["Python"], dark: ["Redux", "Highcharts"] },
+
+  { year: 2021, cap: "Leading, and the cloud bill", ph: true,
+    beats: ["Data orchestration, live video rendering, internal tooling, and a team. Also the first invoice that made me read a pricing page properly."],
+    rack: ["AWS", "Kubernetes"], dark: [] },
+
+  { year: 2022, cap: "Bringing it home", ph: true,
+    beats: ["I moved my own work off serverless and onto boxes I rent by the month."],
+    op: "Hetzner is the best compromise between cost, performance and value. I self-host as much as I can to avoid serverless horrors.",
+    rack: ["Hetzner", "Coolify", "MongoDB", "Redis"], dark: ["AWS"] },
+
+  { year: 2024, cap: "Millions of rows", ph: true,
+    beats: ["Pipelines for millions of movies and tv shows. Raw scraped data in one place, big data in another. And a new language for the parts that must not be slow."],
+    rack: ["Windmill", "CrateDB", "Rust"], dark: [] },
+
+  { year: 2025, cap: "The current shape", ph: true,
+    beats: ["A new app now means one command: Tanstack Start, Tailwind, Convex, on a Hetzner box. Plus the few services I still happily pay somebody else to run."],
+    rack: ["Tanstack Start", "Tailwind", "Convex", "SpacetimeDB", "Posthog", "Grafana", "Namecheap"],
+    dark: ["PostgreSQL"] },
+
+  /* Second no-change stop, on purpose: the closing opinion has no new tools. */
+  { year: 2026, cap: "How I work now", ph: true,
+    beats: ["Even in the age of LLMs I am still driven by following good coding practices."],
+    op: "The art of crafting an elegant solution to a complex problem just makes me happy. A good session is when I am fully locked in and ship a new version at the end.",
+    rack: [], dark: [] },
+];
+
+/* ---- derive the rail order and each unit's life span ------------------- */
+const UNITS = [];        // { name, group, from, to|null }
+const BY_NAME = new Map();
+STOPS.forEach((s, i) => {
+  for (const n of s.rack) {
+    const u = { name: n, group: GROUP[n] ?? "elsewhere", from: i, to: null };
+    UNITS.push(u); BY_NAME.set(n, u);
+  }
+  for (const n of s.dark) { const u = BY_NAME.get(n); if (u) u.to = i; }
+});
+/* Stable slots: within a group, rails sit in the order the units were racked. */
+const RAILS = GROUP_ORDER.map((g) => ({
+  group: g, units: UNITS.filter((u) => u.group === g),
+})).filter((r) => r.units.length);
+
+const stateAt = (u, i) => (i < u.from ? "empty" : u.to !== null && i >= u.to ? "dark" : "live");
+const yearsOf = (u) => {
+  const a = STOPS[u.from].year;
+  return u.to === null ? a + "-" : a + "-" + STOPS[u.to].year;
+};
+
+/* =========================================================================
+   RENDER
+   ========================================================================= */
+const stopsEl = document.getElementById("stops");
+const rackEl  = document.getElementById("rack");
+const wallEl  = document.getElementById("wall");
+const shelfEl = document.getElementById("shelf");
+const surface = document.getElementById("surface");
+
+function renderStops() {
+  stopsEl.innerHTML = "";
+  STOPS.forEach((s, i) => {
+    const age = s.year - BIRTH_YEAR;
+    const li = document.createElement("li");
+    li.dataset.i = String(i);
+
+    /* The stop's own change, said in rack words. */
+    let change = "";
+    const parts = [];
+    for (const n of s.rack) parts.push('<span class="tag racked">racked ' + n + "</span>");
+    for (const n of s.dark) parts.push('<span class="tag gone">' + n + " went dark</span>");
+    if (!parts.length) parts.push('<span class="tag still">rack unchanged</span>');
+    change = '<div class="change">' + parts.join("") + "</div>";
+
+    li.innerHTML =
+      '<div class="agechip">' + age + '<span class="suffix"></span>' +
+        '<span class="yr">' + s.year + "</span></div>" +
+      "<div>" +
+        (s.ph ? '<span class="ph">placeholder prose</span><br />' : "") +
+        '<div class="cap">' + s.cap + "</div>" +
+        s.beats.map((b) => '<p class="beat">' + b + "</p>").join("") +
+        (s.op ? '<p class="op">' + s.op + "</p>" : "") +
+        change +
+      "</div>";
+    stopsEl.appendChild(li);
+  });
+}
+
+function renderRack() {
+  rackEl.innerHTML =
+    '<div class="rack-head"><span>The rack</span><span class="now" id="rackYear"></span></div>' +
+    '<div class="bays">' +
+      RAILS.map((r) =>
+        '<div class="grp" data-g="' + r.group + '"><h4>' + r.group + "</h4><ul class=\"rails\">" +
+        r.units.map((u) =>
+          '<li class="unit" data-u="' + u.name + '">' +
+            '<span class="led"></span>' +
+            '<span class="nm">' + u.name + "</span>" +
+            '<span class="yrs">' + yearsOf(u) + "</span>" +
+          "</li>").join("") +
+        "</ul></div>").join("") +
+    "</div>" +
+    '<div class="rack-count" id="rackCount"></div>';
+
+  wallEl.innerHTML = UNITS.map((u) =>
+    '<span class="wunit" data-u="' + u.name + '">' + u.name + "</span>").join("");
+}
+
+/* =========================================================================
+   PAINT - everything below is a pure function of the active index
+   ========================================================================= */
+let active = -1;
+let showDarkOnShelf = false;
+
+function paint(i) {
+  const changed = i !== active;
+  active = i;
+
+  for (const li of stopsEl.children) {
+    li.classList.toggle("is-active", Number(li.dataset.i) === i);
+  }
+
+  let live = 0, dark = 0;
+  const liveNames = [], darkNames = [];
+  for (const u of UNITS) {
+    const st = stateAt(u, i);
+    if (st === "live") { live++; liveNames.push(u.name); }
+    if (st === "dark") { dark++; darkNames.push(u.name); }
+
+    const rail = rackEl.querySelector('[data-u="' + u.name + '"]');
+    if (rail) {
+      rail.className = "unit is-" + st + (changed && (u.from === i || u.to === i) ? " just" : "");
+    }
+    const w = wallEl.querySelector('[data-u="' + u.name + '"]');
+    if (w) w.className = "wunit is-" + st;
+  }
+
+  /* Variant B hides empty rails, so a group with nothing racked yet must go too. */
+  for (const g of rackEl.querySelectorAll(".grp")) {
+    g.classList.toggle("all-empty", !g.querySelector(".is-live, .is-dark"));
+  }
+
+  const s = STOPS[i];
+  const y = document.getElementById("rackYear");
+  if (y) y.textContent = String(s.year);
+  const c = document.getElementById("rackCount");
+  if (c) c.innerHTML = "<b>" + live + "</b> running · " + dark + " dark";
+
+  shelfEl.innerHTML =
+    '<div class="row"><span class="shead">' + s.year + " · running</span>" +
+    liveNames.map((n) => '<span class="sunit">' + n + "</span>").join("") +
+    (darkNames.length
+      ? '<button type="button" class="darktoggle" id="dt">' +
+        (showDarkOnShelf ? "hide" : "+") + " " + darkNames.length + " dark</button>"
+      : "") +
+    (showDarkOnShelf
+      ? darkNames.map((n) => '<span class="sunit is-dark">' + n + "</span>").join("")
+      : "") +
+    "</div>";
+  const dt = document.getElementById("dt");
+  if (dt) dt.onclick = () => { showDarkOnShelf = !showDarkOnShelf; paint(active); };
+
+  document.getElementById("state").textContent =
+    "stop " + (i + 1) + "/" + STOPS.length + " · age " + (s.year - BIRTH_YEAR) +
+    " · " + live + " live / " + dark + " dark / " + (UNITS.length - live - dark) + " empty";
+}
+
+/* =========================================================================
+   THE MECHANIC - exactly one active stop, clamped at both ends
+   ========================================================================= */
+const FOCUS = 0.4;
+
+function pick() {
+  const h = surface.clientHeight;
+  const line = h * FOCUS;
+  const atTop = surface.scrollTop <= 2;
+  const atBottom = surface.scrollTop + h >= surface.scrollHeight - 2;
+  if (atTop) return 0;
+  if (atBottom) return STOPS.length - 1;
+
+  let best = 0, bestD = Infinity;
+  for (const li of stopsEl.children) {
+    const r = li.getBoundingClientRect();
+    const d = Math.abs(r.top + r.height / 2 - line);
+    if (d < bestD) { bestD = d; best = Number(li.dataset.i); }
+  }
+  return best;
+}
+
+let queued = false;
+function onScroll() {
+  if (queued) return;
+  queued = true;
+  requestAnimationFrame(() => { queued = false; const n = pick(); if (n !== active) paint(n); });
+}
+
+/* =========================================================================
+   VARIANTS
+   ========================================================================= */
+const VARIANTS = {
+  a: "Two-bay chassis",
+  b: "Growing rack",
+  c: "Rack as the wall",
+  d: "Top shelf",
+};
+const KEYS = Object.keys(VARIANTS);
+let current = "a";
+
+function show(v) {
+  current = KEYS.includes(v) ? v : "a";
+  document.body.dataset.v = current;
+  document.getElementById("label").innerHTML =
+    "<b>" + current.toUpperCase() + "</b> — " + VARIANTS[current];
+  const url = new URL(location.href);
+  url.searchParams.set("variant", current);
+  history.replaceState(null, "", url);
+  /* Column width is a per-variant decision, so set it here, not in CSS. */
+  const col = document.getElementById("column");
+  col.style.maxWidth = current === "a" ? "1120px"
+    : current === "b" ? "980px"
+    : current === "c" ? "620px" : "860px";
+  active = -1;
+  paint(pick());
+}
+
+const cycle = (d) => show(KEYS[(KEYS.indexOf(current) + d + KEYS.length) % KEYS.length]);
+document.getElementById("prev").onclick = () => cycle(-1);
+document.getElementById("next").onclick = () => cycle(1);
+
+function jump(d) {
+  const n = Math.max(0, Math.min(STOPS.length - 1, active + d));
+  const li = stopsEl.children[n];
+  const r = li.getBoundingClientRect();
+  surface.scrollTo({
+    top: surface.scrollTop + r.top + r.height / 2 - surface.clientHeight * FOCUS,
+    behavior: "smooth",
+  });
+}
+
+addEventListener("keydown", (e) => {
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+  if (e.key === "ArrowLeft") { e.preventDefault(); cycle(-1); }
+  if (e.key === "ArrowRight") { e.preventDefault(); cycle(1); }
+  if (e.key === "ArrowUp") { e.preventDefault(); jump(-1); }
+  if (e.key === "ArrowDown") { e.preventDefault(); jump(1); }
+  if (e.key === "f" || e.key === "F") document.body.classList.toggle("no-focusline");
+});
+
+surface.addEventListener("scroll", onScroll, { passive: true });
+addEventListener("resize", onScroll);
+
+renderStops();
+renderRack();
+show(new URL(location.href).searchParams.get("variant") ?? "a");
+</script>
+</body>
+</html>

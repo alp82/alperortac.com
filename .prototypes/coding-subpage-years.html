@@ -1,0 +1,1082 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Coding subpage - continuous strip (4 variants)</title>
+<!--
+  PROTOTYPE - throwaway, not shipped. Iteration 8. Same file, as agreed.
+
+  LOCKED:
+    - GROWING RACK, retired units behind one tap. Side column on desktop,
+      34% bottom sheet on mobile.
+    - UNIFORM YEAR GRID, every year 1995-2026 with its own marker.
+    - NATIVE SCROLL. Nothing touches the wheel.
+    - CAPTION LADDER + PROSE on desktop, LADDER LAYOUT on mobile.
+
+  WHAT CHANGED, and why the last pass failed:
+    1. Every card hung DOWN from its anchor, so its mass sat below the reading
+       line and the whole thing read as bottom-heavy. Cards are now centred on
+       the reading line - the strip is measured, so a card straddles the line
+       instead of dangling off it.
+    2. The handoffs were a special effect bolted onto a pinned card, and none
+       of them read. There is no handoff any more. THERE IS NO TRANSITION AT
+       ALL.
+
+  The model now: all seventeen cards live in ONE CONTINUOUS STRIP. The strip
+  slides as you scroll. The layer holding it carries a soft mask, so a card
+  fades out as it leaves through the top and the next fades in as it rises
+  through the bottom. The fade is a function of WHERE a card is, not of when
+  something happened. Nothing to time, nothing to sequence, nothing to break.
+
+  Speed still comes out of the data. The strip is anchored so that card k is
+  exactly centred when the scroll reaches year k on the axis, and it
+  interpolates between anchors. So:
+      speed = (strip distance between two cards) / (scroll distance between
+               their two years)
+  A four-year gap crawls. A one-year gap hurries. Nothing is normalised away.
+
+  Four interpolations via ?variant= (l|e|d|u), the bar, or left/right arrows:
+    L - Linear:  constant speed inside each period. The plainest reading.
+    E - Eased:   smoothstep inside each period, so the strip slows as a card
+                 comes to centre and picks up again as it leaves. Lingering
+                 without pinning.
+    D - Dwell:   the card holds centred for the first 25% of its period, then
+                 eases across to the next. The strongest lingering that is
+                 still continuous - no jump anywhere.
+    U - Uniform: the control. One linear map across the whole page, so the
+                 length of a period changes nothing. Shows what the anchoring
+                 is buying.
+
+  Bar: gap between cards, mask softness, px/year, phone frame. The readout
+  shows the live strip speed. Up/down arrows jump one year, F toggles the
+  window markers.
+
+  TWO MECHANICS, ONE PER BREAKPOINT. They stopped being the same thing in this
+  pass, on purpose:
+
+  DESKTOP is a plain LINEAR TIMELINE. Every card sits at its own year on the
+  axis and scrolls with the page, one to one. No strip, no mask, no drift, no
+  caption ladder - the card at a year IS the entry for that year. The step
+  stays TIGHT (150 px/yr) because a step tall enough to clear every one-year
+  pair spends most of the page on empty years. The few cards a one-year gap
+  cannot hold are nudged down, with a dotted connector back to their tick. The
+  TICK never moves. The readout shows the worst nudge.
+
+  PHONE keeps the drifting strip, because one screen has no room to place
+  seventeen cards. Settings walked and kept: E, gap 110px, fade 34%, 260 px/yr.
+  The readout turns the strip speed red above 1.6x.
+
+  PHONE FIXES IN THIS PASS:
+    1. The rack still scrolled a little. Counting rail rows and multiplying by
+       a rail height was three to ten pixels short - group headings, their
+       margins and the body padding are not rail-sized. The sheet height now
+       MEASURES the rack instead of estimating it.
+    2. Horizontal scrolling came from `columns: 2` on the rack body. CSS
+       multi-column inside a box with a definite height does not scroll down
+       when it runs out of room, it opens a third column to the right. Replaced
+       with two explicit bays, so a third column is impossible.
+    3. Nothing was visible at the very top. The old code parked the first card
+       on the reading line and then hid the whole layer. There is now a LEAD-IN
+       SEGMENT in the same strip curve: at the top the first card sits under
+       the heading and rises to the line as the heading leaves.
+
+  BIRTHDAY IS REAL NOW: 5 November 1982, confirmed by Alper. It falls late in
+  the year, so for almost all of a calendar year the age is (year - 1983), and
+  that is what the page shows. The five pre-career stops moved to the years
+  that match the ages the prose itself states - 12 in 1995, 16 in 1999, 18 in
+  2001, 19 in 2002, 20 in 2003. The old 1984 guess had every one of them a year
+  late. The ladder now runs 1995-2026 and he is 43 today, 44 in November.
+
+  DATA WARNING, still open:
+    - Only the five pre-2005 stops carry Alper's own words, verbatim from
+      src/data/stories.ts. Everything after is marked "placeholder prose" on
+      the card. The tool sets are real, the prose is not.
+    - The two 2021 stops are merged - one year, one tick.
+
+  No git vocabulary. A unit is "racked" and later "goes dark". Fonts load from
+  node_modules by relative path, so run this from the repo. No network.
+-->
+<style>
+  @font-face {
+    font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap;
+    src: url("../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "VT323"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url("../node_modules/@fontsource/vt323/files/vt323-latin-400-normal.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Instrument Serif"; font-style: italic; font-weight: 400; font-display: swap;
+    src: url("../node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2") format("woff2");
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  :root {
+    --gold: #fbbf24;
+    --ink: #f8fafc;
+    --mono: "VT323", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+    --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --axis-w: 78px;
+    --lane-gap: 28px;
+    --rack-h: 34%;
+    --card-gap: 56px;
+    --m1: 22%;
+    --m2: 78%;
+  }
+  body { font-family: var(--sans); color: var(--ink); background: #0b1220; }
+
+  /* ============ the viewport - the window, or a 390x844 phone frame ============ */
+  .viewport { position: fixed; inset: 0; overflow: hidden; }
+  body.phone .viewport {
+    inset: auto; left: 50%; top: 22px;
+    transform: translateX(-50%) scale(var(--phone-scale, 1));
+    transform-origin: top center;
+    width: 390px; height: 844px;
+    border: 7px solid #1e293b; border-radius: 32px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.7);
+  }
+
+  /* ============ faked dived landscape (stands in for the live scene) ============ */
+  .scene {
+    position: absolute; inset: -6%; transform: scale(1.12);
+    filter: blur(1.5px) brightness(0.92) saturate(1.05); pointer-events: none;
+    background: linear-gradient(180deg,
+      #2b3a67 0%, #6b5a8c 30%, #c96f4a 55%, #f4a460 72%, #e8b06a 82%, #87a06b 100%);
+  }
+  .scene .sun {
+    position: absolute; left: 64%; top: 47%; width: 92px; height: 92px;
+    border-radius: 50%; background: #fef08a; border: 4px solid #fcd34d;
+    box-shadow: 0 0 60px rgba(253,224,71,0.55);
+  }
+  .scene svg { position: absolute; left: 0; right: 0; width: 100%; }
+  .scene .ridge-far  { bottom: 18%; height: 34%; }
+  .scene .ridge-near { bottom: 0;   height: 42%; }
+
+  /* ============ scroll surface + frosted column ============ */
+  .surface { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden;
+    scroll-behavior: smooth; }
+  .column {
+    position: relative; margin: 9vh auto; max-width: 1180px;
+    background: rgba(15,23,42,0.7);
+    backdrop-filter: blur(10px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+  }
+  .inner { padding: 56px 40px 72px; }
+
+  .kicker { font-family: var(--mono); font-size: 19px; letter-spacing: 0.28em;
+    text-transform: uppercase; color: var(--gold); margin: 0 0 8px; }
+  h2.title { margin: 0; font-weight: 900; text-transform: uppercase;
+    letter-spacing: -0.045em; line-height: 0.9; font-size: clamp(34px, 6vw, 68px); }
+  p.sub { font-size: 14px; opacity: 0.7; margin: 16px 0 0; max-width: 46ch; line-height: 1.55; }
+  .head { margin-bottom: 44px; }
+
+  .shell { display: grid; gap: 40px; align-items: start;
+    grid-template-columns: minmax(0,1fr) 236px; }
+
+  /* ============ the year ladder - the map, and it scrolls ============ */
+  .field { position: relative; }
+  .axis { position: absolute; left: 0; top: 0; width: var(--axis-w);
+    border-right: 1px solid rgba(148,180,220,0.2); }
+  .yr { position: absolute; right: 0; height: 0; display: flex; align-items: center;
+    justify-content: flex-end; gap: 8px; width: 100%;
+    transition: color 200ms ease, opacity 200ms ease; }
+  .yr .lbl { font-family: var(--mono); font-size: 17px; line-height: 1;
+    letter-spacing: 0.05em; color: #56697f; transform: translateY(-1px);
+    transition: color 200ms ease, font-size 160ms ease; }
+  .yr .tk { display: block; height: 1px; background: rgba(148,180,220,0.28); width: 8px;
+    transition: width 200ms ease, background 200ms ease; }
+  .yr.has .lbl { color: #9fb4cd; }
+  .yr.has .tk { width: 17px; background: rgba(251,191,36,0.55); }
+  .yr.now .lbl { color: var(--gold); font-size: 22px; }
+  .yr.now .tk { width: 24px; height: 2px; background: var(--gold); }
+  .yr.past .lbl { color: #7d8ea3; }
+  .yr.ahead { opacity: 0.55; }
+
+  /* =========================================================================
+     DESKTOP: a plain linear timeline.
+     Each card sits at its own year on the axis and scrolls with the page, one
+     to one. No strip, no mask, no drift. The phone needs those because it has
+     one screen of room. The desktop has the height to just put things where
+     they belong, so it does. The step stays TIGHT, and the few cards that a
+     one-year gap cannot hold get nudged down with a connector back to their
+     tick - see the relax pass in layout().
+     ========================================================================= */
+  #laneA { position: absolute; top: 0; left: calc(var(--axis-w) + 30px); right: 0; }
+  #laneA .card { position: absolute; left: 0; right: 0; max-width: 620px;
+    padding-left: 18px; border-left: 3px solid rgba(251,191,36,0.16);
+    transition: border-color 260ms ease; }
+  /* Everything stays readable - this is a document, not a viewer. Only the
+     rule and the age chip mark where you are. */
+  #laneA .card.is-active { border-left-color: var(--gold); }
+  #laneA .card .age { color: #64748b; }
+  #laneA .card.is-active .age { color: var(--gold); }
+  /* Where two stops are one year apart the axis cannot hold them both, so the
+     lower card is nudged down and a dotted connector ties it back to its real
+     tick. The TICK never moves - the trail reads the data, not the layout.
+     Same rule as the career subpage. */
+  .conn { position: absolute; width: 0; left: calc(var(--axis-w) + 14px);
+    border-left: 1px dotted rgba(251,191,36,0.45); pointer-events: none; }
+
+  /* ============ card type ============ */
+  .age { font-family: var(--mono); font-size: 19px; letter-spacing: 0.1em;
+    color: #64748b; display: block; margin-bottom: 3px; transition: color 300ms ease; }
+  .card.is-active .age, .prose .age { color: var(--gold); }
+  .cap { font-family: var(--mono); font-size: 21px; letter-spacing: 0.06em;
+    color: var(--gold); margin: 0 0 9px; line-height: 1.15; }
+  .beat { font-size: 15.5px; line-height: 1.7; margin: 0 0 10px; }
+  .op { font-family: var(--serif); font-style: italic; font-size: 18px;
+    line-height: 1.5; opacity: 0.88; margin: 0 0 10px; }
+  .ph { display: inline-block; font-family: var(--mono); font-size: 13px;
+    letter-spacing: 0.18em; color: #fca5a5; border: 1px solid rgba(252,165,165,0.4);
+    padding: 0 6px; margin-bottom: 8px; }
+  .change { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+  .change .tag { font-family: var(--mono); font-size: 14px; letter-spacing: 0.04em;
+    padding: 0 7px; border: 1px solid rgba(255,255,255,0.16); }
+  .change .tag.racked { color: #fde68a; border-color: rgba(251,191,36,0.42); }
+  .change .tag.gone { color: #7f93ab; text-decoration: line-through; }
+
+  /* =========================================================================
+     THE WINDOW AND THE STRIP
+     #proseWrap is a zero-height marker inside the field. It only says where
+     the lane is horizontally. #window is pinned to the viewport, carries the
+     mask, and holds one strip of every card. Only the strip's transform is
+     written per frame - no layout, no opacity juggling, no transitions.
+     ========================================================================= */
+  #proseWrap { position: absolute; top: 0; height: 0;
+    left: calc(var(--axis-w) + 26px + 220px + var(--lane-gap)); right: 0; }
+
+  /* The drifting window is a PHONE mechanic. Desktop never builds it. */
+  #window { display: none; }
+  body.is-mobile #window { display: block; }
+  #window {
+    position: absolute; top: 0; z-index: 5; overflow: hidden; pointer-events: none;
+    -webkit-mask-image: linear-gradient(to bottom,
+      rgba(0,0,0,0) 0%, rgb(0,0,0) var(--m1), rgb(0,0,0) var(--m2), rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to bottom,
+      rgba(0,0,0,0) 0%, rgb(0,0,0) var(--m1), rgb(0,0,0) var(--m2), rgba(0,0,0,0) 100%);
+    will-change: opacity;
+  }
+  #strip { position: absolute; left: 0; right: 0; top: 0;
+    will-change: transform; backface-visibility: hidden; }
+
+  .prose { position: relative; padding: 13px 16px 11px; border-left: 3px solid var(--gold); }
+  .prose + .prose { margin-top: var(--card-gap); }
+
+  /* ============ the desktop rack ============ */
+  .rack { border: 3px solid rgba(255,255,255,0.16); background: rgba(8,14,26,0.72);
+    padding: 12px 12px 10px; position: sticky; top: 20px;
+    max-height: calc(100vh - 40px); overflow-y: auto; }
+  .rack-head { display: flex; align-items: baseline; justify-content: space-between;
+    font-family: var(--mono); font-size: 16px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: #9fb4cd;
+    border-bottom: 1px solid rgba(255,255,255,0.12); padding-bottom: 7px; margin-bottom: 9px; }
+  .rack-head .now { color: var(--gold); font-size: 19px; letter-spacing: 0.08em; }
+  .rack-count { font-family: var(--mono); font-size: 15px; letter-spacing: 0.08em;
+    color: #64748b; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 7px; }
+  .rack-count b { color: var(--gold); font-weight: 400; }
+  .grp { margin-bottom: 7px; break-inside: avoid; }
+  .grp > h4 { font-family: var(--mono); font-size: 13px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: #475569; margin: 0 0 2px; font-weight: 400; }
+  ul.rails { list-style: none; margin: 0; padding: 0; }
+  li.unit { display: grid; grid-template-columns: 9px minmax(0,1fr) auto;
+    align-items: center; gap: 7px; height: 18px;
+    font-family: var(--mono); font-size: 15px; letter-spacing: 0.02em;
+    transition: color 240ms ease, opacity 240ms ease; }
+  li.unit .led { width: 7px; height: 7px; background: #1e293b; transition: all 240ms ease; }
+  li.unit .yrs { font-size: 13px; color: #475569; }
+  li.unit.is-live { color: #fde68a; }
+  li.unit.is-live .led { background: var(--gold); box-shadow: 0 0 7px 1px rgba(251,191,36,0.75); }
+  li.unit.is-dark { color: #5b6d84; }
+  li.unit.is-dark .nm { text-decoration: line-through; text-decoration-color: rgba(91,109,132,0.6); }
+  li.unit.is-dark .led { background: #33415580; }
+  li.unit.just { animation: pop 520ms ease-out; }
+  @keyframes pop { 0% { transform: translateX(-4px); opacity: 0.2; } 100% { transform: none; opacity: 1; } }
+  li.unit.is-empty { display: none; }
+  .grp.all-empty { display: none; }
+
+  /* ============ mobile - the ladder layout, locked ============ */
+  body.is-mobile .column { margin: 0; max-width: none; background: rgba(15,23,42,0.72); }
+  body.is-mobile .inner { padding: 34px 15px 0; }
+  body.is-mobile .shell { display: block; }
+  body.is-mobile .rack { display: none; }
+  body.is-mobile #laneA { display: none; }
+  body.is-mobile h2.title { font-size: 34px; }
+  body.is-mobile .head { margin-bottom: 30px; }
+  body.is-mobile p.sub { font-size: 13px; }
+  body.is-mobile { --axis-w: 46px; }
+  body.is-mobile #proseWrap { left: calc(var(--axis-w) + 16px); right: 0; }
+  body.is-mobile .prose { padding: 11px 13px 9px; }
+  body.is-mobile .cap { font-size: 19px; }
+  body.is-mobile .beat { font-size: 15px; line-height: 1.65; }
+  body.is-mobile .op { font-size: 17px; }
+
+  .mrack { display: none; flex-direction: column;
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: var(--rack-h); z-index: 6;
+    background: rgba(7,12,23,0.96);
+    border-top: 3px solid rgba(251,191,36,0.35);
+    box-shadow: 0 -14px 34px rgba(0,0,0,0.55);
+    /* The sheet height follows the row count, so it grows as the rack fills. */
+    transition: height 320ms cubic-bezier(.22,.61,.36,1);
+  }
+  body.is-mobile .mrack { display: flex; }
+  .mrack .mhead { flex: 0 0 auto; display: flex; align-items: baseline; gap: 9px;
+    padding: 8px 14px 7px; border-bottom: 1px solid rgba(255,255,255,0.12);
+    font-family: var(--mono); letter-spacing: 0.1em; }
+  .mrack .mhead .y { font-size: 25px; color: var(--gold); line-height: 1; }
+  .mrack .mhead .c { font-size: 15px; color: #64748b; }
+  .mrack .mhead .c b { color: #fde68a; font-weight: 400; }
+  .mrack .mhead .btn { margin-left: auto; font-size: 15px; color: #64748b;
+    font-family: var(--mono); border: 1px dashed rgba(255,255,255,0.2);
+    padding: 0 9px; background: none; cursor: pointer; letter-spacing: 0.06em; }
+  .mrack .mhead .btn.on { color: var(--gold); border-color: rgba(251,191,36,0.5); }
+  /* Two EXPLICIT bays, not CSS columns. `columns: 2` inside a box with a
+     definite height does not scroll down when it runs out of room - it opens a
+     third column to the right, which is where the horizontal scrollbar came
+     from. Explicit bays cannot do that. */
+  .mrack .mbody { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; }
+  /* The bays sit in an inner block that is NOT the scroll container, so its
+     offsetHeight is the true content height. Measuring .mbody instead was a
+     ratchet: scrollHeight never reports less than the box's own height, so the
+     sheet could grow but never shrink again on the way back up. */
+  .mrack .mfit { padding: 9px 14px 12px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-content: start; }
+  .mrack .bay { min-width: 0; }
+  body.is-mobile .mrack li.unit { height: 21px; font-size: 16.5px; }
+  body.is-mobile .mrack li.unit .yrs { font-size: 14px; }
+  body.hide-dark .mrack li.unit.is-dark { display: none; }
+  body.hide-dark .mrack .grp.no-live { display: none; }
+
+  /* ============ prototype instruments, not design ============ */
+  .mark { position: absolute; left: 0; right: 0; height: 0; z-index: 40;
+    pointer-events: none; border-top: 1px dashed rgba(248,113,113,0.45); }
+  .mark.soft { border-top-style: dotted; border-top-color: rgba(248,113,113,0.22); }
+  .mark::after { position: absolute; right: 6px; top: 2px;
+    font-family: var(--mono); font-size: 12px; color: rgba(248,113,113,0.7); }
+  #readMark::after { content: "reading line"; }
+  #topMark::after { content: "fully faded in"; }
+  #botMark::after { content: "starts fading"; }
+  body.no-focusline .mark { display: none; }
+  /* The fade marks describe the phone window, so desktop shows only the line
+     that decides which year is current. */
+  #topMark, #botMark { display: none; }
+  body.is-mobile #topMark, body.is-mobile #botMark { display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .surface { scroll-behavior: auto; }
+    #laneA .card, li.unit, .yr, .yr .lbl, .yr .tk, .mrack { transition: none; }
+    li.unit.just { animation: none; }
+  }
+
+  /* ============ floating switcher (not part of the design) ============ */
+  .switcher { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%);
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px;
+    background: #0b1220; border: 1px solid #334155; border-radius: 18px; padding: 8px 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 60; font-size: 13px; max-width: 94vw; }
+  .switcher button { background: #1e293b; color: #e2e8f0; border: 1px solid #475569;
+    border-radius: 999px; width: 30px; height: 30px; cursor: pointer; font-size: 14px; line-height: 1; }
+  .switcher button.wide { width: auto; padding: 0 11px; height: 28px;
+    font-family: ui-monospace, monospace; font-size: 11.5px; }
+  .switcher button:hover { background: #334155; }
+  .switcher button.on { background: #422006; border-color: var(--gold); color: var(--gold); }
+  .switcher .label { min-width: 148px; text-align: center; color: #cbd5e1; }
+  .switcher .label b { color: #f8fafc; }
+  .switcher .state { font-family: ui-monospace, monospace; font-size: 11px;
+    color: #94a3b8; min-width: 100%; text-align: center; }
+  .switcher .state .hot { color: var(--gold); }
+  .switcher .state .bad { color: #fca5a5; }
+</style>
+</head>
+<body data-v="e">
+
+<div class="viewport" id="viewport">
+  <div class="scene" aria-hidden="true">
+    <div class="sun"></div>
+    <svg class="ridge-far" preserveAspectRatio="none" viewBox="0 0 1200 300">
+      <polygon fill="#4a7a8c" points="0,300 0,190 140,90 260,180 400,60 540,170 660,110 820,200 960,80 1100,170 1200,120 1200,300"/>
+    </svg>
+    <svg class="ridge-near" preserveAspectRatio="none" viewBox="0 0 1200 300">
+      <polygon fill="#31576b" points="0,300 0,160 180,60 340,150 520,40 700,150 860,90 1020,170 1200,80 1200,300"/>
+      <g fill="#1e3d4d">
+        <polygon points="120,140 135,95 150,140"/><polygon points="150,150 165,105 180,150"/>
+        <polygon points="480,120 495,72 510,120"/><polygon points="510,130 525,85 540,130"/>
+        <polygon points="840,150 855,105 870,150"/><polygon points="1080,130 1095,85 1110,130"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="surface" id="surface">
+    <div class="column" id="column">
+      <div class="inner">
+        <div class="head">
+          <p class="kicker">Coding</p>
+          <h2 class="title">Everything<br />I have run</h2>
+          <p class="sub">Three decades of tools, one year at a time. The rack shows what was
+            running in the year you are standing in.</p>
+        </div>
+        <div class="shell">
+          <div class="field" id="field">
+            <div class="axis" id="axis"></div>
+            <div id="laneA"></div>
+            <div id="proseWrap"></div>
+          </div>
+          <div class="rack" id="rack"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="window"><div id="strip"></div></div>
+
+  <div class="mrack" id="mrack"></div>
+  <div class="mark soft" id="topMark" aria-hidden="true"></div>
+  <div class="mark" id="readMark" aria-hidden="true"></div>
+  <div class="mark soft" id="botMark" aria-hidden="true"></div>
+</div>
+
+<div class="switcher">
+  <button type="button" id="prev" aria-label="Previous variant">&#8592;</button>
+  <span class="label" id="label"></span>
+  <button type="button" id="next" aria-label="Next variant">&#8594;</button>
+  <button type="button" class="wide" id="gap" title="Space between cards on the strip."></button>
+  <button type="button" class="wide" id="mask" title="How soft the top and bottom edges fade."></button>
+  <button type="button" class="wide" id="ppy" title="Pixels per year. This design wants 210 or more."></button>
+  <button type="button" class="wide" id="phone" title="Show the page inside a 390x844 frame."></button>
+  <span class="state" id="state"></span>
+</div>
+
+<script>
+/* =========================================================================
+   DATA
+   Pre-2005 prose verbatim from src/data/stories.ts. Tool sets from
+   src/data/career.ts and TechStackContent.tsx. Later prose is PLACEHOLDER.
+   ========================================================================= */
+
+/* Born 5 November 1982. The birthday falls late in the year, so for almost all
+   of a calendar year the age is (year - 1983) - that is the age the page
+   shows. The five pre-career stops are anchored to the years that match the
+   ages the prose itself states: 12 -> 1995, 16 -> 1999, 18 -> 2001, 19 -> 2002,
+   20 -> 2003. The earlier guess of 1984 had every one of them a year late. */
+const BIRTH = "1982-11-05";
+const ageIn = (year) => year - 1983;
+const Y0 = 1995, Y1 = 2026;
+
+const GROUP = {
+  QBasic: "language", "Turbo Pascal": "language", Delphi: "language",
+  JavaScript: "language", PHP: "language", Java: "language",
+  TypeScript: "language", Python: "language", Rust: "language",
+  HTML: "markup", CSS: "markup", Tailwind: "markup",
+  Qooxdoo: "framework", Play: "framework", Angular: "framework",
+  "Vue.js": "framework", React: "framework", Redux: "framework",
+  "Tanstack Start": "framework", GraphQL: "framework",
+  Highcharts: "framework", D3: "framework",
+  MySQL: "data", PostgreSQL: "data", MongoDB: "data", Redis: "data",
+  CrateDB: "data", Convex: "data", SpacetimeDB: "data",
+  AWS: "infra", Kubernetes: "infra", Hetzner: "infra", Coolify: "infra",
+  Windmill: "infra", Posthog: "infra", Grafana: "infra", Namecheap: "infra",
+  FastTracker: "elsewhere", IRC: "elsewhere", ICQ: "elsewhere",
+};
+const GROUP_ORDER = ["language", "markup", "framework", "data", "infra", "elsewhere"];
+
+const STOPS = [
+  { year: 1995, cap: "QBasic · Turbo Pascal · Delphi",
+    beats: ["I started coding with QBasic when I was 12 - text adventures and sounds squeezed out of the PC speaker. Then a bit of graphics in Turbo Pascal, and a look at Delphi."],
+    rack: ["QBasic", "Turbo Pascal", "Delphi"], dark: [] },
+
+  { year: 1999, cap: "SELFHTML · floppies · CSS",
+    beats: ["At 16 I found my love for web development: HTML and CSS. There was no internet at home - my parents knew it would pull me away from school, so I had to finish first.",
+            "I learned from SELFHTML on the school PCs and copied the pages onto floppies to keep going at home. Later, JavaScript."],
+    rack: ["HTML", "CSS", "JavaScript"], dark: [] },
+
+  { year: 2001, cap: "PC-room keys · CS · StarCraft · FastTracker",
+    beats: ["I got the keys to the PC room at school. I was responsible with them - and in the afternoons we played CS and StarCraft. My parents were proud I was staying late; they thought I was learning.",
+            "I broke DOS and Windows constantly just to see what would happen, and made music in FastTracker - loved it."],
+    rack: ["FastTracker"], dark: ["QBasic", "Turbo Pascal", "Delphi"] },
+
+  /* Deliberate no-change stop. The rack must survive one with nothing to say. */
+  { year: 2002, cap: "56k · the whole world",
+    beats: ["Then, internet. Mind blown."],
+    rack: [], dark: [] },
+
+  { year: 2003, cap: "IRC · ICQ · LAN parties",
+    beats: ["I was admin in a forum for my friends. We talked on IRC, later ICQ. Gaming and LAN parties - lots of gaming. My digital life had begun."],
+    rack: ["IRC", "ICQ"], dark: ["FastTracker"] },
+
+  { year: 2005, cap: "First paid work", ph: true,
+    beats: ["An e-commerce shop for children clothes with individual prints. The first time somebody paid for the pages I wrote."],
+    rack: ["PHP", "MySQL"], dark: [] },
+
+  { year: 2007, cap: "My own agency", ph: true,
+    beats: ["Acama Systems. Custom web solutions for automotive, finance and health customers. Every project a different shape, so the toolbox had to widen fast."],
+    rack: ["Java"], dark: ["IRC"] },
+
+  { year: 2009, cap: "Agency only", ph: true,
+    beats: ["The shop closed and the agency carried the whole load."],
+    rack: [], dark: ["ICQ"] },
+
+  { year: 2012, cap: "Into product", ph: true,
+    beats: ["Energy management, and my first real product team. A framework nobody outside the building had heard of."],
+    op: "A tool with no community is a tool you maintain alone.",
+    rack: ["Qooxdoo", "Play", "PostgreSQL"], dark: ["PHP", "Java"] },
+
+  { year: 2013, cap: "Big tech, one big app", ph: true,
+    beats: ["A business single-page app that manages an arbitrary number of assets. Six years on one codebase teaches you what actually decays."],
+    rack: ["Angular", "GraphQL", "Highcharts", "D3"], dark: ["Qooxdoo", "Play", "MySQL"] },
+
+  { year: 2016, cap: "The framework churn", ph: true,
+    beats: ["The second framework of the same decade for the same problem."],
+    op: "Pick the tool that will still be here in five years, then be wrong about it politely.",
+    rack: ["Vue.js"], dark: ["Angular"] },
+
+  { year: 2019, cap: "Types, finally", ph: true,
+    beats: ["Wind and solar forecasts, and charts with a million points at 60fps. Types stopped being optional for me here."],
+    rack: ["TypeScript", "React", "Redux"], dark: ["Vue.js", "GraphQL", "D3"] },
+
+  /* The two 2021 stops of iteration 1, merged onto one tick. */
+  { year: 2021, cap: "Two languages, and a team", ph: true,
+    beats: ["Dynamic ads, then dynamic sports video. Python next to TypeScript, every day.",
+            "Data orchestration, live video rendering, internal tooling, and a team. Also the first invoice that made me read a pricing page properly."],
+    rack: ["Python", "AWS", "Kubernetes"], dark: ["Redux", "Highcharts"] },
+
+  { year: 2022, cap: "Bringing it home", ph: true,
+    beats: ["I moved my own work off serverless and onto boxes I rent by the month."],
+    op: "Hetzner is the best compromise between cost, performance and value. I self-host as much as I can to avoid serverless horrors.",
+    rack: ["Hetzner", "Coolify", "MongoDB", "Redis"], dark: ["AWS"] },
+
+  { year: 2024, cap: "Millions of rows", ph: true,
+    beats: ["Pipelines for millions of movies and tv shows. Raw scraped data in one place, big data in another. And a new language for the parts that must not be slow."],
+    rack: ["Windmill", "CrateDB", "Rust"], dark: [] },
+
+  { year: 2025, cap: "The current shape", ph: true,
+    beats: ["A new app now means one command: Tanstack Start, Tailwind, Convex, on a Hetzner box. Plus the few services I still happily pay somebody else to run."],
+    rack: ["Tanstack Start", "Tailwind", "Convex", "SpacetimeDB", "Posthog", "Grafana", "Namecheap"],
+    dark: ["PostgreSQL"] },
+
+  /* Second no-change stop, on purpose: the closing opinion has no new tools. */
+  { year: 2026, cap: "How I work now", ph: true,
+    beats: ["Even in the age of LLMs I am still driven by following good coding practices."],
+    op: "The art of crafting an elegant solution to a complex problem just makes me happy. A good session is when I am fully locked in and ship a new version at the end.",
+    rack: [], dark: [] },
+];
+
+const YEARS = [];
+for (let y = Y0; y <= Y1; y++) YEARS.push(y);
+const STOP_AT = new Map(STOPS.map((s, i) => [s.year, i]));
+
+const UNITS = [];
+const BY_NAME = new Map();
+for (const s of STOPS) {
+  for (const n of s.rack) {
+    const u = { name: n, group: GROUP[n] ?? "elsewhere", from: s.year, to: null };
+    UNITS.push(u); BY_NAME.set(n, u);
+  }
+  for (const n of s.dark) { const u = BY_NAME.get(n); if (u) u.to = s.year; }
+}
+const RAILS = GROUP_ORDER
+  .map((g) => ({ group: g, units: UNITS.filter((u) => u.group === g) }))
+  .filter((r) => r.units.length);
+
+const stateAt = (u, y) => (y < u.from ? "empty" : u.to !== null && y >= u.to ? "dark" : "live");
+const yearsOf = (u) => (u.to === null ? u.from + "-" : u.from + "-" + u.to);
+
+/* =========================================================================
+   ELEMENTS + STATE
+   ========================================================================= */
+const surface  = document.getElementById("surface");
+const fieldEl  = document.getElementById("field");
+const axisEl   = document.getElementById("axis");
+const laneA    = document.getElementById("laneA");
+const proseWrap= document.getElementById("proseWrap");
+const winEl    = document.getElementById("window");
+const stripEl  = document.getElementById("strip");
+const rackEl   = document.getElementById("rack");
+const mrackEl  = document.getElementById("mrack");
+const vpEl     = document.getElementById("viewport");
+
+/* Desktop and phone are separate mechanics now, so they get separate steps.
+   The phone strip needs a long year to keep the drift under scroll speed. The
+   desktop timeline wants the years CLOSE - a step tall enough to clear every
+   one-year pair spends most of the page on empty years, so it takes a tighter
+   step and nudges the few cards that collide instead. */
+const PPY_SETS = {
+  desktop: [90, 120, 150, 190, 240, 300],
+  phone: [110, 150, 210, 260, 300, 380],
+};
+let ppyIx = { desktop: 2, phone: 3 };
+const ppySet = () => (isMobile() ? PPY_SETS.phone : PPY_SETS.desktop);
+const ppy = () => ppySet()[ppyIx[isMobile() ? "phone" : "desktop"]];
+
+const GAP_OPTIONS = [24, 56, 110, 190];
+let gapIndex = 2;
+const gap = () => GAP_OPTIONS[gapIndex];
+
+/* How much of the window each fade takes, top and bottom. */
+const MASK_OPTIONS = [12, 22, 34];
+let maskIndex = 2;
+const maskPct = () => MASK_OPTIONS[maskIndex];
+
+const VARIANTS = { l: "Linear", e: "Eased", d: "Dwell", u: "Uniform" };
+const VKEYS = Object.keys(VARIANTS);
+let variant = "e";
+
+/* The phone window is everything above the rack, and the reading line is its
+   middle - a card is CENTRED there, never hanging off it. The desktop has no
+   window at all, so its reading line is just the line that decides which year
+   is current. */
+const winH = () => Math.round(surface.clientHeight * 0.66);
+const readPx = () => (isMobile()
+  ? Math.round(winH() / 2)
+  : Math.round(surface.clientHeight * 0.38));
+
+/* Breathing room under a desktop card before the next year's card may start. */
+const DESK_GAP = 34;
+let desktopDrift = 0;
+
+let phoneMode = false;
+let yearTop = [];
+let centers = [];
+let leadIn = 0;
+let firstH = 0;
+let activeYear = Y0;
+let activeStop = -1;
+let counts = { live: 0, dark: 0 };
+let speedNow = 0;
+
+const mq = matchMedia("(max-width: 900px)");
+const isMobile = () => phoneMode || mq.matches;
+
+/* =========================================================================
+   BUILD
+   ========================================================================= */
+function cardBody(s) {
+  const parts = [];
+  for (const n of s.rack) parts.push('<span class="tag racked">racked ' + n + "</span>");
+  for (const n of s.dark) parts.push('<span class="tag gone">' + n + " went dark</span>");
+  return (
+    '<span class="age">age ' + ageIn(s.year) + "</span>" +
+    '<div class="cap">' + s.cap + "</div>" +
+    '<div class="full">' +
+      (s.ph ? '<span class="ph">placeholder prose</span>' : "") +
+      s.beats.map((b) => '<p class="beat">' + b + "</p>").join("") +
+      (s.op ? '<p class="op">' + s.op + "</p>" : "") +
+      (parts.length ? '<div class="change">' + parts.join("") + "</div>" : "") +
+    "</div>"
+  );
+}
+
+function grpHtml(r) {
+  return '<div class="grp" data-g="' + r.group + '"><h4>' + r.group + '</h4><ul class="rails">' +
+    r.units.map((u) =>
+      '<li class="unit" data-u="' + u.name + '"><span class="led"></span>' +
+      '<span class="nm">' + u.name + '</span>' +
+      '<span class="yrs">' + yearsOf(u) + "</span></li>").join("") +
+    "</ul></div>";
+}
+
+function railsHtml() {
+  return RAILS.map(grpHtml).join("");
+}
+
+/* Which bay each group sits in on the phone. Fixed, never rebalanced per year,
+   so a group does not jump columns as the rack fills. */
+const BAYS = [
+  ["language", "markup", "framework"],
+  ["data", "infra", "elsewhere"],
+];
+
+function railsBaysHtml() {
+  return '<div class="mfit">' + BAYS.map((names) =>
+    '<div class="bay">' +
+    RAILS.filter((r) => names.includes(r.group)).map(grpHtml).join("") +
+    "</div>").join("") + "</div>";
+}
+
+function build() {
+  axisEl.innerHTML = YEARS.map((y) =>
+    '<div class="yr' + (STOP_AT.has(y) ? " has" : "") + '" data-y="' + y + '">' +
+      '<span class="lbl">' + y + '</span><span class="tk"></span></div>').join("");
+
+  laneA.innerHTML = STOPS.map((s, i) =>
+    '<article class="card" data-i="' + i + '">' + cardBody(s) + "</article>").join("");
+
+  /* Every card, once, in one strip. Nothing is ever re-rendered after this. */
+  stripEl.innerHTML = STOPS.map((s, i) =>
+    '<article class="prose" data-i="' + i + '">' + cardBody(s) + "</article>").join("");
+
+  rackEl.innerHTML =
+    '<div class="rack-head"><span>The rack</span><span class="now" id="rackYear"></span></div>' +
+    railsHtml() + '<div class="rack-count" id="rackCount"></div>';
+
+  mrackEl.innerHTML =
+    '<div class="mhead"><span class="y" id="mYear"></span>' +
+      '<span class="c" id="mCount"></span>' +
+      '<button type="button" class="btn" id="mDark"></button></div>' +
+    '<div class="mbody">' + railsBaysHtml() + "</div>";
+
+  document.getElementById("mDark").onclick = () => {
+    document.body.classList.toggle("hide-dark");
+    paint(activeYear);
+  };
+}
+
+/* =========================================================================
+   LAYOUT
+   ========================================================================= */
+function layout() {
+  const mobile = isMobile();
+  const root = document.documentElement.style;
+  root.setProperty("--card-gap", gap() + "px");
+  root.setProperty("--m1", maskPct() + "%");
+  root.setProperty("--m2", (100 - maskPct()) + "%");
+
+  yearTop = YEARS.map((_, k) => k * ppy());
+  for (const el of axisEl.children) el.style.top = yearTop[Number(el.dataset.y) - Y0] + "px";
+
+  /* ---- desktop card placement, with a relax pass ------------------------
+     Every card starts at its true year. Where a one-year gap cannot hold the
+     card above it, only the LOWER CARD is nudged down, and a dotted connector
+     ties it back to its tick. Ticks never move, so the axis stays an honest
+     linear scale and the page does not have to be sized by its worst pair. */
+  desktopDrift = 0;
+  let lastBottom = 0;
+  for (const el of fieldEl.querySelectorAll(".conn")) el.remove();
+  const cards = [...laneA.children];
+  if (!mobile) {
+    cards.forEach((c) => { c.style.top = "0px"; });
+    const H = cards.map((c) => c.getBoundingClientRect().height);
+    let cursor = -Infinity;
+    STOPS.forEach((s, i) => {
+      const want = yearTop[s.year - Y0];
+      const got = Math.max(want, cursor);
+      cards[i].style.top = got + "px";
+      const drift = Math.round(got - want);
+      desktopDrift = Math.max(desktopDrift, drift);
+      if (drift > 4) {
+        const d = document.createElement("div");
+        d.className = "conn";
+        d.style.top = want + "px";
+        d.style.height = drift + "px";
+        fieldEl.appendChild(d);
+      }
+      cursor = got + H[i] + DESK_GAP;
+      lastBottom = cursor;
+    });
+  } else {
+    cards.forEach((c, i) => {
+      c.style.top = yearTop[STOPS[i].year - Y0] + "px";
+    });
+  }
+
+  const read = readPx();
+
+  if (mobile) {
+    /* The window takes its horizontal geometry from the marker inside the
+       field, and its height from the space above the rack. */
+    const vp = vpEl.getBoundingClientRect();
+    const sc = vp.width / (vpEl.offsetWidth || 1);   /* the phone frame may scale */
+    const w = proseWrap.getBoundingClientRect();
+    winEl.style.left = ((w.left - vp.left) / sc) + "px";
+    winEl.style.width = (w.width / sc) + "px";
+    winEl.style.height = winH() + "px";
+
+    /* Measure the strip AFTER the gap and width are in place. A card's centre
+       is what gets anchored, which is what stops it reading bottom-heavy. */
+    const kids = [...stripEl.children];
+    centers = kids.map((el) => el.offsetTop + el.offsetHeight / 2);
+
+    /* LEAD-IN. The card layer is pinned to the viewport, so without this the
+       first card floats over the heading. Only the FIRST card can ever collide
+       with it, so half of that card is the whole requirement. */
+    firstH = kids[0].offsetHeight;
+    leadIn = Math.round(firstH / 2 + 26);
+
+    document.getElementById("topMark").style.top =
+      Math.round(winH() * maskPct() / 100) + "px";
+    document.getElementById("botMark").style.top =
+      Math.round(winH() * (100 - maskPct()) / 100) + "px";
+  } else {
+    /* Desktop cards live in the scroll flow, so nothing can reach the heading
+       and no lead-in is needed. */
+    leadIn = 0;
+    firstH = 0;
+  }
+  fieldEl.style.marginTop = leadIn + "px";
+  document.getElementById("readMark").style.top = read + "px";
+
+  const last = yearTop[yearTop.length - 1];
+  const tail = Math.max(surface.clientHeight - read, 320);
+  /* A nudged last card can end below its own tick, so the page has to reach it. */
+  fieldEl.style.height = Math.max(last, lastBottom) + tail + "px";
+  axisEl.style.height = last + 20 + "px";
+}
+
+/* =========================================================================
+   THE STRIP POSITION
+   One function of the scroll line. Card k sits exactly on the reading line
+   when the scroll reaches year k, and the strip interpolates in between - so
+   the speed between two cards is their strip distance over their scroll
+   distance, and the length of the period is what sets it.
+   ========================================================================= */
+const stopTop = (i) => yearTop[STOPS[i].year - Y0];
+const fieldOffset = () =>
+  fieldEl.getBoundingClientRect().top - surface.getBoundingClientRect().top + surface.scrollTop;
+const scrollLine = () => surface.scrollTop + readPx() - fieldOffset();
+
+const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+const smooth = (x) => x * x * (3 - 2 * x);
+
+/* Where the first card's CENTRE sits, in viewport pixels, when the page is
+   scrolled all the way up: just below the heading, clamped so it always fits
+   above the rack. */
+function restTop() {
+  const headBottom = fieldOffset() - leadIn;
+  const want = headBottom + 22 + firstH / 2;
+  return Math.min(want, winH() - firstH / 2 - 12);
+}
+
+function ease(frac) {
+  if (variant === "l") return frac;
+  if (variant === "e") return smooth(frac);
+  /* D holds the card centred for the first quarter, then eases across. */
+  if (variant === "d") return smooth(clamp01((frac - 0.25) / 0.75));
+  return frac;
+}
+
+function stripPosAt(line) {
+  const n = STOPS.length;
+  if (variant === "u") {
+    /* One linear map across the whole page. Period length changes nothing. */
+    const a = stopTop(0), b = stopTop(n - 1);
+    const f = clamp01((line - a) / (b - a));
+    return centers[0] + f * (centers[n - 1] - centers[0]);
+  }
+  /* THE LEAD-IN SEGMENT. Above the first year the page is still showing its
+     heading, so
+     the first card does not sit on the reading line - it sits just under the
+     heading and rises to the line as the heading leaves. The old code parked
+     it on the line and then hid the whole layer, which is why the top of the
+     page had no card on it at all. */
+  if (line <= stopTop(0)) {
+    const off = fieldOffset();
+    const line0 = readPx() - off;                 /* the line at scrollTop 0 */
+    if (line <= line0) return centers[0] + readPx() - restTop();
+    const t = smooth(clamp01((line - line0) / (stopTop(0) - line0)));
+    const from = centers[0] + readPx() - restTop();
+    return from + t * (centers[0] - from);
+  }
+  if (line >= stopTop(n - 1)) return centers[n - 1];
+  let k = 0;
+  for (let i = 0; i < n; i++) if (stopTop(i) <= line) k = i;
+  const a = stopTop(k), b = stopTop(k + 1);
+  const e = ease(clamp01((line - a) / (b - a)));
+  return centers[k] + e * (centers[k + 1] - centers[k]);
+}
+
+function updateStrip() {
+  if (!isMobile()) { speedNow = 1; return; }   /* desktop scrolls one to one */
+  const line = scrollLine();
+  const pos = stripPosAt(line);
+  stripEl.style.transform = "translate3d(0," + (readPx() - pos).toFixed(1) + "px,0)";
+
+  /* Instantaneous speed, read straight off the curve. */
+  const d = 6;
+  speedNow = Math.abs(stripPosAt(line + d) - stripPosAt(line - d)) / (2 * d);
+}
+
+/* =========================================================================
+   PAINT - the year-level state: axis, ladder, rack
+   ========================================================================= */
+function paint(y) {
+  const yearChanged = y !== activeYear;
+  activeYear = y;
+
+  let cur = 0;
+  for (let i = 0; i < STOPS.length; i++) if (STOPS[i].year <= y) cur = i;
+  activeStop = cur;
+
+  for (const el of axisEl.children) {
+    const yy = Number(el.dataset.y);
+    el.classList.toggle("now", yy === y);
+    el.classList.toggle("past", yy < y);
+    el.classList.toggle("ahead", yy > y);
+  }
+  for (const c of laneA.children) c.classList.toggle("is-active", Number(c.dataset.i) === cur);
+
+  let live = 0, dark = 0;
+  for (const u of UNITS) {
+    const st = stateAt(u, y);
+    if (st === "live") live++;
+    if (st === "dark") dark++;
+    const cls = "unit is-" + st + (yearChanged && (u.from === y || u.to === y) ? " just" : "");
+    for (const el of document.querySelectorAll('[data-u="' + u.name + '"]')) el.className = cls;
+  }
+  for (const g of document.querySelectorAll(".grp")) {
+    g.classList.toggle("all-empty", !g.querySelector(".is-live, .is-dark"));
+    g.classList.toggle("no-live", !g.querySelector(".is-live"));
+  }
+
+  /* THE SHEET GROWS WITH THE RACK. At 2026 the rack holds 21 running units in
+     6 groups, which is 27 rail rows - a fixed 34% sheet shows 20 of them and
+     the last stop needed an internal scroll. The sheet height now follows the
+     row count instead, so the early years give the prose more room and the
+     final years get the height they need. The reading line does NOT move with
+     it: the window stays a fixed 66%, and a card simply slides under the
+     sheet, which is already inside the bottom fade. That keeps the year at the
+     reading line independent of the rack, so the two cannot chase each other. */
+  if (isMobile()) {
+    /* MEASURE, do not estimate. Counting rows and multiplying by a rail height
+       ran short - group headings, their margins and the padding are not
+       rail-sized - and a few pixels short is still a scrollbar.
+       Measure .mfit, never .mbody: .mbody is the scroll container, and its
+       scrollHeight cannot report less than its own height, so reading it made
+       the sheet a one-way ratchet that grew and never shrank again. .mfit is
+       an ordinary block, so its offsetHeight follows the content both ways. */
+    const fit = mrackEl.querySelector(".mfit");
+    const mh = mrackEl.querySelector(".mhead");
+    const px = mh.offsetHeight + fit.offsetHeight + 3;
+    const pct = Math.max(16, Math.min(48, (px / surface.clientHeight) * 100));
+    document.documentElement.style.setProperty("--rack-h", pct.toFixed(2) + "%");
+  }
+
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  set("rackYear", String(y));
+  set("rackCount", "<b>" + live + "</b> running · " + dark + " dark");
+  set("mYear", String(y));
+  set("mCount", "<b>" + live + "</b> running");
+  const dbtn = document.getElementById("mDark");
+  if (dbtn) {
+    const hidden = document.body.classList.contains("hide-dark");
+    dbtn.textContent = hidden ? "+" + dark + " dark" : "hide dark";
+    dbtn.classList.toggle("on", !hidden);
+  }
+  counts = { live: live, dark: dark };
+  report();
+}
+
+function report() {
+  const mobile = isMobile();
+  const fast = speedNow > 1.6;
+  document.getElementById("state").innerHTML =
+    (mobile ? "phone · " + VARIANTS[variant] : "desktop · linear") +
+    " · year " + activeYear + " · age " + ageIn(activeYear) +
+    " · stop " + (activeStop + 1) + "/" + STOPS.length +
+    " · " + counts.live + " live / " + counts.dark + " dark" +
+    (mobile
+      ? ' · strip <span class="' + (fast ? "bad" : "hot") + '">' +
+        speedNow.toFixed(2) + "x</span>"
+      : ' · step <span class="hot">' + ppy() + "px/yr</span> · worst nudge " +
+        '<span class="' + (desktopDrift > 140 ? "bad" : "hot") + '">' +
+        desktopDrift + "px</span>");
+}
+
+/* =========================================================================
+   SCROLL - native, read only. Nothing here moves the page.
+   ========================================================================= */
+function scrollTopForYear(y) {
+  return fieldOffset() + yearTop[y - Y0] - readPx();
+}
+function yearAtScroll() {
+  const line = scrollLine();
+  let y = Y0;
+  for (let k = 0; k < YEARS.length; k++) if (yearTop[k] <= line) y = YEARS[k];
+  return y;
+}
+
+let queued = false;
+surface.addEventListener("scroll", () => {
+  if (queued) return;
+  queued = true;
+  requestAnimationFrame(() => {
+    queued = false;
+    updateStrip();
+    const y = yearAtScroll();
+    if (y !== activeYear) paint(y); else report();
+  });
+}, { passive: true });
+
+/* =========================================================================
+   CONTROLS
+   ========================================================================= */
+function apply(keepYear) {
+  const y = keepYear ?? activeYear;
+  document.body.dataset.v = variant;
+  document.body.classList.toggle("phone", phoneMode);
+  document.body.classList.toggle("is-mobile", isMobile());
+  document.documentElement.style.setProperty("--phone-scale",
+    String(Math.min(1, (innerHeight - 110) / 844)));
+  /* The growing sheet is a mobile idea. On desktop the rack is a side column,
+     so hand --rack-h back to the stylesheet. */
+  if (!isMobile()) document.documentElement.style.removeProperty("--rack-h");
+
+  document.getElementById("label").innerHTML =
+    "<b>" + variant.toUpperCase() + "</b> — " + VARIANTS[variant];
+  document.getElementById("gap").textContent = "gap: " + gap() + "px";
+  document.getElementById("mask").textContent = "fade: " + maskPct() + "%";
+  document.getElementById("ppy").textContent = ppy() + " px/yr";
+  document.getElementById("phone").textContent = phoneMode ? "phone: on" : "phone: off";
+  document.getElementById("phone").classList.toggle("on", phoneMode);
+
+  const url = new URL(location.href);
+  url.searchParams.set("variant", variant);
+  history.replaceState(null, "", url);
+
+  layout();
+  surface.scrollTo({ top: scrollTopForYear(y), behavior: "instant" });
+  activeYear = -1;
+  updateStrip();
+  paint(y);
+}
+
+const cycleVariant = (d) => {
+  variant = VKEYS[(VKEYS.indexOf(variant) + d + VKEYS.length) % VKEYS.length];
+  apply();
+};
+document.getElementById("prev").onclick = () => cycleVariant(-1);
+document.getElementById("next").onclick = () => cycleVariant(1);
+document.getElementById("gap").onclick = () => {
+  gapIndex = (gapIndex + 1) % GAP_OPTIONS.length; apply();
+};
+document.getElementById("mask").onclick = () => {
+  maskIndex = (maskIndex + 1) % MASK_OPTIONS.length; apply();
+};
+document.getElementById("ppy").onclick = () => {
+  const k = isMobile() ? "phone" : "desktop";
+  ppyIx[k] = (ppyIx[k] + 1) % ppySet().length;
+  apply();
+};
+document.getElementById("phone").onclick = () => { phoneMode = !phoneMode; apply(); };
+
+/* An explicit key press may move the page. A wheel roll may not. */
+function jumpYear(d) {
+  const y = Math.max(Y0, Math.min(Y1, activeYear + d));
+  surface.scrollTo({ top: scrollTopForYear(y) });
+}
+addEventListener("keydown", (e) => {
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+  if (e.key === "ArrowLeft")  { e.preventDefault(); cycleVariant(-1); }
+  if (e.key === "ArrowRight") { e.preventDefault(); cycleVariant(1); }
+  if (e.key === "ArrowUp")    { e.preventDefault(); jumpYear(-1); }
+  if (e.key === "ArrowDown")  { e.preventDefault(); jumpYear(1); }
+  if (e.key === "f" || e.key === "F") document.body.classList.toggle("no-focusline");
+});
+
+let rt = null;
+addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => apply(activeYear), 140); });
+mq.addEventListener("change", () => apply(activeYear));
+
+/* =========================================================================
+   GO
+   ========================================================================= */
+build();
+document.body.classList.add("hide-dark");
+const p = new URL(location.href).searchParams.get("variant");
+variant = VKEYS.includes(p) ? p : "e";
+apply(Y0);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => apply(activeYear));
+</script>
+</body>
+</html>

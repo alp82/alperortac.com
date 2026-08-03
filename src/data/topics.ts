@@ -96,14 +96,14 @@ export type Topic = {
  * `CareerContent` component (so both render the same words).
  */
 export const CAREER_TEASER =
-	"Professionally, I worked both in small startups and tech giants like Cisco. Started as Frontend engineer with strong opinions and a knack for sharing knowledge. Started to lead small to big teams and being responsible for product goals and coordinated execution.\n\nI'm a freelance consultant. Working with fund tax compliance, intelligent traffic start-ups and robotics companies.";
+	"Professionally, I worked both in small startups and big tech. I began as a Frontend engineer with strong opinions and a knack for sharing knowledge. Started to lead small to big teams and being responsible for product goals and coordinated execution.\n\nAt the same time, I'm a freelance consultant. Working with fund tax compliance, intelligent traffic start-ups and robotics companies. I'm good at finding effective solutions to challenging problems, and I do that quickly.";
 
 /**
  * Coding teaser prose, shared by the `coding` TOPICS entry and the dedicated
  * `CodingContent` component (so both render the same words).
  */
 export const CODING_TEASER =
-	"Nowadays I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up Tanstack and self-hosting it on one of my Hetzner VPS.\n\nEven in the age of LLM's I'm still driven by following good coding practices. The art of crafting an elegant solution to a complex problem just makes me happy. A good session is when I'm fully locked in and ship a new version at the end.";
+	"I primarily code in Typescript. Depending on the task I also use Python and Rust. Always choose the right tool for the job. Most of the time that involves spinning up a new Tanstack Start project and self-hosting it on one of my Hetzner VPS.\n\nEven in the age of LLM's I'm still driven by following good coding practices. The art of crafting an elegant solution to a complex problem just makes me happy. A good session is when I'm fully locked in and ship a new version at the end.";
 
 export const TOPICS: Topic[] = [
 	{
@@ -121,9 +121,8 @@ export const TOPICS: Topic[] = [
 			number: 7,
 			replacements: [
 				{ strike: "jQuery", anchor: "Typescript" },
-				{ strike: "leveraging synergies", anchor: "elegant" },
-				{ strike: "// TODO: fix later", anchor: "self-hosting" },
-				{ strike: "10x rockstar ninja", anchor: "ship" },
+				{ strike: "leveraging synergies", anchor: "crafting an elegant" },
+				{ strike: "add 10 more tickets to the backlog", anchor: "ship a new version" },
 			],
 		},
 	},

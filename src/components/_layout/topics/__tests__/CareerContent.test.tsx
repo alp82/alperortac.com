@@ -4,7 +4,7 @@
  * CareerContent tests - restored contract.
  *
  * The band contract is: the two-paragraph CAREER_TEASER prose (Paragraph
- * primitive, CodingContent pattern) followed by a "See the work history"
+ * primitive, CodingContent pattern) followed by a "See my work history"
  * TriggerCard (trigger.kind "career") that dives to the CareerPanel
  * subpage. There is no highlight strip and no timeline - the 7-entry
  * work-history timeline lives only on the CareerPanel subpage (see
@@ -92,11 +92,11 @@ describe("CareerContent", () => {
 		expect(screen.queryByText(label)).toBeNull();
 	});
 
-	// TC-CC-13 - a single "See the work history" TriggerCard button renders
-	it('renders exactly one "See the work history" trigger button', () => {
+	// TC-CC-13 - a single "See my work history" TriggerCard button renders
+	it('renders exactly one "See my work history" trigger button', () => {
 		render(<CareerContent {...sharedProps} />);
 		const buttons = screen.getAllByRole("button", {
-			name: /see the work history/i,
+			name: /see my work history/i,
 		});
 		expect(buttons.length).toBe(1);
 	});
@@ -106,7 +106,7 @@ describe("CareerContent", () => {
 		render(<CareerContent {...sharedProps} />);
 		const secondParagraph = screen.getByText(/I'm a freelance consultant/i);
 		const trigger = screen.getByRole("button", {
-			name: /see the work history/i,
+			name: /see my work history/i,
 		});
 		// DOCUMENT_POSITION_FOLLOWING (4) set means `trigger` follows the paragraph.
 		const position = secondParagraph.compareDocumentPosition(trigger);
@@ -114,11 +114,11 @@ describe("CareerContent", () => {
 	});
 
 	// TC-CC-16 - clicking the trigger button navigates to /career and pins the ref
-	it('clicking "see the work history" navigates to /career with resetScroll false and sets lastTriggerRef', () => {
+	it('clicking "see my work history" navigates to /career with resetScroll false and sets lastTriggerRef', () => {
 		const ref = createRef<HTMLElement | null>();
 		render(<CareerContent {...sharedProps} lastTriggerRef={ref} />);
 		const button = screen.getByRole("button", {
-			name: /see the work history/i,
+			name: /see my work history/i,
 		});
 		fireEvent.click(button);
 		expect(navigate).toHaveBeenCalledWith({
