@@ -39,7 +39,7 @@ export const SUBPAGE_WORDS: Partial<
 	Record<PanelKey, readonly [string, string]>
 > = {
 	career: ["WORK", "HISTORY"],
-	"early-days": ["EARLY", "DAYS"],
+	"early-days": ["CODING", "YEARS"],
 	goodwatch: ["GOOD", "WATCH"],
 	aistack: ["AI", "STACK"],
 	forge: ["FORGE", "PIPELINE"],

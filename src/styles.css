@@ -557,105 +557,527 @@ body.panel-open nav {
 	pointer-events: auto;
 }
 
-/* Early Days era timeline: soft gutter spine + scroll reveal, CRT-chip era media. */
-.era-spine {
+/* ===========================================================================
+   CODING SUBPAGE - year ladder + tool rack.
+   Design locked in .prototypes/coding-subpage-years.html (iteration 8).
+   Mechanics and geometry notes live in CodingLadderPanel.tsx; this file only
+   carries the paint plus the two things Tailwind cannot express - the strip
+   mask and the year axis.
+   =========================================================================== */
+.coding-panel {
+	--coding-gold: #fbbf24;
+	--coding-mono: "VT323", "Courier New", monospace;
+	--coding-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+	--coding-axis-w: 78px;
+	/* Space between two cards on the phone strip. */
+	--coding-card-gap: 110px;
+	/* How much of the phone window each fade takes, top and bottom. */
+	--coding-mask-1: 34%;
+	--coding-mask-2: 66%;
+	color: #f8fafc;
+}
+.coding-panel.coding-mobile {
+	--coding-axis-w: 46px;
+}
+
+.coding-column {
+	max-width: 1180px;
+	margin: 8vh auto;
+}
+.coding-mobile .coding-column {
+	max-width: none;
+	margin: 0;
+}
+.coding-inner {
+	padding: 3.5rem 2.5rem 4.5rem;
+}
+.coding-mobile .coding-inner {
+	padding: 2.1rem 0.95rem 0;
+}
+
+.coding-head {
+	margin-bottom: 2.75rem;
+}
+.coding-mobile .coding-head {
+	margin-bottom: 1.9rem;
+}
+.coding-kicker {
+	font-family: var(--coding-mono);
+	font-size: 19px;
+	letter-spacing: 0.28em;
+	text-transform: uppercase;
+	color: var(--coding-gold);
+	margin: 0 0 8px;
+	line-height: 1;
+}
+.coding-title {
+	margin: 0;
+	font-weight: 900;
+	text-transform: uppercase;
+	letter-spacing: -0.045em;
+	line-height: 0.9;
+	font-size: clamp(34px, 6vw, 68px);
+}
+.coding-mobile .coding-title {
+	font-size: 34px;
+}
+.coding-sub {
+	font-size: 14px;
+	opacity: 0.7;
+	margin: 16px 0 0;
+	max-width: 46ch;
+	line-height: 1.55;
+}
+.coding-mobile .coding-sub {
+	font-size: 13px;
+}
+
+.coding-shell {
+	display: grid;
+	gap: 40px;
+	align-items: start;
+	grid-template-columns: minmax(0, 1fr) 236px;
+}
+.coding-mobile .coding-shell {
+	display: block;
+}
+
+/* ---- the year ladder - the map, and it scrolls ---- */
+.coding-field {
 	position: relative;
 }
-.era-spine::before {
-	content: "";
+.coding-axis {
 	position: absolute;
-	left: 3.55rem;
+	left: 0;
 	top: 0;
 	bottom: 0;
-	width: 1px;
-	background: linear-gradient(
-		180deg,
-		transparent,
-		rgba(252, 211, 77, 0.26) 12%,
-		rgba(252, 211, 77, 0.26) 88%,
-		transparent
+	width: var(--coding-axis-w);
+	border-right: 1px solid rgba(148, 180, 220, 0.2);
+}
+.coding-yr {
+	position: absolute;
+	right: 0;
+	height: 0;
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	transition: opacity 200ms ease;
+}
+.coding-yr-lbl {
+	font-family: var(--coding-mono);
+	font-size: 17px;
+	line-height: 1;
+	letter-spacing: 0.05em;
+	color: #56697f;
+	transform: translateY(-1px);
+	transition:
+		color 200ms ease,
+		font-size 160ms ease;
+}
+.coding-yr-tk {
+	display: block;
+	height: 1px;
+	width: 8px;
+	background: rgba(148, 180, 220, 0.28);
+	transition:
+		width 200ms ease,
+		background 200ms ease;
+}
+.coding-yr-has .coding-yr-lbl {
+	color: #9fb4cd;
+}
+.coding-yr-has .coding-yr-tk {
+	width: 17px;
+	background: rgba(251, 191, 36, 0.55);
+}
+.coding-yr-past .coding-yr-lbl {
+	color: #7d8ea3;
+}
+.coding-yr-ahead {
+	opacity: 0.55;
+}
+.coding-yr-now .coding-yr-lbl {
+	color: var(--coding-gold);
+	font-size: 22px;
+}
+.coding-yr-now .coding-yr-tk {
+	width: 24px;
+	height: 2px;
+	background: var(--coding-gold);
+}
+
+/* ---- desktop: one card per year, in the scroll flow ---- */
+.coding-lane {
+	position: absolute;
+	top: 0;
+	left: calc(var(--coding-axis-w) + 30px);
+	right: 0;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+.coding-card {
+	position: absolute;
+	left: 0;
+	right: 0;
+	max-width: 620px;
+	padding-left: 18px;
+	border-left: 3px solid rgba(251, 191, 36, 0.16);
+	transition: border-color 260ms ease;
+}
+/* Everything stays readable - this is a document, not a viewer. Only the rule
+   and the age chip mark where you are. */
+.coding-card-active {
+	border-left-color: var(--coding-gold);
+}
+.coding-card-active .coding-age {
+	color: var(--coding-gold);
+}
+/* Where two stops are one year apart the axis cannot hold them both, so the
+   lower card is nudged down and a dotted connector ties it back to its real
+   tick. The TICK never moves - the ladder reads the data, not the layout. */
+.coding-conn {
+	position: absolute;
+	width: 0;
+	left: calc(var(--coding-axis-w) + 14px);
+	border-left: 1px dotted rgba(251, 191, 36, 0.45);
+	pointer-events: none;
+}
+.coding-prosewrap {
+	position: absolute;
+	top: 0;
+	height: 0;
+	left: calc(var(--coding-axis-w) + 16px);
+	right: 0;
+}
+
+/* ---- card type ---- */
+.coding-age {
+	font-family: var(--coding-mono);
+	font-size: 19px;
+	letter-spacing: 0.1em;
+	color: #64748b;
+	display: block;
+	margin-bottom: 3px;
+	transition: color 300ms ease;
+}
+.coding-prose .coding-age {
+	color: var(--coding-gold);
+}
+.coding-cap {
+	font-family: var(--coding-mono);
+	font-size: 21px;
+	letter-spacing: 0.06em;
+	color: var(--coding-gold);
+	margin: 0 0 9px;
+	line-height: 1.15;
+}
+.coding-mobile .coding-cap {
+	font-size: 19px;
+}
+.coding-beat {
+	font-size: 15.5px;
+	line-height: 1.7;
+	margin: 0 0 10px;
+}
+.coding-mobile .coding-beat {
+	font-size: 15px;
+	line-height: 1.65;
+}
+.coding-op {
+	font-family: var(--coding-serif);
+	font-style: italic;
+	font-size: 18px;
+	line-height: 1.5;
+	opacity: 0.88;
+	margin: 0 0 10px;
+}
+.coding-mobile .coding-op {
+	font-size: 17px;
+}
+.coding-change {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+	margin-top: 2px;
+}
+.coding-tag {
+	font-family: var(--coding-mono);
+	font-size: 14px;
+	letter-spacing: 0.04em;
+	padding: 0 7px;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.coding-tag-racked {
+	color: #fde68a;
+	border-color: rgba(251, 191, 36, 0.42);
+}
+.coding-tag-gone {
+	color: #7f93ab;
+	text-decoration: line-through;
+}
+
+/* ---- phone: the pinned window and the drifting strip ----
+   The window is pinned to the viewport, carries the mask, and holds one strip
+   of every card. Only the strip's transform is written per frame - no layout,
+   no opacity juggling, no transitions. */
+.coding-window {
+	position: fixed;
+	top: 0;
+	z-index: 5;
+	overflow: hidden;
+	pointer-events: none;
+	-webkit-mask-image: linear-gradient(
+		to bottom,
+		rgba(0, 0, 0, 0) 0%,
+		rgb(0, 0, 0) var(--coding-mask-1),
+		rgb(0, 0, 0) var(--coding-mask-2),
+		rgba(0, 0, 0, 0) 100%
+	);
+	mask-image: linear-gradient(
+		to bottom,
+		rgba(0, 0, 0, 0) 0%,
+		rgb(0, 0, 0) var(--coding-mask-1),
+		rgb(0, 0, 0) var(--coding-mask-2),
+		rgba(0, 0, 0, 0) 100%
 	);
 }
-.era-reveal {
-	opacity: 0;
-	transform: translateY(18px);
+.coding-strip {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	will-change: transform;
+	backface-visibility: hidden;
+}
+.coding-prose {
+	position: relative;
+	padding: 11px 13px 9px;
+	border-left: 3px solid var(--coding-gold);
+}
+.coding-prose + .coding-prose {
+	margin-top: var(--coding-card-gap);
+}
+
+/* ---- the rack ---- */
+.coding-rack {
+	border: 3px solid rgba(255, 255, 255, 0.16);
+	background: rgba(8, 14, 26, 0.72);
+	padding: 12px 12px 10px;
+	position: sticky;
+	/* Clears the fixed Back / Close header band the subpages share. */
+	top: 76px;
+	max-height: calc(100vh - 96px);
+	overflow-y: auto;
+}
+.coding-rack-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	font-family: var(--coding-mono);
+	font-size: 16px;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: #9fb4cd;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+	padding-bottom: 7px;
+	margin-bottom: 9px;
+}
+.coding-rack-now {
+	color: var(--coding-gold);
+	font-size: 19px;
+	letter-spacing: 0.08em;
+}
+.coding-rack-count {
+	font-family: var(--coding-mono);
+	font-size: 15px;
+	letter-spacing: 0.08em;
+	color: #64748b;
+	margin-top: 8px;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	padding-top: 7px;
+}
+.coding-rack-count b {
+	color: var(--coding-gold);
+	font-weight: 400;
+}
+.coding-grp {
+	margin-bottom: 7px;
+}
+.coding-grp > h4 {
+	font-family: var(--coding-mono);
+	font-size: 13px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: #475569;
+	margin: 0 0 2px;
+	font-weight: 400;
+}
+.coding-rails {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+.coding-unit {
+	display: grid;
+	grid-template-columns: 9px minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 7px;
+	height: 18px;
+	font-family: var(--coding-mono);
+	font-size: 15px;
+	letter-spacing: 0.02em;
 	transition:
-		opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
-		transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+		color 240ms ease,
+		opacity 240ms ease;
 }
-.era-reveal.is-revealed {
-	opacity: 1;
-	transform: none;
+.coding-led {
+	width: 7px;
+	height: 7px;
+	background: #1e293b;
+	transition: all 240ms ease;
 }
-.era-reveal.era-reveal-instant {
-	transition: none;
+.coding-yrs {
+	font-size: 13px;
+	color: #475569;
 }
-@media (prefers-reduced-motion: reduce) {
-	.era-reveal {
-		opacity: 1;
+.coding-unit-live {
+	color: #fde68a;
+}
+.coding-unit-live .coding-led {
+	background: var(--coding-gold);
+	box-shadow: 0 0 7px 1px rgba(251, 191, 36, 0.75);
+}
+.coding-unit-dark {
+	color: #5b6d84;
+}
+.coding-unit-dark .coding-nm {
+	text-decoration: line-through;
+	text-decoration-color: rgba(91, 109, 132, 0.6);
+}
+.coding-unit-dark .coding-led {
+	background: rgba(51, 65, 85, 0.5);
+}
+.coding-unit-just {
+	animation: coding-pop 520ms ease-out;
+}
+@keyframes coding-pop {
+	0% {
+		transform: translateX(-4px);
+		opacity: 0.2;
+	}
+	100% {
 		transform: none;
+		opacity: 1;
+	}
+}
+
+/* ---- phone: the rack as a bottom sheet ----
+   The sheet height follows the row count, so it grows as the rack fills. */
+.coding-sheet {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 34%;
+	z-index: 6;
+	display: flex;
+	flex-direction: column;
+	background: rgba(7, 12, 23, 0.96);
+	border-top: 3px solid rgba(251, 191, 36, 0.35);
+	box-shadow: 0 -14px 34px rgba(0, 0, 0, 0.55);
+	transition: height 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.coding-sheet-head {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: baseline;
+	gap: 9px;
+	padding: 8px 14px 7px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+	font-family: var(--coding-mono);
+	letter-spacing: 0.1em;
+}
+.coding-sheet-year {
+	font-size: 25px;
+	color: var(--coding-gold);
+	line-height: 1;
+}
+.coding-sheet-count {
+	font-size: 15px;
+	color: #64748b;
+}
+.coding-sheet-count b {
+	color: #fde68a;
+	font-weight: 400;
+}
+.coding-sheet-btn {
+	margin-left: auto;
+	min-height: 30px;
+	font-size: 15px;
+	color: #64748b;
+	font-family: var(--coding-mono);
+	border: 1px dashed rgba(255, 255, 255, 0.2);
+	padding: 0 9px;
+	background: none;
+	cursor: pointer;
+	letter-spacing: 0.06em;
+}
+.coding-sheet-btn-on {
+	color: var(--coding-gold);
+	border-color: rgba(251, 191, 36, 0.5);
+}
+.coding-sheet-body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+/* Two EXPLICIT bays, not CSS columns. `columns: 2` inside a box with a definite
+   height does not scroll down when it runs out of room - it opens a third
+   column to the right, and that is a horizontal scrollbar. Explicit bays cannot
+   do that.
+   The bays sit in an inner block that is NOT the scroll container, so its
+   offsetHeight is the true content height - see the measuring note in
+   CodingLadderPanel.tsx. */
+.coding-sheet-fit {
+	padding: 9px 14px 12px;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0 16px;
+	align-content: start;
+}
+.coding-bay {
+	min-width: 0;
+}
+.coding-sheet .coding-unit {
+	height: 21px;
+	font-size: 16.5px;
+}
+.coding-sheet .coding-yrs {
+	font-size: 14px;
+}
+.coding-hide-dark .coding-unit-dark {
+	display: none;
+}
+.coding-hide-dark .coding-grp-nolive {
+	display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.coding-card,
+	.coding-unit,
+	.coding-led,
+	.coding-yr,
+	.coding-yr-lbl,
+	.coding-yr-tk,
+	.coding-age,
+	.coding-sheet {
 		transition: none;
 	}
-}
-/* Era numeral on a compact dark-green CRT screen chip: cream phosphor numerals,
-   contained scanlines, amber phosphor caption. Rendered unconditionally. */
-.era-chip {
-	display: inline-flex;
-	align-items: baseline;
-	justify-content: center;
-	overflow: hidden;
-	border-radius: 7px;
-	font-family: "VT323", "Courier New", monospace;
-	font-size: 2.2rem;
-	line-height: 1;
-	padding: 0.34rem 0.5rem 0.2rem;
-	border: 1.5px solid rgba(255, 247, 237, 0.12);
-	background: radial-gradient(
-		120% 130% at 50% 10%,
-		#0e200e 0%,
-		#08140880 70%,
-		#050a0566 100%
-	);
-	box-shadow:
-		inset 0 0 14px rgba(0, 0, 0, 0.5),
-		0 2px 7px rgba(0, 0, 0, 0.22);
-	color: rgba(255, 247, 237, 0.42);
-	text-shadow: 0 0 8px rgba(255, 247, 237, 0.18);
-}
-.era-chip::after {
-	content: "";
-	position: absolute;
-	inset: 0;
-	pointer-events: none;
-	mix-blend-mode: multiply;
-	background: repeating-linear-gradient(
-		180deg,
-		rgba(0, 0, 0, 0.2) 0 1px,
-		transparent 1px 4px
-	);
-}
-.era-chip-suffix {
-	font-size: 0.5em;
-}
-.era-title {
-	font-family: "VT323", "Courier New", monospace;
-	font-size: 0.92rem;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
-	/* Alpha nudged 0.74 -> 0.80 (wayfinder #28): clears WCAG AA at 4.76:1 on the
-	   rust panel, same amber hue. */
-	color: rgba(252, 211, 77, 0.8);
-	text-shadow: 0 0 6px rgba(252, 211, 77, 0.3);
-}
-@media (min-width: 640px) {
-	.era-chip {
-		font-size: 3rem;
-		padding: 0.42rem 0.6rem 0.26rem;
-	}
-}
-@media (max-width: 640px) {
-	.era-spine::before {
-		left: 2.15rem;
+	.coding-unit-just {
+		animation: none;
 	}
 }
 

@@ -31,12 +31,16 @@ export type Story = {
 export const STORIES: Story[] = [
 	{
 		slug: "early-days",
-		title: "The Early Days",
+		/* The subpage grew past the early days: it is now the whole coding ladder,
+		   1995 to today, with the tool rack beside it (see src/data/coding.ts).
+		   The eras below stay the source of its first five stops, and the slug
+		   stays "early-days" so the URL does not break. */
+		title: "Everything I have run",
 		Icon: Clock,
 		tileBg: "bg-orange-100",
 		tileFg: "text-orange-900",
-		panelBg: "#7c2d12",
-		panelFg: "#fff7ed",
+		panelBg: "#1e293b",
+		panelFg: "#f8fafc",
 		eras: [
 			{
 				age: "12",

@@ -15,7 +15,7 @@ import {
 import { STORIES, type StorySlug } from "../../data/stories";
 import type { PersonalSlug } from "../../data/topics";
 import { CAREER_PANEL_TITLE_ID, CareerPanel } from "../CareerPanel";
-import { EarlyDaysPanel, getStoryPanelTitleId } from "../EarlyDaysPanel";
+import { CodingLadderPanel, getStoryPanelTitleId } from "../CodingLadderPanel";
 import { getProjectPanelTitleId, ProjectPanel } from "../ProjectPanel";
 import { SKY_PANEL_TITLE_ID, SkyTuningPanel } from "../SkyTuningPanel";
 import { getPersonalPanelTitleId, PersonalPanel } from "./PersonalPanel";
@@ -380,7 +380,7 @@ export function PanelHost({
 						} as React.CSSProperties
 					}
 				>
-					<EarlyDaysPanel
+					<CodingLadderPanel
 						story={story}
 						onClose={() => panelRefs[story.slug].current?.close()}
 					/>
