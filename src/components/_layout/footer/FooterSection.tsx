@@ -18,7 +18,9 @@ function FooterSectionInner() {
 			className="pb-16 px-6 border-t border-current/20 bg-slate-900/40 backdrop-blur-md transition-colors duration-100"
 			style={{ color: "#f8fafc" }}
 		>
-			<div className="max-w-6xl mx-auto flex flex-col gap-24">
+			{/* pt-16 is space between the border-t rule and the headline, inside
+			    the section - not boundary padding, which RhythmGap owns. */}
+			<div className="max-w-6xl mx-auto flex flex-col gap-24 pt-16">
 				<div className="flex flex-col gap-6">
 					<FooterHeadline />
 					<FooterContact />
