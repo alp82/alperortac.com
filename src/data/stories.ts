@@ -35,7 +35,7 @@ export const STORIES: Story[] = [
 		   1995 to today, with the tool rack beside it (see src/data/coding.ts).
 		   The eras below stay the source of its first five stops, and the slug
 		   stays "early-days" so the URL does not break. */
-		title: "Everything I have run",
+		title: "From Early Days to Today",
 		Icon: Clock,
 		tileBg: "bg-orange-100",
 		tileFg: "text-orange-900",
