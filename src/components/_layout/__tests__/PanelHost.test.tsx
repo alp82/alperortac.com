@@ -20,7 +20,7 @@ const cardCoreOnly: Project = {
 	desc: "AI chamber for the modern engineer.",
 	link: "https://github.com/alp82/curia",
 	status: "building",
-	highlight: false,
+	group: "tools",
 	tags: ["AI", "Open Source"],
 	color: "bg-cyan-100 text-cyan-800",
 	iconKey: "Landmark",

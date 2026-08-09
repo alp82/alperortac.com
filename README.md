@@ -1,6 +1,6 @@
 # alperortac.com
 
-Personal site for Alper Ortac. A vertical-scroll journey through atmosphere, time, and depth.
+Personal site for Alper Ortac.
 
 The page is one path: **hero → socials → projects → craft → collab**. Scrolling it drives the sky from noon through dusk to night, sets the sun and raises the moon. Every card along the way is a dive: it zooms open a floating subpage while the landscape stays visible around it.
 

@@ -40,6 +40,46 @@ describe("PROJECTS data", () => {
 		}
 	});
 
+	it("has every referenced cardShot src existing on disk under public/", () => {
+		const publicDir = path.resolve(process.cwd(), "public");
+		for (const project of PROJECTS) {
+			if (!project.cardShot) continue;
+			const filePath = path.join(publicDir, project.cardShot.src);
+			expect(
+				fs.existsSync(filePath),
+				`Missing cardShot file: ${filePath}`,
+			).toBe(true);
+		}
+	});
+
+	// The 2026-08-09 revamp shape: three labeled groups in band order (within a
+	// group the band renders data order). Curia is the one tools card without a
+	// cardShot - it renders its live thread artwork instead; both apps carry a
+	// proof line (placeholder copy until verified facts land).
+	it("groups the eight projects 2 apps / 4 tools / 2 personal, in band order", () => {
+		const bySlugOf = (group: string) =>
+			PROJECTS.filter((p) => p.group === group).map((p) => p.slug);
+		expect(bySlugOf("apps")).toEqual(["goodwatch", "aistack"]);
+		expect(bySlugOf("tools")).toEqual([
+			"alfredo",
+			"curia",
+			"claude-statusline",
+			"forge",
+		]);
+		expect(bySlugOf("personal")).toEqual(["alperortac-com", "manaschmiede"]);
+		for (const p of PROJECTS) {
+			if (p.group === "apps") {
+				expect(p.proof, `${p.slug} needs a proof line`).toBeTruthy();
+				expect(p.cardShot, `${p.slug} needs a cardShot`).toBeTruthy();
+			}
+			if (p.group === "tools") {
+				expect(Boolean(p.cardShot), `${p.slug} cardShot presence`).toBe(
+					p.slug !== "curia",
+				);
+			}
+		}
+	});
+
 	// The band tints every card's icon tile from panelColor; two projects
 	// sharing a tint (or falling back to the same neutral) collapse into an
 	// indistinguishable pair on the band - the exact defect the stub tints fix.
@@ -69,12 +109,10 @@ describe("PROJECTS self-reference (alperortac-com)", () => {
 	it("card copy verbatim and the band tint stay put", () => {
 		const site = find("alperortac-com");
 		expect(site.title).toBe("alperortac.com");
-		expect(site.desc).toBe(
-			"Personal portfolio site: a vertical-scroll journey through atmosphere, time, and depth.",
-		);
+		expect(site.desc).toBe("Personal portfolio site");
 		expect(site.link).toBe("https://github.com/alp82/alperortac.com");
 		expect(site.status).toBe("shipped");
-		expect(site.highlight).toBe(false);
+		expect(site.group).toBe("personal");
 		expect(site.tags).toEqual(["Portfolio", "Open Source"]);
 		expect(site.panelColor).toBe("#0369a1");
 		expect(site.panelLight).toBeUndefined();
@@ -230,7 +268,7 @@ describe("PROJECTS verbatim copy", () => {
 		);
 		expect(cs.link).toBe("https://github.com/alp82/claude-statusline");
 		expect(cs.status).toBe("shipped");
-		expect(cs.highlight).toBe(false);
+		expect(cs.group).toBe("tools");
 		expect(cs.tags).toEqual(["Claude Code", "Bash"]);
 		expect(cs.panelColor).toBe("#365314");
 		expect(cs.extraLinks).toEqual([
@@ -262,7 +300,7 @@ describe("PROJECTS verbatim copy", () => {
 		expect(curia.desc).toBe("AI chamber for the modern engineer.");
 		expect(curia.link).toBe("https://github.com/alp82/curia");
 		expect(curia.status).toBe("building");
-		expect(curia.highlight).toBe(false);
+		expect(curia.group).toBe("tools");
 		expect(curia.tags).toEqual(["AI", "Open Source"]);
 		expect(curia.panelColor).toBe("#164e63");
 		expect(curia.problem).toBe(
@@ -330,9 +368,9 @@ describe("PROJECTS verbatim copy", () => {
 		// escapes there and the repo takes the secondary link.
 		expect(alfredo.link).toBe("https://getalfredo.com");
 		expect(alfredo.status).toBe("building");
-		// Why false, and why amber over Alfredo's own coral: see the entry's own
-		// comments in projects.ts. The band-layout half is pinned by PS-15.
-		expect(alfredo.highlight).toBe(false);
+		// Why amber over Alfredo's own coral: see the entry's own comments in
+		// projects.ts. The band renders tools as the 2x2 self-portrait grid.
+		expect(alfredo.group).toBe("tools");
 		expect(alfredo.tags).toEqual(["Self-Hosted", "Open Source"]);
 		expect(alfredo.color).toBe("bg-amber-100 text-amber-800");
 		expect(alfredo.panelColor).toBe("#78350f");

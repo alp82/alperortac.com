@@ -51,16 +51,38 @@ export type ProjectMedia =
 	| { type: "image"; src: string; alt?: string }
 	| { type: "illustration" };
 
-// Whether the project is live or actively being built. Data-only today: the
-// locked band design (ticket #44) renders NO status badge - a "building" card
-// looks and behaves identically to a shipped one.
+// Whether the project is live or actively being built. Data-only: the band
+// renders NO status badge - every project here is actively maintained, so a
+// "building" card looks and behaves identically to a shipped one (re-confirmed
+// in the 2026-08-09 revamp grilling).
 export type ProjectStatus = "building" | "shipped";
+
+// The band's three labeled groups (2026-08-09 revamp). The group decides the
+// card treatment AND the audience argument:
+// - "apps": client proof. Live products, full-width poster rows.
+// - "tools": dev proof. AI tooling, 2x2 self-portrait cards.
+// - "personal": close to home. One slim row of two mini glass cards.
+// Within a group the band renders projects in PROJECTS array order.
+export type ProjectGroup = "apps" | "tools" | "personal";
+
+// A static card image for the band: the project showing itself. `pos` is a CSS
+// object-position value aiming the object-cover crop at the image's strongest
+// band; `full` renders the image uncropped at its natural aspect instead.
+export type ProjectCardShot = {
+	src: string;
+	pos?: string;
+	full?: boolean;
+};
 
 // Content model (locked, ticket #43 - Option A "unified type"). One type is the
 // single source of truth for both the Projects-band card and the in-site
 // subpage:
-// - Card core (title, desc, link, status, highlight, tags, color, iconKey):
+// - Card core (title, desc, link, status, group, tags, color, iconKey):
 //   what the band card + split control render. Required.
+// - Card extras (proof, cardShot): band-only presentation fields. Optional -
+//   apps carry both, image-backed tools carry cardShot, Curia and the personal
+//   pair carry neither (Curia's card renders its live thread artwork; the
+//   personal minis are icon-led).
 // - Subpage payload (panelColor, panelLight, media, problem, solution, outcome,
 //   narrative, stack): what ProjectPanel renders. OPTIONAL per Option A (landed
 //   with the first card-only projects: curia, claude-statusline,
@@ -85,12 +107,13 @@ export type Project = {
 	desc: string;
 	link: string;
 	status: ProjectStatus;
-	// A prominent-tier project, rendered larger on the band. Independent of
-	// whether it has a subpage.
-	highlight: boolean;
+	group: ProjectGroup;
 	tags: string[];
 	color: string;
 	iconKey: ProjectIconKey;
+	// One concrete proof fact, rendered on the apps rows only.
+	proof?: string;
+	cardShot?: ProjectCardShot;
 	panelColor?: string;
 	panelLight?: string;
 	media?: ProjectMedia;
@@ -109,13 +132,24 @@ export type Project = {
 };
 
 export const PROJECTS: Project[] = [
+	// ---- apps: the two live products, full poster rows ----
 	{
 		slug: "goodwatch",
 		title: "GoodWatch",
 		desc: "Discover, track, and share movies and TV shows effortlessly.",
 		link: "https://goodwatch.app",
 		status: "shipped",
-		highlight: true,
+		group: "apps",
+		// TODO replace with a verified fact before the next deploy - this is the
+		// prototype's placeholder proof line.
+		proof: "Live since 2022 · millions of titles tracked",
+		// The demo video's own poster. The crop sits low enough to skip the
+		// "Stranger Things (2016)" title - the card must read as GoodWatch, not
+		// as the movie.
+		cardShot: {
+			src: "/videos/goodwatch-recommendation-flow-poster.webp",
+			pos: "45% 47%",
+		},
 		tags: ["Web App", "Entertainment"],
 		color: "bg-red-100 text-red-800",
 		iconKey: "PlaySquare",
@@ -141,7 +175,15 @@ export const PROJECTS: Project[] = [
 		desc: "Community-driven AI stacks: what people use, how they work and what it costs.",
 		link: "https://aistack.to",
 		status: "shipped",
-		highlight: true,
+		group: "apps",
+		// TODO replace with a verified fact before the next deploy - this is the
+		// prototype's placeholder proof line.
+		proof: "Community stacks with real cost breakdowns",
+		// The hero video's own poster; the crop centres the headline block.
+		cardShot: {
+			src: "/videos/aistack-hero-poster.webp",
+			pos: "50% 30%",
+		},
 		tags: ["AI", "Community"],
 		color: "bg-blue-100 text-blue-800",
 		iconKey: "Cpu",
@@ -161,69 +203,56 @@ export const PROJECTS: Project[] = [
 		stack: ["React", "TypeScript", "Tailwind", "Vite"],
 		extraLinks: [{ label: "Discord", href: "https://discord.gg/5y4fpyahaF" }],
 	},
+	// ---- tools: dev proof, 2x2 self-portrait cards ----
+	// The eighth project (#76), and the first addition since the seven-project
+	// lock (#43). Authored subpage, "flagship-lite" - the shape Curia set for a
+	// WIP system: the Problem / Solution pair, one signature section, and stack
+	// chips, but no Outcome (the waitlist is still open, nothing has shipped to
+	// report) and no media band (no demo asset exists). Every line of copy is
+	// lifted verbatim from getalfredo.com, Alper's own writing. The tree artwork
+	// is slug-gated in ProjectPanel beside the other three.
 	{
-		slug: "forge",
-		title: "Forge",
-		desc: "Complexity-aware agentic coding pipeline for Claude Code.",
-		link: "https://github.com/alp82/forge",
-		status: "shipped",
-		highlight: false,
-		tags: ["Claude Code", "Open Source"],
-		color: "bg-emerald-100 text-emerald-800",
-		iconKey: "Code2",
-		panelColor: "#065f46",
-		panelLight: "bg-emerald-100 text-emerald-900",
-		media: {
-			type: "video",
-			mp4: "/videos/forge-pipeline.mp4",
-			webm: "/videos/forge-pipeline.webm",
-			poster: "/videos/forge-pipeline-poster.webp",
-		},
+		slug: "alfredo",
+		title: "Alfredo",
+		// The first two sentences of getalfredo.com's own meta/OG description,
+		// verbatim. Truncated at a sentence boundary (the third reads "Watch them
+		// all from one HQ."), never reworded - the same treatment extraSection
+		// gets below.
+		desc: "Alfredo is the home for your projects. Your next one is live in minutes, with auth, email, database and analytics already wired.",
+		// The live app, per the AGENTS.md rule - getalfredo.com is up and taking
+		// waitlist signups. The repo takes the secondary link below.
+		link: "https://getalfredo.com",
+		status: "building",
+		group: "tools",
+		// getalfredo.com's own OG image, shown in full at its natural aspect -
+		// the wordmark, headline, and dashboard mock are all part of the pitch.
+		cardShot: { src: "/projects/alfredo-card.png", full: true },
+		tags: ["Self-Hosted", "Open Source"],
+		color: "bg-amber-100 text-amber-800",
+		iconKey: "Server",
+		// Amber-900, the warm brown nearest the landing page's own #1e1b10
+		// surface. Alfredo's real accent (#ff5d49, a coral) is deliberately not
+		// the card tint: it sits inside GoodWatch's red family and beside the
+		// band's terracotta (#b4531f). It is used inside the tree artwork
+		// instead, where neither can reach it.
+		panelColor: "#78350f",
+		extraLinks: [
+			{ label: "Source", href: "https://github.com/getalfredo/alfredo" },
+		],
 		problem:
-			"Coding agents misunderstand your intent, make wrong assumptions and write buggy code.",
+			"Every new project makes you set up the same boilerplate again. You have an idea. Then the setup starts. You have built all of this before, and you will build it again. Or you rent it from five managed services and pay five bills for something you do not own.",
 		solution:
-			"I open sourced my Claude Code setup as a plugin because I genuinely think it has some unique qualities. It automatically classifies each task by complexity: S, M, L or XL. It then spawns an appropriate number of subagents to do research, planning, execution and reviewing.",
-		outcome:
-			"The implementation results are way better, more accurate and match your actual intentions. Due to the amount of ceremony, time to finish and token usage both increase slightly.",
-		stack: ["TypeScript", "Bun", "Open Source"],
+			"Alfredo wires all of it once, on your own server. Your next project is live in minutes. Every project runs on your servers and reports to one HQ. You do not collect another set of dashboards every time you ship.",
 		extraSection: {
-			heading: "How it works",
-			body: "Assumptions are not allowed, therefore every sessions starts with confirming my intent and interviewing me to actually understand the task at hand. Ideally, every goal is programmatically verifiable to guarantee success once it's done.",
-			stages: [
-				"🔎 Intent",
-				"🧭 Scout",
-				"📐 Blueprint",
-				"🧪 Tests",
-				"🔨 Build",
-				"🔬 Review",
-				"🚀 Ship",
-			],
+			heading: "Under the hood",
+			// The live page's own sentence ends "and the tree below is the real
+			// shape". Here the drawing sits ABOVE the body (ProjectPanel renders
+			// every signature artwork before its copy), so the clause is dropped
+			// rather than reworded - the copy rule adapts punctuation, never
+			// wording.
+			body: "Alfredo is one program on one server. You point it at a plain Ubuntu 24.04 VPS, and it runs each project as a Docker Compose stack you can read. Alfredo uses three words for the pieces of that setup. It ships as a single binary compiled with Bun. Installing it is one curl command that pulls the release from GitHub.",
 		},
-	},
-	{
-		slug: "manaschmiede",
-		title: "Manaschmiede",
-		desc: "Magic: The Gathering deck builder and print assistant",
-		link: "https://github.com/alp82/manaschmiede",
-		status: "shipped",
-		highlight: false,
-		tags: ["MTG", "Print & Play"],
-		color: "bg-purple-100 text-purple-800",
-		iconKey: "Palette",
-		panelColor: "#4c1d95",
-		panelLight: "bg-purple-100 text-purple-900",
-		media: {
-			type: "video",
-			mp4: "/videos/manaschmiede-deck-creation.mp4",
-			webm: "/videos/manaschmiede-deck-creation.webm",
-			poster: "/videos/manaschmiede-deck-creation-poster.webp",
-		},
-		problem: "Deck building takes time and needs expertise.",
-		solution:
-			"You choose the strategy, archetypes and core cards, and an agent helps you build a balanced deck.",
-		outcome:
-			"An easy and pleasant user experience to go quickly from a deck idea to a full PDF printout so that I can try different strategies with my kids.",
-		stack: ["TypeScript", "React", "Open Source"],
+		stack: ["Bun", "TypeScript", "Docker Compose", "Ubuntu 24.04", "MIT"],
 	},
 	// The three late additions (#43). They shipped card-core-only and had their
 	// subpages authored one ticket each: Curia #48, claude-statusline #49,
@@ -234,7 +263,9 @@ export const PROJECTS: Project[] = [
 		desc: "AI chamber for the modern engineer.",
 		link: "https://github.com/alp82/curia",
 		status: "building",
-		highlight: false,
+		group: "tools",
+		// No cardShot: the band card renders the live CuriaThread artwork - the
+		// one tools card whose self-portrait is a component, not an image.
 		tags: ["AI", "Open Source"],
 		// A curia is the Roman senate chamber - Landmark's columned building.
 		color: "bg-cyan-100 text-cyan-800",
@@ -273,7 +304,10 @@ export const PROJECTS: Project[] = [
 		desc: "Single-file Bash statusline for Claude Code: model, context, and rate-limit windows at a glance.",
 		link: "https://github.com/alp82/claude-statusline",
 		status: "shipped",
-		highlight: false,
+		group: "tools",
+		// The you-vs-the-clock meter, 870x270 - the aspect the tools image
+		// windows are cut to, so it renders whole.
+		cardShot: { src: "/projects/statusline-card.png" },
 		tags: ["Claude Code", "Bash"],
 		// Lime nods to the green health bar of its color-coded meters.
 		color: "bg-lime-100 text-lime-800",
@@ -294,12 +328,56 @@ export const PROJECTS: Project[] = [
 		stack: ["Bash", "jq", "curl", "Open Source"],
 	},
 	{
+		slug: "forge",
+		title: "Forge",
+		desc: "Complexity-aware agentic coding pipeline for Claude Code.",
+		link: "https://github.com/alp82/forge",
+		status: "shipped",
+		group: "tools",
+		// A pipeline-run terminal shot, 822x172 - shorter than the shared window
+		// aspect, so it crops from the right: left-anchored to keep the prompt
+		// and stage labels, losing only line ends.
+		cardShot: { src: "/projects/forge-card.png", pos: "0% 50%" },
+		tags: ["Claude Code", "Open Source"],
+		color: "bg-emerald-100 text-emerald-800",
+		iconKey: "Code2",
+		panelColor: "#065f46",
+		panelLight: "bg-emerald-100 text-emerald-900",
+		media: {
+			type: "video",
+			mp4: "/videos/forge-pipeline.mp4",
+			webm: "/videos/forge-pipeline.webm",
+			poster: "/videos/forge-pipeline-poster.webp",
+		},
+		problem:
+			"Coding agents misunderstand your intent, make wrong assumptions and write buggy code.",
+		solution:
+			"I open sourced my Claude Code setup as a plugin because I genuinely think it has some unique qualities. It automatically classifies each task by complexity: S, M, L or XL. It then spawns an appropriate number of subagents to do research, planning, execution and reviewing.",
+		outcome:
+			"The implementation results are way better, more accurate and match your actual intentions. Due to the amount of ceremony, time to finish and token usage both increase slightly.",
+		stack: ["TypeScript", "Bun", "Open Source"],
+		extraSection: {
+			heading: "How it works",
+			body: "Assumptions are not allowed, therefore every sessions starts with confirming my intent and interviewing me to actually understand the task at hand. Ideally, every goal is programmatically verifiable to guarantee success once it's done.",
+			stages: [
+				"🔎 Intent",
+				"🧭 Scout",
+				"📐 Blueprint",
+				"🧪 Tests",
+				"🔨 Build",
+				"🔬 Review",
+				"🚀 Ship",
+			],
+		},
+	},
+	// ---- personal: close to home, the slim mini-card row ----
+	{
 		slug: "alperortac-com",
 		title: "alperortac.com",
-		desc: "Personal portfolio site: a vertical-scroll journey through atmosphere, time, and depth.",
+		desc: "Personal portfolio site",
 		link: "https://github.com/alp82/alperortac.com",
 		status: "shipped",
-		highlight: false,
+		group: "personal",
 		// Sky fits the site's own identity and sits far from the band's
 		// terracotta accent (#b4531f).
 		tags: ["Portfolio", "Open Source"],
@@ -339,54 +417,29 @@ export const PROJECTS: Project[] = [
 			"Biome",
 		],
 	},
-	// The eighth project (#76), and the first addition since the seven-project
-	// lock (#43). Authored subpage, "flagship-lite" - the shape Curia set for a
-	// WIP system: the Problem / Solution pair, one signature section, and stack
-	// chips, but no Outcome (the waitlist is still open, nothing has shipped to
-	// report) and no media band (no demo asset exists). Every line of copy is
-	// lifted verbatim from getalfredo.com, Alper's own writing. The tree artwork
-	// is slug-gated in ProjectPanel beside the other three.
 	{
-		slug: "alfredo",
-		title: "Alfredo",
-		// The first two sentences of getalfredo.com's own meta/OG description,
-		// verbatim. Truncated at a sentence boundary (the third reads "Watch them
-		// all from one HQ."), never reworded - the same treatment extraSection
-		// gets below.
-		desc: "Alfredo is the home for your projects. Your next one is live in minutes, with auth, email, database and analytics already wired.",
-		// The live app, per the AGENTS.md rule - getalfredo.com is up and taking
-		// waitlist signups. The repo takes the secondary link below.
-		link: "https://getalfredo.com",
-		status: "building",
-		// Two highlights and six regulars fill both grids exactly (3+3 on lg,
-		// 2+2+2 below). A third highlight would orphan one card inside the sun
-		// glow's two-column grid.
-		highlight: false,
-		tags: ["Self-Hosted", "Open Source"],
-		color: "bg-amber-100 text-amber-800",
-		iconKey: "Server",
-		// Amber-900, the warm brown nearest the landing page's own #1e1b10
-		// surface. Alfredo's real accent (#ff5d49, a coral) is deliberately not
-		// the card tint: it sits inside GoodWatch's red family and beside the
-		// band's terracotta (#b4531f). It is used inside the tree artwork
-		// instead, where neither can reach it.
-		panelColor: "#78350f",
-		extraLinks: [
-			{ label: "Source", href: "https://github.com/getalfredo/alfredo" },
-		],
-		problem:
-			"Every new project makes you set up the same boilerplate again. You have an idea. Then the setup starts. You have built all of this before, and you will build it again. Or you rent it from five managed services and pay five bills for something you do not own.",
-		solution:
-			"Alfredo wires all of it once, on your own server. Your next project is live in minutes. Every project runs on your servers and reports to one HQ. You do not collect another set of dashboards every time you ship.",
-		extraSection: {
-			heading: "Under the hood",
-			// The live page's own sentence ends "and the tree below is the real
-			// shape". Here the drawing sits ABOVE the body (ProjectPanel renders
-			// every signature artwork before its copy), so the clause is dropped
-			// rather than reworded - the copy rule adapts punctuation, never
-			// wording.
-			body: "Alfredo is one program on one server. You point it at a plain Ubuntu 24.04 VPS, and it runs each project as a Docker Compose stack you can read. Alfredo uses three words for the pieces of that setup. It ships as a single binary compiled with Bun. Installing it is one curl command that pulls the release from GitHub.",
+		slug: "manaschmiede",
+		title: "Manaschmiede",
+		desc: "Magic: The Gathering deck builder and print assistant",
+		link: "https://github.com/alp82/manaschmiede",
+		status: "shipped",
+		group: "personal",
+		tags: ["MTG", "Print & Play"],
+		color: "bg-purple-100 text-purple-800",
+		iconKey: "Palette",
+		panelColor: "#4c1d95",
+		panelLight: "bg-purple-100 text-purple-900",
+		media: {
+			type: "video",
+			mp4: "/videos/manaschmiede-deck-creation.mp4",
+			webm: "/videos/manaschmiede-deck-creation.webm",
+			poster: "/videos/manaschmiede-deck-creation-poster.webp",
 		},
-		stack: ["Bun", "TypeScript", "Docker Compose", "Ubuntu 24.04", "MIT"],
+		problem: "Deck building takes time and needs expertise.",
+		solution:
+			"You choose the strategy, archetypes and core cards, and an agent helps you build a balanced deck.",
+		outcome:
+			"An easy and pleasant user experience to go quickly from a deck idea to a full PDF printout so that I can try different strategies with my kids.",
+		stack: ["TypeScript", "React", "Open Source"],
 	},
 ];
