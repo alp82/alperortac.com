@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hero term explainers - tooltip round</title>
+<!--
+  PROTOTYPE - throwaway.
+  Round 2: the dashed tooltip won. Five styling variations of the same
+  mechanic (dashed underline, help cursor, tooltip card on hover / tap).
+  Copy per Alper: "software engineer focused on web development",
+  "tech consultant, specialized in AI agents".
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  font-size:13px;
+  color:#1e293b;
+  background:#f8fafc;
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  height:100vh;
+  overflow:hidden;
+}
+.app{display:flex;width:100%;height:100%}
+
+/* ---------------- preview pane ---------------- */
+.preview-pane{
+  width:64%;
+  height:100vh;
+  background:#87CEEB;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:32px;
+  overflow:auto;
+  flex-shrink:0;
+}
+.viewport-frame{
+  background:#87CEEB;
+  transition:width 220ms ease;
+  width:1000px;
+  max-width:100%;
+  border:1px dashed rgba(0,0,0,0.15);
+  overflow:visible;
+  flex-shrink:0;
+}
+.viewport-frame.mobile{ width:400px; }
+
+.hero-mock{
+  min-height:78vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:96px 24px 48px;
+  text-align:center;
+}
+.avatar{
+  width:112px;height:112px;border-radius:50%;
+  border:4px solid #0f172a;
+  box-shadow:6px 6px 0 0 rgba(0,0,0,1);
+  background:linear-gradient(135deg,#fbbf77,#f97316);
+  margin-bottom:32px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:40px;
+}
+h1.headline{
+  margin:0 0 24px;
+  font-weight:900;
+  font-size:clamp(48px,7vw,84px);
+  line-height:.9;
+  letter-spacing:-.04em;
+  color:#0f172a;
+}
+.viewport-frame.mobile h1.headline{font-size:52px}
+.subtitle{
+  margin-top:36px;
+  color:#0a0a0a;
+  letter-spacing:.04em;
+  display:flex;flex-direction:column;gap:24px;align-items:center;
+}
+p.line1{
+  margin:0;
+  max-width:760px;
+  font-weight:700;
+  font-size:clamp(22px,2.6vw,34px);
+  line-height:1.35;
+}
+.viewport-frame.mobile p.line1{font-size:23px}
+p.line2{
+  margin:0;
+  max-width:815px;
+  padding:0 48px;
+  font-weight:500;
+  font-size:clamp(18px,2.1vw,28px);
+  line-height:1.4;
+}
+.viewport-frame.mobile p.line2{font-size:19px;padding:0 12px}
+.passion{
+  font-family:'Instrument Serif',serif;
+  font-style:italic;
+  font-weight:800;
+  font-size:1.25em;
+  letter-spacing:.08em;
+  background:linear-gradient(100deg,#D9530E,#C2410C,#A8380A);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  border-bottom:3px solid #C2410C;
+  padding-bottom:1px;
+}
+.cta{
+  margin-top:56px;
+  font-size:15px;font-weight:500;color:#334155;opacity:.9;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.cta svg{width:22px;height:22px}
+
+/* ---------------- shared tooltip mechanic ---------------- */
+.term{
+  position:relative;
+  cursor:help;
+  text-decoration:underline dashed rgba(15,23,42,.45);
+  text-decoration-thickness:1.5px;
+  text-underline-offset:5px;
+}
+.tip{
+  position:absolute;
+  left:50%;bottom:calc(100% + 12px);
+  transform:translateX(-50%) translateY(4px);
+  width:max-content;max-width:270px;
+  font-size:14px;font-weight:400;letter-spacing:.01em;
+  line-height:1.45;text-align:left;
+  opacity:0;pointer-events:none;
+  transition:opacity 160ms ease, transform 160ms ease;
+  z-index:5;
+}
+.term:hover .tip,.term.open .tip{
+  opacity:1;transform:translateX(-50%) translateY(0);
+}
+
+/* ===== A - cream card (round-1 winner, refined) ===== */
+.vA .tip{
+  background:#FFFDF7;
+  border:1px solid rgba(15,23,42,.14);
+  border-radius:10px;
+  box-shadow:0 8px 24px rgba(15,23,42,.14);
+  padding:10px 14px;
+  color:#334155;
+}
+.vA .tip::after{
+  content:'';position:absolute;top:100%;left:50%;
+  transform:translateX(-50%);
+  border:7px solid transparent;border-top-color:#FFFDF7;
+  filter:drop-shadow(0 1px 0 rgba(15,23,42,.14));
+}
+.vA .tip b{color:#C2410C;font-weight:600}
+
+/* ===== B - brutalist card (matches avatar shadow) - LOCKED, square corners ===== */
+.vB .tip{
+  background:#fff;
+  border:2.5px solid #0f172a;
+  border-radius:0;
+  box-shadow:5px 5px 0 0 rgba(0,0,0,1);
+  padding:10px 14px;
+  color:#0f172a;
+}
+.vB .tip b{
+  color:#C2410C;font-weight:700;
+}
+.vB .term{
+  text-decoration-color:rgba(15,23,42,.7);
+  text-decoration-thickness:2px;
+}
+.vB .term:hover,.vB .term.open{color:#0f172a}
+
+/* ===== C - sunset accent ===== */
+.vC .term{
+  text-decoration-color:rgba(194,65,12,.65);
+  transition:color 140ms ease;
+}
+.vC .term:hover,.vC .term.open{color:#C2410C}
+.vC .tip{
+  background:#FFF7ED;
+  border:1px solid rgba(194,65,12,.3);
+  border-top:3px solid #C2410C;
+  border-radius:10px;
+  box-shadow:0 8px 24px rgba(168,56,10,.18);
+  padding:10px 14px;
+  color:#431407;
+}
+.vC .tip::after{
+  content:'';position:absolute;top:100%;left:50%;
+  transform:translateX(-50%);
+  border:7px solid transparent;border-top-color:#FFF7ED;
+}
+.vC .tip b{
+  background:linear-gradient(100deg,#D9530E,#C2410C,#A8380A);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  font-weight:700;
+}
+
+/* ===== D - hand-drawn bubble (matches sunset underline vibe) ===== */
+.vD .tip{
+  background:#FFFDF7;
+  border:2px solid #0f172a;
+  border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+  padding:11px 16px;
+  color:#334155;
+  box-shadow:2px 3px 0 rgba(15,23,42,.18);
+}
+.vD .tip b{
+  font-family:'Instrument Serif',serif;
+  font-style:italic;
+  font-size:1.12em;
+  color:#C2410C;font-weight:700;
+  letter-spacing:.03em;
+}
+.vD .term{
+  text-decoration:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8' preserveAspectRatio='none'%3E%3Cpath d='M2,5 C20,2 35,7 55,4 C70,2 85,6 98,4' fill='none' stroke='%230f172a' stroke-width='2' stroke-linecap='round' stroke-dasharray='6 5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:0 100%;
+  background-size:100% .22em;
+  padding-bottom:.18em;
+}
+
+/* ===== E - ghost caption (no card) ===== */
+.vE .tip{
+  background:none;border:none;box-shadow:none;
+  padding:0 0 2px;
+  max-width:340px;
+  text-align:center;
+  font-size:14.5px;
+  color:#33415599;
+  color:rgba(51,65,85,.85);
+  text-shadow:0 1px 0 rgba(255,255,255,.5);
+  letter-spacing:.03em;
+  bottom:calc(100% + 8px);
+}
+.vE .tip b{color:#C2410C;font-weight:600}
+.vE .term{
+  text-decoration-color:rgba(15,23,42,.35);
+  transition:text-decoration-color 140ms ease;
+}
+.vE .term:hover,.vE .term.open{text-decoration-color:rgba(194,65,12,.75)}
+
+/* ---------------- control panel ---------------- */
+.panel{
+  flex:1;height:100vh;overflow:auto;
+  background:#fff;border-left:1px solid #e2e8f0;
+  padding:28px 26px 40px;
+}
+.panel h2{margin:0 0 4px;font-size:16px;font-weight:800;color:#0f172a}
+.panel .q{margin:0 0 20px;font-size:12.5px;color:#64748b;line-height:1.5}
+.variant-btn{
+  display:block;width:100%;text-align:left;
+  border:1.5px solid #e2e8f0;border-radius:10px;
+  background:#fff;padding:12px 14px;margin-bottom:10px;
+  cursor:pointer;font-family:inherit;
+  transition:border-color 120ms ease, background 120ms ease;
+}
+.variant-btn:hover{border-color:#94a3b8}
+.variant-btn.active{border-color:#C2410C;background:#FFF7ED}
+.variant-btn .key{
+  display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;
+  background:#0f172a;color:#fff;border-radius:5px;
+  font-size:11px;font-weight:700;margin-right:8px;
+}
+.variant-btn.active .key{background:#C2410C}
+.variant-btn .name{font-size:13.5px;font-weight:700;color:#0f172a}
+.variant-btn .desc{margin-top:5px;font-size:12px;color:#64748b;line-height:1.5}
+.panel .note{
+  margin-top:22px;padding:12px 14px;border-radius:10px;
+  background:#F8FAFC;border:1px solid #e2e8f0;
+  font-size:12px;color:#475569;line-height:1.55;
+}
+.panel .note b{color:#0f172a}
+.toggles{display:flex;gap:8px;margin:0 0 18px}
+.toggles button{
+  flex:1;padding:7px 0;border-radius:8px;border:1.5px solid #e2e8f0;
+  background:#fff;font-family:inherit;font-size:12px;font-weight:600;color:#475569;
+  cursor:pointer;
+}
+.toggles button.on{border-color:#0f172a;background:#0f172a;color:#fff}
+kbd{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:4px;padding:0 5px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="preview-pane">
+    <div class="viewport-frame vA" id="frame">
+      <div class="hero-mock">
+        <div class="avatar">🙂</div>
+        <h1 class="headline">HEY, I'M ALPER.</h1>
+        <div class="subtitle">
+          <p class="line1" id="line1"></p>
+          <p class="line2">Powered by <span class="passion">passion</span> and here to build genuinely authentic experiences.</p>
+        </div>
+        <div class="cta">
+          Scroll to learn more about me
+          <svg viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Dashed tooltip - styling round</h2>
+    <p class="q">The mechanic is fixed: dashed underline, help cursor, tooltip on hover, tap toggles on touch. Pick the card style. Switch with <kbd>←</kbd> <kbd>→</kbd> or <kbd>1</kbd>–<kbd>5</kbd>.</p>
+
+    <div class="toggles">
+      <button id="deskBtn" class="on">Desktop</button>
+      <button id="mobBtn">Mobile 400px</button>
+    </div>
+
+    <button class="variant-btn" data-v="A">
+      <span class="key">1</span><span class="name">Cream card</span>
+      <div class="desc">Round-1 winner, refined. Soft cream card, thin border, soft shadow, arrow pointer. Quiet and neutral.</div>
+    </button>
+    <button class="variant-btn" data-v="B">
+      <span class="key">2</span><span class="name">Brutalist card</span>
+      <div class="desc">Thick black border and hard offset shadow, same language as the avatar frame. Loudest of the five.</div>
+    </button>
+    <button class="variant-btn" data-v="C">
+      <span class="key">3</span><span class="name">Sunset accent</span>
+      <div class="desc">Warm cream card with a sunset top edge, orange dashed underline, term tints orange on hover. Ties into the passion word.</div>
+    </button>
+    <button class="variant-btn" data-v="D">
+      <span class="key">4</span><span class="name">Hand-drawn bubble</span>
+      <div class="desc">Wobbly sketch border and a hand-drawn dashed underline, serif italic accent. Same family as the passion underline.</div>
+    </button>
+    <button class="variant-btn" data-v="E">
+      <span class="key">5</span><span class="name">Ghost caption</span>
+      <div class="desc">No card at all. A faint text line fades in above the term. The most delicate option, but lowest contrast against the sky.</div>
+    </button>
+
+    <div class="note">
+      <b>Copy</b> (updated per your notes):<br>
+      web enthusiast → "a software engineer focused on web development"<br>
+      agentic coach → "a tech consultant, specialized in AI agents"
+    </div>
+    <div class="note">
+      PROTOTYPE - throwaway. The winner gets rebuilt properly in
+      <b>HeroSubtitle.tsx</b>.
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFS = {
+  web: {
+    term: 'Web enthusiast',
+    tip: 'In plain terms: a <b>software engineer</b> focused on web development. I build for the browser, at work and for fun.'
+  },
+  agentic: {
+    term: 'agentic coach',
+    tip: 'In plain terms: a <b>tech consultant</b>, specialized in AI agents and how teams work with them.'
+  }
+};
+const TAIL = ' with a side-project habit and a camera.';
+const VARIANTS = ['A','B','C','D','E'];
+let current = 'B'; // LOCKED winner: brutalist card, square corners
+
+const line1 = document.getElementById('line1');
+const frame = document.getElementById('frame');
+
+function render(){
+  frame.className = 'viewport-frame v' + current + (frame.classList.contains('mobile') ? ' mobile' : '');
+  line1.innerHTML =
+    term('web') + ' and ' + term('agentic') + TAIL;
+  for(const el of line1.querySelectorAll('.term')){
+    el.addEventListener('click', () => {
+      // tap acts like hover on touch only; mouse click never pins the card
+      if(!window.matchMedia('(hover: none)').matches) return;
+      const was = el.classList.contains('open');
+      line1.querySelectorAll('.term').forEach(o=>o.classList.remove('open'));
+      if(!was) el.classList.add('open');
+    });
+  }
+  document.querySelectorAll('.variant-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.v === current));
+}
+function term(key){
+  return '<span class="term" data-k="'+key+'">'+DEFS[key].term+
+    '<span class="tip">'+DEFS[key].tip+'</span></span>';
+}
+
+document.querySelectorAll('.variant-btn').forEach(b =>
+  b.addEventListener('click', () => { current = b.dataset.v; render(); }));
+
+document.addEventListener('keydown', e => {
+  if(/input|textarea/i.test(e.target.tagName)) return;
+  const i = VARIANTS.indexOf(current);
+  if(e.key === 'ArrowRight'){ current = VARIANTS[(i+1)%5]; render(); }
+  if(e.key === 'ArrowLeft'){ current = VARIANTS[(i+4)%5]; render(); }
+  if(['1','2','3','4','5'].includes(e.key)){ current = VARIANTS[+e.key-1]; render(); }
+});
+
+document.getElementById('deskBtn').addEventListener('click', function(){
+  frame.classList.remove('mobile'); this.classList.add('on');
+  document.getElementById('mobBtn').classList.remove('on');
+});
+document.getElementById('mobBtn').addEventListener('click', function(){
+  frame.classList.add('mobile'); this.classList.add('on');
+  document.getElementById('deskBtn').classList.remove('on');
+});
+
+render();
+</script>
+</body>
+</html>

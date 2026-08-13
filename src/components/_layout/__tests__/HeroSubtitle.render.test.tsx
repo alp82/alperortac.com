@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { HERO_CTA, HERO_SUMMARY } from "../../../data/hero";
+import { HERO_CTA, HERO_SUMMARY, HERO_TERMS } from "../../../data/hero";
 import { SECTION_IDS } from "../../../data/sections";
 import { stubMatchMedia } from "../../../test/stubMatchMedia";
 import { HeroSubtitle } from "../HeroSubtitle";
@@ -308,6 +308,75 @@ describe("HeroSubtitle render (static summary model)", () => {
 			expect(outer.className).toContain("text-xl");
 			expect(outer.className).toContain("sm:text-2xl");
 			expect(outer.className).toContain("md:text-3xl");
+		});
+	});
+
+	describe("role-term glosses - dashed underline + brutalist tooltip card on line 1", () => {
+		function getTermSpans(container: HTMLElement): HTMLElement[] {
+			const lineOne = container.querySelector('[data-line="1"]')!;
+			return Array.from(lineOne.querySelectorAll<HTMLElement>("[data-term]"));
+		}
+
+		it("renders one term span per HERO_TERMS entry, in order", () => {
+			const { container } = render(<HeroSubtitle />);
+			const spans = getTermSpans(container);
+			expect(spans.length).toBe(HERO_TERMS.length);
+			spans.forEach((span, i) => {
+				expect(span.getAttribute("data-term")).toBe(HERO_TERMS[i]?.term);
+			});
+		});
+
+		it("term triggers are buttons with help cursor + dashed underline classes", () => {
+			const { container } = render(<HeroSubtitle />);
+			for (const span of getTermSpans(container)) {
+				expect(span.tagName).toBe("BUTTON");
+				expect(span.getAttribute("type")).toBe("button");
+				expect(span.className).toContain("cursor-help");
+				expect(span.className).toContain("decoration-dashed");
+				expect(span.className).toContain("underline-offset-[5px]");
+			}
+		});
+
+		it("each tooltip card is aria-hidden, square-cornered, with brutalist border + shadow", () => {
+			const { container } = render(<HeroSubtitle />);
+			for (const span of getTermSpans(container)) {
+				const tip = span.querySelector('[role="tooltip"]')!;
+				expect(tip).not.toBeNull();
+				expect(tip.getAttribute("aria-hidden")).toBe("true");
+				expect(tip.className).toContain("border-[2.5px]");
+				expect(tip.className).toContain("border-slate-900");
+				expect(tip.className).toContain(
+					"shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]",
+				);
+				expect(tip.className).not.toContain("rounded");
+				expect(tip.className).toContain("pointer-events-none");
+			}
+		});
+
+		it("term aria-describedby points at its tooltip card's id", () => {
+			const { container } = render(<HeroSubtitle />);
+			for (const span of getTermSpans(container)) {
+				const tip = span.querySelector('[role="tooltip"]')!;
+				expect(span.getAttribute("aria-describedby")).toBe(
+					tip.getAttribute("id"),
+				);
+			}
+		});
+
+		it("tooltip copy renders tipPre + bold tipBold + tipPost per HERO_TERMS", () => {
+			const { container } = render(<HeroSubtitle />);
+			getTermSpans(container).forEach((span, i) => {
+				const def = HERO_TERMS[i]!;
+				const tip = span.querySelector('[role="tooltip"]')!;
+				expect(tip.textContent).toBe(def.tipPre + def.tipBold + def.tipPost);
+				expect(tip.querySelector("b")?.textContent).toBe(def.tipBold);
+			});
+		});
+
+		it("line 1 visible text still equals HERO_SUMMARY[0] with glosses present", () => {
+			const { container } = render(<HeroSubtitle />);
+			const lineOne = container.querySelector('[data-line="1"]')!;
+			expect(visibleText(lineOne)).toBe(HERO_SUMMARY[0]);
 		});
 	});
 
