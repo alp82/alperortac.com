@@ -66,7 +66,7 @@ describe("PROJECTS data", () => {
 			"claude-statusline",
 			"forge",
 		]);
-		expect(bySlugOf("personal")).toEqual(["alperortac-com", "manaschmiede"]);
+		expect(bySlugOf("personal")).toEqual(["manaschmiede", "alperortac-com"]);
 		for (const p of PROJECTS) {
 			if (p.group === "apps") {
 				expect(p.proof, `${p.slug} needs a proof line`).toBeTruthy();
@@ -298,7 +298,7 @@ describe("PROJECTS verbatim copy", () => {
 		const curia = find("curia");
 		expect(curia.title).toBe("Curia");
 		expect(curia.desc).toBe("AI chamber for the modern engineer.");
-		expect(curia.link).toBe("https://github.com/alp82/curia");
+		expect(curia.link).toBe("https://curia.sh");
 		expect(curia.status).toBe("building");
 		expect(curia.group).toBe("tools");
 		expect(curia.tags).toEqual(["AI", "Open Source"]);

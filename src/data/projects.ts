@@ -261,7 +261,7 @@ export const PROJECTS: Project[] = [
 		slug: "curia",
 		title: "Curia",
 		desc: "AI chamber for the modern engineer.",
-		link: "https://github.com/alp82/curia",
+		link: "https://curia.sh",
 		status: "building",
 		group: "tools",
 		// No cardShot: the band card renders the live CuriaThread artwork - the
@@ -372,6 +372,31 @@ export const PROJECTS: Project[] = [
 	},
 	// ---- personal: close to home, the slim mini-card row ----
 	{
+		slug: "manaschmiede",
+		title: "Manaschmiede",
+		desc: "Magic: The Gathering deck builder and print assistant",
+		link: "https://github.com/alp82/manaschmiede",
+		status: "shipped",
+		group: "personal",
+		tags: ["MTG", "Print & Play"],
+		color: "bg-purple-100 text-purple-800",
+		iconKey: "Palette",
+		panelColor: "#4c1d95",
+		panelLight: "bg-purple-100 text-purple-900",
+		media: {
+			type: "video",
+			mp4: "/videos/manaschmiede-deck-creation.mp4",
+			webm: "/videos/manaschmiede-deck-creation.webm",
+			poster: "/videos/manaschmiede-deck-creation-poster.webp",
+		},
+		problem: "Deck building takes time and needs expertise.",
+		solution:
+			"You choose the strategy, archetypes and core cards, and an agent helps you build a balanced deck.",
+		outcome:
+			"An easy and pleasant user experience to go quickly from a deck idea to a full PDF printout so that I can try different strategies with my kids.",
+		stack: ["TypeScript", "React", "Open Source"],
+	},
+	{
 		slug: "alperortac-com",
 		title: "alperortac.com",
 		desc: "Personal portfolio site",
@@ -416,30 +441,5 @@ export const PROJECTS: Project[] = [
 			"Tailwind",
 			"Biome",
 		],
-	},
-	{
-		slug: "manaschmiede",
-		title: "Manaschmiede",
-		desc: "Magic: The Gathering deck builder and print assistant",
-		link: "https://github.com/alp82/manaschmiede",
-		status: "shipped",
-		group: "personal",
-		tags: ["MTG", "Print & Play"],
-		color: "bg-purple-100 text-purple-800",
-		iconKey: "Palette",
-		panelColor: "#4c1d95",
-		panelLight: "bg-purple-100 text-purple-900",
-		media: {
-			type: "video",
-			mp4: "/videos/manaschmiede-deck-creation.mp4",
-			webm: "/videos/manaschmiede-deck-creation.webm",
-			poster: "/videos/manaschmiede-deck-creation-poster.webp",
-		},
-		problem: "Deck building takes time and needs expertise.",
-		solution:
-			"You choose the strategy, archetypes and core cards, and an agent helps you build a balanced deck.",
-		outcome:
-			"An easy and pleasant user experience to go quickly from a deck idea to a full PDF printout so that I can try different strategies with my kids.",
-		stack: ["TypeScript", "React", "Open Source"],
 	},
 ];

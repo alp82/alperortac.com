@@ -19,11 +19,12 @@ import { SectionTitle, useSectionNightPhase } from "./SectionTitle";
  *
  * Three labeled groups replace the old highlight split:
  * - Live Apps: client proof. Two full-width poster rows; the screenshot rests
- *   blurred and MONOCHROME and wakes to color + sharp on hover, or on
+ *   blurred and DESATURATED and wakes to color + sharp on hover, or on
  *   scroll-into-view where there is no hover. One concrete proof line each.
  * - AI Tools: dev proof. A 2x2 grid where each card's visual is the product
  *   showing itself - static shots for statusline/forge/alfredo, the live
- *   CuriaThread artwork for Curia.
+ *   CuriaThread artwork for Curia. The visuals share the apps rows' dormant
+ *   blur/desaturate treatment.
  * - Personal: close to home. One slim row of two icon-led mini glass cards.
  *
  * No tagline (the group labels absorb its job), no status badges (every
@@ -76,20 +77,21 @@ const focusRingFor = (night: boolean) =>
 const descIdFor = (slug: string) => `projects-card-desc-${slug}`;
 
 /**
- * The dormant screenshot: blurred and monochrome at rest, waking to color and
- * sharpness on hover. Devices without hover wake it when the row is more than
- * 60% in view instead - a tap must stay a dive, never a reveal gesture.
+ * The dormant visual contract, shared by the apps posters and the tools grid:
+ * blurred and desaturated (not fully monochrome - 55% keeps a hint of the
+ * product's color alive) at rest, waking to color and sharpness on hover.
+ * Devices without hover wake it when the card is more than 60% in view
+ * instead - a tap must stay a dive, never a reveal gesture.
  * Both filter functions stay present in every state (blur(0) grayscale(0),
  * never `none`): CSS only interpolates filters over matching function lists.
  */
-function DormantShot({
-	shot,
-	className = "",
-}: {
-	shot: ProjectCardShot;
-	className?: string;
-}) {
-	const ref = useRef<HTMLImageElement>(null);
+const dormantFilterClasses = (awake: boolean) =>
+	`${
+		awake ? "blur-[0px] grayscale-0" : "blur-[4px] grayscale-[55%]"
+	} transition-[filter] duration-700 group-hover:blur-[0px] group-hover:grayscale-0 motion-reduce:transition-none`;
+
+function useDormantAwake<T extends HTMLElement>() {
+	const ref = useRef<T>(null);
 	const [awake, setAwake] = useState(false);
 	useEffect(() => {
 		// jsdom/SSR guards: no matchMedia or IntersectionObserver there.
@@ -108,15 +110,24 @@ function DormantShot({
 		io.observe(el);
 		return () => io.disconnect();
 	}, []);
+	return { ref, awake };
+}
+
+function DormantShot({
+	shot,
+	className = "",
+}: {
+	shot: ProjectCardShot;
+	className?: string;
+}) {
+	const { ref, awake } = useDormantAwake<HTMLImageElement>();
 	return (
 		<img
 			ref={ref}
 			src={shot.src}
 			alt=""
 			style={shot.pos ? { objectPosition: shot.pos } : undefined}
-			className={`${
-				awake ? "blur-[0px] grayscale-0" : "blur-[6px] grayscale"
-			} transition-[filter] duration-700 group-hover:blur-[0px] group-hover:grayscale-0 motion-reduce:transition-none ${className}`}
+			className={`${dormantFilterClasses(awake)} ${className}`}
 		/>
 	);
 }
@@ -202,7 +213,7 @@ function AppRow({
 						resetScroll: false,
 					});
 				}}
-				className={`relative flex h-full w-full flex-col text-left ${focusRingFor(night)}`}
+				className={`relative flex h-full w-full cursor-pointer flex-col text-left ${focusRingFor(night)}`}
 			>
 				{project.cardShot && (
 					<DormantShot
@@ -267,6 +278,9 @@ function ToolCard({
 	const navigate = useNavigate();
 	const descId = descIdFor(project.slug);
 	const shot = project.cardShot;
+	// Curia's live-artwork layer has no <img> of its own, so the card carries
+	// the dormant wake state itself and filters the whole layer.
+	const { ref: artRef, awake: artAwake } = useDormantAwake<HTMLSpanElement>();
 	const dive = (e: React.MouseEvent<HTMLButtonElement>) => {
 		lastTriggerRef.current = e.currentTarget;
 		navigate({
@@ -298,8 +312,9 @@ function ToolCard({
 				// The live-artwork layer (Curia): inert, decorative, behind the
 				// button. Scaled into the card window like a thumbnail.
 				<span
+					ref={artRef}
 					aria-hidden="true"
-					className="pointer-events-none absolute inset-0 block select-none overflow-hidden"
+					className={`pointer-events-none absolute inset-0 block select-none overflow-hidden ${dormantFilterClasses(artAwake)}`}
 				>
 					<span
 						className="block origin-top-left scale-[0.6]"
@@ -314,19 +329,16 @@ function ToolCard({
 				aria-label={project.title}
 				aria-describedby={descId}
 				onClick={dive}
-				className={`relative flex h-full w-full flex-col text-left ${focusRingFor(night)}`}
+				className={`relative flex h-full w-full cursor-pointer flex-col text-left ${focusRingFor(night)}`}
 			>
-				{shot &&
-					(shot.full ? (
-						<img src={shot.src} alt="" className="w-full" />
-					) : (
-						<img
-							src={shot.src}
-							alt=""
-							style={shot.pos ? { objectPosition: shot.pos } : undefined}
-							className={`${TOOL_SHOT_ASPECT} w-full object-cover`}
-						/>
-					))}
+				{shot && (
+					<DormantShot
+						shot={shot}
+						className={
+							shot.full ? "w-full" : `${TOOL_SHOT_ASPECT} w-full object-cover`
+						}
+					/>
+				)}
 				{footer}
 			</button>
 			<EscapePill project={project} night={night} />
@@ -363,7 +375,7 @@ function PersonalCard({
 						resetScroll: false,
 					});
 				}}
-				className={`flex h-full w-full items-center gap-4 p-4 pr-16 text-left ${focusRingFor(night)}`}
+				className={`flex h-full w-full cursor-pointer items-center gap-4 p-4 pr-16 text-left ${focusRingFor(night)}`}
 			>
 				<span
 					className="flex h-12 w-12 shrink-0 items-center justify-center"

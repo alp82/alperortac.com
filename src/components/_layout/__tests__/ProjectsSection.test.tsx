@@ -447,9 +447,12 @@ describe("ProjectsSection", () => {
 	});
 
 	// Revamp: the apps rows carry the proof line and the dormant screenshot.
-	// The screenshot rests blurred + monochrome and declares the group-hover
-	// wake; both filter functions are present in the resting classes so the
-	// wake can animate (mismatched filter lists do not interpolate).
+	// The screenshot rests blurred + partly desaturated (55%, never full
+	// monochrome) and declares the group-hover wake; both filter functions are
+	// present in the resting classes so the wake can animate (mismatched
+	// filter lists do not interpolate). The tools grid shares the same dormant
+	// contract: its image cards filter the shot, Curia filters the live-art
+	// layer.
 	it("PS-22 apps rows render the proof line and the dormant, hover-waking screenshot", () => {
 		renderSection();
 		const grid = screen.getByTestId("projects-apps");
@@ -461,19 +464,34 @@ describe("ProjectsSection", () => {
 				`${project.title} proof line missing`,
 			).toBeTruthy();
 		}
+		const dormantClasses = [
+			"grayscale-[55%]",
+			"blur-[4px]",
+			"group-hover:grayscale-0",
+			"group-hover:blur-[0px]",
+			"motion-reduce:transition-none",
+		];
 		const shots = Array.from(grid.querySelectorAll("img"));
 		expect(shots.length).toBe(apps.length);
 		for (const img of shots) {
-			for (const cls of [
-				"grayscale",
-				"blur-[6px]",
-				"group-hover:grayscale-0",
-				"group-hover:blur-[0px]",
-				"motion-reduce:transition-none",
-			]) {
+			for (const cls of dormantClasses) {
 				expect(img.classList.contains(cls), `screenshot missing "${cls}"`).toBe(
 					true,
 				);
+			}
+		}
+		const toolsGrid = screen.getByTestId("projects-tools");
+		const tools = PROJECTS.filter((p) => p.group === "tools");
+		const toolVisuals = Array.from(
+			toolsGrid.querySelectorAll(".grayscale-\\[55\\%\\]"),
+		);
+		expect(toolVisuals.length).toBe(tools.length);
+		for (const visual of toolVisuals) {
+			for (const cls of dormantClasses) {
+				expect(
+					visual.classList.contains(cls),
+					`tool visual missing "${cls}"`,
+				).toBe(true);
 			}
 		}
 	});
