@@ -5,8 +5,15 @@ import {
 	geoOrthographic,
 	geoPath,
 } from "d3-geo";
-import { useEffect, useRef, useState } from "react";
-import { NEXT_NAME, TRAVEL_ACCENT, VISITED_NAMES } from "../../../data/travel";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	NEXT_NAME,
+	TRAVEL_ACCENT,
+	TRAVEL_STOPS,
+	type TravelStop,
+	VISITED_NAMES,
+} from "../../../data/travel";
+import { useReducedMotion } from "../dive/useReducedMotion";
 import type { CountryFeature, WorldData } from "./worldData";
 
 /*
@@ -15,8 +22,17 @@ import type { CountryFeature, WorldData } from "./worldData";
  * math only, no d3-selection). Also the render used under SSR / jsdom / any
  * browser without WebGL (or without a Mapbox token). Draws a paper-cream sphere
  * + graticule, visited-country fills, a dashed-crimson Japan accent, stamp dots
- * for tiny visited countries (Grenada), and a pulse beacon over Japan. Drag to
- * spin, wheel to zoom - both user-driven; there is NO auto-rotation.
+ * for tiny visited countries (Grenada), city pins for every TRAVEL_STOPS entry
+ * (mirroring the Mapbox stop layer - cream dot, crimson ring, next leg
+ * sky-tinted; clicking one opens its card), and a pulse beacon over Japan.
+ * Drag to spin, wheel to zoom; there is NO auto-rotation.
+ *
+ * FLY-TO PARITY (#37): the manifest owns flyTo on the Mapbox path through the
+ * map handle. This fallback exposes the same verb through `onReady` - a small
+ * controller whose flyTo eases the rotation to center a stop (shortest way
+ * around, ~900ms cubic) and steps the zoom in to FLY_ZOOM (never out),
+ * instantly under prefers-reduced-motion. A pointer grab cancels a flight
+ * mid-way - the drag owns the globe.
  *
  * Sizing uses deterministic constants (jsdom's clientWidth is 0; without a hard
  * fallback the projection scale collapses and country paths render empty `d`).
@@ -42,20 +58,90 @@ function fillFor(name: string): string {
 	return "rgba(120,113,98,0.35)";
 }
 
+export type SvgGlobeController = {
+	/** Ease the rotation so [lng, lat] faces the viewer (instant under
+	    prefers-reduced-motion). Same verb the manifest uses on Mapbox. */
+	flyTo: (lng: number, lat: number) => void;
+};
+
+/* Fly duration + the same standard cubic ease-in-out both prototypes use. */
+const FLY_MS = 900;
+/* Where a flight lands the zoom - a step in from the k=1 rest view, well
+   under the wheel's k=4 ceiling so the country still has its surroundings. */
+const FLY_ZOOM = 1.6;
+const easeInOutCubic = (t: number) =>
+	t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+
 export function SvgGlobe({
 	world,
 	onSelect,
+	onSelectStop,
+	onReady,
 }: {
 	world: WorldData;
 	onSelect: (name: string) => void;
+	/** A city pin was clicked (#37) - parity with MapboxGlobe. */
+	onSelectStop?: (stop: TravelStop) => void;
+	/** Hands the flyTo controller up for manifest clicks (#37). */
+	onReady?: (ctrl: SvgGlobeController) => void;
 	active: boolean;
 }) {
 	const [rotation, setRotation] = useState<[number, number]>([-15, -30]);
 	const [k, setK] = useState(1);
 	const [dragging, setDragging] = useState(false);
+	const reducedMotion = useReducedMotion();
 
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const lastPointer = useRef<{ x: number; y: number } | null>(null);
+
+	/* Fly-to animation. Refs mirror the reactive values so the controller
+	   handed up through onReady stays identity-stable while always acting on
+	   the current state. */
+	const flightRaf = useRef(0);
+	const rotationRef = useRef(rotation);
+	const kRef = useRef(k);
+	const reducedRef = useRef(reducedMotion);
+	useEffect(() => {
+		rotationRef.current = rotation;
+	}, [rotation]);
+	useEffect(() => {
+		kRef.current = k;
+	}, [k]);
+	useEffect(() => {
+		reducedRef.current = reducedMotion;
+	}, [reducedMotion]);
+
+	const flyTo = useCallback((lng: number, lat: number) => {
+		cancelAnimationFrame(flightRaf.current);
+		const from = rotationRef.current;
+		const to: [number, number] = [-lng, clamp(-lat, -80, 80)];
+		/* The flight also steps the zoom in - but never OUT: a reader already
+		   zoomed past FLY_ZOOM keeps their closer view. */
+		const kFrom = kRef.current;
+		const kTo = Math.max(kFrom, FLY_ZOOM);
+		if (reducedRef.current) {
+			setRotation(to);
+			setK(kTo);
+			return;
+		}
+		/* Take the short way around the dateline. */
+		const dLam = ((to[0] - from[0] + 540) % 360) - 180;
+		const dPhi = to[1] - from[1];
+		const t0 = performance.now();
+		const step = (now: number) => {
+			const t = Math.min(1, (now - t0) / FLY_MS);
+			const e = easeInOutCubic(t);
+			setRotation([from[0] + dLam * e, from[1] + dPhi * e]);
+			setK(kFrom + (kTo - kFrom) * e);
+			if (t < 1) flightRaf.current = requestAnimationFrame(step);
+		};
+		flightRaf.current = requestAnimationFrame(step);
+	}, []);
+
+	useEffect(() => {
+		onReady?.({ flyTo });
+		return () => cancelAnimationFrame(flightRaf.current);
+	}, [onReady, flyTo]);
 
 	// Non-passive wheel zoom (React's onWheel is passive, so preventDefault
 	// there would warn/no-op).
@@ -82,6 +168,8 @@ export function SvgGlobe({
 	};
 
 	const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+		// The grab owns the globe: a flight in progress stops where it is.
+		cancelAnimationFrame(flightRaf.current);
 		setDragging(true);
 		lastPointer.current = { x: e.clientX, y: e.clientY };
 		e.currentTarget.setPointerCapture?.(e.pointerId);
@@ -145,7 +233,12 @@ export function SvgGlobe({
 				stroke="rgba(38,34,27,0.5)"
 				strokeWidth={1}
 			/>
+			{/* Hidden while dragging (CSS on .dragging): the grid is the one
+			    purely decorative stroke set, and under software rasterization
+			    (a GPU-less browser is exactly who runs this fallback) its
+			    re-stroke is per-frame paint cost. It returns on release. */}
 			<path
+				className="travel-graticule"
 				d={path(GRATICULE) ?? ""}
 				fill="none"
 				stroke="rgba(38,34,27,0.14)"
@@ -194,6 +287,34 @@ export function SvgGlobe({
 							strokeWidth={1.2}
 							style={{ cursor: "pointer" }}
 							onClick={() => handleCountryClick(name)}
+						/>
+					);
+				})}
+			</g>
+
+			{/* City stop pins (#37 parity with the Mapbox stop layer): cream dot
+			    with a crimson ring, the next leg sky-tinted, horizon-culled like
+			    the stamp dots. Clicking one opens its memory card. */}
+			<g>
+				{TRAVEL_STOPS.map((stop) => {
+					const lngLat: [number, number] = [stop.lng, stop.lat];
+					const point = projection(lngLat);
+					const visible =
+						geoDistance(lngLat, center) < Math.PI / 2 && !!point;
+					return (
+						// biome-ignore lint/a11y/noStaticElementInteractions: the pin is a pointer-driven click target on the graphic globe; the manifest column is the keyboard/screen-reader route to the same cards.
+						<circle
+							key={`${stop.city}-${stop.country}`}
+							data-city={stop.city}
+							r={3.5}
+							cx={point ? point[0] : 0}
+							cy={point ? point[1] : 0}
+							display={visible ? undefined : "none"}
+							fill={stop.next ? "#7dd3fc" : "#faf6ec"}
+							stroke={TRAVEL_ACCENT}
+							strokeWidth={1.4}
+							style={{ cursor: "pointer" }}
+							onClick={() => onSelectStop?.(stop)}
 						/>
 					);
 				})}

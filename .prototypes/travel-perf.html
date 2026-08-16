@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Travel perf harness</title>
+<!--
+  PROTOTYPE - throwaway, not shipped. Performance harness for the /travel
+  subpage: a fullscreen WebGL globe (Mapbox in src, a shader stand-in here)
+  over the same held scene every subpage carries.
+
+  WHY TRAVEL IS DIFFERENT. Every other subpage is a frosted column with the
+  landscape visible around it, so the scene running behind it buys atmosphere.
+  Travel is a fixed, OPAQUE, full-viewport split (.travel-experience): the
+  globe stage plus the 340px manifest cover everything. The scene, the held
+  dive layers, and the hidden main page (opacity 0, animations still running,
+  per the audit) composite behind it for zero visible pixels - and they
+  compete with the WebGL globe for the same frame budget.
+
+  HYPOTHESES, one switch each:
+    T1 scene anims   - pausing the occluded scene's ~190 animations recovers
+                       their per-frame style cost (audit: 0.066ms each on a
+                       mid-range phone).
+    T2 scene hidden  - display:none on the scene ALSO sheds its ~200
+                       compositor layers, the part pausing keeps. The gap
+                       between T1 and T2 is pure compositing overhead.
+    T3 main-shell    - the hidden landing page keeps ~35 animations running
+                       at opacity 0 behind every subpage.
+    T4 dive hold     - the held per-layer scale (blur already drops after
+                       settle in src; a pre-fix switch below restores it).
+    T5 frost         - the manifest's backdrop-filter blur(10px).
+    T6 canvas DPR    - WebGL cost scales with resolution squared. Mapbox
+                       renders at devicePixelRatio; compare 1x / 2x / native.
+    T7 render mode   - on-demand (Mapbox's way: render only when the camera
+                       moves) vs continuous rAF. If on-demand is smooth while
+                       idle but dragging is not, the cost is per-rendered-
+                       frame, and the stack behind decides the headroom.
+
+  HOW TO USE: drag the globe, or press auto-drag for a comparable 6s run,
+  and flip switches until the frame time drops. The HUD is the same rAF
+  probe as .prototypes/subpage-perf.html.
+-->
+<style>
+	* { margin: 0; padding: 0; box-sizing: border-box; }
+	html, body { height: 100%; overflow: hidden; background: #060b18; }
+	body { font-family: system-ui, sans-serif; }
+
+	/* ============ the scene (same stack as subpage-perf) ============ */
+	.scene {
+		position: fixed; inset: 0;
+		background: linear-gradient(to bottom, #0b1026 0%, #16224a 55%, #2b3a6b 100%);
+	}
+	body.scene-hidden .scene { display: none; }
+	body.anim-off .scene * { animation-play-state: paused !important; }
+	.layer {
+		position: absolute; inset: -12px;
+		--z: calc(1 + var(--layer-depth) * 4.6 * var(--dive-u, 0) * 0.85);
+		--gain: calc(0.8 * (0.25 + 1.5 * var(--layer-depth)));
+		--layer-scale: calc(1 + (var(--z) - 1) * var(--gain));
+		--blur: calc(
+			5 * max(var(--layer-depth) - 0.5, 0.5 - var(--layer-depth)) *
+			var(--dive-u, 0) * 1px
+		);
+		transform-origin: 50% 50%;
+	}
+	body.dive-active { --dive-u: 1; }
+	body.dive-active .layer { transform: scale(var(--layer-scale)); }
+	/* src drops the blur after settle (body.dive-settled). Default here matches
+	   src: no held blur. The pre-fix switch restores it for comparison. */
+	body.dive-active.blur-held .layer { filter: blur(var(--blur)); }
+	body.dive-active .layer[data-crisp] { transform: none; filter: none; }
+
+	.star { position: absolute; background: #fff; border-radius: 50%; animation: twinkle 3s ease-in-out infinite; }
+	@keyframes twinkle { 0%, 100% { opacity: 0.1; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+	.moon { position: absolute; top: 12%; right: 18%; width: 64px; height: 64px; border-radius: 50%; background: #f3ead0; box-shadow: 0 0 42px 8px rgba(243, 234, 208, 0.35); }
+	.cloud { position: absolute; height: 34px; border-radius: 20px; background: rgba(200, 214, 240, 0.16); animation: cloud-wrap var(--wdur, 100s) linear var(--wdel, 0s) infinite; }
+	@keyframes cloud-wrap { from { translate: -45vw 0; } to { translate: 110vw 0; } }
+	.mist { position: absolute; left: -10%; right: -10%; height: 22vh; border-radius: 50%; background: radial-gradient(ellipse at 50% 60%, rgba(190, 205, 235, 0.22), transparent 70%); animation: mist-sway var(--mdur, 50s) ease-in-out infinite alternate; }
+	@keyframes mist-sway { from { translate: -20px 0; } to { translate: 20px 0; } }
+	.ridge { position: absolute; left: 0; right: 0; bottom: 0; }
+	.ridge svg { display: block; width: 100%; height: 100%; }
+	.tree { position: absolute; bottom: 0; width: 14px; height: 46px; background: #0a1220; clip-path: polygon(50% 0, 100% 100%, 0 100%); transform-origin: 50% 100%; animation: tree-sway var(--tdur, 6s) ease-in-out var(--tdel, 0s) infinite alternate; }
+	@keyframes tree-sway { from { rotate: -2.7deg; } to { rotate: 2.7deg; } }
+	.ff { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #ffe9a3; box-shadow: 0 0 8px 2px rgba(255, 233, 163, 0.6); animation: ff-flash var(--fdur, 4s) linear var(--fdel, 0s) infinite; }
+	@keyframes ff-flash { 0%, 57.9% { opacity: 0.12; } 58%, 72% { opacity: 1; } 72.1%, 100% { opacity: 0.12; } }
+
+	/* ============ the hidden main page (opacity 0, still animating) ====== */
+	.main-shell { position: fixed; inset: 0; opacity: 0; pointer-events: none; }
+	body.shell-off .main-shell * { animation-play-state: paused !important; }
+	.blinker { position: absolute; width: 10px; height: 10px; background: #fbbf24; animation: blink 1.05s step-end infinite; }
+	@keyframes blink { 50% { opacity: 0; } }
+	.breather { position: absolute; width: 120px; height: 8px; background: #f97316; animation: breathe 8s ease-in-out infinite alternate; }
+	@keyframes breathe { from { width: 90px; } to { width: 150px; } }
+
+	/* ============ the travel split ============ */
+	.experience { position: fixed; inset: 0; display: flex; z-index: 60; color: #f8fafc; }
+	.manifest {
+		flex-shrink: 0; width: 340px; height: 100%; padding: 5rem 1.5rem 1.5rem;
+		background: rgba(15, 23, 42, 0.85);
+		backdrop-filter: blur(10px) saturate(120%);
+		-webkit-backdrop-filter: blur(10px) saturate(120%);
+		overflow-y: auto;
+	}
+	body.frost-off .manifest { backdrop-filter: none; -webkit-backdrop-filter: none; }
+	.manifest .kicker { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.3em; color: #ff7a8d; }
+	.manifest h2 { font-size: 30px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em; margin: 4px 0 8px; }
+	.manifest .row {
+		display: flex; justify-content: space-between; align-items: baseline;
+		padding: 6px 8px; font-size: 14px; font-weight: 600; border-radius: 4px; cursor: pointer;
+	}
+	.manifest .row:hover { background: rgba(255, 255, 255, 0.1); }
+	.manifest .row .code { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; color: #94a3b8; }
+	.stage { position: relative; flex: 1; min-width: 0; }
+	.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+	.stage canvas.dragging { cursor: grabbing; }
+
+	/* ============ HUD + controls (same as subpage-perf) ============ */
+	.hud {
+		position: fixed; top: 10px; right: 10px; z-index: 100;
+		background: rgba(0, 0, 0, 0.82); color: #d7e3f7;
+		font: 12px/1.5 monospace; padding: 8px 10px; border: 1px solid #2b3a5c;
+		min-width: 240px; pointer-events: none;
+	}
+	.hud b { color: #fbbf24; font-weight: 400; }
+	.hud .bad { color: #f87171; }
+	.hud canvas { display: block; margin-top: 4px; background: #0a0f1e; }
+	.bar {
+		position: fixed; right: 10px; bottom: 10px; z-index: 100;
+		background: rgba(0, 0, 0, 0.85); color: #d7e3f7;
+		font: 12px/1.9 monospace; padding: 8px 12px; border: 1px solid #2b3a5c;
+		max-width: 340px;
+	}
+	.bar label { display: block; cursor: pointer; user-select: none; }
+	.bar button { font: 12px monospace; background: #1a2440; color: #ffd97a; border: 1px solid #3a4a75; padding: 2px 9px; margin: 4px 6px 0 0; cursor: pointer; }
+	.bar select { font: 12px monospace; }
+	.bar .log { margin-top: 6px; max-height: 120px; overflow-y: auto; color: #9fb4cd; }
+	.bar .log .worse { color: #f87171; }
+</style>
+</head>
+<body class="dive-active">
+
+<div class="scene" id="scene"></div>
+<div class="main-shell" id="mainShell"></div>
+
+<div class="experience">
+	<aside class="manifest" id="manifest">
+		<div class="kicker">passenger manifest</div>
+		<h2>Travel</h2>
+		<p style="font-size:13px;line-height:1.5;color:#cbd5e1">
+			Thailand, Israel, Mexico, Grenada and all over Europe - next stamp: Japan 2027.
+		</p>
+		<div style="margin-top:18px" class="kicker" >stops · tap to fly</div>
+		<div id="stops"></div>
+	</aside>
+	<div class="stage">
+		<canvas id="globe"></canvas>
+	</div>
+</div>
+
+<div class="hud">
+	<div id="hudText">warming up…</div>
+	<canvas id="spark" width="240" height="36"></canvas>
+</div>
+
+<div class="bar">
+	<label><input type="checkbox" id="tAnim" checked /> T1 occluded scene animations run</label>
+	<label><input type="checkbox" id="tScene" checked /> T2 scene in the tree (off = display:none)</label>
+	<label><input type="checkbox" id="tShell" checked /> T3 hidden main-page animations run</label>
+	<label><input type="checkbox" id="tDive" checked /> T4 dive hold (layer scale)</label>
+	<label style="padding-left:18px"><input type="checkbox" id="tBlurHeld" /> &nbsp;· held depth blur (pre-fix)</label>
+	<label><input type="checkbox" id="tFrost" checked /> T5 manifest frost</label>
+	<label>T6 canvas DPR <select id="sDpr"><option value="1">1x</option><option value="2">2x</option><option value="native" selected>native</option></select></label>
+	<label>T7 render <select id="sMode"><option value="demand" selected>on-demand (Mapbox-like)</option><option value="continuous">continuous rAF</option></select></label>
+	<div><button id="bDrag">auto-drag 6s</button></div>
+	<div class="log" id="log"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------------- deterministic PRNG ---------------- */
+function prng(seed) {
+	let s = seed >>> 0;
+	return () => {
+		s = (s * 1664525 + 1013904223) >>> 0;
+		return s / 4294967296;
+	};
+}
+
+/* ---------------- the scene (copy of subpage-perf) ---------------- */
+const scene = document.getElementById("scene");
+const DEPTHS = [0.05, 0.12, 0.2, 0.35, 0.5, 0.65, 0.8, 0.93];
+const layers = DEPTHS.map((d, i) => {
+	const el = document.createElement("div");
+	el.className = "layer";
+	el.style.setProperty("--layer-depth", d);
+	if (i === 0) el.dataset.crisp = "";
+	scene.appendChild(el);
+	return el;
+});
+function ridgeSvg(color, seed) {
+	const r = prng(seed);
+	let pts = "0,100 ";
+	for (let x = 0; x <= 100; x += 5) pts += `${x},${(30 + r() * 40).toFixed(1)} `;
+	pts += "100,100";
+	return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="height:100%"><polygon points="${pts}" fill="${color}"/></svg>`;
+}
+{
+	const host = layers[0];
+	host.innerHTML = '<div class="moon"></div>';
+	const rs = prng(42);
+	for (let i = 0; i < 150; i++) {
+		const s = document.createElement("div");
+		s.className = "star";
+		const size = 1 + rs() * 2.4;
+		s.style.cssText = `left:${(rs() * 100).toFixed(2)}%;top:${(rs() * 70).toFixed(2)}%;width:${size.toFixed(1)}px;height:${size.toFixed(1)}px;animation-delay:${(rs() * 5).toFixed(2)}s;animation-duration:${(2 + rs() * 3).toFixed(2)}s;box-shadow:0 0 ${(size * 2).toFixed(1)}px rgba(255,255,255,.6)`;
+		host.appendChild(s);
+	}
+	const r = prng(7);
+	for (let i = 0; i < 6; i++) {
+		const c = document.createElement("div");
+		c.className = "cloud";
+		c.style.cssText = `top:${(8 + r() * 30).toFixed(1)}%;width:${(120 + r() * 180) | 0}px;--wdur:${(80 + r() * 60) | 0}s;--wdel:${(-r() * 80) | 0}s`;
+		layers[2].appendChild(c);
+	}
+	const m1 = document.createElement("div");
+	m1.className = "mist"; m1.style.cssText = "bottom:26vh;--mdur:47s";
+	layers[3].appendChild(m1);
+	const m2 = document.createElement("div");
+	m2.className = "mist"; m2.style.cssText = "bottom:8vh;--mdur:61s";
+	layers[6].appendChild(m2);
+	const mk = (layer, color, h, seed) => {
+		const div = document.createElement("div");
+		div.className = "ridge"; div.style.height = h;
+		div.innerHTML = ridgeSvg(color, seed);
+		layer.appendChild(div);
+		return div;
+	};
+	mk(layers[4], "#131c33", "34vh", 1);
+	const mid = mk(layers[5], "#0d1527", "27vh", 2);
+	mk(layers[7], "#070d1b", "18vh", 3);
+	for (let i = 0; i < 40; i++) {
+		const t = document.createElement("div");
+		t.className = "tree";
+		t.style.cssText = `left:${(r() * 100).toFixed(1)}%;height:${(30 + r() * 34) | 0}px;--tdur:${(5 + r() * 3).toFixed(1)}s;--tdel:${(-r() * 6).toFixed(1)}s`;
+		mid.appendChild(t);
+	}
+	for (let i = 0; i < 24; i++) {
+		const f = document.createElement("div");
+		f.className = "ff";
+		f.style.cssText = `left:${(r() * 100).toFixed(1)}%;bottom:${(2 + r() * 16).toFixed(1)}vh;--fdur:${(3 + r() * 4).toFixed(1)}s;--fdel:${(-r() * 5).toFixed(1)}s`;
+		layers[7].appendChild(f);
+	}
+}
+
+/* The hidden main page: ~35 animations still running at opacity 0 (T3). */
+{
+	const shell = document.getElementById("mainShell");
+	const r = prng(11);
+	for (let i = 0; i < 30; i++) {
+		const b = document.createElement("div");
+		b.className = "blinker";
+		b.style.cssText = `left:${(r() * 90).toFixed(1)}%;top:${(r() * 90).toFixed(1)}%;animation-delay:${(-r() * 2).toFixed(2)}s`;
+		shell.appendChild(b);
+	}
+	for (let i = 0; i < 5; i++) {
+		const b = document.createElement("div");
+		b.className = "breather";
+		b.style.cssText = `left:${(r() * 70).toFixed(1)}%;top:${(r() * 90).toFixed(1)}%;animation-delay:${(-r() * 8).toFixed(2)}s`;
+		shell.appendChild(b);
+	}
+}
+
+/* manifest rows */
+{
+	const stops = [["Bangkok", "THA"], ["Chiang Mai", "THA"], ["Tel Aviv", "ISR"], ["Jerusalem", "ISR"], ["Mexico City", "MEX"], ["Tulum", "MEX"], ["St. George's", "GRD"], ["Lisbon", "PRT"], ["Barcelona", "ESP"], ["Rome", "ITA"], ["Vienna", "AUT"], ["Tokyo", "JPN"]];
+	const host = document.getElementById("stops");
+	for (const [city, code] of stops) {
+		const row = document.createElement("div");
+		row.className = "row";
+		row.innerHTML = `<span>${city}</span><span class="code">${code}</span>`;
+		host.appendChild(row);
+	}
+}
+
+/* ---------------- the WebGL globe stand-in ----------------
+   A fragment-shader planet: per-pixel sphere intersection, fbm continents,
+   graticule, rim atmosphere. The per-pixel cost scales with resolution the
+   same way Mapbox's raster path does, which is what T6/T7 measure. */
+const canvas = document.getElementById("globe");
+/* log() is defined further down; buffer early messages until it exists. */
+const earlyLog = [];
+const VSH = "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}";
+const FSH = `
+precision highp float;
+uniform vec2 u_res;
+uniform vec2 u_rot;
+float hash(vec3 p){p=fract(p*0.3183099+vec3(0.1,0.2,0.3));p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
+float noise(vec3 x){vec3 i=floor(x);vec3 f=fract(x);f=f*f*(3.0-2.0*f);
+	return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+	           mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+float fbm(vec3 p){float a=0.5;float v=0.0;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=0.5;}return v;}
+void main(){
+	vec2 uv=(gl_FragCoord.xy*2.0-u_res)/min(u_res.x,u_res.y);
+	float r2=dot(uv,uv);
+	vec3 col=vec3(0.02,0.04,0.09);
+	float rim=smoothstep(1.12,0.98,length(uv))*smoothstep(0.9,1.0,length(uv));
+	col+=vec3(0.2,0.45,0.9)*rim*0.8;
+	if(r2<1.0){
+		vec3 n=vec3(uv,sqrt(1.0-r2));
+		float cy=cos(u_rot.y),sy=sin(u_rot.y);
+		n=vec3(n.x,n.y*cy-n.z*sy,n.y*sy+n.z*cy);
+		float cx=cos(u_rot.x),sx=sin(u_rot.x);
+		n=vec3(n.x*cx+n.z*sx,n.y,-n.x*sx+n.z*cx);
+		float land=fbm(n*2.4);
+		float sea=smoothstep(0.52,0.55,land);
+		vec3 ocean=mix(vec3(0.05,0.16,0.32),vec3(0.08,0.24,0.42),fbm(n*6.0));
+		vec3 ground=mix(vec3(0.13,0.3,0.14),vec3(0.42,0.36,0.2),fbm(n*9.0));
+		col=mix(ocean,ground,sea);
+		float lat=asin(clamp(n.y,-1.0,1.0));float lon=atan(n.z,n.x);
+		float g=step(abs(fract(lat*5.7296)-0.5),0.015)+step(abs(fract(lon*5.7296)-0.5),0.012);
+		col=mix(col,vec3(0.9,0.85,0.7),clamp(g,0.0,1.0)*0.12);
+		vec3 light=normalize(vec3(0.55,0.4,0.75));
+		vec3 nl=vec3(uv,sqrt(1.0-r2));
+		col*=0.25+0.85*max(dot(nl,light),0.0);
+		col+=vec3(0.2,0.4,0.85)*pow(1.0-nl.z,3.0)*0.5;
+	}
+	gl_FragColor=vec4(col,1.0);
+}`;
+let rot = [0.6, -0.35];
+let dprMode = "native";
+function dpr() {
+	return dprMode === "native" ? window.devicePixelRatio || 1 : +dprMode;
+}
+function size() {
+	const w = (canvas.clientWidth * dpr()) | 0;
+	const h = (canvas.clientHeight * dpr()) | 0;
+	const changed = canvas.width !== w || canvas.height !== h;
+	if (changed) {
+		canvas.width = w;
+		canvas.height = h;
+	}
+	return changed;
+}
+
+/* WebGL path, with real error reporting - a silent failure here is why the
+   first cut showed no globe at all in WebGL-blocked embeds. */
+function initWebGL() {
+	const gl = canvas.getContext("webgl", { antialias: false });
+	if (!gl) {
+		earlyLog.push("WebGL unavailable - using the 2D fallback globe");
+		return null;
+	}
+	function shader(type, src) {
+		const s = gl.createShader(type);
+		gl.shaderSource(s, src);
+		gl.compileShader(s);
+		if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+			throw new Error(gl.getShaderInfoLog(s) || "shader compile failed");
+		}
+		return s;
+	}
+	try {
+		const prog = gl.createProgram();
+		gl.attachShader(prog, shader(gl.VERTEX_SHADER, VSH));
+		gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, FSH));
+		gl.linkProgram(prog);
+		if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+			throw new Error(gl.getProgramInfoLog(prog) || "program link failed");
+		}
+		gl.useProgram(prog);
+		const buf = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+		const loc = gl.getAttribLocation(prog, "p");
+		gl.enableVertexAttribArray(loc);
+		gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+		const uRes = gl.getUniformLocation(prog, "u_res");
+		const uRot = gl.getUniformLocation(prog, "u_rot");
+		return () => {
+			size();
+			gl.viewport(0, 0, canvas.width, canvas.height);
+			gl.uniform2f(uRes, canvas.width, canvas.height);
+			gl.uniform2f(uRot, rot[0], rot[1]);
+			gl.drawArrays(gl.TRIANGLES, 0, 3);
+		};
+	} catch (err) {
+		earlyLog.push(`WebGL shader failed (${err.message.trim()}) - using the 2D fallback globe`);
+		return null;
+	}
+}
+
+/* 2D-canvas fallback: an equirect texture scrolled under a circular clip with
+   sphere shading. Not a true orthographic projection, but the per-frame cost
+   still scales with canvas area, so T6 (DPR) and T7 (render mode) stay
+   meaningful even where WebGL is blocked. */
+function init2D() {
+	const ctx = canvas.getContext("2d");
+	if (!ctx) return null;
+	/* one-time equirect texture: value-noise continents, no per-frame cost */
+	const tex = document.createElement("canvas");
+	tex.width = 1024;
+	tex.height = 512;
+	const tctx = tex.getContext("2d");
+	tctx.fillStyle = "#0d2a4a";
+	tctx.fillRect(0, 0, tex.width, tex.height);
+	const r = prng(1234);
+	const grid = 33;
+	const cell = [];
+	for (let i = 0; i < grid * (grid / 2 + 1); i++) cell.push(r());
+	const at = (x, y) => cell[((y | 0) * grid + ((x | 0) % grid)) % cell.length];
+	const px = 8;
+	for (let y = 0; y < tex.height / px; y++) {
+		for (let x = 0; x < tex.width / px; x++) {
+			const gx = (x / (tex.width / px)) * grid;
+			const gy = (y / (tex.height / px)) * (grid / 2);
+			const fx = gx - (gx | 0), fy = gy - (gy | 0);
+			const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+			const v =
+				(at(gx, gy) * (1 - sx) + at(gx + 1, gy) * sx) * (1 - sy) +
+				(at(gx, gy + 1) * (1 - sx) + at(gx + 1, gy + 1) * sx) * sy;
+			if (v > 0.55) {
+				tctx.fillStyle = v > 0.68 ? "#6b5c33" : "#204923";
+				tctx.fillRect(x * px, y * px, px, px);
+			}
+		}
+	}
+	return () => {
+		size();
+		const w = canvas.width, h = canvas.height;
+		ctx.clearRect(0, 0, w, h);
+		const rad = Math.min(w, h) * 0.42, cx = w / 2, cy = h / 2;
+		ctx.save();
+		ctx.beginPath();
+		ctx.arc(cx, cy, rad, 0, 7);
+		ctx.clip();
+		ctx.fillStyle = "#0d2a4a";
+		ctx.fillRect(cx - rad, cy - rad, 2 * rad, 2 * rad);
+		const texW = 2 * Math.PI * rad;
+		const frac = rot[0] / (2 * Math.PI);
+		const off = (frac - Math.floor(frac)) * texW;
+		const ty = cy - rad + rot[1] * rad * 0.3;
+		ctx.drawImage(tex, cx - rad - off, ty, texW, 2 * rad);
+		ctx.drawImage(tex, cx - rad - off + texW, ty, texW, 2 * rad);
+		const g = ctx.createRadialGradient(cx - rad * 0.35, cy - rad * 0.3, rad * 0.1, cx, cy, rad);
+		g.addColorStop(0, "rgba(255,255,255,0.14)");
+		g.addColorStop(0.75, "rgba(0,0,0,0)");
+		g.addColorStop(1, "rgba(0,0,10,0.55)");
+		ctx.fillStyle = g;
+		ctx.fillRect(cx - rad, cy - rad, 2 * rad, 2 * rad);
+		ctx.restore();
+		ctx.strokeStyle = "rgba(90,150,255,0.5)";
+		ctx.lineWidth = Math.max(2, rad * 0.02);
+		ctx.beginPath();
+		ctx.arc(cx, cy, rad, 0, 7);
+		ctx.stroke();
+	};
+}
+
+let renderer = "webgl";
+let render = initWebGL();
+if (!render) {
+	renderer = "2d";
+	render = init2D();
+}
+if (!render) {
+	earlyLog.push("No canvas renderer available at all - T6/T7 are dead, the rest still measures");
+	render = () => {};
+}
+
+let mode = "demand";
+let needsRender = true;
+function frameLoop() {
+	if (mode === "continuous" || needsRender) {
+		needsRender = false;
+		render();
+	}
+	requestAnimationFrame(frameLoop);
+}
+requestAnimationFrame(frameLoop);
+window.addEventListener("resize", () => { needsRender = true; });
+
+/* drag */
+let dragging = false, lastP = null;
+canvas.addEventListener("pointerdown", (e) => {
+	dragging = true;
+	lastP = [e.clientX, e.clientY];
+	canvas.classList.add("dragging");
+	canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener("pointermove", (e) => {
+	if (!dragging) return;
+	rot[0] += (e.clientX - lastP[0]) * 0.005;
+	rot[1] = Math.max(-1.3, Math.min(1.3, rot[1] + (e.clientY - lastP[1]) * 0.005));
+	lastP = [e.clientX, e.clientY];
+	needsRender = true;
+});
+const endDrag = () => { dragging = false; canvas.classList.remove("dragging"); };
+canvas.addEventListener("pointerup", endDrag);
+canvas.addEventListener("pointerleave", endDrag);
+
+/* ---------------- HUD probe (same as subpage-perf) ---------------- */
+const hudText = document.getElementById("hudText");
+const spark = document.getElementById("spark").getContext("2d");
+const ring = new Float32Array(180);
+let ri = 0, filled = 0, last = performance.now(), hudLast = 0;
+function probe(now) {
+	const dt = now - last;
+	last = now;
+	ring[ri] = dt;
+	ri = (ri + 1) % ring.length;
+	if (filled < ring.length) filled++;
+	if (now - hudLast > 250) {
+		hudLast = now;
+		const arr = Array.from(ring.subarray(0, filled)).sort((a, b) => a - b);
+		const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+		const p95 = arr[Math.floor(arr.length * 0.95)] || 0;
+		const dropped = arr.filter((d) => d > 25).length;
+		hudText.innerHTML =
+			`<b>${(1000 / mean).toFixed(1)} fps</b> · avg ${mean.toFixed(1)}ms · p95 ${p95.toFixed(1)}ms` +
+			` · <span class="${dropped > 5 ? "bad" : ""}">${dropped} dropped</span>` +
+			`<br/>${renderer} · canvas ${canvas.width}x${canvas.height} @ dpr ${dpr().toFixed(1)}`;
+		spark.fillStyle = "#0a0f1e";
+		spark.fillRect(0, 0, 240, 36);
+		for (let i = 0; i < filled; i++) {
+			const d = ring[(ri + i) % ring.length];
+			spark.fillStyle = d > 25 ? "#f87171" : "#fbbf24";
+			spark.fillRect(i * (240 / ring.length), 36 - Math.min(36, (d / 50) * 36), 240 / ring.length, Math.min(36, (d / 50) * 36));
+		}
+		spark.fillStyle = "#334662";
+		spark.fillRect(0, 36 - (16.7 / 50) * 36, 240, 1);
+	}
+	requestAnimationFrame(probe);
+}
+requestAnimationFrame(probe);
+function windowStats(msWindow) {
+	const arr = [];
+	let acc = 0;
+	for (let i = 0; i < filled; i++) {
+		const d = ring[(ri - 1 - i + ring.length * 2) % ring.length];
+		arr.push(d);
+		acc += d;
+		if (acc >= msWindow) break;
+	}
+	const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+	return { fps: 1000 / mean, p95: arr.sort((a, b) => a - b)[Math.floor(arr.length * 0.95)] || 0 };
+}
+
+/* ---------------- controls ---------------- */
+const logEl = document.getElementById("log");
+function log(msg, worse) {
+	const div = document.createElement("div");
+	div.textContent = msg;
+	if (worse) div.className = "worse";
+	logEl.prepend(div);
+}
+for (const msg of earlyLog) log(msg, true);
+log(`renderer: ${renderer}`);
+function bindClass(id, cls, invert) {
+	document.getElementById(id).addEventListener("change", (e) => {
+		document.body.classList.toggle(cls, invert ? !e.target.checked : e.target.checked);
+	});
+}
+bindClass("tAnim", "anim-off", true);
+bindClass("tScene", "scene-hidden", true);
+bindClass("tShell", "shell-off", true);
+bindClass("tDive", "dive-active");
+bindClass("tBlurHeld", "blur-held");
+bindClass("tFrost", "frost-off", true);
+document.getElementById("sDpr").addEventListener("change", (e) => {
+	dprMode = e.target.value;
+	needsRender = true;
+});
+document.getElementById("sMode").addEventListener("change", (e) => {
+	mode = e.target.value;
+	needsRender = true;
+});
+
+/* auto-drag: one full revolution over 6s, comparable across runs */
+let spinning = false;
+document.getElementById("bDrag").addEventListener("click", async () => {
+	if (spinning) return;
+	spinning = true;
+	const t0 = performance.now();
+	await new Promise((done) => {
+		function step(now) {
+			const t = (now - t0) / 6000;
+			rot[0] = 0.6 + t * Math.PI * 2;
+			needsRender = true;
+			if (t < 1) requestAnimationFrame(step); else done();
+		}
+		requestAnimationFrame(step);
+	});
+	const s = windowStats(6000);
+	log(`drag run: ${s.fps.toFixed(1)} fps · p95 ${s.p95.toFixed(1)}ms · dpr ${dpr().toFixed(1)}`, s.fps < 50);
+	spinning = false;
+});
+</script>
+</body>
+</html>

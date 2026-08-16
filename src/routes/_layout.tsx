@@ -108,6 +108,10 @@ function LayoutHost() {
 	const matches = useMatches();
 	const subpageKey: PanelKey | null = skyOpen ? null : deriveUrlPanel(matches);
 	const diveExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Arms body.dive-settled once the 760ms entry transition has finished - the
+	// cue for CSS to drop the per-layer depth blur (see the dive-settled rule in
+	// styles.css: a held blur re-rasters every animating layer every frame).
+	const diveSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	// Ref-tracked scroll progress so onPanelChange does not change identity on
 	// every scroll tick (avoids the stuck-dive-active bug from re-firing close).
 	const scrollProgressRef = useRef(0);
@@ -177,6 +181,12 @@ function LayoutHost() {
 					((rect.left + rect.width / 2) / window.innerWidth) * 100
 				}% ${((rect.top + rect.height / 2) / window.innerHeight) * 100}%`;
 				document.body.classList.add("dive-active");
+				// A fresh dive blurs again: a leftover dive-settled (rapid re-entry
+				// during the exit window) would keep the entry zoom flat.
+				document.body.classList.remove("dive-settled");
+				if (diveSettleTimerRef.current) {
+					clearTimeout(diveSettleTimerRef.current);
+				}
 				diveActiveRef.current = true;
 				const isTrueNight =
 					scrollProgressRef.current >= TRUE_NIGHT_DIVE_THRESHOLD;
@@ -187,6 +197,14 @@ function LayoutHost() {
 					focalDepth: 0.5,
 					blurStrength: blurStrengthFor(isTrueNight, BASE_DIVE_BLUR),
 				});
+				// After the entry transition settles, ease the depth blur out so the
+				// held scene composites unfiltered for the life of the subpage. The
+				// frosted column blurs the scene behind the content anyway; only the
+				// exposed margins sharpen, over the same 760ms curve.
+				diveSettleTimerRef.current = setTimeout(() => {
+					document.body.classList.add("dive-settled");
+					diveSettleTimerRef.current = null;
+				}, DIVE_DURATION_MS);
 			} else {
 				// Close branch: only teardown if a dive is actually live. Scrolling
 				// during the 760ms exit window must NOT restart this path.
@@ -200,10 +218,19 @@ function LayoutHost() {
 				// the mid-recede main-shell (transformed/offscreen) and jumped
 				// --dive-origin, flashing the void edge before settling. Window scroll
 				// is frozen while a subpage is open, so the open origin stays valid.
+				// dive-settled stays on THROUGH the exit: removing it here would pop
+				// the blur back for the zoom-out. The exit simply runs unblurred
+				// (blur was heading to 0 at u=0 anyway); the flag drops with
+				// dive-active below.
+				if (diveSettleTimerRef.current) {
+					clearTimeout(diveSettleTimerRef.current);
+					diveSettleTimerRef.current = null;
+				}
 				setDive((prev) => (prev ? { ...prev, u: 0 } : prev));
 				diveActiveRef.current = false;
 				diveExitTimerRef.current = setTimeout(() => {
 					document.body.classList.remove("dive-active");
+					document.body.classList.remove("dive-settled");
 					setDive(undefined);
 					diveExitTimerRef.current = null;
 				}, DIVE_DURATION_MS);
@@ -215,7 +242,11 @@ function LayoutHost() {
 	useEffect(() => {
 		return () => {
 			if (diveExitTimerRef.current) clearTimeout(diveExitTimerRef.current);
+			if (diveSettleTimerRef.current) {
+				clearTimeout(diveSettleTimerRef.current);
+			}
 			document.body.classList.remove("dive-active");
+			document.body.classList.remove("dive-settled");
 		};
 	}, []);
 

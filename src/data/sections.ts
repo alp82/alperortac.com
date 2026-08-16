@@ -21,6 +21,22 @@ export type PanelKey =
 // can't consume a JS constant.
 export const PANEL_OPEN_CLASS = "panel-open";
 
+// Body class toggled while a COVERING panel is open - one whose surface hides
+// every pixel of the scene and the receded main shell (a fixed, opaque,
+// full-viewport layout instead of the frosted column). CSS keys a carve-out
+// to the #60 keep-the-scene-alive invariant on it: the hidden animations
+// pause, because nothing they paint can be seen and they compete with the
+// panel's own rendering for frame budget (measured in
+// .prototypes/travel-perf.html). Same literal-sync caveat as above.
+export const PANEL_COVERED_CLASS = "panel-covered";
+
+// The covering panels. Today only travel (the fullscreen globe split); any
+// future subpage that abandons the frosted column for a full-viewport
+// surface belongs in here too.
+export const COVERING_PANELS: ReadonlySet<PanelKey> = new Set<PanelKey>([
+	"travel",
+]);
+
 export const PANEL_SIDES: Record<Exclude<PanelKey, "sky">, "left" | "right"> = {
 	career: "left",
 	"early-days": "right",

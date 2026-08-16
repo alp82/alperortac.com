@@ -1,3 +1,4 @@
+import { geoArea, geoCentroid } from "d3-geo";
 import { describe, expect, it } from "vitest";
 import { NEXT_DESTINATION, VISITED_PLACES } from "../../../../data/travel";
 import { loadWorld } from "../worldData";
@@ -68,5 +69,39 @@ describe("worldData loader (#travel-globe-subpage)", () => {
 		const first = loadWorld();
 		const second = loadWorld();
 		expect(first).toBe(second);
+	});
+
+	// TC-WD-09 (memoization is PER DETAIL - 110m is its own chunk + cache)
+	it("keeps separate memo entries for 50m and 110m", () => {
+		expect(loadWorld("110m")).toBe(loadWorld("110m"));
+		expect(loadWorld("110m")).not.toBe(loadWorld("50m"));
+	});
+
+	// TC-WD-10 (the 110m atlas drops Grenada; the synthesized stand-in must
+	// be present for every visited name at BOTH detail levels)
+	it.each(
+		VISITED_PLACES.map((p) => [p.name] as const),
+	)("resolves %s via byName at 110m too", async (name) => {
+		const world = await loadWorld("110m");
+		expect(world.byName.get(name), `Missing country: ${name}`).toBeDefined();
+	});
+
+	// TC-WD-11 (the red-globe regression, pinned): the synthesized square's
+	// ring must enclose the SQUARE, not its spherical complement. The reverse
+	// winding had geoArea ~4pi (the whole planet) and painted every pixel of
+	// the fallback globe crimson - and the antipodal centroid is the same bug
+	// geoCentroid exposes, so both are asserted.
+	it("synthesizes 110m Grenada as a TINY feature centered on St. George's", async () => {
+		const world = await loadWorld("110m");
+		const grenada = world.byName.get("Grenada");
+		expect(grenada).toBeDefined();
+		if (!grenada) return;
+		expect(geoArea(grenada)).toBeLessThan(0.0004);
+		const [lng, lat] = geoCentroid(grenada);
+		expect(lng).toBeCloseTo(-61.7486, 1);
+		expect(lat).toBeCloseTo(12.0564, 1);
+		expect(
+			world.tinyVisited.map((f) => f.properties?.name),
+		).toContain("Grenada");
 	});
 });

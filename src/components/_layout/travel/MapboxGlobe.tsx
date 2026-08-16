@@ -28,6 +28,13 @@ import type { CountryFeature, CountryProps, WorldData } from "./worldData";
  * already handled upstream. Lifecycle is create-in-effect / map.remove() in
  * cleanup (the effect body is the once - no once-ref).
  *
+ * Perf shape (measured via .prototypes/travel-perf.html and an in-app frame
+ * meter, since removed):
+ * the canvas pixelRatio is CAPPED at 1.5 (GPU fill scales with its square),
+ * and the hover cursor comes from one throttled mousemove query instead of
+ * per-layer mouseenter/mouseleave delegation, which hit-tested the 50m
+ * country polygons eight times per pointer move.
+ *
  * Layer/paint setup (tune here): satellite-streets-v12 base + globe projection;
  * a `visited-fill` fill layer (crimson, Japan brighter/higher-opacity via match
  * expressions), a `visited-line` cream stroke, a `tiny-visited` crimson circle
@@ -133,6 +140,35 @@ export default function MapboxGlobe({
 			})),
 		};
 
+		/* Cap the canvas backing resolution at 1.5x. GPU fill cost scales with
+		   the SQUARE of the pixel ratio - on a 2x/3x screen the stage-sized
+		   globe renders 4x/9x the pixels of 1x, for satellite imagery that is
+		   atmosphere-softened at globe zoom anyway. v2 had a `pixelRatio` Map
+		   option; v3 dropped it and reads window.devicePixelRatio LIVE (init and
+		   every resize), so the cap is a scoped getter for the map's lifetime.
+		   Nothing else in this app reads devicePixelRatio (checked), and CSS/
+		   media queries are unaffected by a JS-level override. Restored in the
+		   effect cleanup below. */
+		const dprDesc = Object.getOwnPropertyDescriptor(window, "devicePixelRatio");
+		const realDpr = window.devicePixelRatio || 1;
+		const cappedDpr = Math.min(realDpr, 1.5);
+		if (cappedDpr < realDpr) {
+			Object.defineProperty(window, "devicePixelRatio", {
+				get: () => cappedDpr,
+				configurable: true,
+			});
+		}
+		const restoreDpr = () => {
+			if (cappedDpr >= realDpr) return;
+			if (dprDesc) {
+				Object.defineProperty(window, "devicePixelRatio", dprDesc);
+			} else {
+				// The getter normally lives on the Window prototype; deleting the
+				// own property we installed re-exposes it.
+				delete (window as { devicePixelRatio?: number }).devicePixelRatio;
+			}
+		};
+
 		const map = new mapboxgl.Map({
 			container: mount,
 			style: "mapbox://styles/mapbox/satellite-streets-v12",
@@ -156,11 +192,27 @@ export default function MapboxGlobe({
 			const stop = typeof idx === "number" ? TRAVEL_STOPS[idx] : undefined;
 			if (stop) onSelectStopRef.current(stop);
 		};
-		const onEnter = () => {
-			map.getCanvas().style.cursor = "pointer";
-		};
-		const onLeave = () => {
-			map.getCanvas().style.cursor = "";
+		/* Hover affordance, ONE throttled query. The old shape - delegated
+		   mouseenter/mouseleave per layer - made Mapbox hit-test the 50m country
+		   polygons on EVERY mousemove, once per delegated listener (8 queries
+		   per move). That main-thread cost is exactly what made the globe feel
+		   unresponsive under the pointer. One listener, all four layers in one
+		   query, at most every 80ms, and never while the camera moves (dragging
+		   already shows the grab cursor). */
+		const HOVER_LAYERS = [
+			FILL_LAYER,
+			DOT_LAYER,
+			STOP_DOT_LAYER,
+			STOP_LABEL_LAYER,
+		];
+		let hoverAt = 0;
+		const onHoverMove = (e: mapboxgl.MapMouseEvent) => {
+			if (map.isMoving()) return;
+			const now = performance.now();
+			if (now - hoverAt < 80) return;
+			hoverAt = now;
+			const hit = map.queryRenderedFeatures(e.point, { layers: HOVER_LAYERS });
+			map.getCanvas().style.cursor = hit.length > 0 ? "pointer" : "";
 		};
 
 		let beacon: mapboxgl.Marker | null = null;
@@ -253,17 +305,15 @@ export default function MapboxGlobe({
 				},
 			});
 
-			// Click + hover affordance on the fills, tiny dots, and stop pins.
+			// Clicks stay delegated (one query per click is nothing); hover is
+			// the single throttled listener above.
 			for (const layer of [FILL_LAYER, DOT_LAYER]) {
 				map.on("click", layer, onClick);
-				map.on("mouseenter", layer, onEnter);
-				map.on("mouseleave", layer, onLeave);
 			}
 			for (const layer of [STOP_DOT_LAYER, STOP_LABEL_LAYER]) {
 				map.on("click", layer, onStopClick);
-				map.on("mouseenter", layer, onEnter);
-				map.on("mouseleave", layer, onLeave);
 			}
+			map.on("mousemove", onHoverMove);
 
 			// Japan next-leg beacon - a DOM marker reusing the .travel-beacon CSS
 			// pulse (which already honors prefers-reduced-motion).
@@ -293,6 +343,7 @@ export default function MapboxGlobe({
 			beacon?.remove();
 			// map.remove() tears down all listeners + the WebGL context.
 			map.remove();
+			restoreDpr();
 		};
 	}, [world]);
 

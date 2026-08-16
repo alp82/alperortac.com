@@ -1,9 +1,11 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
 	PANEL_FALLBACK_COLOR,
 	PROJECTS,
 	type Project,
 } from "../../../data/projects";
+import { COVERING_PANELS, PANEL_COVERED_CLASS } from "../../../data/sections";
 import { projectPanelStyle } from "../PanelHost";
 
 // Card-core-only fixture: no test renders the full PanelHost (it needs the
@@ -55,5 +57,25 @@ describe("projectPanelStyle (--panel-bg fallback)", () => {
 				`undefined --panel-bg for project "${p.slug}"`,
 			).toBeDefined();
 		}
+	});
+});
+
+// The #60 carve-out: a covering panel pauses the hidden scene + main shell.
+// PanelHost toggles the class from the JS constant, but the CSS selector is a
+// hand-written literal - this pins the two to the same string, and pins the
+// covering set itself so a new panel key cannot slip in silently unstyled.
+describe("covering panels (#60 carve-out)", () => {
+	const css = readFileSync(
+		new URL("../../../styles.css", import.meta.url),
+		"utf8",
+	);
+
+	it("pauses both the scene and the main shell under the SAME literal PanelHost toggles", () => {
+		expect(css).toContain(`body.${PANEL_COVERED_CLASS} .dive-viewport *`);
+		expect(css).toContain(`body.${PANEL_COVERED_CLASS} .main-shell *`);
+	});
+
+	it("covers exactly the fullscreen subpages - today: travel", () => {
+		expect([...COVERING_PANELS]).toEqual(["travel"]);
 	});
 });

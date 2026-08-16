@@ -1,0 +1,378 @@
+<!doctype html>
+<!--
+  PROTOTYPE - throwaway. Question: on mobile (single column), which treatment
+  keeps career boxes proportional to years worked without stacking collisions?
+  Variants: A collapsed bands + tap expand, B tenure gauge on stacked cards,
+  C giant scale (full content in bands), D proportional width.
+  Switch with the bottom bar, arrow keys, or #v=A..D in the URL.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Career mobile proportion - prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Instrument+Serif:ital@1&family=Archivo:wght@400;700;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --gold: 251, 191, 36;
+    --ink: #0f172a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #060b16;
+    color: #e2e8f0;
+    font-family: "Archivo", system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 110px;
+  }
+  .mono { font-family: "VT323", monospace; }
+
+  .intro { max-width: 560px; text-align: center; margin-bottom: 22px; }
+  .intro h1 {
+    font-size: 15px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgb(var(--gold)); font-family: "VT323", monospace; font-weight: 400;
+  }
+  .intro p { font-size: 12.5px; opacity: 0.65; margin-top: 6px; line-height: 1.5; }
+
+  /* phone frame */
+  .phone {
+    width: 396px; max-width: 100%;
+    height: min(76vh, 780px);
+    border: 3px solid rgba(148, 180, 220, 0.3);
+    border-radius: 26px;
+    background: var(--ink);
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  }
+  .screen {
+    position: absolute; inset: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 22px 14px 60px;
+  }
+  .screen::-webkit-scrollbar { width: 4px; }
+  .screen::-webkit-scrollbar-thumb { background: rgba(148,180,220,0.3); }
+
+  .page-head { margin-bottom: 18px; }
+  .page-head .kicker {
+    font-family: "VT323", monospace; color: rgb(var(--gold));
+    font-size: 15px; letter-spacing: 0.28em; text-transform: uppercase;
+  }
+  .page-head h2 {
+    font-size: 34px; font-weight: 900; text-transform: uppercase;
+    letter-spacing: -0.03em; line-height: 0.9; margin-top: 6px;
+  }
+
+  /* shared card look, matches CareerPanel */
+  .card {
+    background: rgba(255,255,255,0.05);
+    border: 3px solid rgba(255,255,255,0.15);
+    box-shadow: 5px 5px 0 0 rgba(255,255,255,0.12);
+    padding: 14px 14px 12px;
+  }
+  .card .yr { font-family: "VT323", monospace; color: rgb(var(--gold)); font-size: 17px; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .card .role { font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; line-height: 1; margin-bottom: 4px; }
+  .card .co { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.13em; opacity: 0.7; margin-bottom: 8px; }
+  .card .desc { font-size: 12.5px; line-height: 1.55; margin-bottom: 7px; }
+  .card .story { font-family: "Instrument Serif", serif; font-style: italic; font-size: 13.5px; line-height: 1.4; opacity: 0.85; margin-bottom: 9px; }
+  .card .stack { display: flex; flex-wrap: wrap; gap: 5px; list-style: none; }
+  .card .stack li {
+    font-size: 8.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 3px 7px; background: var(--ink); border: 2px solid rgba(255,255,255,0.2);
+  }
+
+  /* axis rail used by A and C */
+  .axis { position: absolute; left: 0; top: 0; bottom: 0; width: 34px; border-right: 1px solid rgba(148,180,220,0.22); }
+  .axis .tick { position: absolute; right: 0; height: 1px; width: 6px; background: rgba(148,180,220,0.3); }
+  .axis .tick.major { width: 11px; background: rgba(var(--gold), 0.6); }
+  .axis .lbl {
+    position: absolute; right: 15px; transform: translateY(-50%);
+    font-family: "VT323", monospace; font-size: 12px; color: #9fb4cd; line-height: 1;
+  }
+
+  /* A: collapsed proportional bands */
+  .band {
+    position: absolute;
+    border: 2px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.05);
+    box-shadow: 3px 3px 0 0 rgba(255,255,255,0.1);
+    overflow: hidden;
+    cursor: pointer;
+    padding: 7px 9px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .band:hover, .band:focus-visible { border-color: rgba(var(--gold), 0.7); background: rgba(var(--gold), 0.07); outline: none; }
+  .band .yr { font-family: "VT323", monospace; color: rgb(var(--gold)); font-size: 13px; letter-spacing: 0.05em; }
+  .band .role { font-size: 12.5px; font-weight: 900; text-transform: uppercase; line-height: 1.05; margin-top: 2px; }
+  .band .co { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.11em; opacity: 0.65; margin-top: 3px; }
+  .band .more { position: absolute; right: 7px; bottom: 5px; font-family: "VT323", monospace; font-size: 12px; color: rgba(var(--gold), 0.8); }
+
+  .overlay {
+    position: absolute; inset: 0; z-index: 5;
+    background: rgba(6, 11, 22, 0.72);
+    display: flex; align-items: center; justify-content: center;
+    padding: 22px;
+    backdrop-filter: blur(2px);
+  }
+  .overlay .card { width: 100%; max-height: 86%; overflow-y: auto; position: relative; background: #101c31; }
+  .overlay .x {
+    position: absolute; top: 8px; right: 10px; border: 0; background: none;
+    color: rgb(var(--gold)); font-family: "VT323", monospace; font-size: 22px; cursor: pointer;
+  }
+
+  /* B: gauge rail */
+  .gcard { display: flex; gap: 0; margin-bottom: 14px; }
+  .gauge { width: 26px; flex: 0 0 26px; position: relative; }
+  .gauge .rail { position: absolute; left: 10px; top: 4px; bottom: 4px; width: 2px; background: rgba(148,180,220,0.15); }
+  .gauge .fill { position: absolute; left: 7px; top: 4px; width: 8px; background: rgb(var(--gold)); box-shadow: 0 0 10px rgba(var(--gold), 0.35); }
+  .gauge .seg { position: absolute; left: 7px; width: 8px; height: 1px; background: var(--ink); }
+  .glabel { font-family: "VT323", monospace; color: rgb(var(--gold)); font-size: 14px; opacity: 0.9; margin-left: 8px; }
+
+  /* D: proportional width */
+  .wrow { margin-bottom: 14px; }
+  .wnote { font-family: "VT323", monospace; font-size: 12px; color: rgba(var(--gold), 0.7); margin-top: 3px; }
+
+  .varnote {
+    margin: 14px auto 0; max-width: 396px; font-size: 11.5px; line-height: 1.55;
+    opacity: 0.6; text-align: center;
+  }
+
+  /* switcher - deliberately not part of the design */
+  .switcher {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 4px;
+    background: #f8fafc; color: #0f172a;
+    border-radius: 999px; padding: 6px 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 50; user-select: none;
+  }
+  .switcher button {
+    border: 0; background: none; font-size: 18px; cursor: pointer;
+    width: 34px; height: 34px; border-radius: 50%; color: #0f172a;
+  }
+  .switcher button:hover { background: rgba(15,23,42,0.08); }
+  .switcher .lab { font-size: 12.5px; font-weight: 700; min-width: 250px; text-align: center; }
+  .switcher .lab small { display: block; font-weight: 400; opacity: 0.6; font-size: 10.5px; }
+</style>
+</head>
+<body>
+  <div class="intro">
+    <h1>Career mobile / proportional boxes</h1>
+    <p>Single column, 396px. Four treatments of "box size = years worked".
+       Tenures overlap in real life (Genius+Spirable, Acama+miobambino), so watch how each variant handles that.</p>
+  </div>
+
+  <div class="phone"><div class="screen" id="screen"></div></div>
+  <div class="varnote" id="varnote"></div>
+
+  <div class="switcher">
+    <button id="prev" aria-label="previous variant">&#8592;</button>
+    <div class="lab" id="lab"></div>
+    <button id="next" aria-label="next variant">&#8594;</button>
+  </div>
+
+<script>
+const DATA = [
+  { year: "Since 2021", start: 2021, end: 2026, role: "Lead Engineer", company: "Genius Sports - London, UK (Remote from DE)",
+    desc: "Dynamic Sports Videos for Programmatic & Social.", stack: ["Python","TypeScript","AWS","Kubernetes"],
+    story: "Technical leadership across data orchestration, live video rendering and internal tooling. People management focused on personal growth and more satisfaction at work." },
+  { year: "2021", start: 2021, end: 2021.8, role: "Lead Frontend Engineer", company: "Spirable - London, UK (Remote from DE)",
+    desc: "Dynamic Ads for Social Media.", stack: ["Python","TypeScript","React","Material UI"] },
+  { year: "2019 - 2021", start: 2019, end: 2021, role: "Lead Frontend Engineer", company: "enercast - Kassel, Germany",
+    desc: "Wind/Solar Energy Forecasts.", stack: ["TypeScript","React","Redux","Highcharts"],
+    story: "Performance optimization for charts with 1M data points at 60fps." },
+  { year: "2013 - 2019", start: 2013, end: 2019, role: "Frontend Engineer", company: "Cisco Systems - Kassel, Germany",
+    desc: "Business SPA for Asset Management.", stack: ["Angular","Vue.js","GraphQL","Highcharts","D3"],
+    story: "Owning a complex frontend app that manages an arbitrary number of business assets." },
+  { year: "2012 - 2013", start: 2012, end: 2013, role: "Frontend Engineer", company: "Joulex - Kassel, Germany",
+    desc: "Energy Management Web Application.", stack: ["Qooxdoo","Play","PostgreSQL"] },
+  { year: "2007 - 2012", start: 2007, end: 2012, role: "Founder", company: "Acama Systems",
+    desc: "Web agency building custom solutions.", stack: ["JavaScript","Java","PHP","MySQL"],
+    story: "Building individual web solutions for customers across the automotive, finance and health sectors." },
+  { year: "2005 - 2009", start: 2005, end: 2009, role: "Web Engineer", company: "miobambino",
+    desc: "E-commerce for children clothes with individual prints.", stack: ["PHP","MySQL","JavaScript","HTML","CSS"] },
+];
+
+const TOP = 2026.6, BOT = 2004.4, SPAN = TOP - BOT;
+const yPct = (yr) => ((TOP - yr) / SPAN) * 100;
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const yrs = (e) => e.end - e.start;
+
+// greedy sub-lane assignment for time-overlapping tenures. Entries are sorted
+// newest first; an entry collides with a lane if it ends after that lane's
+// current start boundary.
+function assignLanes() {
+  const boundary = []; // per lane: the start year of the last placed band
+  return DATA.map((e) => {
+    let l = boundary.findIndex((b) => e.end <= b);
+    if (l === -1) { l = boundary.length; boundary.push(e.start); }
+    else boundary[l] = e.start;
+    return l;
+  });
+}
+
+function fullCard(e, extraCls) {
+  return `<div class="card ${extraCls || ""}">
+    <div class="yr">${esc(e.year)}</div>
+    <div class="role">${esc(e.role)}</div>
+    <div class="co">${esc(e.company)}</div>
+    <p class="desc">${esc(e.desc)}</p>
+    ${e.story ? `<p class="story">${esc(e.story)}</p>` : ""}
+    <ul class="stack">${e.stack.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+  </div>`;
+}
+
+function head(sub) {
+  return `<header class="page-head">
+    <span class="kicker">2005 - today</span>
+    <h2>Work<br/>History</h2>
+  </header>`;
+}
+
+function axisHtml() {
+  let out = "";
+  for (let y = 2005; y <= 2026; y++) {
+    const major = DATA.some((e) => e.start === y);
+    out += `<span class="tick ${major ? "major" : ""}" style="top:${yPct(y).toFixed(2)}%"></span>`;
+    if (major || y === 2026) out += `<span class="lbl" style="top:${yPct(y).toFixed(2)}%">${y}</span>`;
+  }
+  return out;
+}
+
+/* ---- Variant A: collapsed proportional bands, tap to expand ---- */
+function renderA(screen) {
+  const PPY = 62; // px per year; 0.8yr band = ~50px, fits the collapsed header
+  const H = SPAN * PPY;
+  const lane = assignLanes();
+  const maxLane = Math.max(...lane) + 1;
+  let bands = "";
+  DATA.forEach((e, i) => {
+    const l = lane[i];
+    const left = 44 + (l * (100 - 14)) / maxLane; // px offset + lane split
+    const w = maxLane > 1 ? `calc((100% - 48px) / ${maxLane} - 6px)` : "calc(100% - 48px)";
+    bands += `<button class="band" data-i="${i}"
+      style="top:${yPct(e.end).toFixed(2)}%; height:${((yrs(e) / SPAN) * 100).toFixed(2)}%;
+             left:calc(44px + ${(l * 100) / maxLane}% - ${(l * 48) / maxLane}px); width:${w};">
+      <span class="yr">${esc(e.year)}</span>
+      <div class="role">${esc(e.role)}</div>
+      <div class="co">${esc(e.company.split(" - ")[0])}</div>
+      <span class="more">+ open</span>
+    </button>`;
+  });
+  screen.innerHTML = `${head()}
+    <div style="position:relative; height:${H}px;">
+      <div class="axis">${axisHtml()}</div>
+      ${bands}
+    </div>`;
+  screen.querySelectorAll(".band").forEach((b) =>
+    b.addEventListener("click", () => {
+      const e = DATA[+b.dataset.i];
+      const ov = document.createElement("div");
+      ov.className = "overlay";
+      ov.innerHTML = `${fullCard(e)}`;
+      ov.querySelector(".card").insertAdjacentHTML("afterbegin", `<button class="x">&times;</button>`);
+      ov.addEventListener("click", (ev) => { if (ev.target === ov || ev.target.className === "x") ov.remove(); });
+      screen.parentElement.appendChild(ov);
+    }),
+  );
+}
+
+/* ---- Variant B: stacked cards + tenure gauge rail ---- */
+function renderB(screen) {
+  const SCALE = 17; // px per year on the gauge
+  let out = head();
+  DATA.forEach((e) => {
+    const h = yrs(e) * SCALE;
+    let segs = "";
+    for (let k = 1; k < Math.floor(yrs(e)); k++) segs += `<span class="seg" style="top:${4 + k * SCALE}px"></span>`;
+    const n = Math.round(yrs(e) * 10) / 10;
+    out += `<div class="gcard">
+      <div class="gauge"><span class="rail"></span><span class="fill" style="height:${h}px"></span>${segs}</div>
+      <div style="flex:1">${fullCard(e)}
+        <div class="glabel">${n} ${n === 1 ? "yr" : "yrs"} &#9670;</div>
+      </div>
+    </div>`;
+  });
+  screen.innerHTML = out;
+}
+
+/* ---- Variant C: giant scale, full content inside true bands ---- */
+function renderC(screen) {
+  const PPY = 300; // smallest tenure (0.8yr = 240px) must hold a full card
+  const H = SPAN * PPY;
+  const lane = assignLanes();
+  const maxLane = Math.max(...lane) + 1;
+  let bands = "";
+  DATA.forEach((e, i) => {
+    const l = lane[i];
+    const w = maxLane > 1 ? `calc((100% - 48px) / ${maxLane} - 6px)` : "calc(100% - 48px)";
+    bands += `<div style="position:absolute; top:${yPct(e.end).toFixed(2)}%; min-height:${((yrs(e) / SPAN) * 100).toFixed(2)}%;
+        left:calc(44px + ${(l * 100) / maxLane}% - ${(l * 48) / maxLane}px); width:${w};">
+      ${fullCard(e)}
+    </div>`;
+  });
+  screen.innerHTML = `${head()}
+    <div style="position:relative; height:${H}px;">
+      <div class="axis">${axisHtml()}</div>
+      ${bands}
+    </div>`;
+  // stretch each card to fill its band
+  screen.querySelectorAll(".card").forEach((c) => { c.style.minHeight = "100%"; });
+}
+
+/* ---- Variant D: proportional width ---- */
+function renderD(screen) {
+  const MAX = Math.max(...DATA.map(yrs));
+  const FLOOR = 62; // percent floor so text stays readable - this breaks the proportion
+  let out = head();
+  DATA.forEach((e) => {
+    const raw = (yrs(e) / MAX) * 100;
+    const w = Math.max(raw, FLOOR);
+    const floored = raw < FLOOR;
+    out += `<div class="wrow" style="width:${w.toFixed(1)}%">
+      ${fullCard(e)}
+      <div class="wnote">${floored ? `true width ${raw.toFixed(0)}% - floored` : `width = ${raw.toFixed(0)}% of longest tenure`}</div>
+    </div>`;
+  });
+  screen.innerHTML = out;
+}
+
+const VARIANTS = [
+  { key: "A", name: "Collapsed bands + tap expand", note: "Layout stays truly proportional. Bands hold only year, role, company. Overlapping tenures split into sub-lanes, Gantt style. Tap a band for the full card.", render: renderA },
+  { key: "B", name: "Tenure gauge on stacked cards", note: "Cards stack content-sized, no collisions possible. The gold rail on the left is the proportion: same pixel-per-year scale on every card, one notch per year.", render: renderB },
+  { key: "C", name: "Giant scale (honest but long)", note: "Full cards inside true bands. The scale must fit the 0.8-year Spirable card, so the page is ~6600px tall and long tenures are mostly empty. Included for honesty.", render: renderC },
+  { key: "D", name: "Proportional width", note: "Card width = tenure / longest tenure. Short stints need a readability floor, and the floor breaks the proportion (see the notes under the floored cards).", render: renderD },
+];
+
+const screen = document.getElementById("screen");
+const lab = document.getElementById("lab");
+const varnote = document.getElementById("varnote");
+let cur = Math.max(0, VARIANTS.findIndex((v) => v.key === (location.hash.match(/v=([A-D])/) || [])[1]));
+
+function show(i) {
+  cur = (i + VARIANTS.length) % VARIANTS.length;
+  const v = VARIANTS[cur];
+  location.hash = `v=${v.key}`;
+  document.querySelectorAll(".overlay").forEach((o) => o.remove());
+  screen.scrollTop = 0;
+  v.render(screen);
+  lab.innerHTML = `${v.key} - ${v.name}<small>&#8592; &#8594; to cycle &middot; #v=${v.key}</small>`;
+  varnote.textContent = v.note;
+}
+document.getElementById("prev").addEventListener("click", () => show(cur - 1));
+document.getElementById("next").addEventListener("click", () => show(cur + 1));
+window.addEventListener("keydown", (e) => {
+  if (/input|textarea/i.test(document.activeElement.tagName)) return;
+  if (e.key === "ArrowLeft") show(cur - 1);
+  if (e.key === "ArrowRight") show(cur + 1);
+});
+show(cur);
+</script>
+</body>
+</html>

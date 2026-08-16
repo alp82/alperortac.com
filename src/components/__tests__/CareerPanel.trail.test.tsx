@@ -119,14 +119,14 @@ describe("CareerPanel trail", () => {
 		hostWidth = HOST_W;
 	});
 
-	// TC-CPT-01 - with a measurable host, the trail renders dots and one
-	// waypoint diamond per timeline entry
+	// TC-CPT-01 - with a measurable host, the trail renders one waypoint
+	// diamond per timeline entry (the meander line and the card connectors
+	// were removed by design, so diamonds are all the svg holds)
 	it("draws the trail when the host has a width", () => {
 		installLayout();
 		const { container } = render(<CareerPanel onClose={vi.fn()} />);
 		const svg = trailSvg(container);
 
-		expect(countTag(svg, "circle")).toBeGreaterThan(0);
 		expect(countTag(svg, "rect")).toBe(CAREER_TIMELINE.length);
 	});
 
@@ -137,14 +137,13 @@ describe("CareerPanel trail", () => {
 		installLayout();
 		const { container } = render(<CareerPanel onClose={vi.fn()} />);
 		const svg = trailSvg(container);
-		expect(countTag(svg, "circle")).toBe(0);
+		expect(countTag(svg, "rect")).toBe(0);
 
 		// the dialog opens: the host stops being display:none
 		hostWidth = HOST_W;
 		expect(fireResize.length).toBeGreaterThan(0);
 		for (const fire of fireResize) fire();
 
-		expect(countTag(svg, "circle")).toBeGreaterThan(0);
 		expect(countTag(svg, "rect")).toBe(CAREER_TIMELINE.length);
 	});
 

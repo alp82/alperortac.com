@@ -11,10 +11,11 @@
  * TravelGlobe.test.tsx (SvgGlobe reads useReducedMotion via matchMedia).
  */
 
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TRAVEL_STOPS } from "../../../../data/travel";
 import { stubMatchMedia } from "../../../../test/stubMatchMedia";
-import { SvgGlobe } from "../SvgGlobe";
+import { SvgGlobe, type SvgGlobeController } from "../SvgGlobe";
 import type { CountryFeature, WorldData } from "../worldData";
 
 function makeFeature(name: string, coordinates: number[][][]): CountryFeature {
@@ -149,5 +150,66 @@ describe("SvgGlobe (#travel-globe-subpage)", () => {
 		fireEvent.pointerMove(svg, { clientX: 615, clientY: 0, pointerId: 1 });
 
 		expect(dot.getAttribute("display")).toBe("none");
+	});
+
+	// tests-missing:svg-stop-pins
+	it("renders one pin per TRAVEL_STOPS entry, and clicking a visible pin reports the stop", () => {
+		const onSelectStop = vi.fn();
+		const { container } = render(
+			<SvgGlobe
+				world={buildWorld()}
+				onSelect={noop}
+				onSelectStop={onSelectStop}
+				active={true}
+			/>,
+		);
+		const pins = container.querySelectorAll("[data-city]");
+		expect(pins.length).toBe(TRAVEL_STOPS.length);
+
+		// Berlin faces the viewer at the default rotation ([-15, -30] centers
+		// [15, 30], continental Europe).
+		const berlin = container.querySelector(
+			'[data-city="Berlin"]',
+		) as SVGCircleElement;
+		expect(berlin.getAttribute("display")).not.toBe("none");
+		fireEvent.click(berlin);
+		expect(onSelectStop).toHaveBeenCalledTimes(1);
+		expect(onSelectStop).toHaveBeenCalledWith(
+			expect.objectContaining({ city: "Berlin" }),
+		);
+	});
+
+	// tests-missing:svg-manifest-flyto
+	it("the onReady controller's flyTo centers a stop (instant under reduced motion)", () => {
+		stubMatchMedia(true); // prefers-reduced-motion: the flight lands in one hop
+		let ctrl: SvgGlobeController | null = null;
+		const { container } = render(
+			<SvgGlobe
+				world={buildWorld()}
+				onSelect={noop}
+				onReady={(c) => {
+					ctrl = c;
+				}}
+				active={true}
+			/>,
+		);
+		expect(ctrl).not.toBeNull();
+		const bangkok = TRAVEL_STOPS.find((s) => s.city === "Bangkok");
+		expect(bangkok).toBeDefined();
+		if (!bangkok) return;
+		act(() => {
+			ctrl?.flyTo(bangkok.lng, bangkok.lat);
+		});
+		// Centered means the pin projects onto the viewBox center (320, 280).
+		const pin = container.querySelector(
+			'[data-city="Bangkok"]',
+		) as SVGCircleElement;
+		expect(pin.getAttribute("display")).not.toBe("none");
+		expect(Number(pin.getAttribute("cx"))).toBeCloseTo(320, 0);
+		expect(Number(pin.getAttribute("cy"))).toBeCloseTo(280, 0);
+		// The flight also steps the zoom in to FLY_ZOOM (1.6), read off the
+		// perforation ring's radius (R0 * k + 10).
+		const ring = container.querySelector("svg > circle") as SVGCircleElement;
+		expect(Number(ring.getAttribute("r"))).toBeCloseTo(256 * 1.6 + 10, 5);
 	});
 });

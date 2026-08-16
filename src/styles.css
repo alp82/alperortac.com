@@ -224,7 +224,7 @@ html.panel-boot nav {
 }
 
 /* Non-scrolling by design - .panel-surface stays the sole scroll container,
-   keeping --subpage-scroll parallax + the sticky title bound to it. */
+   keeping the sticky title bound to it. */
 .border-glow-inner {
 	display: flex;
 	flex-direction: column;
@@ -331,13 +331,6 @@ body.panel-open .main-shell {
 	--dive-u: 0;
 	/* glide zoom multiplier (DIVE_ZK=4.6, DIVE_PARALLAX=0.8 baked into the calc). */
 	--dive-zoom-mul: 0.85;
-	/* Subtle subpage-scroll parallax. --subpage-scroll is the panel-surface's
-	   scrollTop in px, set on :root by JS on scroll (0 at rest) and inherited
-	   here. The drift is a slow fraction of that scroll on the `translate`
-	   longhand, which composes with each technique's `transform` instead of
-	   replacing it - so the held scene drifts a few px without touching
-	   --dive-u, the technique, or the sky. */
-	translate: 0 calc(var(--subpage-scroll, 0) * -0.02px);
 	transition: transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
 	transform-origin: var(--dive-origin, 50% 50%);
 }
@@ -411,7 +404,21 @@ body.panel-open .main-shell {
    shooting-star stay `running` and advance 1:1 with the wall clock through the
    dive, and the star dots keep painting under the 3D context below. Do not add
    `animation-play-state: paused`, `animation: none`, or `display: none` under
-   body.panel-open or body.dive-active. */
+   body.panel-open or body.dive-active.
+
+   ONE CARVE-OUT: body.panel-covered (below). The invariant's reason is that the
+   scene shows through a frosted column - a COVERING subpage (today: travel's
+   fixed full-viewport split) hides every pixel of it, yet its ~190 animations
+   kept running and competed with the panel's own WebGL globe for frame budget
+   (measured in .prototypes/travel-perf.html; the audit's L3 case). So while a
+   covering panel is open, the scene and the receded main shell PAUSE - never
+   display:none, the layers stay in the tree so the close zoom has its scene the
+   instant the class drops, and the wall-clock animations resume mid-phase with
+   no visible jump. Frosted subpages are untouched. */
+body.panel-covered .dive-viewport *,
+body.panel-covered .main-shell * {
+	animation-play-state: paused !important;
+}
 body.dive-active .dive-viewport {
 	perspective: 1400px;
 	perspective-origin: var(--dive-origin, 50% 50%);
@@ -468,6 +475,23 @@ body.dive-active .dive-layer {
 	transform: scale(var(--layer-scale));
 	filter: blur(var(--blur));
 }
+/* THE SETTLED DIVE DROPS ITS DEPTH BLUR. Measured in
+   .prototypes/subpage-perf.html: the scene keeps animating while a subpage is
+   open (invariant #60), and an animation INSIDE a blurred layer re-rasters
+   that full-viewport layer every frame - the audit's "blur that changes while
+   the layer moves" case (docs/audits/scene-frame-budget.md), held for the
+   whole life of the subpage. This was the main cause of the subpage lag.
+   _layout adds body.dive-settled one DIVE_DURATION_MS after the entry, so the
+   zoom-in keeps its depth-of-field, then the blur eases out on the existing
+   760ms filter transition and the layers return to plain, unfiltered
+   compositing. `none`, not blur(0): a zero blur can still hold the layer on
+   the filtered path. The flag stays on through the exit (blur targets 0 at
+   u=0 anyway) and drops with dive-active. The frosted column blurs the scene
+   behind the content regardless, so only the exposed margins sharpen. */
+body.dive-active.dive-settled .dive-layer {
+	filter: none;
+}
+
 /* Stars + shooting stars are tiny box-shadow dots. ANY transform on this layer
    - even the small per-layer dive scale - drops them entirely in the compositor
    (the large moon survives), and the depth-blur would smear them too. Hold the
@@ -496,9 +520,6 @@ body.dive-active .dive-layer--crisp {
 	body.dive-active .dive-scene {
 		transform: none !important;
 		filter: none !important;
-		/* No scroll-parallax drift under reduced-motion: the landscape holds still
-		   while the subpage scrolls. */
-		translate: none !important;
 	}
 	body.dive-active .dive-scene[data-technique="swoop"],
 	body.dive-active .dive-scene[data-technique="bank-hold"],
@@ -672,18 +693,19 @@ body.panel-open nav {
 	letter-spacing: 0.05em;
 	color: #56697f;
 	transform: translateY(-1px);
-	transition:
-		color 200ms ease,
-		font-size 160ms ease;
+	/* Color only. The now-year's size jump used to transition font-size, which
+	   is a LAYOUT animation - it re-laid-out and repainted the axis inside the
+	   backdrop-filtered column on every year flip, i.e. almost continuously
+	   while scrolling. The size now snaps, which suits the terminal type. */
+	transition: color 200ms ease;
 }
 .coding-yr-tk {
 	display: block;
 	height: 1px;
 	width: 8px;
 	background: rgba(148, 180, 220, 0.28);
-	transition:
-		width 200ms ease,
-		background 200ms ease;
+	/* Background only - width is a layout animation, see .coding-yr-lbl. */
+	transition: background 200ms ease;
 }
 .coding-yr-has .coding-yr-lbl {
 	color: #9fb4cd;
@@ -937,7 +959,9 @@ body.panel-open nav {
 	width: 7px;
 	height: 7px;
 	background: #1e293b;
-	transition: all 240ms ease;
+	transition:
+		background 240ms ease,
+		box-shadow 240ms ease;
 }
 .coding-yrs {
 	font-size: 13px;
@@ -1879,6 +1903,11 @@ body.panel-open nav {
 }
 .travel-globe-svg.dragging {
 	cursor: grabbing;
+}
+/* Drag LOD: the decorative graticule strokes cost per-frame software paint
+   (the SVG fallback serves exactly the GPU-less browsers). See SvgGlobe. */
+.travel-globe-svg.dragging .travel-graticule {
+	display: none;
 }
 /* Mapbox GL satellite globe fills the stage; mapbox manages the canvas size. */
 .travel-globe-mapbox {

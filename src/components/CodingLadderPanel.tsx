@@ -231,22 +231,22 @@ export function CodingLadderPanel({ story, onClose }: CodingLadderPanelProps) {
 		let centers: number[] = [];
 		let leadIn = 0;
 		let firstH = 0;
+		/* Geometry CACHED by layout(). The scroll handler runs every frame, and a
+		   rect read there lands right after the strip transform write - a forced
+		   reflow per frame, which is what made the page lag. The handler must read
+		   nothing from the DOM except surface.scrollTop. */
+		let surfaceH = 0;
+		let fieldOff = 0;
+		/* Mirrors the `year` state so the handler does not enter React per frame. */
+		let shownYear = Number.NaN;
 
-		const winH = () => Math.round(surface.clientHeight * WINDOW_FRAC);
+		const winH = () => Math.round(surfaceH * WINDOW_FRAC);
 		const readPx = () =>
-			mobile
-				? Math.round(winH() / 2)
-				: Math.round(surface.clientHeight * DESK_READ_FRAC);
-		const fieldOffset = () =>
-			field.getBoundingClientRect().top -
-			surface.getBoundingClientRect().top +
-			surface.scrollTop;
-		const scrollLine = () => surface.scrollTop + readPx() - fieldOffset();
+			mobile ? Math.round(winH() / 2) : Math.round(surfaceH * DESK_READ_FRAC);
+		const scrollLine = () => surface.scrollTop + readPx() - fieldOff;
 
-		const stopTop = (i: number) => {
-			const stop = CODING_STOPS[i];
-			return stop ? (stop.year - CODING_Y0) * ppy : 0;
-		};
+		const stopTops = CODING_STOPS.map((stop) => (stop.year - CODING_Y0) * ppy);
+		const stopTop = (i: number) => stopTops[i] ?? 0;
 
 		/*
 		 * Where the first card's CENTRE sits, in viewport pixels, when the page is
@@ -254,7 +254,7 @@ export function CodingLadderPanel({ story, onClose }: CodingLadderPanelProps) {
 		 * fits above the rack sheet.
 		 */
 		const restTop = () => {
-			const headBottom = fieldOffset() - leadIn;
+			const headBottom = fieldOff - leadIn;
 			const want = headBottom + 22 + firstH / 2;
 			return Math.min(want, winH() - firstH / 2 - 12);
 		};
@@ -275,7 +275,7 @@ export function CodingLadderPanel({ story, onClose }: CodingLadderPanelProps) {
 			   leaves. Park it on the line instead and the top of the page has no
 			   card on it at all. */
 			if (line <= stopTop(0)) {
-				const line0 = readPx() - fieldOffset();
+				const line0 = readPx() - fieldOff;
 				const from = firstC + readPx() - restTop();
 				if (line <= line0) return from;
 				const t = smooth(clamp01((line - line0) / (stopTop(0) - line0)));
@@ -308,12 +308,21 @@ export function CodingLadderPanel({ story, onClose }: CodingLadderPanelProps) {
 			return y;
 		};
 
+		/* setState only when the year flips - not once per frame. */
+		const applyYear = () => {
+			const y = yearAtScroll();
+			if (y === shownYear) return;
+			shownYear = y;
+			setYear(y);
+		};
+
 		const layout = () => {
 			/* A closed dialog is display:none, so the mount-time pass usually
 			   measures a zero-width box. Bail and let the ResizeObserver pick the
 			   layout up the moment the dialog is shown. */
 			if (cancelled || host.clientWidth === 0) return;
 			lastWidth = host.clientWidth;
+			surfaceH = surface.clientHeight;
 
 			let lastBottom = 0;
 
@@ -389,15 +398,21 @@ export function CodingLadderPanel({ story, onClose }: CodingLadderPanelProps) {
 				centers = [];
 			}
 			field.style.marginTop = `${leadIn}px`;
+			/* Measure AFTER the margin is in place - the margin moves the field.
+			   This is the one rect read, and it happens per layout, not per frame. */
+			fieldOff =
+				field.getBoundingClientRect().top -
+				surface.getBoundingClientRect().top +
+				surface.scrollTop;
 
 			const last = (CODING_Y1 - CODING_Y0) * ppy;
-			const tail = Math.max(surface.clientHeight - readPx(), 320);
+			const tail = Math.max(surfaceH - readPx(), 320);
 			/* A nudged last card can end below its own tick, so the page has to
 			   reach it. */
 			field.style.height = `${Math.max(last, lastBottom) + tail}px`;
 
 			updateStrip();
-			setYear(yearAtScroll());
+			applyYear();
 		};
 
 		let raf = 0;
@@ -417,7 +432,7 @@ export function CodingLadderPanel({ story, onClose }: CodingLadderPanelProps) {
 				queued = false;
 				if (cancelled) return;
 				updateStrip();
-				setYear(yearAtScroll());
+				applyYear();
 			});
 		};
 		surface.addEventListener("scroll", onScroll, { passive: true });

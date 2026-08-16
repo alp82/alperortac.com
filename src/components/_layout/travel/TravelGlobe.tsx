@@ -19,7 +19,7 @@ import {
 	VISITED_PLACES,
 } from "../../../data/travel";
 import { MemoryCard } from "./MemoryCard";
-import { SvgGlobe } from "./SvgGlobe";
+import { SvgGlobe, type SvgGlobeController } from "./SvgGlobe";
 import { webglAvailable } from "./webglSupport";
 import { loadWorld, type WorldData } from "./worldData";
 
@@ -31,9 +31,10 @@ import { loadWorld, type WorldData } from "./worldData";
  * framed card in a prose column - PersonalPanel renders this instead of the
  * subpage-column for the travel slug.
  *
- * Clicking a manifest city flies the Mapbox camera to it (no-op on the SVG
- * fallback) and opens its memory card; the globe's country fills, tiny-country
- * dots, and the new city pins all open cards too.
+ * Clicking a manifest city flies the camera to it on BOTH renderers (Mapbox
+ * flyTo / the SVG controller's eased rotation) and opens its memory card; the
+ * globe's country fills, tiny-country dots, and the city pins all open cards
+ * too.
  *
  * Loading is gated on the panel's `active` (open) signal, AlbumShelf-style: on
  * the FIRST activation only it kicks off the lazy world load and probes for
@@ -90,10 +91,21 @@ export function TravelGlobe({
 	const invokerRef = useRef<HTMLElement | null>(null);
 	// Live Mapbox map handle (null on the SVG path) for manifest flyTo.
 	const mapRef = useRef<MapboxMap | null>(null);
+	// The SVG fallback's flyTo controller (null on the Mapbox path) - the
+	// manifest drives whichever renderer is up (#37 fly-to parity).
+	const svgCtlRef = useRef<SvgGlobeController | null>(null);
+	const handleSvgReady = useCallback((ctrl: SvgGlobeController) => {
+		svgCtlRef.current = ctrl;
+	}, []);
 
-	const startLoad = useCallback(() => {
+	// Geometry detail follows the renderer: Mapbox tessellates the 50m detail
+	// once on the GPU, the SVG fallback re-projects every vertex per drag frame
+	// and gets the ~10x lighter 110m instead (see worldData.ts). The rare
+	// RendererBoundary crash-fallback hands the 50m world to SvgGlobe - correct,
+	// just heavier than the probed SVG path.
+	const startLoad = useCallback((detail: "50m" | "110m") => {
 		setLoadFailed(false);
-		loadWorld()
+		loadWorld(detail)
 			.then(setWorld)
 			.catch(() => setLoadFailed(true));
 	}, []);
@@ -106,8 +118,9 @@ export function TravelGlobe({
 		if (!active || hasActivatedRef.current) return;
 		hasActivatedRef.current = true;
 		const search = typeof window === "undefined" ? "" : window.location.search;
-		setMode(webglAvailable(search) && MAPBOX_TOKEN ? "mapbox" : "svg");
-		startLoad();
+		const useMapbox = Boolean(webglAvailable(search) && MAPBOX_TOKEN);
+		setMode(useMapbox ? "mapbox" : "svg");
+		startLoad(useMapbox ? "50m" : "110m");
 	}, [active, startLoad]);
 
 	const stashInvoker = () => {
@@ -149,6 +162,7 @@ export function TravelGlobe({
 			zoom: 5.5,
 			duration: 1800,
 		});
+		svgCtlRef.current?.flyTo(stop.lng, stop.lat);
 	};
 
 	const handleClose = () => {
@@ -212,6 +226,8 @@ export function TravelGlobe({
 									<SvgGlobe
 										world={world}
 										onSelect={handleSelect}
+										onSelectStop={handleSelectStop}
+										onReady={handleSvgReady}
 										active={active}
 									/>
 								}
@@ -233,12 +249,21 @@ export function TravelGlobe({
 								</Suspense>
 							</RendererBoundary>
 						) : (
-							<SvgGlobe world={world} onSelect={handleSelect} active={active} />
+							<SvgGlobe
+								world={world}
+								onSelect={handleSelect}
+								onSelectStop={handleSelectStop}
+								onReady={handleSvgReady}
+								active={active}
+							/>
 						)
 					) : loadFailed ? (
 						<div className="travel-loading travel-loading-error">
 							<p>Couldn't load the globe.</p>
-							<button type="button" onClick={startLoad}>
+							<button
+								type="button"
+								onClick={() => startLoad(mode === "mapbox" ? "50m" : "110m")}
+							>
 								Retry
 							</button>
 						</div>

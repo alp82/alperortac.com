@@ -8,6 +8,8 @@ import {
 	type Project,
 } from "../../data/projects";
 import {
+	COVERING_PANELS,
+	PANEL_COVERED_CLASS,
 	PANEL_OPEN_CLASS,
 	PANEL_SIDES,
 	type PanelKey,
@@ -186,6 +188,15 @@ export function PanelHost({
 			}
 		});
 		document.body.classList.toggle(PANEL_OPEN_CLASS, openPanel !== null);
+		// A covering panel hides the scene and the main shell outright, so their
+		// animations pause while it is open (the #60 carve-out - see sections.ts
+		// and the panel-covered rule in styles.css). Toggled with the open state:
+		// the 760ms zoom windows overlap it, but a frozen cloud during a camera
+		// dive is imperceptible, and the resume on close is instant.
+		document.body.classList.toggle(
+			PANEL_COVERED_CLASS,
+			openPanel !== null && COVERING_PANELS.has(openPanel),
+		);
 	}, [openPanel, panelRefs]);
 
 	// Inert the nav and main-shell while a detail panel is open (non-modal) so
@@ -264,30 +275,11 @@ export function PanelHost({
 		return () => document.removeEventListener("keydown", onKeyDown);
 	}, [openPanel, panelRefs]);
 
-	// Subtle scroll-parallax: while a detail panel is open, wire the panel-surface
-	// scroller's scrollTop to a CSS var on :root that the .dive-scene reads for a
-	// gentle drift (see .dive-scene `translate` in styles.css). It does NOT feed
-	// scrollProgress, so the sky/time-of-day stays frozen - only the held scene
-	// drifts. Reduced-motion is honored in CSS (translate pinned to none), so the
-	// var write is inert there; we still reset to 0 on close.
-	useEffect(() => {
-		const root = document.documentElement;
-		if (!openPanel || openPanel === "sky") {
-			root.style.setProperty("--subpage-scroll", "0");
-			return;
-		}
-		const dialog = panelRefs[openPanel].current;
-		if (!dialog) return;
-		const onScroll = () => {
-			root.style.setProperty("--subpage-scroll", String(dialog.scrollTop));
-		};
-		onScroll();
-		dialog.addEventListener("scroll", onScroll, { passive: true });
-		return () => {
-			dialog.removeEventListener("scroll", onScroll);
-			root.style.setProperty("--subpage-scroll", "0");
-		};
-	}, [openPanel, panelRefs]);
+	// NO scroll-parallax on subpages. A subtle drift used to wire the surface's
+	// scrollTop to a scene translate, but the coding page scrolls thousands of
+	// px, which turned "a few px of drift" into the landscape visibly scrolling
+	// away - and every write re-composited the whole animated scene tree. The
+	// held scene stays still while a subpage scrolls.
 
 	useEffect(() => {
 		const cleanups: Array<() => void> = [];
@@ -324,6 +316,7 @@ export function PanelHost({
 		return () => {
 			for (const fn of cleanups) fn();
 			document.body.classList.remove(PANEL_OPEN_CLASS);
+			document.body.classList.remove(PANEL_COVERED_CLASS);
 		};
 	}, [navigate, panelRefs, lastTriggerRef, setSkyOpen]);
 
