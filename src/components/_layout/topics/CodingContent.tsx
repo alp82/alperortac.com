@@ -12,9 +12,9 @@ export function CodingContent({ lastTriggerRef, isNight }: TopicContentProps) {
 	return (
 		<div className="space-y-5">
 			<DiffedParagraphs text={CODING_TEASER} />
-			{/* The self-host stance - shared parts with the subpage's closing
-			    paragraph (CODING_CLOSING, coding.ts). The wrapper class keeps it
-			    out of the teaser-paragraph pins in pr-diff.test.tsx. */}
+			{/* The self-host stance (CODING_CLOSING, coding.ts). The wrapper
+			    class keeps it out of the teaser-paragraph pins in
+			    pr-diff.test.tsx. */}
 			<div className="coding-band-closing">
 				<Paragraph>
 					{CODING_CLOSING.pre}

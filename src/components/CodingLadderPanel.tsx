@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import {
 	ageInYear,
-	CODING_CLOSING,
 	CODING_RAILS,
 	CODING_STOP_YEARS,
 	CODING_STOPS,
@@ -102,26 +101,6 @@ const BAYS: readonly (readonly ToolGroup[])[] = [
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const smooth = (x: number) => x * x * (3 - 2 * x);
-
-/** The self-host stance closing the coding block (CODING_CLOSING, coding.ts),
- * with "serverless horrors" linked. The main page's Coding band renders the
- * same parts through its own primitives. */
-function ClosingParagraph() {
-	return (
-		<p className="coding-op">
-			{CODING_CLOSING.pre}
-			<a
-				href={CODING_CLOSING.link.href}
-				target="_blank"
-				rel="noreferrer"
-				className="coding-oplink"
-			>
-				{CODING_CLOSING.link.label}
-			</a>
-			{CODING_CLOSING.post}
-		</p>
-	);
-}
 
 function StopBody({ stop }: { stop: CodingStop }) {
 	const changes = stop.rack.length + stop.dark.length;
@@ -683,13 +662,6 @@ export function CodingLadderPanel({ story, onClose }: CodingLadderPanelProps) {
 							)}
 						</div>
 
-						{/* The closing paragraph after the timeline. On the phone it
-						    rides the strip below the last card instead. */}
-						{!mobile && (
-							<div className="coding-closing">
-								<ClosingParagraph />
-							</div>
-						)}
 					</div>
 				</div>
 
@@ -705,9 +677,6 @@ export function CodingLadderPanel({ story, onClose }: CodingLadderPanelProps) {
 									<StopBody stop={stop} />
 								</article>
 							))}
-							<article className="coding-prose coding-closing">
-								<ClosingParagraph />
-							</article>
 						</div>
 					</div>
 				)}

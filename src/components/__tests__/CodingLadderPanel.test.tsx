@@ -190,9 +190,8 @@ describe("CodingLadderPanel", () => {
 		const { container } = renderPanel();
 		const strips = container.querySelectorAll(".coding-strip");
 		expect(strips.length).toBe(1);
-		// Every stop's card, plus the CODING_CLOSING article riding the strip.
 		expect(strips[0]?.querySelectorAll(".coding-prose").length).toBe(
-			CODING_STOPS.length + 1,
+			CODING_STOPS.length,
 		);
 	});
 

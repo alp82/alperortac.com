@@ -173,11 +173,9 @@ const STACK_NEW_APP =
 	"When I spin up a new web apps, I usually build it with Tanstack Start, Tailwind and Convex.";
 
 /**
- * The closing paragraph of the coding topic - the self-host stance. Rendered
- * twice from these parts: as the last paragraph of the main page's Coding
- * band, and as the serif closing under the subpage timeline (it used to be
- * the 2022 stop's prose). Split into parts because "serverless horrors" is a
- * link, and a data file cannot hold JSX.
+ * The closing paragraph of the main page's Coding band - the self-host
+ * stance (it used to be the 2022 stop's prose). Split into parts because
+ * "serverless horrors" is a link, and a data file cannot hold JSX.
  */
 export const CODING_CLOSING = {
 	pre: "I self-host as much as I can to avoid ",
@@ -246,7 +244,8 @@ export const CODING_STOPS: CodingStop[] = [
 		dark: ["Redux", "Highcharts"],
 	},
 	/* No prose on purpose: the self-host stance moved to CODING_CLOSING, the
-	   last paragraph of the block. The caption carries the year. */
+	   last paragraph of the main page's Coding band. The caption carries the
+	   year. */
 	{
 		year: 2022,
 		cap: "Bringing it home",

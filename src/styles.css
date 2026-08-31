@@ -1144,33 +1144,6 @@ body.panel-open nav {
 .coding-unit-just {
 	animation: coding-pop 520ms ease-out;
 }
-/* The self-host stance closing the coding block (CODING_CLOSING). Desktop:
-   a full-width block after the shell, aligned with the prose lane. Phone:
-   an extra strip article, so it inherits the card look. */
-.coding-closing {
-	margin-top: 26px;
-	padding-top: 22px;
-	border-top: 1px solid rgba(255, 255, 255, 0.12);
-	margin-left: calc(var(--coding-axis-w) + 30px);
-	max-width: 620px;
-}
-.coding-closing .coding-op {
-	font-size: 19px;
-	margin: 0;
-}
-.coding-oplink {
-	color: var(--coding-gold);
-	text-decoration: underline;
-	text-underline-offset: 3px;
-}
-.coding-oplink:hover {
-	opacity: 0.75;
-}
-.coding-mobile .coding-closing {
-	margin-left: 0;
-	border-top: none;
-	padding-top: 0;
-}
 @keyframes coding-pop {
 	0% {
 		transform: translateX(-4px);
