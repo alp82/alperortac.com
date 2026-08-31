@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import {
 	ageInYear,
+	CODING_CLOSING,
 	CODING_RAILS,
 	CODING_STOP_YEARS,
 	CODING_STOPS,
@@ -17,6 +18,7 @@ import {
 } from "../data/coding";
 import type { Story } from "../data/stories";
 import { SubpageClose } from "./_layout/SubpageClose";
+import { toolIcon } from "./codingIcons";
 import { useIsomorphicLayoutEffect } from "./useIsomorphicLayoutEffect";
 
 export const getStoryPanelTitleId = (slug: string) => `story-${slug}-title`;
@@ -48,7 +50,28 @@ export const getStoryPanelTitleId = (slug: string) => `story-${slug}-title`;
  *
  * The rack is the second half of the page: it shows what was running in the
  * year you are standing in. Side column on desktop, bottom sheet on the phone.
+ *
+ * The rack card carries the Tech Stack hardware chrome inherited from the
+ * retired main-page band: the "Tech Stack" label with the pwr/net/dsk LED
+ * strip in the head, tech icons on every rail, and a thin ethernet-ports
+ * footer with two patched cables. Delicate-strip treatment locked in
+ * .prototypes/coding-subpage-rack-chrome.html (variant C).
  */
+
+/** The head LED strip: pwr steady green, net blinking gold, dsk dim - fixed
+ * hardware chrome, same order as the retired server-rack band frame. */
+const RACK_LEDS = ["pwr", "net", "dsk"] as const;
+
+/** The ports footer: 6 RJ45 jacks, two patched (gold + green cables) - fixed
+ * positions by design. */
+const RACK_PORTS: readonly ("net" | "green" | null)[] = [
+	null,
+	"net",
+	null,
+	null,
+	"green",
+	null,
+];
 
 /* Pixels per year. The two mechanics take separate steps - see the note above. */
 const PPY_DESKTOP = 150;
@@ -79,6 +102,26 @@ const BAYS: readonly (readonly ToolGroup[])[] = [
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const smooth = (x: number) => x * x * (3 - 2 * x);
+
+/** The self-host stance closing the coding block (CODING_CLOSING, coding.ts),
+ * with "serverless horrors" linked. The main page's Coding band renders the
+ * same parts through its own primitives. */
+function ClosingParagraph() {
+	return (
+		<p className="coding-op">
+			{CODING_CLOSING.pre}
+			<a
+				href={CODING_CLOSING.link.href}
+				target="_blank"
+				rel="noreferrer"
+				className="coding-oplink"
+			>
+				{CODING_CLOSING.link.label}
+			</a>
+			{CODING_CLOSING.post}
+		</p>
+	);
+}
 
 function StopBody({ stop }: { stop: CodingStop }) {
 	const changes = stop.rack.length + stop.dark.length;
@@ -140,9 +183,12 @@ function Rail({
 				{units.map((unit) => {
 					const state = unitStateAt(unit, year);
 					if (state === "empty") return null;
+					const Icon = toolIcon(unit.name);
 					return (
 						<li key={unit.name} className={unitRowClass(unit, year)}>
-							<span className="coding-led" aria-hidden="true" />
+							<span className="coding-ico" aria-hidden="true">
+								<Icon className="coding-ico-svg" />
+							</span>
 							<span className="coding-nm">{unit.name}</span>
 							<span className="coding-yrs">{unitYears(unit)}</span>
 							<span className="sr-only">
@@ -588,16 +634,62 @@ export function CodingLadderPanel({ story, onClose }: CodingLadderPanelProps) {
 							{!mobile && (
 								<aside className="coding-rack">
 									<div className="coding-rack-head">
-										<span>The rack</span>
+										<span className="coding-rack-label">Tech Stack</span>
 										<span className="coding-rack-now">{year}</span>
+										<span className="coding-rack-leds" aria-hidden="true">
+											{RACK_LEDS.map((led) => (
+												<span key={led} className="coding-rled-group">
+													<span className={`coding-rled coding-rled--${led}`} />
+													<span className="coding-rled-lbl">{led}</span>
+												</span>
+											))}
+										</span>
 									</div>
-									<Rails year={year} />
-									<div className="coding-rack-count">
-										<b>{counts.live}</b> running · {counts.dark} dark
+									<div className="coding-rack-bay">
+										<Rails year={year} />
+									</div>
+									{/* One footer row: the running count on the left, the
+									    decorative patch strip on the right. */}
+									<div className="coding-ports">
+										<span className="coding-rack-count">
+											<b>{counts.live}</b> running
+										</span>
+										<span className="coding-ports-row" aria-hidden="true">
+											{RACK_PORTS.map((plug, i) => (
+												<span
+													// biome-ignore lint/suspicious/noArrayIndexKey: fixed decorative port row
+													key={i}
+													className="coding-jack"
+												>
+													<span className="coding-jack-pins" />
+													{plug && (
+														<>
+															<span
+																className={`coding-plug coding-plug--${plug}`}
+															/>
+															<span
+																className={`coding-cable coding-cable--${plug}`}
+															/>
+															<span
+																className={`coding-link coding-link--${plug}`}
+															/>
+														</>
+													)}
+												</span>
+											))}
+										</span>
 									</div>
 								</aside>
 							)}
 						</div>
+
+						{/* The closing paragraph after the timeline. On the phone it
+						    rides the strip below the last card instead. */}
+						{!mobile && (
+							<div className="coding-closing">
+								<ClosingParagraph />
+							</div>
+						)}
 					</div>
 				</div>
 
@@ -613,6 +705,9 @@ export function CodingLadderPanel({ story, onClose }: CodingLadderPanelProps) {
 									<StopBody stop={stop} />
 								</article>
 							))}
+							<article className="coding-prose coding-closing">
+								<ClosingParagraph />
+							</article>
 						</div>
 					</div>
 				)}

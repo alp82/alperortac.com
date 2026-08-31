@@ -21,7 +21,6 @@ const LAYOUT_BY_TOPIC: Record<
 	coding: "accent-bar",
 	career: "full-bleed",
 	ai: "stamped",
-	"tech-stack": "accent-bar",
 	finance: "accent-bar",
 	"movies-tv": "full-bleed",
 	family: "accent-bar",

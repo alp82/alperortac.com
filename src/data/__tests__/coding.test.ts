@@ -148,8 +148,9 @@ describe("coding - prose sources", () => {
 
 	// TC-CD-13
 	it("never writes prose for the page - a stop with no source stays bare", () => {
+		// 2022 went bare when its self-host prose moved to CODING_CLOSING.
 		const bare = CODING_STOPS.filter((s) => s.beats.length === 0);
-		expect(bare.map((s) => s.year)).toEqual([2009, 2016, 2024]);
+		expect(bare.map((s) => s.year)).toEqual([2009, 2016, 2022, 2024]);
 		for (const stop of bare) expect(stop.op).toBeUndefined();
 	});
 

@@ -937,12 +937,9 @@ describe("Wayfinder #13 (tech-stack candidates) - INNER_ORDER grows to 22", () =
 		}
 	});
 
-	// This build IS the HITL lock this pin was guarding for - Tech Stack is
-	// now honestly locked to server-rack (picked on the live walk, midnight
-	// finish), no longer the parallax-depth seed.
-	it("IDENTITIES.tech-stack is locked to server-rack", () => {
-		expect(IDENTITIES["tech-stack"].inner.id).toBe("server-rack");
-	});
+	// The tech-stack band (and its server-rack lock) retired with its topic -
+	// the coding subpage rack carries the chrome now. The five candidate
+	// frames stay in the catalog, pinned by the INNER_ORDER tests above.
 });
 
 describe("tech-stack candidate inners render through TopicComposition", () => {

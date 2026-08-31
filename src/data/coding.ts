@@ -13,9 +13,10 @@ import { STORY_BY_SLUG } from "./stories";
  *     and age all derived, so the two can never drift apart).
  *   - The seven job stops read their beats off `career.ts` (desc, then the
  *     highlight story where the entry carries one).
- *   - The last four stops quote `CODING_TEASER` (topics.ts) and
- *     `TechStackContent.tsx`. Those two are plain strings in JSX, so the quotes
- *     are literals here and a drift test pins them against the source.
+ *   - The last stops quote `CODING_TEASER` (topics.ts, pinned by a drift
+ *     test) and the STACK_* lines below. The STACK_* lines came over verbatim
+ *     from the retired Tech Stack band (TechStackContent.tsx) and are
+ *     canonical HERE now - this file is their only source.
  * Three stops carry a caption and a rack change but no prose, because no source
  * text covers them yet. They read fine - a caption IS the entry for its year.
  *
@@ -165,13 +166,24 @@ const TEASER_PRACTICES =
 const TEASER_CRAFT =
 	"The art of crafting an elegant solution to a complex problem just makes me happy. A good session is when I'm fully locked in and ship a new version at the end.";
 
-/* Verbatim from TechStackContent.tsx. Pinned by test. */
-const STACK_SELFHOST =
-	"I self-host as much as I can to avoid serverless horrors (serverlesshorrors.com).";
+/* Canonical here since the Tech Stack band retired (see the prose rule). */
 const STACK_HETZNER =
 	"Hetzner Cloud is the best compromise between cost, performance and value.";
 const STACK_NEW_APP =
 	"When I spin up a new web apps, I usually build it with Tanstack Start, Tailwind and Convex.";
+
+/**
+ * The closing paragraph of the coding topic - the self-host stance. Rendered
+ * twice from these parts: as the last paragraph of the main page's Coding
+ * band, and as the serif closing under the subpage timeline (it used to be
+ * the 2022 stop's prose). Split into parts because "serverless horrors" is a
+ * link, and a data file cannot hold JSX.
+ */
+export const CODING_CLOSING = {
+	pre: "I self-host as much as I can to avoid ",
+	link: { label: "serverless horrors", href: "https://serverlesshorrors.com" },
+	post: `. ${STACK_HETZNER}`,
+} as const;
 
 export const CODING_STOPS: CodingStop[] = [
 	...EARLY_STOPS,
@@ -233,11 +245,12 @@ export const CODING_STOPS: CodingStop[] = [
 		rack: ["Python", "AWS", "Kubernetes"],
 		dark: ["Redux", "Highcharts"],
 	},
+	/* No prose on purpose: the self-host stance moved to CODING_CLOSING, the
+	   last paragraph of the block. The caption carries the year. */
 	{
 		year: 2022,
 		cap: "Bringing it home",
-		beats: [STACK_SELFHOST],
-		op: STACK_HETZNER,
+		beats: [],
 		rack: ["Hetzner", "Coolify", "MongoDB", "Redis"],
 		dark: [],
 	},

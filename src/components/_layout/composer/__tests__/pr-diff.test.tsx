@@ -679,7 +679,9 @@ describe("PROSE - CodingContent renders through DiffedParagraphs (Milestone 3 wi
 		cleanup();
 
 		const { container: direct } = renderCodingContentDirect();
+		// The CODING_CLOSING paragraph is not teaser prose - exclude it.
 		const directParagraphHtml = Array.from(direct.querySelectorAll("p"))
+			.filter((p) => !p.closest(".coding-band-closing"))
 			.map((p) => p.outerHTML)
 			.join("");
 		expect(directParagraphHtml).toBe(paragraphHtml);
@@ -722,8 +724,11 @@ describe("PROSE - CodingContent renders through DiffedParagraphs (Milestone 3 wi
 		// scope to the teaser's own paragraph shells (Paragraph renders <p>),
 		// not the whole card - the card also carries chrome text (branch
 		// chip, state badge, number, stage labels) that CODING_TEASER never
-		// contained.
-		const paragraphs = Array.from(container.querySelectorAll("p"));
+		// contained. The CODING_CLOSING paragraph is not teaser prose either -
+		// exclude it.
+		const paragraphs = Array.from(container.querySelectorAll("p")).filter(
+			(p) => !p.closest(".coding-band-closing"),
+		);
 		expect(paragraphs.length).toBeGreaterThan(0);
 		// each <p> is a separate paragraph shell (no whitespace text node
 		// BETWEEN sibling <p> elements, mirroring the original "\n\n" split) -

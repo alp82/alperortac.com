@@ -34,13 +34,12 @@ import { INNERS } from "../index";
 import { countDiffChars, statSquares } from "../pr-diff";
 import type { InnerId, InnerRenderProps } from "../types";
 
-/* "tech-stack" is TopicId's own hyphenated id (TC-TM-3/TC-TM-4's edge case:
+/* "movies-tv" is TopicId's own hyphenated id (TC-TM-3/TC-TM-4's edge case:
  * prove no hyphen->underscore transform is applied), reused here purely as a
- * render fixture - unrelated to the reserved tech-stack/circuit-board frame
- * (plan v2's Out of Scope). */
+ * render fixture. */
 const topic: Topic = {
-	id: "tech-stack",
-	heading: "Tech Stack",
+	id: "movies-tv",
+	heading: "Movies Tv",
 	teaser: "ignored",
 	triggers: [],
 };
@@ -151,13 +150,13 @@ describe("TM - Terminal restyle", () => {
 	it("TC-TM-3: the content pane's first line renders alp@site:~/topics/<id> using the raw hyphenated id verbatim", () => {
 		const { container } = renderFrame("terminal");
 		expect(container.textContent ?? "").toContain(
-			"alp@site:~/topics/tech-stack",
+			"alp@site:~/topics/movies-tv",
 		);
 	});
 
 	it("TC-TM-4: the content pane's second line renders ❯ cat <id>.md using the raw id (no hyphen→underscore transform)", () => {
 		const { container } = renderFrame("terminal");
-		expect(container.textContent ?? "").toContain("cat tech-stack.md");
+		expect(container.textContent ?? "").toContain("cat movies-tv.md");
 	});
 
 	it("TC-TM-5: the heading renders at display scale (text-2xl/md:text-4xl) in accent color, not the prior body-sized class", () => {
@@ -1050,15 +1049,15 @@ describe("MP - Man Page", () => {
 	it("TC-MP-2 (edge case, load-bearing): a mixed-case heading fixture is UPPERCASED on both sides of the header line, proving a real transform", () => {
 		const mixedTopic: Topic = {
 			...topic,
-			id: "tech-stack",
-			heading: "Tech Stack",
+			id: "movies-tv",
+			heading: "Movies Tv",
 		};
 		const { container } = renderFrame("man-page", { topic: mixedTopic });
 		const line = container.querySelector(".manpage-header-line");
 		expect(line?.textContent).toBe(
-			"TECH STACK(1)   User Commands   TECH STACK(1)",
+			"MOVIES TV(1)   User Commands   MOVIES TV(1)",
 		);
-		expect(line?.textContent ?? "").not.toContain("Tech Stack(1)");
+		expect(line?.textContent ?? "").not.toContain("Movies Tv(1)");
 	});
 
 	it("TC-MP-3: a NAME eyebrow renders above the heading rendered big/mono/bold as the name line", () => {

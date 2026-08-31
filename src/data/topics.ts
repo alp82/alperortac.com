@@ -17,7 +17,6 @@ export type TopicId =
 	| "coding"
 	| "career"
 	| "ai"
-	| "tech-stack"
 	| "finance"
 	| "family"
 	| "travel"
@@ -125,12 +124,6 @@ export const TOPICS: Topic[] = [
 				{ strike: "add 10 more tickets to the backlog", anchor: "ship a new version" },
 			],
 		},
-	},
-	{
-		id: "tech-stack",
-		heading: "Tech Stack",
-		// Prose lives in src/components/_layout/topics/TechStackContent.tsx.
-		triggers: [],
 	},
 	{
 		id: "ai",

@@ -657,7 +657,7 @@ body.panel-open nav {
 	display: grid;
 	gap: 40px;
 	align-items: start;
-	grid-template-columns: minmax(0, 1fr) 236px;
+	grid-template-columns: minmax(0, 1fr) 300px;
 }
 .coding-mobile .coding-shell {
 	display: block;
@@ -883,29 +883,177 @@ body.panel-open nav {
 	margin-top: var(--coding-card-gap);
 }
 
-/* ---- the rack ---- */
+/* ---- the rack ----
+   Delicate-strip Tech Stack chrome (locked in
+   .prototypes/coding-subpage-rack-chrome.html, variant C): hairline card,
+   a slim head strip with the label + LED bank + year, the scrolling bay,
+   and a thin ethernet-ports footer. No metal plate - the chrome stays
+   atmospheric, never content-crowding. */
 .coding-rack {
-	border: 3px solid rgba(255, 255, 255, 0.16);
+	border: 1px solid rgba(255, 255, 255, 0.14);
 	background: rgba(8, 14, 26, 0.72);
-	padding: 12px 12px 10px;
 	position: sticky;
 	/* Clears the fixed Back / Close header band the subpages share. */
 	top: 76px;
 	max-height: calc(100vh - 96px);
-	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 }
 .coding-rack-head {
+	flex: 0 0 auto;
 	display: flex;
-	align-items: baseline;
+	align-items: center;
 	justify-content: space-between;
-	font-family: var(--coding-mono);
-	font-size: 16px;
-	letter-spacing: 0.16em;
-	text-transform: uppercase;
-	color: #9fb4cd;
+	gap: 14px;
+	padding: 10px 16px 9px;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-	padding-bottom: 7px;
-	margin-bottom: 9px;
+	font-family: var(--coding-mono);
+	text-transform: uppercase;
+}
+.coding-rack-label {
+	font-size: 20px;
+	letter-spacing: 0.08em;
+	color: #dbe4f3;
+}
+.coding-rack-bay {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 9px 16px 10px;
+}
+/* The head LED strip: pwr steady green, net blinking gold, dsk dim. */
+.coding-rack-leds {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+}
+.coding-rled-group {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 3px;
+}
+.coding-rled {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+.coding-rled--pwr {
+	background: #22c55e;
+	box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
+}
+.coding-rled--net {
+	background: var(--coding-gold);
+	box-shadow: 0 0 6px rgba(251, 191, 36, 0.75);
+	animation: coding-net-blink 2.2s steps(1, end) infinite;
+}
+.coding-rled--dsk {
+	background: rgba(219, 228, 243, 0.28);
+}
+@keyframes coding-net-blink {
+	0%,
+	64%,
+	78%,
+	100% {
+		opacity: 1;
+	}
+	70%,
+	86% {
+		opacity: 0.25;
+	}
+}
+.coding-rled-lbl {
+	font-size: 10px;
+	letter-spacing: 0.14em;
+	color: rgba(219, 228, 243, 0.55);
+}
+/* The footer row: running count on the left, the recessed patch strip on
+   the right (decorative, aria-hidden), two cables dropping out of frame. */
+.coding-ports {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 7px 16px;
+	border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.coding-ports-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+.coding-jack {
+	position: relative;
+	display: inline-block;
+	width: 18px;
+	height: 14px;
+	border-radius: 3px;
+	background: rgba(0, 0, 0, 0.45);
+	box-shadow:
+		inset 0 1px 3px rgba(0, 0, 0, 0.55),
+		0 1px 0 rgba(219, 228, 243, 0.12);
+}
+.coding-jack-pins {
+	position: absolute;
+	top: 2px;
+	left: 4px;
+	right: 4px;
+	height: 2px;
+	background: repeating-linear-gradient(
+		to right,
+		#b8860b 0 1.5px,
+		transparent 1.5px 3.5px
+	);
+}
+.coding-plug {
+	position: absolute;
+	inset: 3px 3px 0;
+	border-radius: 2px 2px 0 0;
+}
+.coding-plug--net {
+	background: rgba(200, 153, 29, 0.9);
+}
+.coding-plug--green {
+	background: rgba(22, 128, 61, 0.9);
+}
+.coding-cable {
+	position: absolute;
+	top: 11px;
+	left: 50%;
+	width: 4px;
+	height: 26px;
+	margin-left: -2px;
+	border-radius: 0 0 3px 3px;
+}
+.coding-cable--net {
+	background: rgba(176, 134, 25, 0.8);
+}
+.coding-cable--green {
+	background: rgba(19, 109, 52, 0.8);
+}
+.coding-link {
+	position: absolute;
+	top: -3px;
+	right: -2px;
+	width: 4px;
+	height: 4px;
+	border-radius: 50%;
+}
+.coding-link--net {
+	background: var(--coding-gold);
+	box-shadow: 0 0 4px rgba(251, 191, 36, 0.75);
+	animation: coding-net-blink 1.6s steps(1, end) infinite;
+	animation-delay: 0.3s;
+}
+.coding-link--green {
+	background: #22c55e;
+	box-shadow: 0 0 4px rgba(34, 197, 94, 0.7);
+	animation: coding-net-blink 1.6s steps(1, end) infinite;
+	animation-delay: 0.85s;
 }
 .coding-rack-now {
 	color: var(--coding-gold);
@@ -917,9 +1065,6 @@ body.panel-open nav {
 	font-size: 15px;
 	letter-spacing: 0.08em;
 	color: #64748b;
-	margin-top: 8px;
-	border-top: 1px solid rgba(255, 255, 255, 0.1);
-	padding-top: 7px;
 }
 .coding-rack-count b {
 	color: var(--coding-gold);
@@ -944,10 +1089,10 @@ body.panel-open nav {
 }
 .coding-unit {
 	display: grid;
-	grid-template-columns: 9px minmax(0, 1fr) auto;
+	grid-template-columns: 18px minmax(0, 1fr) auto;
 	align-items: center;
 	gap: 7px;
-	height: 18px;
+	height: 20px;
 	font-family: var(--coding-mono);
 	font-size: 15px;
 	letter-spacing: 0.02em;
@@ -955,13 +1100,25 @@ body.panel-open nav {
 		color 240ms ease,
 		opacity 240ms ease;
 }
-.coding-led {
-	width: 7px;
-	height: 7px;
-	background: #1e293b;
+/* Icon-forward rails: the tool's mark carries the live/dark state, no
+   per-rail LED (the head strip already says "live"). */
+.coding-ico {
+	width: 15px;
+	height: 15px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: inherit;
+	opacity: 0.9;
 	transition:
-		background 240ms ease,
-		box-shadow 240ms ease;
+		color 240ms ease,
+		opacity 240ms ease,
+		filter 240ms ease;
+}
+.coding-ico-svg {
+	width: 100%;
+	height: 100%;
+	display: block;
 }
 .coding-yrs {
 	font-size: 13px;
@@ -970,9 +1127,9 @@ body.panel-open nav {
 .coding-unit-live {
 	color: #fde68a;
 }
-.coding-unit-live .coding-led {
-	background: var(--coding-gold);
-	box-shadow: 0 0 7px 1px rgba(251, 191, 36, 0.75);
+.coding-unit-live .coding-ico {
+	color: var(--coding-gold);
+	filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.55));
 }
 .coding-unit-dark {
 	color: #5b6d84;
@@ -981,11 +1138,38 @@ body.panel-open nav {
 	text-decoration: line-through;
 	text-decoration-color: rgba(91, 109, 132, 0.6);
 }
-.coding-unit-dark .coding-led {
-	background: rgba(51, 65, 85, 0.5);
+.coding-unit-dark .coding-ico {
+	opacity: 0.45;
 }
 .coding-unit-just {
 	animation: coding-pop 520ms ease-out;
+}
+/* The self-host stance closing the coding block (CODING_CLOSING). Desktop:
+   a full-width block after the shell, aligned with the prose lane. Phone:
+   an extra strip article, so it inherits the card look. */
+.coding-closing {
+	margin-top: 26px;
+	padding-top: 22px;
+	border-top: 1px solid rgba(255, 255, 255, 0.12);
+	margin-left: calc(var(--coding-axis-w) + 30px);
+	max-width: 620px;
+}
+.coding-closing .coding-op {
+	font-size: 19px;
+	margin: 0;
+}
+.coding-oplink {
+	color: var(--coding-gold);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.coding-oplink:hover {
+	opacity: 0.75;
+}
+.coding-mobile .coding-closing {
+	margin-left: 0;
+	border-top: none;
+	padding-top: 0;
 }
 @keyframes coding-pop {
 	0% {
@@ -1092,7 +1276,7 @@ body.panel-open nav {
 @media (prefers-reduced-motion: reduce) {
 	.coding-card,
 	.coding-unit,
-	.coding-led,
+	.coding-ico,
 	.coding-yr,
 	.coding-yr-lbl,
 	.coding-yr-tk,
@@ -1101,6 +1285,11 @@ body.panel-open nav {
 		transition: none;
 	}
 	.coding-unit-just {
+		animation: none;
+	}
+	.coding-rled--net,
+	.coding-link--net,
+	.coding-link--green {
 		animation: none;
 	}
 }

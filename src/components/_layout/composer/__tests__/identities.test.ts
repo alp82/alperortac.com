@@ -64,13 +64,6 @@ const CODING_LOCK = {
 	params: { density: "roomy", checks: true, state: "merged" },
 };
 
-/** Tech Stack's locked identity (wayfinder #13) - the third topic that
- * diverges from the shared parallax-depth seed. */
-const TECH_STACK_LOCK = {
-	id: "server-rack" as const,
-	params: { density: "roomy", leds: true, finish: "midnight" },
-};
-
 /** AI's locked identity (wayfinder #14) - the fourth topic that diverges
  * from the shared parallax-depth seed: the violet agent-console with the
  * chat elements merged in, picked on the live walk (aurora was picked
@@ -142,7 +135,7 @@ const MUSIC_LOCK = {
 
 const NON_CAREER_TOPICS = TOPICS.filter((t) => t.id !== "career");
 
-/** The seed list: every topic except the ten locks - EMPTY since the music
+/** The seed list: every topic except the nine locks - EMPTY since the music
  * lock (wayfinder #20) closed the seed era. Kept (with TC-LOCK-4/5 asserting
  * emptiness) so an eleventh topic added without a registry lock decision
  * trips a test instead of silently shipping on the seed. */
@@ -150,7 +143,6 @@ const NON_LOCKED_TOPICS = TOPICS.filter(
 	(t) =>
 		t.id !== "career" &&
 		t.id !== "coding" &&
-		t.id !== "tech-stack" &&
 		t.id !== "ai" &&
 		t.id !== "finance" &&
 		t.id !== "family" &&
@@ -167,17 +159,17 @@ describe("IDENTITIES registry coverage (TC-A1, TC-A2)", () => {
 		}
 	});
 
-	it("has no extra keys beyond the ten Craft-band topic ids", () => {
+	it("has no extra keys beyond the nine Craft-band topic ids", () => {
 		const topicIds = new Set(TOPICS.map((t) => t.id));
 		const keys = Object.keys(IDENTITIES);
-		expect(keys.length).toBe(10);
+		expect(keys.length).toBe(9);
 		for (const key of keys) {
 			expect(topicIds.has(key as TopicId)).toBe(true);
 		}
 	});
 });
 
-describe("ten divergent locks: career is nameplate, coding is pull-request, tech-stack is server-rack, ai is agent-console, finance is ticker-tape, family is polaroid, travel is ticket-stub, movies-tv is streaming-billboard, games is quest-log, music is festival-poster - the seed era is over (TC-B1-B5, TC-LOCK-1-6)", () => {
+describe("nine divergent locks: career is nameplate, coding is pull-request, ai is agent-console, finance is ticker-tape, family is polaroid, travel is ticket-stub, movies-tv is streaming-billboard, games is quest-log, music is festival-poster - the seed era is over (TC-B1-B5, TC-LOCK-1-6; the tech-stack/server-rack lock retired with its band)", () => {
 	it("TC-B1: career's inner deep-equals the exact nameplate lock, no extra keys", () => {
 		expect(IDENTITIES.career.inner).toEqual(CAREER_LOCK);
 		expect(Object.keys(IDENTITIES.career.inner)).toEqual(
@@ -215,32 +207,6 @@ describe("ten divergent locks: career is nameplate, coding is pull-request, tech
 
 	it("TC-LOCK-3: coding's params carry no depth/shape/layers keys (not a parallax-depth cluster)", () => {
 		const params = IDENTITIES.coding.inner.params as Record<string, unknown>;
-		expect(params).not.toHaveProperty("depth");
-		expect(params).not.toHaveProperty("shape");
-		expect(params).not.toHaveProperty("layers");
-	});
-
-	it("TC-TS-1: tech-stack's inner deep-equals the exact server-rack lock, no extra keys", () => {
-		expect(IDENTITIES["tech-stack"].inner).toEqual(TECH_STACK_LOCK);
-		expect(Object.keys(IDENTITIES["tech-stack"].inner)).toEqual(
-			Object.keys(TECH_STACK_LOCK),
-		);
-		expect(Object.keys(IDENTITIES["tech-stack"].inner.params)).toEqual(
-			Object.keys(TECH_STACK_LOCK.params),
-		);
-	});
-
-	it("TC-TS-2: tech-stack's media note is the verbatim lock string", () => {
-		expect(IDENTITIES["tech-stack"].media).toBe(
-			"none - the rack chrome is the visual",
-		);
-	});
-
-	it("TC-TS-3: tech-stack's params carry no depth/shape/layers keys (not a parallax-depth cluster)", () => {
-		const params = IDENTITIES["tech-stack"].inner.params as Record<
-			string,
-			unknown
-		>;
 		expect(params).not.toHaveProperty("depth");
 		expect(params).not.toHaveProperty("shape");
 		expect(params).not.toHaveProperty("layers");

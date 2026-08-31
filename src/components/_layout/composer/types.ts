@@ -551,7 +551,6 @@ export const TOPIC_ACCENT: Record<TopicId, string> = {
 	coding: "#a7f3d0",
 	career: "#cbd5e1",
 	ai: "#bfdbfe",
-	"tech-stack": "#e0e7ff",
 	finance: "#d9f99d",
 	"movies-tv": "#fecaca",
 	family: "#fecdd3",

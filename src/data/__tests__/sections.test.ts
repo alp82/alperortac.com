@@ -48,11 +48,10 @@ describe("sections topology", () => {
 		for (const slug of used) expect(PANEL_SIDES).toHaveProperty(slug);
 	});
 
-	it("TOPICS preserves the locked 10-topic order", () => {
+	it("TOPICS preserves the locked 9-topic order", () => {
 		expect(TOPICS.map((t) => t.id)).toEqual([
 			"career",
 			"coding",
-			"tech-stack",
 			"ai",
 			"finance",
 			"family",

@@ -7,10 +7,12 @@ import type { InnerId, InnerParamsMap } from "./types";
  * One row per Craft-band topic pins that topic's inner frame (id + params)
  * plus a media treatment note. Per-topic tickets edited exactly one row here
  * to give each topic its own locked look - career (nameplate), coding
- * (pull-request), tech-stack (server-rack), ai (agent-console), finance
- * (ticker-tape), family (polaroid), travel (ticket-stub), movies-tv
- * (streaming-billboard), games (quest-log) and music (festival-poster): all
- * ten are locked, the shared parallax-depth seed era is over. Every row is a
+ * (pull-request), ai (agent-console), finance (ticker-tape), family
+ * (polaroid), travel (ticket-stub), movies-tv (streaming-billboard), games
+ * (quest-log) and music (festival-poster): all nine are locked, the shared
+ * parallax-depth seed era is over. The tech-stack band (server-rack) retired
+ * with its topic - the coding subpage rack carries its chrome now, and the
+ * server-rack inner stays in the catalog. Every row is a
  * literal (no spreads of INNERS[...].defaults) so each stays independently
  * hand-editable, and the file holds only static literals - SSR-deterministic,
  * no runtime deps.
@@ -37,13 +39,6 @@ export const IDENTITIES = {
 			params: { density: "roomy", checks: true, state: "merged" },
 		},
 		media: "none - the PR card is the visual",
-	},
-	"tech-stack": {
-		inner: {
-			id: "server-rack",
-			params: { density: "roomy", leds: true, finish: "midnight" },
-		},
-		media: "none - the rack chrome is the visual",
 	},
 	ai: {
 		inner: {

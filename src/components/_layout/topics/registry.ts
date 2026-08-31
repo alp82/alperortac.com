@@ -9,7 +9,6 @@ import { GamesContent } from "./GamesContent";
 import { MoviesTvContent } from "./MoviesTvContent";
 import { MusicContent } from "./MusicContent";
 import type { TopicContentProps } from "./primitives";
-import { TechStackContent } from "./TechStackContent";
 import { TravelContent } from "./TravelContent";
 
 /*
@@ -23,7 +22,6 @@ export const TOPIC_CONTENTS: Partial<
 	coding: CodingContent,
 	career: CareerContent,
 	ai: AIContent,
-	"tech-stack": TechStackContent,
 	finance: FinanceContent,
 	family: FamilyContent,
 	travel: TravelContent,
