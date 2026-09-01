@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { PANEL_OPEN_CLASS } from "../../data/sections";
 import { NIGHT_UI_THRESHOLD, sectionProgressAt } from "../../data/skyCurve";
 
@@ -15,10 +15,17 @@ import { NIGHT_UI_THRESHOLD, sectionProgressAt } from "../../data/skyCurve";
  * flow, so this is intentional.
  */
 
+// The atmosphere toy's time-slice override recolours the WHOLE sky at once, so
+// while it's active every section shares one night phase. LayoutHost provides
+// that phase here (null = no override -> each section keeps its frozen
+// mount-time measure). Clearing the override falls back to the measured phase.
+export const NightOverrideContext = createContext<boolean | null>(null);
+
 export function useSectionNightPhase(
 	ref: React.RefObject<HTMLElement | null>,
 	enabled = true,
 ): boolean {
+	const override = useContext(NightOverrideContext);
 	const [night, setNight] = useState(false);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: ref.current is read once on mount and never swaps; the ref attaches before effects run.
 	useEffect(() => {
@@ -67,7 +74,7 @@ export function useSectionNightPhase(
 			cancelled = true;
 		};
 	}, [enabled]);
-	return night;
+	return override ?? night;
 }
 
 export function AccentUnderline({

@@ -216,6 +216,13 @@ describe("celestial + sky values", () => {
 		if (!build) throw new Error("WORDS[0] missing");
 		expect(v.words[0]?.o).toBeCloseTo(zoneOpacity(0.1, build.zone), 10);
 	});
+
+	it("keeps the minimap window on raw scroll while the sky follows the slice", () => {
+		// The window marks where the viewport is on the page; a time-slice
+		// override recolours the sky but must not move the window.
+		const v = computeJourney(input({ rawProgress: 0.1, skyProgress: 0.9 }));
+		expect(v.mm.topPct).toBeCloseTo(0.1 * (1 - M.viewportRatio) * 100, 10);
+	});
 });
 
 describe("minimap indicator", () => {

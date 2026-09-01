@@ -344,12 +344,15 @@ export type JourneyValues = {
 export type JourneyInput = {
 	/**
 	 * Sky-facing progress: raw scroll progress after the atmosphere toy's
-	 * time-slice override. Drives the sky, the celestial bodies, the clouds, the
-	 * landscape fade and the whole minimap - matching what these components were
-	 * passed before (`scrollProgress={skyProgress}`).
+	 * time-slice override. Drives the sky, the celestial bodies, the clouds,
+	 * the landscape fade and the minimap's live-colour band.
 	 */
 	skyProgress: number;
-	/** Raw scroll progress. The watermark is the only consumer. */
+	/**
+	 * Raw scroll progress. Consumed by the watermark and the minimap window
+	 * position: the window marks where the VIEWPORT is on the page, so a
+	 * time-slice override must not move it.
+	 */
 	rawProgress: number;
 	scrollY: number;
 	metrics: Metrics;
@@ -388,7 +391,7 @@ export function computeJourney({
 		(skyProgress - phase2Start) / Math.max(phase2End - phase2Start, 0.001),
 	);
 
-	const topPct = skyProgress * (1 - m.viewportRatio) * 100;
+	const topPct = rawProgress * (1 - m.viewportRatio) * 100;
 	const hPct = viewportHeightPctFor(m);
 
 	// Ridge composites feed two consumers: the ridge fills themselves and the

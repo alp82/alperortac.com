@@ -53,7 +53,7 @@ function SunsetUnderline() {
 // anywhere else closes it - never pinned by mouse click.
 // Card copy is aria-hidden and wired via aria-describedby so line 1's visible
 // text stays exactly HERO_SUMMARY[0].
-function TermGloss({ def }: { def: HeroTerm }) {
+function TermGloss({ def, night }: { def: HeroTerm; night: boolean }) {
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLButtonElement>(null);
 	const tipId = useId();
@@ -82,7 +82,7 @@ function TermGloss({ def }: { def: HeroTerm }) {
 			data-term={def.term}
 			aria-describedby={tipId}
 			onClick={handleClick}
-			className="group relative inline cursor-help border-0 bg-transparent p-0 [font:inherit] [letter-spacing:inherit] text-inherit underline decoration-dashed decoration-2 decoration-slate-900/70 underline-offset-[5px] outline-none"
+			className={`group relative inline cursor-help border-0 bg-transparent p-0 [font:inherit] [letter-spacing:inherit] text-inherit underline decoration-dashed decoration-2 underline-offset-[5px] outline-none ${night ? "decoration-white/70" : "decoration-slate-900/70"}`}
 		>
 			{def.term}
 			<span
@@ -102,31 +102,33 @@ function TermGloss({ def }: { def: HeroTerm }) {
 
 // Split line 1 on the HERO_TERMS phrases so each gets a TermGloss; plain text
 // segments pass through untouched. A term missing from the line is skipped.
-function renderLineOne(line: string): ReactNode[] {
+function renderLineOne(line: string, night: boolean): ReactNode[] {
 	const nodes: ReactNode[] = [];
 	let rest = line;
 	for (const def of HERO_TERMS) {
 		const at = rest.indexOf(def.term);
 		if (at === -1) continue;
 		nodes.push(rest.slice(0, at));
-		nodes.push(<TermGloss key={def.term} def={def} />);
+		nodes.push(<TermGloss key={def.term} def={def} night={night} />);
 		rest = rest.slice(at + def.term.length);
 	}
 	nodes.push(rest);
 	return nodes;
 }
 
-export function HeroSubtitle() {
+export function HeroSubtitle({ night = false }: { night?: boolean }) {
 	const [lineOne = "", lineTwo = ""] = HERO_SUMMARY;
 	const [beforeWord, afterWord] = lineTwo.split(SERIF_WORD);
 	return (
-		<div className="hero-type mx-auto mt-12 flex w-fit flex-col items-center gap-y-4 sm:gap-y-5 tracking-[0.04em] text-[#0a0a0a] text-xl sm:text-2xl md:text-3xl text-center">
+		<div
+			className={`hero-type mx-auto mt-12 flex w-fit flex-col items-center gap-y-4 sm:gap-y-5 tracking-[0.04em] text-xl sm:text-2xl md:text-3xl text-center ${night ? "text-slate-100" : "text-[#0a0a0a]"}`}
+		>
 			<div className="my-8 flex flex-col gap-6">
 				<p
 					data-line={1}
 					className="max-w-[760px] mb-8 font-bold text-2xl sm:text-3xl md:text-4xl"
 				>
-					{renderLineOne(lineOne)}
+					{renderLineOne(lineOne, night)}
 				</p>
 				<p data-line={2} className="max-w-[815px] px-12 font-medium">
 					{beforeWord}
@@ -148,7 +150,7 @@ export function HeroSubtitle() {
 
 			<a
 				href={`#${SECTION_IDS.findMe}`}
-				className="mt-12 inline-flex flex-col items-center gap-1 text-sm sm:text-base font-medium text-slate-700 transition opacity-90 hover:opacity-100"
+				className={`mt-12 inline-flex flex-col items-center gap-1 text-sm sm:text-base font-medium transition opacity-90 hover:opacity-100 ${night ? "text-slate-300" : "text-slate-700"}`}
 			>
 				{HERO_CTA}
 				<ChevronDown

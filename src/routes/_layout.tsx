@@ -31,6 +31,7 @@ import {
 	usePlayground,
 } from "../components/_layout/playground/AtmosphereToy";
 import { RhythmGap } from "../components/_layout/RhythmGap";
+import { NightOverrideContext } from "../components/_layout/SectionTitle";
 import { useScrollJourney } from "../components/_layout/scrollJourney/useScrollJourney";
 import { Minimap } from "../components/Minimap";
 import { NarrativeWatermark } from "../components/NarrativeWatermark";
@@ -381,218 +382,224 @@ function LayoutHost() {
 	const aboutItemClass = `block px-4 py-2 text-sm font-black uppercase tracking-widest transition-colors ${isNight ? "hover:bg-white hover:text-slate-900" : "hover:bg-slate-900 hover:text-white"}`;
 
 	return (
-		<div className="font-sans text-slate-900 selection:bg-yellow-200">
-			<PixelBackground
-				journey={journey}
-				dive={dive}
-				sunColor={paletteVisuals.sun}
-				extras={playground.extras}
-			/>
-			<NarrativeWatermark
-				journey={journey}
-				override={subpageKey ? SUBPAGE_WORDS[subpageKey] : undefined}
-				isNight={isNight}
-			/>
-			{subpageKey === null && (
-				<Minimap
+		// While the toy's time-slice override is active the whole sky shares one
+		// phase, so every section's frozen mount-time night measure is overridden
+		// with the live one (null = no override, keep the frozen measure).
+		<NightOverrideContext.Provider
+			value={playground.time != null ? isNight : null}
+		>
+			<div className="font-sans text-slate-900 selection:bg-yellow-200">
+				<PixelBackground
 					journey={journey}
-					celestial={celestial}
-					anchors={paletteAnchors}
+					dive={dive}
+					sunColor={paletteVisuals.sun}
+					extras={playground.extras}
 				/>
-			)}
+				<NarrativeWatermark
+					journey={journey}
+					override={subpageKey ? SUBPAGE_WORDS[subpageKey] : undefined}
+					isNight={isNight}
+				/>
+				{subpageKey === null && (
+					<Minimap
+						journey={journey}
+						celestial={celestial}
+						anchors={paletteAnchors}
+					/>
+				)}
 
-			{/* Dev authoring tools - dev servers only. The visitor-facing Atmosphere
+				{/* Dev authoring tools - dev servers only. The visitor-facing Atmosphere
 			    toy replaces them in production; here Tune stacks above the Design
 			    selector in the bottom-right dev cluster so both clear the toy dial
 			    (bottom-left) and the minimap (md:right-24). */}
-			{import.meta.env.DEV && (
-				<button
-					type="button"
-					onClick={() => setSceneOpen(true)}
-					aria-label="Author the scene schedule"
-					className="fixed bottom-36 right-4 md:right-24 z-50 bg-slate-900 text-white min-h-[44px] px-3 py-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.4)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform"
-				>
-					Scene
-				</button>
-			)}
+				{import.meta.env.DEV && (
+					<button
+						type="button"
+						onClick={() => setSceneOpen(true)}
+						aria-label="Author the scene schedule"
+						className="fixed bottom-36 right-4 md:right-24 z-50 bg-slate-900 text-white min-h-[44px] px-3 py-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.4)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform"
+					>
+						Scene
+					</button>
+				)}
 
-			{import.meta.env.DEV && (
-				<button
-					type="button"
-					onClick={(e) => {
-						lastTriggerRef.current = e.currentTarget;
-						setSkyOpen(true);
-					}}
-					aria-label="Tune sky animation"
-					className="fixed bottom-20 right-4 md:right-24 z-50 bg-slate-900 text-white min-h-[44px] px-3 py-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.4)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform"
-				>
-					Tune ☀ ☾
-				</button>
-			)}
+				{import.meta.env.DEV && (
+					<button
+						type="button"
+						onClick={(e) => {
+							lastTriggerRef.current = e.currentTarget;
+							setSkyOpen(true);
+						}}
+						aria-label="Tune sky animation"
+						className="fixed bottom-20 right-4 md:right-24 z-50 bg-slate-900 text-white min-h-[44px] px-3 py-3 border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.4)] font-black uppercase text-xs tracking-widest hover:-translate-y-0.5 transition-transform"
+					>
+						Tune ☀ ☾
+					</button>
+				)}
 
-			{import.meta.env.DEV && (
-				<DesignModeHost
-					lastTriggerRef={lastTriggerRef}
-					onComposer={setDesignComposer}
-				/>
-			)}
-
-			{import.meta.env.DEV && sceneOpen && (
-				<SceneAuthoringPanel
-					journey={journey}
-					celestial={celestial}
-					sliceFor={sliceFor}
-					onClose={() => setSceneOpen(false)}
-				/>
-			)}
-
-			<nav
-				ref={navRef}
-				className="fixed top-0 left-0 right-0 md:right-20 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-sm bg-white/10 border-b border-white/20"
-			>
-				<a
-					href="/"
-					onClick={handleScrollTopClick}
-					className="text-xl font-black tracking-tighter uppercase flex items-center gap-2 drop-shadow-md transition-colors duration-100 hover:opacity-70"
-					style={{ color: navColor }}
-				>
-					<img
-						src="/alper-avatar-64.webp"
-						alt=""
-						aria-hidden="true"
-						width={32}
-						height={32}
-						className="w-8 h-8 rounded-full border-2 border-slate-900 object-cover shrink-0"
+				{import.meta.env.DEV && (
+					<DesignModeHost
+						lastTriggerRef={lastTriggerRef}
+						onComposer={setDesignComposer}
 					/>
-					Alper Ortac
-				</a>
-				<div
-					className="hidden md:flex gap-8 font-bold text-sm uppercase tracking-widest drop-shadow-sm transition-colors duration-100 items-center"
-					style={{ color: navColor }}
+				)}
+
+				{import.meta.env.DEV && sceneOpen && (
+					<SceneAuthoringPanel
+						journey={journey}
+						celestial={celestial}
+						sliceFor={sliceFor}
+						onClose={() => setSceneOpen(false)}
+					/>
+				)}
+
+				<nav
+					ref={navRef}
+					className="fixed top-0 left-0 right-0 md:right-20 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-sm bg-white/10 border-b border-white/20"
 				>
 					<a
 						href="/"
 						onClick={handleScrollTopClick}
-						className="hover:opacity-70 transition-colors"
+						className="text-xl font-black tracking-tighter uppercase flex items-center gap-2 drop-shadow-md transition-colors duration-100 hover:opacity-70"
+						style={{ color: navColor }}
 					>
-						Start
+						<img
+							src="/alper-avatar-64.webp"
+							alt=""
+							aria-hidden="true"
+							width={32}
+							height={32}
+							className="w-8 h-8 rounded-full border-2 border-slate-900 object-cover shrink-0"
+						/>
+						Alper Ortac
 					</a>
-					<div className="relative" ref={aboutMenuRef}>
-						<button
-							type="button"
-							id="about-menu-trigger"
-							onClick={() => setAboutOpen((v) => !v)}
-							aria-expanded={aboutOpen}
-							aria-controls="about-menu"
-							className="hover:opacity-70 transition-colors uppercase tracking-widest font-bold text-sm flex items-center gap-1"
+					<div
+						className="hidden md:flex gap-8 font-bold text-sm uppercase tracking-widest drop-shadow-sm transition-colors duration-100 items-center"
+						style={{ color: navColor }}
+					>
+						<a
+							href="/"
+							onClick={handleScrollTopClick}
+							className="hover:opacity-70 transition-colors"
 						>
-							About Me
-							<ChevronDown
-								size={14}
-								strokeWidth={3}
-								className={`transition-transform duration-150 ${aboutOpen ? "rotate-180" : ""}`}
-								aria-hidden="true"
-							/>
-						</button>
-						{aboutOpen && (
-							<div
-								id="about-menu"
-								role="menu"
-								aria-labelledby="about-menu-trigger"
-								className={`absolute top-full right-0 mt-2 min-w-[220px] border-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.25)] py-2 ${isNight ? "bg-slate-900 border-white text-white" : "bg-white border-slate-900 text-slate-900"}`}
+							Start
+						</a>
+						<div className="relative" ref={aboutMenuRef}>
+							<button
+								type="button"
+								id="about-menu-trigger"
+								onClick={() => setAboutOpen((v) => !v)}
+								aria-expanded={aboutOpen}
+								aria-controls="about-menu"
+								className="hover:opacity-70 transition-colors uppercase tracking-widest font-bold text-sm flex items-center gap-1"
 							>
-								<a
-									href={`#${SECTION_IDS.findMe}`}
-									onClick={() => setAboutOpen(false)}
-									className={aboutItemClass}
+								About Me
+								<ChevronDown
+									size={14}
+									strokeWidth={3}
+									className={`transition-transform duration-150 ${aboutOpen ? "rotate-180" : ""}`}
+									aria-hidden="true"
+								/>
+							</button>
+							{aboutOpen && (
+								<div
+									id="about-menu"
+									role="menu"
+									aria-labelledby="about-menu-trigger"
+									className={`absolute top-full right-0 mt-2 min-w-[220px] border-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.25)] py-2 ${isNight ? "bg-slate-900 border-white text-white" : "bg-white border-slate-900 text-slate-900"}`}
 								>
-									Socials
-								</a>
-								<a
-									href={`#${SECTION_IDS.projects}`}
-									onClick={() => setAboutOpen(false)}
-									className={aboutItemClass}
-								>
-									Projects
-								</a>
-								{TOPICS.map((topic) => (
 									<a
-										key={topic.id}
-										href={`#${topic.id}`}
+										href={`#${SECTION_IDS.findMe}`}
 										onClick={() => setAboutOpen(false)}
 										className={aboutItemClass}
 									>
-										{topic.heading}
+										Socials
 									</a>
-								))}
-							</div>
-						)}
+									<a
+										href={`#${SECTION_IDS.projects}`}
+										onClick={() => setAboutOpen(false)}
+										className={aboutItemClass}
+									>
+										Projects
+									</a>
+									{TOPICS.map((topic) => (
+										<a
+											key={topic.id}
+											href={`#${topic.id}`}
+											onClick={() => setAboutOpen(false)}
+											className={aboutItemClass}
+										>
+											{topic.heading}
+										</a>
+									))}
+								</div>
+							)}
+						</div>
+						<a
+							href={`#${SECTION_IDS.contact}`}
+							className="hover:opacity-70 transition-colors"
+						>
+							Contact
+						</a>
 					</div>
-					<a
-						href={`#${SECTION_IDS.contact}`}
-						className="hover:opacity-70 transition-colors"
-					>
-						Contact
-					</a>
-				</div>
-				<div className="flex items-center gap-4">
-					<a
-						href={`#${SECTION_IDS.findMe}`}
-						className={`p-2 px-4 font-bold text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] duration-100 ${isNight ? "bg-white text-slate-900 hover:bg-slate-200" : "bg-slate-900 text-white hover:bg-slate-800"}`}
-					>
-						Follow Me
-					</a>
-				</div>
-			</nav>
+					<div className="flex items-center gap-4">
+						<a
+							href={`#${SECTION_IDS.findMe}`}
+							className={`p-2 px-4 font-bold text-sm transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] duration-100 ${isNight ? "bg-white text-slate-900 hover:bg-slate-200" : "bg-slate-900 text-white hover:bg-slate-800"}`}
+						>
+							Follow Me
+						</a>
+					</div>
+				</nav>
 
-			<div
-				ref={mainShellRef}
-				className={`main-shell min-h-screen md:pr-20${subpageKey ? " main-shell--subpage" : ""}`}
-			>
-				<HeroSection />
-				<RhythmGap gapVh={celestial.gapVh} />
-				<FindMeSection />
-				<RhythmGap gapVh={celestial.gapVh} />
-				<ProjectsSection lastTriggerRef={lastTriggerRef} />
-				<RhythmGap gapVh={celestial.gapVh} />
-				<CraftSection
+				<div
+					ref={mainShellRef}
+					className={`main-shell min-h-screen md:pr-20${subpageKey ? " main-shell--subpage" : ""}`}
+				>
+					<HeroSection />
+					<RhythmGap gapVh={celestial.gapVh} />
+					<FindMeSection />
+					<RhythmGap gapVh={celestial.gapVh} />
+					<ProjectsSection lastTriggerRef={lastTriggerRef} />
+					<RhythmGap gapVh={celestial.gapVh} />
+					<CraftSection
+						lastTriggerRef={lastTriggerRef}
+						isNight={isNight}
+						composer={designComposer}
+						gapVh={celestial.gapVh}
+					/>
+					<RhythmGap gapVh={celestial.gapVh} />
+					<FooterSection />
+				</div>
+
+				<PanelHost
+					skyOpen={skyOpen}
+					setSkyOpen={setSkyOpen}
+					celestial={celestial}
+					setCelestial={setCelestial}
 					lastTriggerRef={lastTriggerRef}
-					isNight={isNight}
-					composer={designComposer}
-					gapVh={celestial.gapVh}
+					onPanelChange={onPanelChange}
+					navRef={navRef}
+					mainShellRef={mainShellRef}
 				/>
-				<RhythmGap gapVh={celestial.gapVh} />
-				<FooterSection />
-			</div>
 
-			<PanelHost
-				skyOpen={skyOpen}
-				setSkyOpen={setSkyOpen}
-				celestial={celestial}
-				setCelestial={setCelestial}
-				lastTriggerRef={lastTriggerRef}
-				onPanelChange={onPanelChange}
-				navRef={navRef}
-				mainShellRef={mainShellRef}
-			/>
+				{/* The always-on atmospheric-playground toy (visitor sky toy). */}
+				<AtmosphereToy
+					playground={playground}
+					api={playgroundApi}
+					live={skyProgress}
+					isNight={isNight}
+				/>
 
-			{/* The always-on atmospheric-playground toy (visitor sky toy). */}
-			<AtmosphereToy
-				playground={playground}
-				api={playgroundApi}
-				live={skyProgress}
-				isNight={isNight}
-			/>
+				{/* Outlet must be rendered so child routes are matched by useMatches; children render null */}
+				<div style={{ display: "none" }} aria-hidden="true">
+					<Outlet />
+				</div>
 
-			{/* Outlet must be rendered so child routes are matched by useMatches; children render null */}
-			<div style={{ display: "none" }} aria-hidden="true">
-				<Outlet />
-			</div>
-
-			<style
-				// biome-ignore lint/security/noDangerouslySetInnerHtml: scoped keyframes for pixel ambient animations
-				dangerouslySetInnerHTML={{
-					__html: `
+				<style
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: scoped keyframes for pixel ambient animations
+					dangerouslySetInnerHTML={{
+						__html: `
 						/* Instant by default so cold entry (fresh load / reload landing
 						   on a #anchor or subpage) and back/forward restoration jump
 						   straight to the target with no visible travel. In-app clicks
@@ -804,8 +811,9 @@ function LayoutHost() {
 							.firefly-layer { display: none; }
 						}
 					`,
-				}}
-			/>
-		</div>
+					}}
+				/>
+			</div>
+		</NightOverrideContext.Provider>
 	);
 }
