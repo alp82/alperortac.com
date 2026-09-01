@@ -33,7 +33,12 @@ function MinimapInner({
 	journey,
 }: MinimapProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
-	const isDraggingRef = useRef(false);
+	const indicatorRef = useRef<HTMLDivElement>(null);
+	// "jump": press outside the window - the scroll follows the pointer
+	// absolutely. "thumb": press inside the window - it acts as a drag handle
+	// and only moves once the pointer does, keeping its grab offset.
+	const dragModeRef = useRef<"jump" | "thumb" | null>(null);
+	const thumbOffsetRef = useRef(0);
 	const [grabbing, setGrabbing] = useState(false);
 
 	useJourneyRepaint(journey);
@@ -67,20 +72,43 @@ function MinimapInner({
 		window.scrollTo({ top: target, behavior: "instant" as ScrollBehavior });
 	};
 
+	// Thumb drag: place the window's top so the grabbed point stays under the
+	// pointer. The window travels containerH - thumbH px over the full scroll
+	// range (journeyValues: topPx = progress * (1 - viewportRatio) * H).
+	const scrollThumbTo = (clientY: number) => {
+		const el = containerRef.current;
+		const ind = indicatorRef.current;
+		if (!el || !ind) return;
+		const rect = el.getBoundingClientRect();
+		const travel = rect.height - ind.getBoundingClientRect().height;
+		if (travel <= 0) return;
+		const top = clientY - thumbOffsetRef.current - rect.top;
+		const ratio = Math.min(Math.max(top / travel, 0), 1);
+		const target =
+			ratio * (document.documentElement.scrollHeight - window.innerHeight);
+		window.scrollTo({ top: target, behavior: "instant" as ScrollBehavior });
+	};
+
 	const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-		isDraggingRef.current = true;
 		setGrabbing(true);
 		e.currentTarget.setPointerCapture(e.pointerId);
-		scrollToY(e.clientY);
+		const indRect = indicatorRef.current?.getBoundingClientRect();
+		if (indRect && e.clientY >= indRect.top && e.clientY <= indRect.bottom) {
+			dragModeRef.current = "thumb";
+			thumbOffsetRef.current = e.clientY - indRect.top;
+		} else {
+			dragModeRef.current = "jump";
+			scrollToY(e.clientY);
+		}
 	};
 
 	const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-		if (!isDraggingRef.current) return;
-		scrollToY(e.clientY);
+		if (dragModeRef.current === "jump") scrollToY(e.clientY);
+		else if (dragModeRef.current === "thumb") scrollThumbTo(e.clientY);
 	};
 
 	const stopDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-		isDraggingRef.current = false;
+		dragModeRef.current = null;
 		setGrabbing(false);
 		if (e.currentTarget.hasPointerCapture(e.pointerId)) {
 			e.currentTarget.releasePointerCapture(e.pointerId);
@@ -169,6 +197,7 @@ function MinimapInner({
 			{/* the indicator frame */}
 			<div
 				ref={(el) => {
+					indicatorRef.current = el;
 					if (journey) journey.targets.mmInd = el;
 				}}
 				className="absolute left-0 right-0 border-y-2 border-white/20 pointer-events-none"
